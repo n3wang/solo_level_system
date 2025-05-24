@@ -6,7 +6,6 @@ import 'package:solo_level_system/utils/image_utils.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:flutter/foundation.dart';
-
 import 'package:solo_level_system/widgets/audio_player.dart';
 import 'package:solo_level_system/widgets/audio_recorder.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
@@ -29,13 +28,13 @@ class _HomeScreenState extends State<HomeScreen> {
   String logStateMessage = "State: ";
   bool allowMusic = true;
   int countCompletedToday = 0;
+  bool canSubmitLog = false;
+  String? imagePath;
 
   final _bgPlayer = ap.AudioPlayer();
-  void _playLofi() async {
-    if (_bgPlayer.state == ap.PlayerState.playing) {
-      await _bgPlayer.stop();
-    }
 
+  void _playLofi() async {
+    if (_bgPlayer.state == ap.PlayerState.playing) await _bgPlayer.stop();
     if (!allowMusic) return;
 
     List<String> lofiPlaylist = [
@@ -44,12 +43,11 @@ class _HomeScreenState extends State<HomeScreen> {
       'lofi/lofi-3.mp3',
       'lofi/lofi-4.mp3',
     ];
-
-    int randomIndex =
-        DateTime.now().millisecondsSinceEpoch % lofiPlaylist.length;
-    String randomLofi = lofiPlaylist[randomIndex];
+    String track =
+        lofiPlaylist[DateTime.now().millisecondsSinceEpoch %
+            lofiPlaylist.length];
     await _bgPlayer.setReleaseMode(ap.ReleaseMode.loop);
-    await _bgPlayer.play(ap.AssetSource(randomLofi));
+    await _bgPlayer.play(ap.AssetSource(track));
   }
 
   void _stopLofi() async {
@@ -64,16 +62,11 @@ class _HomeScreenState extends State<HomeScreen> {
         _stopLofi();
         timer.cancel();
         if (!onBreak) {
-          saveSession();
           setState(() {
-            onBreak = true;
-            remainingSeconds = breakMinutes * 60;
-            logStateMessage = "State: Break";
+            isRunning = false;
+            canSubmitLog = true;
+            logStateMessage = "State: Finished – Submit Log";
           });
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Break Time!')));
-          isRunning = false;
         } else {
           setState(() {
             onBreak = false;
@@ -88,24 +81,47 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void saveSession() async {
+  void submitLog() {
+    saveSession();
+    setState(() {
+      audioPath = null;
+      showPlayer = false;
+      canSubmitLog = false;
+      onBreak = true;
+      remainingSeconds = breakMinutes * 60;
+      logStateMessage = "State: Break";
+    });
+
+    startTimer();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Break Time!')));
+  }
+
+  void saveSession({cleanVariables = true}) async {
     countCompletedToday++;
     final session = PomodoroModel(
       startTime: DateTime.now(),
       audioPath: audioPath,
+      imagePath: imagePath,
     );
     final box = Hive.box<PomodoroModel>('pomodoros');
     await box.add(session);
     print("Saved session at ${session.startTime}");
+    if (cleanVariables) {
+      audioPath = null;
+      imagePath = null;
+      showPlayer = false;
+    }
   }
 
   void takePhoto() async {
-    String? imagePath = await capturePhoto(context);
-    final box = Hive.box<PomodoroModel>('pomodoros');
-    if (box.isNotEmpty) {
-      final last = box.getAt(box.length - 1);
-      last?.imagePath = imagePath;
-      await last?.save();
+    String? path = await capturePhoto(context);
+
+    if (path != null) {
+      setState(() {
+        imagePath = path;
+      });
     }
   }
 
@@ -126,6 +142,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void resetTimer() {
     stopTimer();
     setState(() => remainingSeconds = workMinutes * 60);
+  }
+
+  void instantFinish() {
+    setState(() {
+      remainingSeconds = 0;
+    });
   }
 
   String formatTime(int seconds) {
@@ -165,20 +187,23 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(formatTime(remainingSeconds), style: TextStyle(fontSize: 60)),
             Text("Today's sessions: $countCompletedToday"),
             SizedBox(height: 20),
-
             Text(logStateMessage, style: TextStyle(fontSize: 10)),
             SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(
-                  onPressed: isRunning ? null : startTimer,
-                  child: Text('Start'),
-                ),
-                ElevatedButton(
-                  onPressed: isRunning ? stopTimer : null,
-                  child: Text('Stop'),
-                ),
+                if (!isRunning && !canSubmitLog)
+                  ElevatedButton(onPressed: startTimer, child: Text('Start')),
+                if (isRunning)
+                  ElevatedButton(onPressed: stopTimer, child: Text('Stop')),
+                if (!isRunning && canSubmitLog)
+                  TextButton(
+                    onPressed: submitLog,
+                    child: Text(
+                      '[Submit Log]',
+                      style: TextStyle(color: Colors.green),
+                    ),
+                  ),
                 ElevatedButton(onPressed: resetTimer, child: Text('Reset')),
               ],
             ),
@@ -186,41 +211,32 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    setState(
-                      () => {
-                        // stop usic.
-                        _stopLofi(),
-                        allowMusic = !allowMusic,
-                      },
-                    );
+                    setState(() {
+                      _stopLofi();
+                      allowMusic = !allowMusic;
+                    });
                   },
                   child: Text(allowMusic ? 'Mute' : 'Unmute'),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      if (allowMusic) {
+                      if (allowMusic)
                         _playLofi();
-                      } else {
+                      else
                         _stopLofi();
-                      }
-                      ;
                     });
                   },
                   child: Text(allowMusic ? 'Play M' : 'Stop M'),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    _stopLofi();
-                    setState(() {
-                      remainingSeconds = 0;
-                    });
-                  },
-                  child: Text(
-                    'Instant Finish ',
-                    style: TextStyle(color: Colors.red),
+                if (!canSubmitLog)
+                  ElevatedButton(
+                    onPressed: instantFinish,
+                    child: Text(
+                      'Instant Finish',
+                      style: TextStyle(color: Colors.red),
+                    ),
                   ),
-                ),
               ],
             ),
             SizedBox(height: 20),
@@ -244,7 +260,9 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(height: 20),
             ElevatedButton.icon(
               icon: Icon(Icons.camera_alt),
-              label: Text("Take Photo"),
+              label: imagePath != null
+                  ? Text('Photo Taken')
+                  : Text('Take Photo'),
               onPressed: takePhoto,
             ),
             SizedBox(height: 40),

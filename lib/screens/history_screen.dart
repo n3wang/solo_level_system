@@ -110,6 +110,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 item.startTime,
                               ),
                             ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (item.audioPath != null)
+                                  Icon(Icons.mic, color: Colors.red),
+                                if (item.imagePath != null)
+                                  Icon(Icons.image, color: Colors.blue),
+                              ],
+                            ),
                             onTap: () => _showDetails(item),
                           );
                         },
