@@ -106,9 +106,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           final item = filtered[i];
                           return ListTile(
                             title: Text(
-                              DateFormat.yMMMd().add_jm().format(
-                                item.startTime,
-                              ),
+                              '${item.project_id ?? ''} ${DateFormat.yMMMd().add_jm().format(item.startTime)} ${item.dayPomodoroNumber ?? ''}',
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,

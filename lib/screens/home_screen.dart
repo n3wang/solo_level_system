@@ -104,6 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
       startTime: DateTime.now(),
       audioPath: audioPath,
       imagePath: imagePath,
+      dayPomodoroNumber: countCompletedToday + 1,
     );
     final box = Hive.box<PomodoroModel>('pomodoros');
     await box.add(session);

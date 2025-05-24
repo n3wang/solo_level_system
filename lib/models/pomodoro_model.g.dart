@@ -20,19 +20,31 @@ class PomodoroModelAdapter extends TypeAdapter<PomodoroModel> {
       startTime: fields[0] as DateTime,
       audioPath: fields[1] as String?,
       imagePath: fields[2] as String?,
+      dayPomodoroNumber: fields[3] as int?,
+      duration: fields[4] as String?,
+      project_id: fields[5] as String?,
+      project_name: fields[6] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, PomodoroModel obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.startTime)
       ..writeByte(1)
       ..write(obj.audioPath)
       ..writeByte(2)
-      ..write(obj.imagePath);
+      ..write(obj.imagePath)
+      ..writeByte(3)
+      ..write(obj.dayPomodoroNumber)
+      ..writeByte(4)
+      ..write(obj.duration)
+      ..writeByte(5)
+      ..write(obj.project_id)
+      ..writeByte(6)
+      ..write(obj.project_name);
   }
 
   @override
