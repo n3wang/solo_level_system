@@ -338,6 +338,7 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
 
           // Play/Pause
           FloatingActionButton(
+            heroTag: "audio_player_play_pause",
             mini: true,
             onPressed: _togglePlayback,
             child: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),

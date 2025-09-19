@@ -92,6 +92,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: "exercise_details_quick_start",
         onPressed: _startQuickWorkout,
         icon: Icon(Icons.play_arrow),
         label: Text('Quick Start'),

@@ -33,8 +33,9 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
   List<ExerciseModel> _availableExercises = [];
   List<ExerciseModel> _selectedExercises = [];
   List<ExerciseModel> _filteredExercises = [];
-  
-  bool _isLoading = false;  final List<String> _categories = [
+
+  bool _isLoading = false;
+  final List<String> _categories = [
     'strength',
     'cardio',
     'mixed',
@@ -597,16 +598,27 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
           ),
           SizedBox(height: 16),
           Expanded(
-            child: (_filteredExercises.isNotEmpty ? _filteredExercises : _availableExercises).isEmpty
+            child:
+                (_filteredExercises.isNotEmpty
+                        ? _filteredExercises
+                        : _availableExercises)
+                    .isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.fitness_center, size: 64, color: Colors.grey[400]),
+                        Icon(
+                          Icons.fitness_center,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
                         SizedBox(height: 16),
                         Text(
                           'No exercises found',
-                          style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                          ),
                         ),
                         SizedBox(height: 8),
                         Text(
@@ -617,9 +629,15 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                     ),
                   )
                 : ListView.builder(
-                    itemCount: (_filteredExercises.isNotEmpty ? _filteredExercises : _availableExercises).length,
+                    itemCount:
+                        (_filteredExercises.isNotEmpty
+                                ? _filteredExercises
+                                : _availableExercises)
+                            .length,
                     itemBuilder: (context, index) {
-                      final exercise = (_filteredExercises.isNotEmpty ? _filteredExercises : _availableExercises)[index];
+                      final exercise = (_filteredExercises.isNotEmpty
+                          ? _filteredExercises
+                          : _availableExercises)[index];
                       final isSelected = _selectedExercises.any(
                         (ex) => ex.id == exercise.id,
                       );
@@ -964,25 +982,27 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
   void _createExerciseFromRoutine() async {
     // Save current routine state before navigating
     final routineState = _saveCurrentRoutineState();
-    
+
     Navigator.pop(context); // Close exercise selection sheet
-    
+
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => AddEditExerciseScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => AddEditExerciseScreen()),
     );
-    
+
     if (result == true) {
       // Restore routine state and reload exercises
       _restoreRoutineState(routineState);
       _loadAvailableExercises();
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exercise created! You can now add it to your routine.')),
+        SnackBar(
+          content: Text(
+            'Exercise created! You can now add it to your routine.',
+          ),
+        ),
       );
-      
+
       // Reopen exercise selection with new exercise available
       _addExercise();
     }
@@ -1012,22 +1032,24 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
     _selectedDifficulty = state['difficulty'] ?? 'beginner';
     _estimatedDuration = state['duration'] ?? 30;
     _isFavorite = state['isFavorite'] ?? false;
-    _exerciseSets = Map<String, List<WorkoutSetModel>>.from(state['exerciseSets'] ?? {});
-    
+    _exerciseSets = Map<String, List<WorkoutSetModel>>.from(
+      state['exerciseSets'] ?? {},
+    );
+
     // Restore selected exercises
     final selectedIds = List<String>.from(state['selectedExercises'] ?? []);
     _selectedExercises = _availableExercises
         .where((exercise) => selectedIds.contains(exercise.id))
         .toList();
     _exerciseIds = selectedIds;
-    
+
     // Restore tags
     _tags = _tagsController.text
         .split(',')
         .map((tag) => tag.trim())
         .where((tag) => tag.isNotEmpty)
         .toList();
-        
+
     setState(() {});
   }
 
@@ -1037,11 +1059,19 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
         _filteredExercises = List.from(_availableExercises);
       } else {
         _filteredExercises = _availableExercises
-            .where((exercise) =>
-                exercise.name.toLowerCase().contains(query.toLowerCase()) ||
-                exercise.muscleGroup.toLowerCase().contains(query.toLowerCase()) ||
-                exercise.category.toLowerCase().contains(query.toLowerCase()) ||
-                exercise.equipment.toLowerCase().contains(query.toLowerCase()))
+            .where(
+              (exercise) =>
+                  exercise.name.toLowerCase().contains(query.toLowerCase()) ||
+                  exercise.muscleGroup.toLowerCase().contains(
+                    query.toLowerCase(),
+                  ) ||
+                  exercise.category.toLowerCase().contains(
+                    query.toLowerCase(),
+                  ) ||
+                  exercise.equipment.toLowerCase().contains(
+                    query.toLowerCase(),
+                  ),
+            )
             .toList();
       }
     });

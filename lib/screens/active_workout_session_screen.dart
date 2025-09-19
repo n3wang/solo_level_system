@@ -56,10 +56,22 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     for (final exercise in widget.exercises) {
       if (widget.routine != null &&
           widget.routine!.exerciseSets.containsKey(exercise.id)) {
-        // Use routine's predefined sets
-        _exerciseSets[exercise.id] = List.from(
-          widget.routine!.exerciseSets[exercise.id]!,
-        );
+        // Use routine's predefined sets but reset completion status for new session
+        final routineSets = widget.routine!.exerciseSets[exercise.id]!;
+        _exerciseSets[exercise.id] = routineSets
+            .map(
+              (set) => WorkoutSetModel(
+                id: set.id,
+                exerciseId: set.exerciseId,
+                reps: set.reps,
+                weight: set.weight,
+                restTimeSeconds: set.restTimeSeconds,
+                isCompleted: false, // Always start with unchecked boxes
+                completedAt: null, // Clear completion time
+                notes: set.notes,
+              ),
+            )
+            .toList();
       } else {
         // Create default sets
         _exerciseSets[exercise.id] = [
@@ -113,8 +125,15 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        final shouldPop = await _onWillPop();
+        if (shouldPop && mounted) {
+          Navigator.pop(context);
+        }
+      },
       child: Scaffold(
         appBar: AppBar(
           title: Column(
@@ -538,12 +557,14 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             ),
           ),
           VerticalDivider(),
-          ElevatedButton(
-            onPressed: _showEndWorkoutDialog,
-            child: Text('Finish'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+          Flexible(
+            child: ElevatedButton(
+              onPressed: _showEndWorkoutDialog,
+              child: Text('Finish'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
             ),
           ),
         ],
@@ -762,7 +783,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     setState(() => _isLoading = true);
 
     try {
-      // Update session
+      // Update session with current sets data
       widget.session.endTime = DateTime.now();
       widget.session.durationMinutes = _workoutDuration.inMinutes;
       widget.session.isCompleted = markComplete;
@@ -772,6 +793,27 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           .where((ex) => _allSetsCompleted(ex))
           .map((ex) => ex.id)
           .toList();
+
+      // Save the current sets data to additionalData
+      final setsData = <String, dynamic>{};
+      _exerciseSets.forEach((exerciseId, sets) {
+        setsData[exerciseId] = sets
+            .map(
+              (set) => {
+                'id': set.id,
+                'exerciseId': set.exerciseId,
+                'reps': set.reps,
+                'weight': set.weight,
+                'restTimeSeconds': set.restTimeSeconds,
+                'isCompleted': set.isCompleted,
+                'completedAt': set.completedAt?.toIso8601String(),
+                'notes': set.notes,
+              },
+            )
+            .toList();
+      });
+      widget.session.additionalData = Map.from(widget.session.additionalData)
+        ..['exerciseSets'] = setsData;
 
       // Save session
       final sessionsBox = await Hive.openBox<WorkoutSessionModel>(

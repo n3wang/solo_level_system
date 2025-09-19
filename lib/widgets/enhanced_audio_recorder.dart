@@ -535,6 +535,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
 
         // Record/Stop
         FloatingActionButton(
+          heroTag: "audio_recorder_record_stop",
           onPressed: _isRecording ? _stopRecording : _startRecording,
           backgroundColor: _isRecording
               ? Colors.red

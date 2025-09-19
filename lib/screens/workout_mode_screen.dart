@@ -70,6 +70,7 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
       ),
       floatingActionButton: _activeSession != null
           ? FloatingActionButton(
+              heroTag: "workout_mode_active_session",
               onPressed: () => _navigateToActiveWorkout(),
               child: Icon(Icons.play_arrow),
               backgroundColor: Colors.green,
