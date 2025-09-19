@@ -1,3 +1,6 @@
+---
+applyTo: '**'
+---
 #### Structure code
 - This is a flutter project. main code is in lib using lib/main.dart as entry point.
   - models: data classes

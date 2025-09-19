@@ -101,9 +101,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-        
+
         if (snapshot.hasError) {
-          return Center(child: Text('Error loading focus data: ${snapshot.error}'));
+          return Center(
+            child: Text('Error loading focus data: ${snapshot.error}'),
+          );
         }
 
         return ValueListenableBuilder(
@@ -140,13 +142,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-        
+
         if (snapshot.hasError) {
-          return Center(child: Text('Error loading workout data: ${snapshot.error}'));
+          return Center(
+            child: Text('Error loading workout data: ${snapshot.error}'),
+          );
         }
 
         return ValueListenableBuilder(
-          valueListenable: Hive.box<WorkoutSessionModel>('workoutSessions').listenable(),
+          valueListenable: Hive.box<WorkoutSessionModel>(
+            'workoutSessions',
+          ).listenable(),
           builder: (context, Box<WorkoutSessionModel> box, _) {
             final sessions = box.values.toList();
             final filteredSessions = _filterWorkoutsByPeriod(sessions);
@@ -179,9 +185,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-        
+
         if (snapshot.hasError) {
-          return Center(child: Text('Error loading habits data: ${snapshot.error}'));
+          return Center(
+            child: Text('Error loading habits data: ${snapshot.error}'),
+          );
         }
 
         return ValueListenableBuilder(

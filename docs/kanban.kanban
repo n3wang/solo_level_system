@@ -32,6 +32,11 @@
           "labels": [],
           "checkboxes": [
             {
+              "id": "1ddf7d47-7b07-46ba-b0e3-72b877483876",
+              "title": "Allow for working out sessions to be working",
+              "checked": false
+            },
+            {
               "id": "bf5d182b-4d45-4b88-bce7-58755a35e8ab",
               "title": "Allows for rest time in between",
               "checked": false
@@ -39,6 +44,11 @@
             {
               "id": "03763464-ee5d-4c65-955c-4c55ee63f42f",
               "title": "Allows for creating workout routines",
+              "checked": false
+            },
+            {
+              "id": "8083bb89-6e76-41e3-905a-336fe4b89010",
+              "title": "Actually allow for creating excerize screens",
               "checked": false
             }
           ],

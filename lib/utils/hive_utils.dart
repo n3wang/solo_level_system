@@ -30,7 +30,7 @@ class HiveUtils {
   /// Gets box names for all workout-related boxes
   static List<String> get workoutBoxNames => [
     'exercises',
-    'workoutRoutines', 
+    'workoutRoutines',
     'workoutSessions',
     'habits',
   ];
@@ -45,8 +45,5 @@ class HiveUtils {
   ];
 
   /// Gets all box names
-  static List<String> get allBoxNames => [
-    ...coreBoxNames,
-    ...workoutBoxNames,
-  ];
+  static List<String> get allBoxNames => [...coreBoxNames, ...workoutBoxNames];
 }

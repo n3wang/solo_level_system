@@ -5,6 +5,10 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_routine_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
+import 'package:solo_level_system/screens/exercise_details_screen.dart';
+import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
+import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
+import 'package:solo_level_system/screens/active_workout_session_screen.dart';
 
 class WorkoutModeScreen extends StatefulWidget {
   @override
@@ -81,13 +85,17 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-        
+
         if (snapshot.hasError) {
-          return Center(child: Text('Error loading routines: ${snapshot.error}'));
+          return Center(
+            child: Text('Error loading routines: ${snapshot.error}'),
+          );
         }
 
         return ValueListenableBuilder(
-          valueListenable: Hive.box<WorkoutRoutineModel>('workoutRoutines').listenable(),
+          valueListenable: Hive.box<WorkoutRoutineModel>(
+            'workoutRoutines',
+          ).listenable(),
           builder: (context, Box<WorkoutRoutineModel> box, _) {
             final routines = box.values.toList();
 
@@ -233,9 +241,11 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-        
+
         if (snapshot.hasError) {
-          return Center(child: Text('Error loading exercises: ${snapshot.error}'));
+          return Center(
+            child: Text('Error loading exercises: ${snapshot.error}'),
+          );
         }
 
         return ValueListenableBuilder(
@@ -555,13 +565,17 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-        
+
         if (snapshot.hasError) {
-          return Center(child: Text('Error loading workout history: ${snapshot.error}'));
+          return Center(
+            child: Text('Error loading workout history: ${snapshot.error}'),
+          );
         }
 
         return ValueListenableBuilder(
-          valueListenable: Hive.box<WorkoutSessionModel>('workoutSessions').listenable(),
+          valueListenable: Hive.box<WorkoutSessionModel>(
+            'workoutSessions',
+          ).listenable(),
           builder: (context, Box<WorkoutSessionModel> box, _) {
             final sessions = box.values.toList()
               ..sort((a, b) => b.startTime.compareTo(a.startTime));
@@ -736,20 +750,45 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text(
+              'Quick Actions',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
             ListTile(
-              leading: Icon(Icons.fitness_center),
+              leading: Icon(Icons.fitness_center, color: Colors.blue),
               title: Text('Create Exercise'),
+              subtitle: Text('Add a new exercise to your library'),
               onTap: () {
                 Navigator.pop(context);
                 _createNewExercise();
               },
             ),
             ListTile(
-              leading: Icon(Icons.list),
+              leading: Icon(Icons.list, color: Colors.green),
               title: Text('Create Routine'),
+              subtitle: Text('Build a new workout routine'),
               onTap: () {
                 Navigator.pop(context);
                 _createNewRoutine();
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.flash_on, color: Colors.orange),
+              title: Text('Quick Add Exercise'),
+              subtitle: Text('Rapidly add a simple exercise'),
+              onTap: () {
+                Navigator.pop(context);
+                _showQuickAddExercise();
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.play_circle_filled, color: Colors.red),
+              title: Text('Start Empty Workout'),
+              subtitle: Text('Begin a workout without a routine'),
+              onTap: () {
+                Navigator.pop(context);
+                _startEmptyWorkout();
               },
             ),
           ],
@@ -759,23 +798,285 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
   }
 
   void _createNewExercise() {
-    // Navigate to exercise creation screen
-    print('Create new exercise');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddEditExerciseScreen()),
+    ).then((result) {
+      if (result == true) {
+        // Refresh exercises list
+        setState(() {});
+      }
+    });
   }
 
   void _createNewRoutine() {
-    // Navigate to routine creation screen
-    print('Create new routine');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddEditRoutineScreen()),
+    ).then((result) {
+      if (result == true) {
+        // Refresh routines list
+        setState(() {});
+      }
+    });
   }
 
-  void _startRoutine(WorkoutRoutineModel routine) {
-    // Start a workout session with the selected routine
-    print('Start routine: ${routine.name}');
+  void _startRoutine(WorkoutRoutineModel routine) async {
+    try {
+      // Load exercises for the routine
+      final exercisesBox = await Hive.openBox<ExerciseModel>('exercises');
+      final exercises = routine.exerciseIds
+          .map(
+            (id) => exercisesBox.values.firstWhere(
+              (ex) => ex.id == id,
+              orElse: () => ExerciseModel(
+                id: id,
+                name: 'Unknown Exercise',
+                description: '',
+                category: 'strength',
+                muscleGroup: 'other',
+                equipment: 'bodyweight',
+                difficulty: 'beginner',
+                instructions: [],
+                isCustom: false,
+                createdAt: DateTime.now(),
+                tags: [],
+                isArchived: false,
+              ),
+            ),
+          )
+          .toList();
+
+      // Create workout session
+      final session = WorkoutSessionModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        routineId: routine.id,
+        routineName: routine.name,
+        startTime: DateTime.now(),
+        durationMinutes: 0,
+        completedExerciseIds: [],
+        exerciseCompletedSets: {},
+        isCompleted: false,
+        status: 'active',
+        totalSetsCompleted: 0,
+        totalRepsCompleted: 0,
+        caloriesBurned: 0,
+      );
+
+      setState(() {
+        _activeSession = session;
+      });
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ActiveWorkoutSessionScreen(
+            session: session,
+            exercises: exercises,
+            routine: routine,
+          ),
+        ),
+      ).then((_) {
+        setState(() {
+          _activeSession = null;
+        });
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error starting routine: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _startEmptyWorkout() {
-    // Start an empty workout session
-    print('Start empty workout');
+    // Create an empty workout session that user can add exercises to on the fly
+    final session = WorkoutSessionModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      routineId: 'empty_workout',
+      routineName: 'Empty Workout',
+      startTime: DateTime.now(),
+      durationMinutes: 0,
+      completedExerciseIds: [],
+      exerciseCompletedSets: {},
+      isCompleted: false,
+      status: 'active',
+      totalSetsCompleted: 0,
+      totalRepsCompleted: 0,
+      caloriesBurned: 0,
+    );
+
+    setState(() {
+      _activeSession = session;
+    });
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ActiveWorkoutSessionScreen(
+          session: session,
+          exercises: [], // Start with no exercises
+        ),
+      ),
+    ).then((_) {
+      setState(() {
+        _activeSession = null;
+      });
+    });
+  }
+
+  void _showQuickAddExercise() {
+    final _nameController = TextEditingController();
+    String _selectedMuscleGroup = 'chest';
+    String _selectedEquipment = 'bodyweight';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: Text('Quick Add Exercise'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Exercise Name',
+                    hintText: 'e.g., Push-ups, Squats',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedMuscleGroup,
+                  decoration: InputDecoration(
+                    labelText: 'Muscle Group',
+                    border: OutlineInputBorder(),
+                  ),
+                  items:
+                      [
+                            'chest',
+                            'back',
+                            'legs',
+                            'arms',
+                            'shoulders',
+                            'core',
+                            'full_body',
+                          ]
+                          .map(
+                            (group) => DropdownMenuItem(
+                              value: group,
+                              child: Text(
+                                group[0].toUpperCase() + group.substring(1),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (value) {
+                    setStateDialog(() {
+                      _selectedMuscleGroup = value!;
+                    });
+                  },
+                ),
+                SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedEquipment,
+                  decoration: InputDecoration(
+                    labelText: 'Equipment',
+                    border: OutlineInputBorder(),
+                  ),
+                  items:
+                      [
+                            'bodyweight',
+                            'dumbbells',
+                            'barbell',
+                            'machine',
+                            'cables',
+                          ]
+                          .map(
+                            (equipment) => DropdownMenuItem(
+                              value: equipment,
+                              child: Text(
+                                equipment[0].toUpperCase() +
+                                    equipment.substring(1),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (value) {
+                    setStateDialog(() {
+                      _selectedEquipment = value!;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (_nameController.text.trim().isNotEmpty) {
+                  await _quickCreateExercise(
+                    _nameController.text.trim(),
+                    _selectedMuscleGroup,
+                    _selectedEquipment,
+                  );
+                  Navigator.pop(context);
+                }
+              },
+              child: Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _quickCreateExercise(
+    String name,
+    String muscleGroup,
+    String equipment,
+  ) async {
+    try {
+      final exercisesBox = await Hive.openBox<ExerciseModel>('exercises');
+
+      final exercise = ExerciseModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: name,
+        description: '',
+        category: 'strength',
+        muscleGroup: muscleGroup,
+        equipment: equipment,
+        difficulty: 'beginner',
+        instructions: [],
+        isCustom: true,
+        createdAt: DateTime.now(),
+        tags: [],
+        isArchived: false,
+      );
+
+      await exercisesBox.add(exercise);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exercise "$name" added successfully')),
+      );
+
+      setState(() {});
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating exercise: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _repeatLastWorkout() {
@@ -784,13 +1085,51 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
   }
 
   void _quickStartExercise(ExerciseModel exercise) {
-    // Quick start with a single exercise
-    print('Quick start exercise: ${exercise.name}');
+    // Create a quick workout session with just this exercise
+    final session = WorkoutSessionModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      routineId: 'quick_${exercise.id}',
+      routineName: 'Quick: ${exercise.name}',
+      startTime: DateTime.now(),
+      durationMinutes: 0,
+      completedExerciseIds: [],
+      exerciseCompletedSets: {},
+      isCompleted: false,
+      status: 'active',
+      totalSetsCompleted: 0,
+      totalRepsCompleted: 0,
+      caloriesBurned: 0,
+    );
+
+    setState(() {
+      _activeSession = session;
+    });
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            ActiveWorkoutSessionScreen(session: session, exercises: [exercise]),
+      ),
+    ).then((_) {
+      setState(() {
+        _activeSession = null;
+      });
+    });
   }
 
   void _viewExerciseDetails(ExerciseModel exercise) {
-    // Navigate to exercise details screen
-    print('View exercise: ${exercise.name}');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExerciseDetailsScreen(exercise: exercise),
+      ),
+    ).then((result) {
+      if (result == true) {
+        // Refresh if exercise was updated
+        setState(() {});
+      }
+    });
   }
 
   void _viewSessionDetails(WorkoutSessionModel session) {
@@ -799,8 +1138,12 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
   }
 
   void _navigateToActiveWorkout() {
-    // Navigate to active workout screen
-    print('Navigate to active workout');
+    if (_activeSession != null) {
+      // Navigate to active workout screen with current session
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Resuming active workout...')));
+    }
   }
 
   void _endWorkoutSession() {
@@ -813,14 +1156,65 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
   void _handleRoutineAction(String action, WorkoutRoutineModel routine) {
     switch (action) {
       case 'edit':
-        print('Edit routine: ${routine.name}');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AddEditRoutineScreen(routine: routine),
+          ),
+        ).then((result) {
+          if (result == true) {
+            setState(() {});
+          }
+        });
         break;
       case 'duplicate':
-        print('Duplicate routine: ${routine.name}');
+        _duplicateRoutine(routine);
         break;
       case 'delete':
         _deleteRoutine(routine);
         break;
+    }
+  }
+
+  void _duplicateRoutine(WorkoutRoutineModel routine) async {
+    try {
+      final routinesBox = await Hive.openBox<WorkoutRoutineModel>(
+        'workoutRoutines',
+      );
+      final newRoutine = WorkoutRoutineModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: '${routine.name} (Copy)',
+        description: routine.description,
+        exerciseIds: List.from(routine.exerciseIds),
+        exerciseSets: Map.from(routine.exerciseSets),
+        category: routine.category,
+        difficulty: routine.difficulty,
+        estimatedDurationMinutes: routine.estimatedDurationMinutes,
+        tags: List.from(routine.tags),
+        isTemplate: true,
+        isFavorite: false,
+        createdAt: DateTime.now(),
+        timesCompleted: 0,
+        isArchived: false,
+        notes: routine.notes,
+        targetMuscleGroups: List.from(routine.targetMuscleGroups),
+        createdBy: 'user',
+      );
+
+      await routinesBox.add(newRoutine);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Routine duplicated successfully')),
+      );
+
+      setState(() {});
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error duplicating routine: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -836,9 +1230,23 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
             child: Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              // Delete routine logic
-              Navigator.pop(context);
+            onPressed: () async {
+              try {
+                await routine.delete();
+                Navigator.pop(context);
+                setState(() {});
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Routine deleted')));
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error deleting routine: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             child: Text('Delete', style: TextStyle(color: Colors.red)),
           ),

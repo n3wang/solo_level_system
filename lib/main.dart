@@ -24,7 +24,7 @@ void main() async {
     Hive.registerAdapter(AudioSettingsModelAdapter());
     Hive.registerAdapter(EnhancedAudioModelAdapter());
     Hive.registerAdapter(ConfigModelAdapter());
-    
+
     // Register workout-related adapters
     Hive.registerAdapter(ExerciseModelAdapter());
     Hive.registerAdapter(WorkoutSetModelAdapter());
@@ -34,20 +34,20 @@ void main() async {
 
     // Open all Hive boxes with detailed logging
     print('Opening Hive boxes...');
-    
+
     // Open core boxes
     await Hive.openBox<PomodoroModel>('pomodoros');
     print('✓ Opened pomodoros box');
-    
+
     await Hive.openBox<UserSettingsModel>('userSettings');
     print('✓ Opened userSettings box');
-    
+
     await Hive.openBox<AudioSettingsModel>('audioSettings');
     print('✓ Opened audioSettings box');
-    
+
     await Hive.openBox<EnhancedAudioModel>('audioFiles');
     print('✓ Opened audioFiles box');
-    
+
     // Config box - handle potential TypeId change
     try {
       await Hive.openBox<ConfigModel>('config');
@@ -57,7 +57,9 @@ void main() async {
       try {
         await Hive.deleteBoxFromDisk('config');
       } catch (deleteError) {
-        print('Note: Could not delete config box (may not exist): $deleteError');
+        print(
+          'Note: Could not delete config box (may not exist): $deleteError',
+        );
       }
       await Hive.openBox<ConfigModel>('config');
       print('✓ Recreated config box');
@@ -72,40 +74,50 @@ void main() async {
       try {
         await Hive.deleteBoxFromDisk('exercises');
       } catch (deleteError) {
-        print('Note: Could not delete exercises box (may not exist): $deleteError');
+        print(
+          'Note: Could not delete exercises box (may not exist): $deleteError',
+        );
       }
       await Hive.openBox<ExerciseModel>('exercises');
       print('✓ Recreated exercises box');
     }
-    
+
     try {
       await Hive.openBox<WorkoutRoutineModel>('workoutRoutines');
       print('✓ Opened workoutRoutines box');
     } catch (e) {
-      print('⚠️ Error opening workoutRoutines box, clearing and recreating: $e');
+      print(
+        '⚠️ Error opening workoutRoutines box, clearing and recreating: $e',
+      );
       try {
         await Hive.deleteBoxFromDisk('workoutRoutines');
       } catch (deleteError) {
-        print('Note: Could not delete workoutRoutines box (may not exist): $deleteError');
+        print(
+          'Note: Could not delete workoutRoutines box (may not exist): $deleteError',
+        );
       }
       await Hive.openBox<WorkoutRoutineModel>('workoutRoutines');
       print('✓ Recreated workoutRoutines box');
     }
-    
+
     try {
       await Hive.openBox<WorkoutSessionModel>('workoutSessions');
       print('✓ Opened workoutSessions box');
     } catch (e) {
-      print('⚠️ Error opening workoutSessions box, clearing and recreating: $e');
+      print(
+        '⚠️ Error opening workoutSessions box, clearing and recreating: $e',
+      );
       try {
         await Hive.deleteBoxFromDisk('workoutSessions');
       } catch (deleteError) {
-        print('Note: Could not delete workoutSessions box (may not exist): $deleteError');
+        print(
+          'Note: Could not delete workoutSessions box (may not exist): $deleteError',
+        );
       }
       await Hive.openBox<WorkoutSessionModel>('workoutSessions');
       print('✓ Recreated workoutSessions box');
     }
-    
+
     try {
       await Hive.openBox<HabitTrackerModel>('habits');
       print('✓ Opened habits box');
@@ -114,20 +126,21 @@ void main() async {
       try {
         await Hive.deleteBoxFromDisk('habits');
       } catch (deleteError) {
-        print('Note: Could not delete habits box (may not exist): $deleteError');
+        print(
+          'Note: Could not delete habits box (may not exist): $deleteError',
+        );
       }
       await Hive.openBox<HabitTrackerModel>('habits');
       print('✓ Recreated habits box');
     }
 
     print('All Hive boxes opened successfully');
-    
+
     runApp(MyApp());
-    
   } catch (e, stackTrace) {
     print('❌ Critical Hive initialization error: $e');
     print('Stack trace: $stackTrace');
-    
+
     // Still run the app but with error state
     runApp(MyApp(initializationError: e.toString()));
   }
