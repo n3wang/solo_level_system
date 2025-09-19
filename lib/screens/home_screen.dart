@@ -34,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? timer;
   bool showPlayer = false;
   String? audioPath;
+  EnhancedAudioModel? recordedAudio;
   String logStateMessage = "State: ";
   bool allowMusic = true;
   int countCompletedToday = 0;
@@ -177,6 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
     saveSession();
     setState(() {
       audioPath = null;
+      recordedAudio = null;
       showPlayer = false;
       canSubmitLog = false;
       onBreak = true;
@@ -203,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
     print("Saved session at ${session.startTime}");
     if (cleanVariables) {
       audioPath = null;
+      recordedAudio = null;
       imagePath = null;
       showPlayer = false;
     }
@@ -227,6 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
       audioPath = null;
     }
     setState(() {
+      recordedAudio = null;
       showPlayer = false;
       isRunning = false;
     });
@@ -596,14 +600,15 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       key: ValueKey('audio_section_container'),
       child: config?.showAudioRecordButton == true
-          ? (showPlayer && audioPath != null)
+          ? (showPlayer && recordedAudio != null)
                 ? Column(
                     children: [
                       EnhancedAudioPlayer(
-                        audioPath: audioPath!,
+                        audioModel: recordedAudio!,
                         onDelete: () {
                           setState(() {
                             audioPath = null;
+                            recordedAudio = null;
                             showPlayer = false;
                           });
                         },
@@ -614,6 +619,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onRecordingComplete: (EnhancedAudioModel audioModel) {
                       setState(() {
                         audioPath = audioModel.filePath;
+                        recordedAudio = audioModel;
                         showPlayer = true;
                         canSubmitLog = true;
                       });
