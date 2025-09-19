@@ -102,7 +102,11 @@ class _HomeScreenState extends State<HomeScreen> {
     lastTrackIndex = trackIndex;
 
     String track = lofiPlaylist[trackIndex];
-    String trackName = track.split('/').last.replaceAll('.mp3', '').replaceAll('-', ' ');
+    String trackName = track
+        .split('/')
+        .last
+        .replaceAll('.mp3', '')
+        .replaceAll('-', ' ');
     setState(() {
       currentlyPlayingTrack = trackName;
     });
@@ -139,7 +143,8 @@ class _HomeScreenState extends State<HomeScreen> {
           // Auto-start break if enabled
           if (userSettings?.autoStartBreaks == true) {
             Future.delayed(Duration(seconds: 2), () {
-              if (canSubmitLog) { // Only if user hasn't manually submitted
+              if (canSubmitLog) {
+                // Only if user hasn't manually submitted
                 submitLog();
               }
             });
@@ -156,7 +161,8 @@ class _HomeScreenState extends State<HomeScreen> {
           // Auto-start work if enabled
           if (userSettings?.autoStartWork == true) {
             Future.delayed(Duration(seconds: 2), () {
-              if (!isRunning) { // Only if user hasn't manually started
+              if (!isRunning) {
+                // Only if user hasn't manually started
                 startTimer();
               }
             });
@@ -306,7 +312,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<EnhancedAudioModel?> _getEnhancedAudioByPath(String path) async {
     try {
       final box = Hive.box<EnhancedAudioModel>('audioFiles');
-      final existingAudio = box.values.where((audio) => audio.filePath == path).firstOrNull;
+      final existingAudio = box.values
+          .where((audio) => audio.filePath == path)
+          .firstOrNull;
 
       if (existingAudio != null) {
         return existingAudio;
@@ -434,9 +442,6 @@ class _HomeScreenState extends State<HomeScreen> {
               // Recording and Photo Section (conditional)
               _buildConditionalRecordingSection(),
 
-              // Settings Section
-              _buildSettingsSection(),
-
               SizedBox(height: 40), // Extra padding at bottom
             ],
           ),
@@ -479,7 +484,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       Flexible(
                         child: Text(
                           'Playing: $currentlyPlayingTrack',
-                          style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -531,10 +539,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!isRunning && canSubmitLog)
           TextButton(
             onPressed: submitLog,
-            child: Text(
-              '[Submit Log]',
-              style: TextStyle(color: Colors.green),
-            ),
+            child: Text('[Submit Log]', style: TextStyle(color: Colors.green)),
           ),
         ElevatedButton(onPressed: resetTimer, child: Text('Reset')),
       ],
@@ -571,10 +576,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!canSubmitLog)
           ElevatedButton(
             onPressed: instantFinish,
-            child: Text(
-              'Instant Finish',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: Text('Instant Finish', style: TextStyle(color: Colors.red)),
           ),
       ],
     );
@@ -584,12 +586,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       key: ValueKey('conditional_recording_section'),
       child: _shouldShowRecordingFeatures
-          ? Column(
-              children: [
-                _buildRecordingSection(),
-                SizedBox(height: 20),
-              ],
-            )
+          ? Column(children: [_buildRecordingSection(), SizedBox(height: 20)])
           : SizedBox(height: 20),
     );
   }
@@ -615,33 +612,33 @@ class _HomeScreenState extends State<HomeScreen> {
       key: ValueKey('audio_section_container'),
       child: config?.showAudioRecordButton == true
           ? (showPlayer && audioPath != null)
-              ? Column(
-                  children: [
-                    Text('Audio Player would be here'),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          audioPath = null;
-                          showPlayer = false;
-                        });
-                      },
-                      child: Text('Delete Audio'),
-                    ),
-                  ],
-                )
-              : ElevatedButton.icon(
-                  icon: Icon(Icons.mic),
-                  label: Text('Record Audio'),
-                  onPressed: () {
-                    // Simple mock recording for testing
-                    setState(() {
-                      canSubmitLog = true;
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Mock recording completed')),
-                    );
-                  },
-                )
+                ? Column(
+                    children: [
+                      Text('Audio Player would be here'),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            audioPath = null;
+                            showPlayer = false;
+                          });
+                        },
+                        child: Text('Delete Audio'),
+                      ),
+                    ],
+                  )
+                : ElevatedButton.icon(
+                    icon: Icon(Icons.mic),
+                    label: Text('Record Audio'),
+                    onPressed: () {
+                      // Simple mock recording for testing
+                      setState(() {
+                        canSubmitLog = true;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Mock recording completed')),
+                      );
+                    },
+                  )
           : SizedBox.shrink(),
     );
   }
@@ -658,60 +655,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: takePhoto,
             )
           : SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildSettingsSection() {
-    return Column(
-      children: [
-        Text(
-          'Settings',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Column(
-              children: [
-                Text('Work Duration', style: TextStyle(fontSize: 12)),
-                DropdownButton<int>(
-                  value: workMinutes,
-                  items: [1, 15, 25]
-                      .map(
-                        (val) => DropdownMenuItem(
-                          value: val,
-                          child: Text('$val min'),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (val) => setState(() {
-                    workMinutes = val!;
-                    if (!isRunning && !onBreak) remainingSeconds = val * 60;
-                  }),
-                ),
-              ],
-            ),
-            Column(
-              children: [
-                Text('Break Duration', style: TextStyle(fontSize: 12)),
-                DropdownButton<int>(
-                  value: breakMinutes,
-                  items: [1, 5, 10]
-                      .map(
-                        (val) => DropdownMenuItem(
-                          value: val,
-                          child: Text('$val min'),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (val) => setState(() => breakMinutes = val!),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
     );
   }
 }
