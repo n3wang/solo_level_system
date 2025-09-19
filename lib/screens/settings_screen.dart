@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
+import 'package:solo_level_system/models/config_model.dart';
+import 'package:solo_level_system/models/audio_settings_model.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -12,36 +14,59 @@ class _SettingsScreenState extends State<SettingsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   UserSettingsModel userSettings = UserSettingsModel();
+  ConfigModel config = ConfigModel.getDefault();
+  AudioSettingsModel audioSettings = AudioSettingsModel();
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
     try {
+      // Load User Settings
       Box<UserSettingsModel> userBox;
-
-      // Check if box is already open, if not open it
       if (!Hive.isBoxOpen('userSettings')) {
         userBox = await Hive.openBox<UserSettingsModel>('userSettings');
       } else {
         userBox = Hive.box<UserSettingsModel>('userSettings');
       }
-
-      // Get existing settings or create defaults
       userSettings = userBox.get('settings') ?? UserSettingsModel();
-
-      // Save defaults if they don't exist
       if (userBox.get('settings') == null) {
         await userBox.put('settings', userSettings);
       }
+
+      // Load Config Settings
+      Box<ConfigModel> configBox;
+      if (!Hive.isBoxOpen('config')) {
+        configBox = await Hive.openBox<ConfigModel>('config');
+      } else {
+        configBox = Hive.box<ConfigModel>('config');
+      }
+      config = configBox.get('settings') ?? ConfigModel.getDefault();
+      if (configBox.get('settings') == null) {
+        await configBox.put('settings', config);
+      }
+
+      // Load Audio Settings
+      Box<AudioSettingsModel> audioBox;
+      if (!Hive.isBoxOpen('audioSettings')) {
+        audioBox = await Hive.openBox<AudioSettingsModel>('audioSettings');
+      } else {
+        audioBox = Hive.box<AudioSettingsModel>('audioSettings');
+      }
+      audioSettings = audioBox.get('settings') ?? AudioSettingsModel();
+      if (audioBox.get('settings') == null) {
+        await audioBox.put('settings', audioSettings);
+      }
     } catch (e) {
       print('Error loading settings: $e');
-      userSettings = UserSettingsModel(); // Use defaults
+      userSettings = UserSettingsModel();
+      config = ConfigModel.getDefault();
+      audioSettings = AudioSettingsModel();
     } finally {
       if (mounted) {
         setState(() {
@@ -54,17 +79,42 @@ class _SettingsScreenState extends State<SettingsScreen>
   Future<void> _saveUserSettings() async {
     try {
       Box<UserSettingsModel> box;
-
-      // Check if box is already open, if not open it
       if (!Hive.isBoxOpen('userSettings')) {
         box = await Hive.openBox<UserSettingsModel>('userSettings');
       } else {
         box = Hive.box<UserSettingsModel>('userSettings');
       }
-
       await box.put('settings', userSettings);
     } catch (e) {
-      print('Error saving settings: $e');
+      print('Error saving user settings: $e');
+    }
+  }
+
+  Future<void> _saveConfig() async {
+    try {
+      Box<ConfigModel> box;
+      if (!Hive.isBoxOpen('config')) {
+        box = await Hive.openBox<ConfigModel>('config');
+      } else {
+        box = Hive.box<ConfigModel>('config');
+      }
+      await box.put('settings', config);
+    } catch (e) {
+      print('Error saving config: $e');
+    }
+  }
+
+  Future<void> _saveAudioSettings() async {
+    try {
+      Box<AudioSettingsModel> box;
+      if (!Hive.isBoxOpen('audioSettings')) {
+        box = await Hive.openBox<AudioSettingsModel>('audioSettings');
+      } else {
+        box = Hive.box<AudioSettingsModel>('audioSettings');
+      }
+      await box.put('settings', audioSettings);
+    } catch (e) {
+      print('Error saving audio settings: $e');
     }
   }
 
@@ -82,10 +132,13 @@ class _SettingsScreenState extends State<SettingsScreen>
         title: Text('Settings'),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           tabs: [
             Tab(icon: Icon(Icons.palette), text: 'Appearance'),
             Tab(icon: Icon(Icons.timer), text: 'Sessions'),
             Tab(icon: Icon(Icons.notifications), text: 'Notifications'),
+            Tab(icon: Icon(Icons.tune), text: 'Audio Config'),
+            Tab(icon: Icon(Icons.audiotrack), text: 'Audio Quality'),
           ],
         ),
       ),
@@ -97,6 +150,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _buildAppearanceTab(),
                 _buildSessionsTab(),
                 _buildNotificationsTab(),
+                _buildAudioConfigTab(),
+                _buildAudioQualityTab(),
               ],
             ),
     );
@@ -294,6 +349,166 @@ class _SettingsScreenState extends State<SettingsScreen>
               userSettings.autoBackup = value;
             });
             await _saveUserSettings();
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAudioConfigTab() {
+    return ListView(
+      padding: EdgeInsets.all(16),
+      children: [
+        _buildSectionHeader('Background Audio'),
+        SwitchListTile(
+          title: Text('Play Audio on Repeat'),
+          subtitle: Text('Loop background music continuously'),
+          value: config.playAudioOnRepeat,
+          onChanged: (bool value) async {
+            setState(() {
+              config.playAudioOnRepeat = value;
+            });
+            await _saveConfig();
+          },
+        ),
+        SwitchListTile(
+          title: Text('Randomize Audio'),
+          subtitle: Text('Play tracks in random order instead of sequential'),
+          value: config.randomizeAudio,
+          onChanged: (bool value) async {
+            setState(() {
+              config.randomizeAudio = value;
+            });
+            await _saveConfig();
+          },
+        ),
+        Divider(),
+        _buildSectionHeader('Session Recording'),
+        SwitchListTile(
+          title: Text('Show Photo Button'),
+          subtitle: Text('Allow taking photos after sessions'),
+          value: config.showPhotoButton,
+          onChanged: (bool value) async {
+            setState(() {
+              config.showPhotoButton = value;
+            });
+            await _saveConfig();
+          },
+        ),
+        SwitchListTile(
+          title: Text('Show Audio Recording Button'),
+          subtitle: Text('Allow recording voice notes after sessions'),
+          value: config.showAudioRecordButton,
+          onChanged: (bool value) async {
+            setState(() {
+              config.showAudioRecordButton = value;
+            });
+            await _saveConfig();
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAudioQualityTab() {
+    return ListView(
+      padding: EdgeInsets.all(16),
+      children: [
+        _buildSectionHeader('Recording Quality'),
+        ListTile(
+          title: Text('Audio Codec'),
+          subtitle: Text(audioSettings.codec.toUpperCase()),
+          trailing: DropdownButton<String>(
+            value: audioSettings.codec,
+            items: [
+              DropdownMenuItem(value: 'aacLc', child: Text('AAC-LC')),
+              DropdownMenuItem(value: 'opus', child: Text('Opus')),
+              DropdownMenuItem(value: 'wav', child: Text('WAV')),
+            ],
+            onChanged: (value) async {
+              setState(() {
+                audioSettings.codec = value!;
+              });
+              await _saveAudioSettings();
+            },
+          ),
+        ),
+        ListTile(
+          title: Text('Bit Rate'),
+          subtitle: Text('${audioSettings.bitRate} kbps'),
+          trailing: SizedBox(
+            width: 100,
+            child: Slider(
+              value: audioSettings.bitRate.toDouble(),
+              min: 64,
+              max: 256,
+              divisions: 3,
+              onChanged: (value) async {
+                setState(() {
+                  audioSettings.bitRate = value.round();
+                });
+                await _saveAudioSettings();
+              },
+            ),
+          ),
+        ),
+        ListTile(
+          title: Text('Sample Rate'),
+          subtitle: Text('${audioSettings.sampleRate} Hz'),
+          trailing: DropdownButton<int>(
+            value: audioSettings.sampleRate,
+            items: [
+              DropdownMenuItem(value: 44100, child: Text('44.1 kHz')),
+              DropdownMenuItem(value: 48000, child: Text('48 kHz')),
+            ],
+            onChanged: (value) async {
+              setState(() {
+                audioSettings.sampleRate = value!;
+              });
+              await _saveAudioSettings();
+            },
+          ),
+        ),
+        SwitchListTile(
+          title: Text('Stereo Recording'),
+          subtitle: Text('Record in stereo (2 channels) instead of mono'),
+          value: audioSettings.channels == 2,
+          onChanged: (value) async {
+            setState(() {
+              audioSettings.channels = value ? 2 : 1;
+            });
+            await _saveAudioSettings();
+          },
+        ),
+        Divider(),
+        _buildSectionHeader('Playback Settings'),
+        ListTile(
+          title: Text('Volume'),
+          subtitle: Text('${(audioSettings.volume * 100).round()}%'),
+          trailing: SizedBox(
+            width: 100,
+            child: Slider(
+              value: audioSettings.volume,
+              min: 0.0,
+              max: 1.0,
+              onChanged: (value) async {
+                setState(() {
+                  audioSettings.volume = value;
+                });
+                await _saveAudioSettings();
+              },
+            ),
+          ),
+        ),
+        SwitchListTile(
+          title: Text('Enable Noise Reduction'),
+          subtitle: Text('Reduce background noise in recordings'),
+          value: audioSettings.enableNoiseReduction,
+          onChanged: (value) async {
+            setState(() {
+              audioSettings.enableNoiseReduction = value;
+            });
+            await _saveAudioSettings();
           },
         ),
       ],

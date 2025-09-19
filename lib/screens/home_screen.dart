@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:solo_level_system/screens/history_screen.dart';
-import 'package:solo_level_system/screens/config_screen.dart';
 import 'package:solo_level_system/screens/settings_screen.dart';
 import 'package:solo_level_system/screens/audio_management_screen.dart';
 import 'package:solo_level_system/utils/image_utils.dart';
@@ -362,12 +361,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     widget.onSettingsChanged?.call();
                   });
                   break;
-                case 'config':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => ConfigScreen()),
-                  ).then((_) => _loadConfig());
-                  break;
                 case 'audio':
                   Navigator.push(
                     context,
@@ -388,14 +381,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ListTile(
                   leading: Icon(Icons.settings),
                   title: Text('Settings'),
-                  dense: true,
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'config',
-                child: ListTile(
-                  leading: Icon(Icons.tune),
-                  title: Text('Configuration'),
                   dense: true,
                 ),
               ),
@@ -614,30 +599,29 @@ class _HomeScreenState extends State<HomeScreen> {
           ? (showPlayer && audioPath != null)
                 ? Column(
                     children: [
-                      Text('Audio Player would be here'),
-                      ElevatedButton(
-                        onPressed: () {
+                      EnhancedAudioPlayer(
+                        audioPath: audioPath!,
+                        onDelete: () {
                           setState(() {
                             audioPath = null;
                             showPlayer = false;
                           });
                         },
-                        child: Text('Delete Audio'),
                       ),
                     ],
                   )
-                : ElevatedButton.icon(
-                    icon: Icon(Icons.mic),
-                    label: Text('Record Audio'),
-                    onPressed: () {
-                      // Simple mock recording for testing
+                : EnhancedAudioRecorder(
+                    onRecordingComplete: (EnhancedAudioModel audioModel) {
                       setState(() {
+                        audioPath = audioModel.filePath;
+                        showPlayer = true;
                         canSubmitLog = true;
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Mock recording completed')),
+                        SnackBar(content: Text('Recording completed successfully!')),
                       );
                     },
+                    category: 'voice_note',
                   )
           : SizedBox.shrink(),
     );
