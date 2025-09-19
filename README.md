@@ -1,6 +1,9 @@
 # solo_level_system
 
-## Mantainance Hive Database
+
+Checkout devdocs for kanban board.
+
+## Maintenance Hive Database
 
 To update the modesl flutter schemas:
 

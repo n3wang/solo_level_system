@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:solo_level_system/screens/history_screen.dart';
+import 'package:solo_level_system/screens/config_screen.dart';
+import 'package:solo_level_system/screens/settings_screen.dart';
+import 'package:solo_level_system/screens/audio_management_screen.dart';
 import 'package:solo_level_system/utils/image_utils.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
-import 'package:flutter/foundation.dart';
-import 'package:solo_level_system/widgets/audio_player.dart';
-import 'package:solo_level_system/widgets/audio_recorder.dart';
+import 'package:solo_level_system/models/config_model.dart';
+import 'package:solo_level_system/widgets/enhanced_audio_player.dart';
+import 'package:solo_level_system/widgets/enhanced_audio_recorder.dart';
+import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:solo_level_system/utils/database_utils.dart';
 
@@ -30,6 +35,9 @@ class _HomeScreenState extends State<HomeScreen> {
   int countCompletedToday = 0;
   bool canSubmitLog = false;
   String? imagePath;
+  String? currentlyPlayingTrack;
+  ConfigModel? config;
+  int lastTrackIndex = 0;
 
   final _bgPlayer = ap.AudioPlayer();
 
@@ -72,15 +80,33 @@ class _HomeScreenState extends State<HomeScreen> {
       'lofi/42-balenciaga-trap-music-111733.mp3',
       'lofi/43-neon-adventure-deep-fashion-house-273895.mp3',
     ];
-    String track =
-        lofiPlaylist[DateTime.now().millisecondsSinceEpoch %
-            lofiPlaylist.length];
-    await _bgPlayer.setReleaseMode(ap.ReleaseMode.loop);
+
+    int trackIndex;
+    if (config?.randomizeAudio == true) {
+      trackIndex = Random().nextInt(lofiPlaylist.length);
+    } else {
+      trackIndex = (lastTrackIndex + 1) % lofiPlaylist.length;
+    }
+    lastTrackIndex = trackIndex;
+
+    String track = lofiPlaylist[trackIndex];
+    String trackName = track.split('/').last.replaceAll('.mp3', '').replaceAll('-', ' ');
+    setState(() {
+      currentlyPlayingTrack = trackName;
+    });
+
+    ap.ReleaseMode releaseMode = (config?.playAudioOnRepeat == true)
+        ? ap.ReleaseMode.loop
+        : ap.ReleaseMode.release;
+    await _bgPlayer.setReleaseMode(releaseMode);
     await _bgPlayer.play(ap.AssetSource(track));
   }
 
   void _stopLofi() async {
     await _bgPlayer.stop();
+    setState(() {
+      currentlyPlayingTrack = null;
+    });
   }
 
   void startTimer() {
@@ -189,9 +215,43 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _loadConfig();
     getTodayCompletedSessions().then((count) {
       setState(() => countCompletedToday = count);
     });
+  }
+
+  Future<void> _loadConfig() async {
+    final box = await Hive.openBox<ConfigModel>('config');
+    config = box.get('settings') ?? ConfigModel.getDefault();
+    setState(() {});
+  }
+
+  Future<EnhancedAudioModel?> _getEnhancedAudioByPath(String path) async {
+    final box = await Hive.openBox<EnhancedAudioModel>('audioFiles');
+    final existingAudio = box.values.where((audio) => audio.filePath == path).firstOrNull;
+
+    if (existingAudio != null) {
+      return existingAudio;
+    }
+
+    // Create a new audio model with default values
+    final audioModel = EnhancedAudioModel(
+      filePath: path,
+      fileName: path.split('/').last,
+      createdAt: DateTime.now(),
+      durationMs: 0, // Default, will be updated when played
+      fileSizeBytes: 0, // Default, will be updated when file is analyzed
+      format: 'm4a', // Default format
+      bitRate: 64000, // Default bitrate
+      sampleRate: 44100, // Default sample rate
+      channels: 1, // Mono recording
+      category: 'voice_note',
+    );
+
+    // Save to box
+    await box.add(audioModel);
+    return audioModel;
   }
 
   @override
@@ -200,12 +260,69 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text('Lofi Pomodoro'),
         actions: [
-          IconButton(
-            icon: Icon(Icons.history),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => HistoryScreen()),
-            ),
+          PopupMenuButton<String>(
+            onSelected: (String value) {
+              switch (value) {
+                case 'settings':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SettingsScreen()),
+                  ).then((_) => _loadConfig());
+                  break;
+                case 'config':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ConfigScreen()),
+                  ).then((_) => _loadConfig());
+                  break;
+                case 'audio':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => AudioManagementScreen()),
+                  );
+                  break;
+                case 'history':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => HistoryScreen()),
+                  );
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'settings',
+                child: ListTile(
+                  leading: Icon(Icons.settings),
+                  title: Text('Settings'),
+                  dense: true,
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'config',
+                child: ListTile(
+                  leading: Icon(Icons.tune),
+                  title: Text('Configuration'),
+                  dense: true,
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'audio',
+                child: ListTile(
+                  leading: Icon(Icons.audiotrack),
+                  title: Text('Audio Management'),
+                  dense: true,
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'history',
+                child: ListTile(
+                  leading: Icon(Icons.history),
+                  title: Text('History'),
+                  dense: true,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -217,6 +334,30 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(formatTime(remainingSeconds), style: TextStyle(fontSize: 60)),
             Text("Today's sessions: $countCompletedToday"),
             SizedBox(height: 20),
+            if (currentlyPlayingTrack != null) ...[
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.music_note, size: 16, color: Colors.green),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Playing: $currentlyPlayingTrack',
+                        style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 10),
+            ],
             Text(logStateMessage, style: TextStyle(fontSize: 10)),
             SizedBox(height: 10),
             Row(
@@ -242,7 +383,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      _stopLofi();
+                      if (allowMusic) {
+                        _stopLofi();
+                      }
                       allowMusic = !allowMusic;
                     });
                   },
@@ -251,10 +394,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      if (allowMusic)
+                      if (allowMusic) {
                         _playLofi();
-                      else
+                      } else {
                         _stopLofi();
+                      }
                     });
                   },
                   child: Text(allowMusic ? 'Play M' : 'Stop M'),
@@ -270,31 +414,48 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             SizedBox(height: 20),
-            showPlayer
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 25),
-                    child: AudioPlayer(
-                      source: audioPath!,
-                      onDelete: () => setState(() => showPlayer = false),
+            if (config?.showAudioRecordButton == true) ...[
+              showPlayer && audioPath != null
+                  ? FutureBuilder<EnhancedAudioModel?>(
+                      future: _getEnhancedAudioByPath(audioPath!),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData && snapshot.data != null) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 25),
+                            child: EnhancedAudioPlayer(
+                              audioModel: snapshot.data!,
+                              onDelete: () {
+                                setState(() {
+                                  audioPath = null;
+                                  showPlayer = false;
+                                });
+                              },
+                            ),
+                          );
+                        }
+                        return CircularProgressIndicator();
+                      },
+                    )
+                  : EnhancedAudioRecorder(
+                      onRecordingComplete: (audioModel) {
+                        setState(() {
+                          audioPath = audioModel.filePath;
+                          showPlayer = true;
+                          canSubmitLog = true;
+                        });
+                      },
+                      category: 'voice_note',
                     ),
-                  )
-                : Recorder(
-                    onStop: (path) {
-                      if (kDebugMode) print('Recorded file path: $path');
-                      setState(() {
-                        audioPath = path;
-                        showPlayer = true;
-                      });
-                    },
-                  ),
-            SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: Icon(Icons.camera_alt),
-              label: imagePath != null
-                  ? Text('Photo Taken')
-                  : Text('Take Photo'),
-              onPressed: takePhoto,
-            ),
+              SizedBox(height: 20),
+            ],
+            if (config?.showPhotoButton == true)
+              ElevatedButton.icon(
+                icon: Icon(Icons.camera_alt),
+                label: imagePath != null
+                    ? Text('Photo Taken')
+                    : Text('Take Photo'),
+                onPressed: takePhoto,
+              ),
             SizedBox(height: 40),
             Text('Settings:'),
             Row(

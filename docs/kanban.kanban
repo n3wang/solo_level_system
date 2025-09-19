@@ -1,0 +1,47 @@
+{
+  "lists": [
+    {
+      "id": "1a85af95-8733-4f4a-9df3-94e7d1bddb67",
+      "title": "Backlog",
+      "cards": []
+    },
+    {
+      "id": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+      "title": "To Do",
+      "cards": [
+        {
+          "id": "c27e9815-8d13-4a3b-8355-039369262910",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "It keep basic tracking of workout habits",
+          "description": "The idea is that it should be able to keep track of which workouts to perform. Also the number of times it was completed. The routines can be set by the person.\n\nThe user should be able to create his own workout routine\nSet it by dates Monday, etc.\n",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "bf5d182b-4d45-4b88-bce7-58755a35e8ab",
+              "title": "Allows for rest time in between",
+              "checked": false
+            }
+          ],
+          "comments": []
+        }
+      ]
+    },
+    {
+      "id": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+      "title": "Doing",
+      "cards": []
+    },
+    {
+      "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+      "title": "Done",
+      "cards": []
+    }
+  ],
+  "archive": {
+    "lists": [],
+    "cards": []
+  },
+  "settings": {
+    "labels": []
+  }
+}
