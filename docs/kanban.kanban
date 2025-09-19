@@ -10,21 +10,6 @@
       "title": "To Do",
       "cards": [
         {
-          "id": "c27e9815-8d13-4a3b-8355-039369262910",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "It keep basic tracking of workout habits",
-          "description": "The idea is that it should be able to keep track of which workouts to perform. Also the number of times it was completed. The routines can be set by the person.\n\nThe user should be able to create his own workout routine\nSet it by dates Monday, etc.\n",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "bf5d182b-4d45-4b88-bce7-58755a35e8ab",
-              "title": "Allows for rest time in between",
-              "checked": false
-            }
-          ],
-          "comments": []
-        },
-        {
           "id": "44f685f4-0964-4f23-a017-20d88bd23131",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "Being able to rate down or up music tracks",
@@ -40,21 +25,23 @@
       "title": "Doing",
       "cards": [
         {
-          "id": "70475490-8048-43cd-8b34-02ed1370799b",
+          "id": "c27e9815-8d13-4a3b-8355-039369262910",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Configuration on Settings and Configuration",
-          "description": "",
+          "title": "It keep basic tracking of workout habits",
+          "description": "The application should have a bottom bar for different applications such as \nFocus Pomodoro, Analytics, and Workout Mode.\n\nFor the workout model:\nThe idea is that it should be able to keep track of which workouts to perform. Also the number of times it was completed. \n\nThe routines can be set by the person.\nCan also create workout habit and also the user can create new workouts. these are saved on memory. The workout routines are a collection of different workouts. User can modify the sets to do and weight. As well as track past workouts. and set new records.\n\n",
           "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "13494975-d61e-4c72-8719-a53ef891da2a",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Why is using Mock Record Audio it should be working",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
+          "checkboxes": [
+            {
+              "id": "bf5d182b-4d45-4b88-bce7-58755a35e8ab",
+              "title": "Allows for rest time in between",
+              "checked": false
+            },
+            {
+              "id": "03763464-ee5d-4c65-955c-4c55ee63f42f",
+              "title": "Allows for creating workout routines",
+              "checked": false
+            }
+          ],
           "comments": []
         }
       ]
@@ -67,6 +54,24 @@
           "id": "dd19c095-569b-4cf6-8255-24ca5fb0f5da",
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
           "title": "Migrating Configuration and Settings all in One",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "70475490-8048-43cd-8b34-02ed1370799b",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Configuration on Settings and Configuration",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "13494975-d61e-4c72-8719-a53ef891da2a",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Why is using Mock Record Audio it should be working",
           "description": "",
           "labels": [],
           "checkboxes": [],
