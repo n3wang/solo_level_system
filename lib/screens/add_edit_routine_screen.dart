@@ -4,6 +4,7 @@ import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_routine_model.dart';
 import 'package:solo_level_system/models/workout_set_model.dart';
+import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 
 class AddEditRoutineScreen extends StatefulWidget {
   final WorkoutRoutineModel? routine; // null for adding, non-null for editing
@@ -31,10 +32,27 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
   List<String> _tags = [];
   List<ExerciseModel> _availableExercises = [];
   List<ExerciseModel> _selectedExercises = [];
-
-  bool _isLoading = false;
-
-  final List<String> _categories = ['strength', 'cardio', 'mixed', 'custom'];
+  List<ExerciseModel> _filteredExercises = [];
+  
+  bool _isLoading = false;  final List<String> _categories = [
+    'strength',
+    'cardio',
+    'mixed',
+    'custom',
+    'powerlifting',
+    'bodybuilding',
+    'crossfit',
+    'functional',
+    'hiit',
+    'circuit',
+    'yoga_flow',
+    'stretching',
+    'warm_up',
+    'cool_down',
+    'rehabilitation',
+    'sports_specific',
+    'other',
+  ];
 
   final List<String> _difficultyLevels = [
     'beginner',
@@ -57,6 +75,7 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
       _availableExercises = exercisesBox.values
           .where((exercise) => !exercise.isArchived)
           .toList();
+      _filteredExercises = List.from(_availableExercises);
     });
   }
 
@@ -552,45 +571,92 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
             ],
           ),
           SizedBox(height: 16),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _availableExercises.length,
-              itemBuilder: (context, index) {
-                final exercise = _availableExercises[index];
-                final isSelected = _selectedExercises.any(
-                  (ex) => ex.id == exercise.id,
-                );
-
-                return ListTile(
-                  leading: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: _getMuscleGroupColor(exercise.muscleGroup),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      _getMuscleGroupIcon(exercise.muscleGroup),
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  title: Text(exercise.name),
-                  subtitle: Text(
-                    '${exercise.muscleGroup} • ${exercise.equipment}',
-                  ),
-                  trailing: isSelected
-                      ? Icon(Icons.check_circle, color: Colors.green)
-                      : Icon(Icons.add_circle_outline),
-                  onTap: isSelected
-                      ? null
-                      : () {
-                          _selectExercise(exercise);
-                          Navigator.pop(context);
-                        },
-                );
-              },
+          // Add Exercise Button
+          Container(
+            width: double.infinity,
+            margin: EdgeInsets.only(bottom: 16),
+            child: ElevatedButton.icon(
+              onPressed: _createExerciseFromRoutine,
+              icon: Icon(Icons.add),
+              label: Text('Create New Exercise'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 12),
+              ),
             ),
+          ),
+          // Search bar
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Search exercises...',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+            onChanged: _filterExercises,
+          ),
+          SizedBox(height: 16),
+          Expanded(
+            child: (_filteredExercises.isNotEmpty ? _filteredExercises : _availableExercises).isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.fitness_center, size: 64, color: Colors.grey[400]),
+                        SizedBox(height: 16),
+                        Text(
+                          'No exercises found',
+                          style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Create your first exercise to get started',
+                          style: TextStyle(color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: (_filteredExercises.isNotEmpty ? _filteredExercises : _availableExercises).length,
+                    itemBuilder: (context, index) {
+                      final exercise = (_filteredExercises.isNotEmpty ? _filteredExercises : _availableExercises)[index];
+                      final isSelected = _selectedExercises.any(
+                        (ex) => ex.id == exercise.id,
+                      );
+
+                      return Card(
+                        margin: EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: _getMuscleGroupColor(exercise.muscleGroup),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              _getMuscleGroupIcon(exercise.muscleGroup),
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          title: Text(exercise.name),
+                          subtitle: Text(
+                            '${_formatOptionName(exercise.muscleGroup)} • ${_formatOptionName(exercise.equipment)}',
+                          ),
+                          trailing: isSelected
+                              ? Icon(Icons.check_circle, color: Colors.green)
+                              : Icon(Icons.add_circle_outline),
+                          onTap: isSelected
+                              ? null
+                              : () {
+                                  _selectExercise(exercise);
+                                  Navigator.pop(context);
+                                },
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -893,5 +959,91 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  void _createExerciseFromRoutine() async {
+    // Save current routine state before navigating
+    final routineState = _saveCurrentRoutineState();
+    
+    Navigator.pop(context); // Close exercise selection sheet
+    
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddEditExerciseScreen(),
+      ),
+    );
+    
+    if (result == true) {
+      // Restore routine state and reload exercises
+      _restoreRoutineState(routineState);
+      _loadAvailableExercises();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exercise created! You can now add it to your routine.')),
+      );
+      
+      // Reopen exercise selection with new exercise available
+      _addExercise();
+    }
+  }
+
+  Map<String, dynamic> _saveCurrentRoutineState() {
+    return {
+      'name': _nameController.text,
+      'description': _descriptionController.text,
+      'notes': _notesController.text,
+      'tags': _tagsController.text,
+      'category': _selectedCategory,
+      'difficulty': _selectedDifficulty,
+      'duration': _estimatedDuration,
+      'isFavorite': _isFavorite,
+      'selectedExercises': _selectedExercises.map((e) => e.id).toList(),
+      'exerciseSets': _exerciseSets,
+    };
+  }
+
+  void _restoreRoutineState(Map<String, dynamic> state) {
+    _nameController.text = state['name'] ?? '';
+    _descriptionController.text = state['description'] ?? '';
+    _notesController.text = state['notes'] ?? '';
+    _tagsController.text = state['tags'] ?? '';
+    _selectedCategory = state['category'] ?? 'strength';
+    _selectedDifficulty = state['difficulty'] ?? 'beginner';
+    _estimatedDuration = state['duration'] ?? 30;
+    _isFavorite = state['isFavorite'] ?? false;
+    _exerciseSets = Map<String, List<WorkoutSetModel>>.from(state['exerciseSets'] ?? {});
+    
+    // Restore selected exercises
+    final selectedIds = List<String>.from(state['selectedExercises'] ?? []);
+    _selectedExercises = _availableExercises
+        .where((exercise) => selectedIds.contains(exercise.id))
+        .toList();
+    _exerciseIds = selectedIds;
+    
+    // Restore tags
+    _tags = _tagsController.text
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
+        
+    setState(() {});
+  }
+
+  void _filterExercises(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredExercises = List.from(_availableExercises);
+      } else {
+        _filteredExercises = _availableExercises
+            .where((exercise) =>
+                exercise.name.toLowerCase().contains(query.toLowerCase()) ||
+                exercise.muscleGroup.toLowerCase().contains(query.toLowerCase()) ||
+                exercise.category.toLowerCase().contains(query.toLowerCase()) ||
+                exercise.equipment.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
+    });
   }
 }

@@ -964,7 +964,18 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                             'arms',
                             'shoulders',
                             'core',
+                            'glutes',
+                            'calves',
+                            'forearms',
+                            'traps',
+                            'lats',
+                            'quads',
+                            'hamstrings',
+                            'biceps',
+                            'triceps',
+                            'delts',
                             'full_body',
+                            'other',
                           ]
                           .map(
                             (group) => DropdownMenuItem(
@@ -995,6 +1006,9 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                             'barbell',
                             'machine',
                             'cables',
+                            'resistance_bands',
+                            'kettlebell',
+                            'other',
                           ]
                           .map(
                             (equipment) => DropdownMenuItem(

@@ -34,6 +34,18 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
     'cardio',
     'flexibility',
     'sports',
+    'functional',
+    'powerlifting',
+    'bodybuilding',
+    'crossfit',
+    'yoga',
+    'pilates',
+    'martial_arts',
+    'dance',
+    'rehabilitation',
+    'warm_up',
+    'cool_down',
+    'other',
   ];
 
   final List<String> _muscleGroups = [
@@ -43,7 +55,18 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
     'arms',
     'shoulders',
     'core',
+    'glutes',
+    'calves',
+    'forearms',
+    'traps',
+    'lats',
+    'quads',
+    'hamstrings',
+    'biceps',
+    'triceps',
+    'delts',
     'full_body',
+    'other',
   ];
 
   final List<String> _equipmentOptions = [
