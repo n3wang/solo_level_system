@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(flutter analyze:*)",
-      "Bash(flutter packages pub run:*)"
+      "Bash(flutter packages pub run:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter logs:*)",
+      "Bash(flutter:*)"
     ],
     "deny": [],
     "ask": []

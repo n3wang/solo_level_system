@@ -18,20 +18,39 @@ class _ConfigScreenState extends State<ConfigScreen> {
   }
 
   Future<void> _loadConfig() async {
-    final box = await Hive.openBox<ConfigModel>('config');
-    config = box.get('settings') ?? ConfigModel.getDefault();
-    setState(() {
-      isLoading = false;
-    });
+    try {
+      // Use existing open box instead of trying to open again
+      final box = Hive.box<ConfigModel>('config');
+      config = box.get('settings') ?? ConfigModel.getDefault();
+      setState(() {
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading config: $e');
+      config = ConfigModel.getDefault();
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> _saveConfig() async {
-    final box = await Hive.openBox<ConfigModel>('config');
-    await box.put('settings', config);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Settings saved successfully!')),
-      );
+    try {
+      // Use existing open box instead of trying to open again
+      final box = Hive.box<ConfigModel>('config');
+      await box.put('settings', config);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Settings saved successfully!')),
+        );
+      }
+    } catch (e) {
+      print('Error saving config: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving settings')),
+        );
+      }
     }
   }
 

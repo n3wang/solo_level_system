@@ -9,21 +9,34 @@ import 'models/config_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
 
-  // Register all Hive adapters
-  Hive.registerAdapter(PomodoroModelAdapter());
-  Hive.registerAdapter(UserSettingsModelAdapter());
-  Hive.registerAdapter(AudioSettingsModelAdapter());
-  Hive.registerAdapter(EnhancedAudioModelAdapter());
-  Hive.registerAdapter(ConfigModelAdapter());
+  try {
+    await Hive.initFlutter();
 
-  // Open all Hive boxes
-  await Hive.openBox<PomodoroModel>('pomodoros');
-  await Hive.openBox<UserSettingsModel>('userSettings');
-  await Hive.openBox<AudioSettingsModel>('audioSettings');
-  await Hive.openBox<EnhancedAudioModel>('audioFiles');
-  await Hive.openBox<ConfigModel>('config');
+    // Register all Hive adapters
+    Hive.registerAdapter(PomodoroModelAdapter());
+    Hive.registerAdapter(UserSettingsModelAdapter());
+    Hive.registerAdapter(AudioSettingsModelAdapter());
+    Hive.registerAdapter(EnhancedAudioModelAdapter());
+    Hive.registerAdapter(ConfigModelAdapter());
+
+    // Open all Hive boxes with detailed logging
+    print('Opening Hive boxes...');
+    await Hive.openBox<PomodoroModel>('pomodoros');
+    print('✓ Opened pomodoros box');
+    await Hive.openBox<UserSettingsModel>('userSettings');
+    print('✓ Opened userSettings box');
+    await Hive.openBox<AudioSettingsModel>('audioSettings');
+    print('✓ Opened audioSettings box');
+    await Hive.openBox<EnhancedAudioModel>('audioFiles');
+    print('✓ Opened audioFiles box');
+    await Hive.openBox<ConfigModel>('config');
+    print('✓ Opened config box');
+    print('All Hive boxes opened successfully');
+  } catch (e) {
+    print('Hive initialization error: $e');
+    print('Stack trace: ${StackTrace.current}');
+  }
 
   runApp(MyApp());
 }
