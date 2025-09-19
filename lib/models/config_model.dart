@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 part 'config_model.g.dart';
 
-@HiveType(typeId: 4)
+@HiveType(typeId: 9)
 class ConfigModel extends HiveObject {
   @HiveField(0)
   bool playAudioOnRepeat;

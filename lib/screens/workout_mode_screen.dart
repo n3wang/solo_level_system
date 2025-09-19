@@ -1,0 +1,928 @@
+// lib/screens/workout_mode_screen.dart
+import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:solo_level_system/models/exercise_model.dart';
+import 'package:solo_level_system/models/workout_routine_model.dart';
+import 'package:solo_level_system/models/workout_session_model.dart';
+
+class WorkoutModeScreen extends StatefulWidget {
+  @override
+  _WorkoutModeScreenState createState() => _WorkoutModeScreenState();
+}
+
+class _WorkoutModeScreenState extends State<WorkoutModeScreen>
+    with TickerProviderStateMixin {
+  late TabController _tabController;
+  WorkoutSessionModel? _activeSession;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Workout Mode'),
+        actions: [
+          if (_activeSession != null)
+            IconButton(
+              icon: Icon(Icons.stop, color: Colors.red),
+              onPressed: _endWorkoutSession,
+            ),
+          IconButton(
+            icon: Icon(Icons.add),
+            onPressed: () => _showCreateOptions(context),
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: [
+            Tab(icon: Icon(Icons.list), text: 'Routines'),
+            Tab(icon: Icon(Icons.fitness_center), text: 'Exercises'),
+            Tab(icon: Icon(Icons.play_circle), text: 'Quick Start'),
+            Tab(icon: Icon(Icons.history), text: 'History'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildRoutinesTab(),
+          _buildExercisesTab(),
+          _buildQuickStartTab(),
+          _buildHistoryTab(),
+        ],
+      ),
+      floatingActionButton: _activeSession != null
+          ? FloatingActionButton(
+              onPressed: () => _navigateToActiveWorkout(),
+              child: Icon(Icons.play_arrow),
+              backgroundColor: Colors.green,
+            )
+          : null,
+    );
+  }
+
+  Widget _buildRoutinesTab() {
+    return FutureBuilder(
+      future: _ensureBoxIsOpen<WorkoutRoutineModel>('workoutRoutines'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasError) {
+          return Center(child: Text('Error loading routines: ${snapshot.error}'));
+        }
+
+        return ValueListenableBuilder(
+          valueListenable: Hive.box<WorkoutRoutineModel>('workoutRoutines').listenable(),
+          builder: (context, Box<WorkoutRoutineModel> box, _) {
+            final routines = box.values.toList();
+
+            if (routines.isEmpty) {
+              return _buildEmptyState(
+                'No Workout Routines',
+                'Create your first routine to get started',
+                Icons.fitness_center,
+                () => _createNewRoutine(),
+              );
+            }
+
+            return ListView.builder(
+              padding: EdgeInsets.all(16),
+              itemCount: routines.length,
+              itemBuilder: (context, index) {
+                final routine = routines[index];
+                return _buildRoutineCard(routine);
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildRoutineCard(WorkoutRoutineModel routine) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 16),
+      child: InkWell(
+        onTap: () => _startRoutine(routine),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          routine.name,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (routine.description.isNotEmpty)
+                          Text(
+                            routine.description,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton(
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit),
+                            SizedBox(width: 8),
+                            Text('Edit'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'duplicate',
+                        child: Row(
+                          children: [
+                            Icon(Icons.copy),
+                            SizedBox(width: 8),
+                            Text('Duplicate'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Delete', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onSelected: (value) => _handleRoutineAction(value, routine),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  _buildInfoChip(
+                    '${routine.exerciseIds.length} exercises',
+                    Icons.list,
+                  ),
+                  SizedBox(width: 8),
+                  _buildInfoChip(
+                    '${routine.estimatedDurationMinutes} min',
+                    Icons.timer,
+                  ),
+                  SizedBox(width: 8),
+                  _buildInfoChip(
+                    '${routine.timesCompleted} completed',
+                    Icons.check_circle,
+                  ),
+                ],
+              ),
+              if (routine.tags.isNotEmpty) ...[
+                SizedBox(height: 8),
+                Wrap(
+                  spacing: 4,
+                  children: routine.tags
+                      .map(
+                        (tag) => Chip(
+                          label: Text(tag, style: TextStyle(fontSize: 12)),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExercisesTab() {
+    return FutureBuilder(
+      future: _ensureBoxIsOpen<ExerciseModel>('exercises'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasError) {
+          return Center(child: Text('Error loading exercises: ${snapshot.error}'));
+        }
+
+        return ValueListenableBuilder(
+          valueListenable: Hive.box<ExerciseModel>('exercises').listenable(),
+          builder: (context, Box<ExerciseModel> box, _) {
+            final exercises = box.values.toList();
+
+            if (exercises.isEmpty) {
+              return _buildEmptyState(
+                'No Exercises',
+                'Add exercises to build your workout library',
+                Icons.add_circle,
+                () => _createNewExercise(),
+              );
+            }
+
+            return ListView.builder(
+              padding: EdgeInsets.all(16),
+              itemCount: exercises.length,
+              itemBuilder: (context, index) {
+                final exercise = exercises[index];
+                return _buildExerciseCard(exercise);
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildExerciseCard(ExerciseModel exercise) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 16),
+      child: InkWell(
+        onTap: () => _viewExerciseDetails(exercise),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: _getMuscleGroupColor(exercise.muscleGroup),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _getMuscleGroupIcon(exercise.muscleGroup),
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          exercise.name,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          exercise.muscleGroup,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            ...List.generate(
+                              5,
+                              (index) => Icon(
+                                index < _getDifficultyLevel(exercise.difficulty)
+                                    ? Icons.star
+                                    : Icons.star_border,
+                                size: 16,
+                                color: Colors.orange,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              exercise.equipment == 'bodyweight'
+                                  ? 'Bodyweight'
+                                  : exercise.equipment,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.play_circle_filled, size: 32),
+                    onPressed: () => _quickStartExercise(exercise),
+                  ),
+                ],
+              ),
+              if (exercise.personalRecord != null &&
+                  exercise.personalRecord! > 0) ...[
+                SizedBox(height: 12),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.emoji_events, color: Colors.green, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        'PR: ${exercise.formattedPersonalRecord}',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickStartTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_activeSession != null) _buildActiveSessionCard(),
+          _buildQuickStartOptions(),
+          SizedBox(height: 24),
+          _buildRecentWorkouts(),
+          SizedBox(height: 24),
+          _buildWorkoutTemplates(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveSessionCard() {
+    return Card(
+      color: Colors.green.shade50,
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(Icons.play_circle, color: Colors.green, size: 32),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Workout in Progress',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      Text(
+                        _activeSession?.routineName ?? 'Custom Workout',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: _navigateToActiveWorkout,
+                  child: Text('Continue'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickStartOptions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Start',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 1.2,
+          children: [
+            _buildQuickStartCard(
+              'Empty Workout',
+              'Start a blank workout',
+              Icons.add_circle,
+              Colors.blue,
+              () => _startEmptyWorkout(),
+            ),
+            _buildQuickStartCard(
+              'Last Workout',
+              'Repeat your last session',
+              Icons.replay,
+              Colors.orange,
+              () => _repeatLastWorkout(),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickStartCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 48, color: color),
+              SizedBox(height: 12),
+              Text(
+                title,
+                style: TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentWorkouts() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Recent Workouts',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 12),
+        // Placeholder for recent workouts
+        Card(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Recent workouts will appear here'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWorkoutTemplates() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Workout Templates',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 12),
+        // Placeholder for workout templates
+        Card(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Workout templates will appear here'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHistoryTab() {
+    return FutureBuilder(
+      future: _ensureBoxIsOpen<WorkoutSessionModel>('workoutSessions'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasError) {
+          return Center(child: Text('Error loading workout history: ${snapshot.error}'));
+        }
+
+        return ValueListenableBuilder(
+          valueListenable: Hive.box<WorkoutSessionModel>('workoutSessions').listenable(),
+          builder: (context, Box<WorkoutSessionModel> box, _) {
+            final sessions = box.values.toList()
+              ..sort((a, b) => b.startTime.compareTo(a.startTime));
+
+            if (sessions.isEmpty) {
+              return _buildEmptyState(
+                'No Workout History',
+                'Your completed workouts will appear here',
+                Icons.history,
+                () => _tabController.animateTo(2), // Navigate to Quick Start
+              );
+            }
+
+            return ListView.builder(
+              padding: EdgeInsets.all(16),
+              itemCount: sessions.length,
+              itemBuilder: (context, index) {
+                final session = sessions[index];
+                return _buildHistoryCard(session);
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildHistoryCard(WorkoutSessionModel session) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 16),
+      child: InkWell(
+        onTap: () => _viewSessionDetails(session),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          session.routineName.isEmpty
+                              ? 'Custom Workout'
+                              : session.routineName,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          _formatDate(session.startTime),
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (session.endTime != null)
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Completed',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  _buildInfoChip(
+                    '${session.completedExerciseIds.length} exercises',
+                    Icons.fitness_center,
+                  ),
+                  SizedBox(width: 8),
+                  if (session.endTime != null)
+                    _buildInfoChip(
+                      '${session.endTime!.difference(session.startTime).inMinutes} min',
+                      Icons.timer,
+                    ),
+                  SizedBox(width: 8),
+                  _buildInfoChip(
+                    '${session.totalWeightLifted?.toStringAsFixed(0) ?? '0'}kg',
+                    Icons.fitness_center,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(
+    String title,
+    String subtitle,
+    IconData icon,
+    VoidCallback onPressed,
+  ) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: Colors.grey[400]),
+            SizedBox(height: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[600],
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onPressed,
+              icon: Icon(Icons.add),
+              label: Text('Get Started'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(String text, IconData icon) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.grey[600]),
+          SizedBox(width: 4),
+          Text(text, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        ],
+      ),
+    );
+  }
+
+  // Action methods
+  void _showCreateOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.fitness_center),
+              title: Text('Create Exercise'),
+              onTap: () {
+                Navigator.pop(context);
+                _createNewExercise();
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.list),
+              title: Text('Create Routine'),
+              onTap: () {
+                Navigator.pop(context);
+                _createNewRoutine();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _createNewExercise() {
+    // Navigate to exercise creation screen
+    print('Create new exercise');
+  }
+
+  void _createNewRoutine() {
+    // Navigate to routine creation screen
+    print('Create new routine');
+  }
+
+  void _startRoutine(WorkoutRoutineModel routine) {
+    // Start a workout session with the selected routine
+    print('Start routine: ${routine.name}');
+  }
+
+  void _startEmptyWorkout() {
+    // Start an empty workout session
+    print('Start empty workout');
+  }
+
+  void _repeatLastWorkout() {
+    // Repeat the last completed workout
+    print('Repeat last workout');
+  }
+
+  void _quickStartExercise(ExerciseModel exercise) {
+    // Quick start with a single exercise
+    print('Quick start exercise: ${exercise.name}');
+  }
+
+  void _viewExerciseDetails(ExerciseModel exercise) {
+    // Navigate to exercise details screen
+    print('View exercise: ${exercise.name}');
+  }
+
+  void _viewSessionDetails(WorkoutSessionModel session) {
+    // Navigate to session details screen
+    print('View session details');
+  }
+
+  void _navigateToActiveWorkout() {
+    // Navigate to active workout screen
+    print('Navigate to active workout');
+  }
+
+  void _endWorkoutSession() {
+    // End the current workout session
+    setState(() {
+      _activeSession = null;
+    });
+  }
+
+  void _handleRoutineAction(String action, WorkoutRoutineModel routine) {
+    switch (action) {
+      case 'edit':
+        print('Edit routine: ${routine.name}');
+        break;
+      case 'duplicate':
+        print('Duplicate routine: ${routine.name}');
+        break;
+      case 'delete':
+        _deleteRoutine(routine);
+        break;
+    }
+  }
+
+  void _deleteRoutine(WorkoutRoutineModel routine) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Routine'),
+        content: Text('Are you sure you want to delete "${routine.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Delete routine logic
+              Navigator.pop(context);
+            },
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper methods
+  int _getDifficultyLevel(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case 'beginner':
+        return 1;
+      case 'intermediate':
+        return 3;
+      case 'advanced':
+        return 5;
+      default:
+        return 1;
+    }
+  }
+
+  Color _getMuscleGroupColor(String muscleGroup) {
+    switch (muscleGroup.toLowerCase()) {
+      case 'chest':
+        return Colors.red;
+      case 'back':
+        return Colors.blue;
+      case 'shoulders':
+        return Colors.orange;
+      case 'arms':
+        return Colors.purple;
+      case 'legs':
+        return Colors.green;
+      case 'core':
+        return Colors.amber;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getMuscleGroupIcon(String muscleGroup) {
+    switch (muscleGroup.toLowerCase()) {
+      case 'chest':
+        return Icons.fitness_center;
+      case 'back':
+        return Icons.fitness_center;
+      case 'shoulders':
+        return Icons.fitness_center;
+      case 'arms':
+        return Icons.fitness_center;
+      case 'legs':
+        return Icons.directions_run;
+      case 'core':
+        return Icons.fitness_center;
+      default:
+        return Icons.fitness_center;
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date).inDays;
+
+    if (difference == 0) {
+      return 'Today';
+    } else if (difference == 1) {
+      return 'Yesterday';
+    } else if (difference < 7) {
+      return '${difference} days ago';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
+  // Helper method to ensure Hive boxes are opened
+  Future<void> _ensureBoxIsOpen<T>(String boxName) async {
+    try {
+      if (!Hive.isBoxOpen(boxName)) {
+        await Hive.openBox<T>(boxName);
+      }
+    } catch (e) {
+      print('Error opening box $boxName: $e');
+      rethrow;
+    }
+  }
+}

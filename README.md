@@ -10,3 +10,13 @@ To update the modesl flutter schemas:
 ```bash
 flutter packages pub run build_runner build --delete-conflicting-outputs
 ```
+
+### Running tests.
+
+```bash
+flutter test
+```
+
+
+
+
