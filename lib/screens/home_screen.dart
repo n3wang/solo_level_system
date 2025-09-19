@@ -41,6 +41,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final _bgPlayer = ap.AudioPlayer();
 
+  // Helper method to check if recording/photo features should be available
+  bool get _shouldShowRecordingFeatures {
+    // Only show during break or when stopped (not during active work session)
+    return !isRunning || onBreak || canSubmitLog;
+  }
+
   void _playLofi() async {
     if (_bgPlayer.state == ap.PlayerState.playing) await _bgPlayer.stop();
     if (!allowMusic) return;
@@ -326,141 +332,235 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      body: DraggableScrollableSheet(
+        initialChildSize: 1.0,
+        minChildSize: 0.5,
+        maxChildSize: 1.0,
+        builder: (context, scrollController) {
+          return SingleChildScrollView(
+            controller: scrollController,
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Main Timer Display
+                _buildTimerSection(),
+
+                SizedBox(height: 20),
+
+                // Control Buttons
+                _buildControlButtons(),
+
+                SizedBox(height: 20),
+
+                // Audio Controls
+                _buildAudioControls(),
+
+                SizedBox(height: 20),
+
+                // Recording and Photo Section (conditional)
+                if (_shouldShowRecordingFeatures) ...[
+                  _buildRecordingSection(),
+                  SizedBox(height: 20),
+                ],
+
+                // Settings Section
+                _buildSettingsSection(),
+
+                SizedBox(height: 20),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTimerSection() {
+    return Column(
+      children: [
+        Text(formatTime(remainingSeconds), style: TextStyle(fontSize: 60)),
+        Text("Today's sessions: $countCompletedToday"),
+        SizedBox(height: 20),
+        if (currentlyPlayingTrack != null) ...[
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.music_note, size: 16, color: Colors.green),
+                SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'Playing: $currentlyPlayingTrack',
+                    style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 10),
+        ],
+        Text(logStateMessage, style: TextStyle(fontSize: 10)),
+        if (!_shouldShowRecordingFeatures && isRunning && !onBreak) ...[
+          SizedBox(height: 10),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue[200]!),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.work, size: 16, color: Colors.blue),
+                SizedBox(width: 8),
+                Text(
+                  'Focus mode: Recording features disabled',
+                  style: TextStyle(fontSize: 12, color: Colors.blue[700]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildControlButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        if (!isRunning && !canSubmitLog)
+          ElevatedButton(onPressed: startTimer, child: Text('Start')),
+        if (isRunning)
+          ElevatedButton(onPressed: stopTimer, child: Text('Stop')),
+        if (!isRunning && canSubmitLog)
+          TextButton(
+            onPressed: submitLog,
+            child: Text(
+              '[Submit Log]',
+              style: TextStyle(color: Colors.green),
+            ),
+          ),
+        ElevatedButton(onPressed: resetTimer, child: Text('Reset')),
+      ],
+    );
+  }
+
+  Widget _buildAudioControls() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        ElevatedButton(
+          onPressed: () {
+            setState(() {
+              if (allowMusic) {
+                _stopLofi();
+              }
+              allowMusic = !allowMusic;
+            });
+          },
+          child: Text(allowMusic ? 'Mute' : 'Unmute'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            setState(() {
+              if (allowMusic) {
+                _playLofi();
+              } else {
+                _stopLofi();
+              }
+            });
+          },
+          child: Text(allowMusic ? 'Play M' : 'Stop M'),
+        ),
+        if (!canSubmitLog)
+          ElevatedButton(
+            onPressed: instantFinish,
+            child: Text(
+              'Instant Finish',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRecordingSection() {
+    return Column(
+      children: [
+        Text(
+          'Session Recording',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 16),
+        if (config?.showAudioRecordButton == true) ...[
+          showPlayer && audioPath != null
+              ? FutureBuilder<EnhancedAudioModel?>(
+                  future: _getEnhancedAudioByPath(audioPath!),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data != null) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 25),
+                        child: EnhancedAudioPlayer(
+                          audioModel: snapshot.data!,
+                          onDelete: () {
+                            setState(() {
+                              audioPath = null;
+                              showPlayer = false;
+                            });
+                          },
+                        ),
+                      );
+                    }
+                    return CircularProgressIndicator();
+                  },
+                )
+              : EnhancedAudioRecorder(
+                  onRecordingComplete: (audioModel) {
+                    setState(() {
+                      audioPath = audioModel.filePath;
+                      showPlayer = true;
+                      canSubmitLog = true;
+                    });
+                  },
+                  category: 'voice_note',
+                ),
+          SizedBox(height: 16),
+        ],
+        if (config?.showPhotoButton == true)
+          ElevatedButton.icon(
+            icon: Icon(Icons.camera_alt),
+            label: imagePath != null
+                ? Text('Photo Taken')
+                : Text('Take Photo'),
+            onPressed: takePhoto,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSettingsSection() {
+    return Column(
+      children: [
+        Text(
+          'Settings',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Text(formatTime(remainingSeconds), style: TextStyle(fontSize: 60)),
-            Text("Today's sessions: $countCompletedToday"),
-            SizedBox(height: 20),
-            if (currentlyPlayingTrack != null) ...[
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.music_note, size: 16, color: Colors.green),
-                    SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'Playing: $currentlyPlayingTrack',
-                        style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 10),
-            ],
-            Text(logStateMessage, style: TextStyle(fontSize: 10)),
-            SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            Column(
               children: [
-                if (!isRunning && !canSubmitLog)
-                  ElevatedButton(onPressed: startTimer, child: Text('Start')),
-                if (isRunning)
-                  ElevatedButton(onPressed: stopTimer, child: Text('Stop')),
-                if (!isRunning && canSubmitLog)
-                  TextButton(
-                    onPressed: submitLog,
-                    child: Text(
-                      '[Submit Log]',
-                      style: TextStyle(color: Colors.green),
-                    ),
-                  ),
-                ElevatedButton(onPressed: resetTimer, child: Text('Reset')),
-              ],
-            ),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      if (allowMusic) {
-                        _stopLofi();
-                      }
-                      allowMusic = !allowMusic;
-                    });
-                  },
-                  child: Text(allowMusic ? 'Mute' : 'Unmute'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      if (allowMusic) {
-                        _playLofi();
-                      } else {
-                        _stopLofi();
-                      }
-                    });
-                  },
-                  child: Text(allowMusic ? 'Play M' : 'Stop M'),
-                ),
-                if (!canSubmitLog)
-                  ElevatedButton(
-                    onPressed: instantFinish,
-                    child: Text(
-                      'Instant Finish',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  ),
-              ],
-            ),
-            SizedBox(height: 20),
-            if (config?.showAudioRecordButton == true) ...[
-              showPlayer && audioPath != null
-                  ? FutureBuilder<EnhancedAudioModel?>(
-                      future: _getEnhancedAudioByPath(audioPath!),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData && snapshot.data != null) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 25),
-                            child: EnhancedAudioPlayer(
-                              audioModel: snapshot.data!,
-                              onDelete: () {
-                                setState(() {
-                                  audioPath = null;
-                                  showPlayer = false;
-                                });
-                              },
-                            ),
-                          );
-                        }
-                        return CircularProgressIndicator();
-                      },
-                    )
-                  : EnhancedAudioRecorder(
-                      onRecordingComplete: (audioModel) {
-                        setState(() {
-                          audioPath = audioModel.filePath;
-                          showPlayer = true;
-                          canSubmitLog = true;
-                        });
-                      },
-                      category: 'voice_note',
-                    ),
-              SizedBox(height: 20),
-            ],
-            if (config?.showPhotoButton == true)
-              ElevatedButton.icon(
-                icon: Icon(Icons.camera_alt),
-                label: imagePath != null
-                    ? Text('Photo Taken')
-                    : Text('Take Photo'),
-                onPressed: takePhoto,
-              ),
-            SizedBox(height: 40),
-            Text('Settings:'),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
+                Text('Work Duration', style: TextStyle(fontSize: 12)),
                 DropdownButton<int>(
                   value: workMinutes,
                   items: [1, 15, 25]
@@ -476,6 +576,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (!isRunning && !onBreak) remainingSeconds = val * 60;
                   }),
                 ),
+              ],
+            ),
+            Column(
+              children: [
+                Text('Break Duration', style: TextStyle(fontSize: 12)),
                 DropdownButton<int>(
                   value: breakMinutes,
                   items: [1, 5, 10]
@@ -492,7 +597,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 }

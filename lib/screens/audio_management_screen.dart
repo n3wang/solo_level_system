@@ -16,19 +16,30 @@ class AudioManagementScreen extends StatefulWidget {
 class _AudioManagementScreenState extends State<AudioManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   String _searchQuery = '';
   String _selectedCategory = 'All';
   String _sortBy = 'Recent';
   bool _showFavoritesOnly = false;
   bool _showArchivedOnly = false;
-  
+
   final List<String> _categories = [
-    'All', 'voice_note', 'music', 'meeting', 'ambient', 'Other'
+    'All',
+    'voice_note',
+    'music',
+    'meeting',
+    'ambient',
+    'Other',
   ];
-  
+
   final List<String> _sortOptions = [
-    'Recent', 'Oldest', 'Name A-Z', 'Name Z-A', 'Duration', 'Size', 'Most Played'
+    'Recent',
+    'Oldest',
+    'Name A-Z',
+    'Name Z-A',
+    'Duration',
+    'Size',
+    'Most Played',
   ];
 
   @override
@@ -57,10 +68,7 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
           ],
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.search),
-            onPressed: _showSearchDialog,
-          ),
+          IconButton(icon: Icon(Icons.search), onPressed: _showSearchDialog),
           PopupMenuButton<String>(
             onSelected: _handleMenuAction,
             itemBuilder: (context) => [
@@ -73,11 +81,7 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildLibraryTab(),
-          _buildRecordTab(),
-          _buildAnalyticsTab(),
-        ],
+        children: [_buildLibraryTab(), _buildRecordTab(), _buildAnalyticsTab()],
       ),
     );
   }
@@ -88,7 +92,9 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
         _buildFilterBar(),
         Expanded(
           child: ValueListenableBuilder(
-            valueListenable: Hive.box<EnhancedAudioModel>('audioFiles').listenable(),
+            valueListenable: Hive.box<EnhancedAudioModel>(
+              'audioFiles',
+            ).listenable(),
             builder: (context, Box<EnhancedAudioModel> box, _) {
               final allAudios = box.values.toList();
               final filteredAudios = _filterAndSortAudios(allAudios);
@@ -178,12 +184,14 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
             child: DropdownButton<String>(
               value: _selectedCategory,
               isExpanded: true,
-              items: _categories.map((category) => 
-                DropdownMenuItem(
-                  value: category,
-                  child: Text(category.replaceAll('_', ' ').titleCase),
-                ),
-              ).toList(),
+              items: _categories
+                  .map(
+                    (category) => DropdownMenuItem(
+                      value: category,
+                      child: Text(category.replaceAll('_', ' ').titleCase),
+                    ),
+                  )
+                  .toList(),
               onChanged: (value) {
                 setState(() => _selectedCategory = value!);
               },
@@ -216,10 +224,7 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
       child: ExpansionTile(
         leading: CircleAvatar(
           backgroundColor: _getCategoryColor(audio.category),
-          child: Icon(
-            _getCategoryIcon(audio.category),
-            color: Colors.white,
-          ),
+          child: Icon(_getCategoryIcon(audio.category), color: Colors.white),
         ),
         title: Text(
           audio.title ?? audio.fileName,
@@ -236,13 +241,16 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
             if (audio.tags.isNotEmpty)
               Wrap(
                 spacing: 4,
-                children: audio.tags.take(3).map((tag) => 
-                  Chip(
-                    label: Text(tag, style: TextStyle(fontSize: 10)),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ).toList(),
+                children: audio.tags
+                    .take(3)
+                    .map(
+                      (tag) => Chip(
+                        label: Text(tag, style: TextStyle(fontSize: 10)),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    )
+                    .toList(),
               ),
           ],
         ),
@@ -299,7 +307,10 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
         ),
         ActionChip(
           label: Text(audio.isArchived ? 'Unarchive' : 'Archive'),
-          avatar: Icon(audio.isArchived ? Icons.unarchive : Icons.archive, size: 16),
+          avatar: Icon(
+            audio.isArchived ? Icons.unarchive : Icons.archive,
+            size: 16,
+          ),
           onPressed: () => _toggleArchive(audio),
         ),
         ActionChip(
@@ -383,16 +394,42 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
 
   Widget _buildStatsCards(List<EnhancedAudioModel> audios) {
     final totalFiles = audios.length;
-    final totalSize = audios.fold<int>(0, (sum, audio) => sum + audio.fileSizeBytes);
-    final totalDuration = audios.fold<int>(0, (sum, audio) => sum + audio.durationMs);
+    final totalSize = audios.fold<int>(
+      0,
+      (sum, audio) => sum + audio.fileSizeBytes,
+    );
+    final totalDuration = audios.fold<int>(
+      0,
+      (sum, audio) => sum + audio.durationMs,
+    );
     final favoriteCount = audios.where((audio) => audio.isFavorite).length;
 
     return Row(
       children: [
-        Expanded(child: _buildStatCard('Total Files', '$totalFiles', Icons.library_music)),
-        Expanded(child: _buildStatCard('Total Size', _formatBytes(totalSize), Icons.storage)),
-        Expanded(child: _buildStatCard('Total Duration', _formatDuration(Duration(milliseconds: totalDuration)), Icons.timer)),
-        Expanded(child: _buildStatCard('Favorites', '$favoriteCount', Icons.favorite)),
+        Expanded(
+          child: _buildStatCard(
+            'Total Files',
+            '$totalFiles',
+            Icons.library_music,
+          ),
+        ),
+        Expanded(
+          child: _buildStatCard(
+            'Total Size',
+            _formatBytes(totalSize),
+            Icons.storage,
+          ),
+        ),
+        Expanded(
+          child: _buildStatCard(
+            'Total Duration',
+            _formatDuration(Duration(milliseconds: totalDuration)),
+            Icons.timer,
+          ),
+        ),
+        Expanded(
+          child: _buildStatCard('Favorites', '$favoriteCount', Icons.favorite),
+        ),
       ],
     );
   }
@@ -438,15 +475,20 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
-            ...categoryCount.entries.map((entry) =>
-              Padding(
+            ...categoryCount.entries.map(
+              (entry) => Padding(
                 padding: EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    Icon(_getCategoryIcon(entry.key), 
-                         color: _getCategoryColor(entry.key), size: 16),
+                    Icon(
+                      _getCategoryIcon(entry.key),
+                      color: _getCategoryColor(entry.key),
+                      size: 16,
+                    ),
                     SizedBox(width: 8),
-                    Expanded(child: Text(entry.key.replaceAll('_', ' ').titleCase)),
+                    Expanded(
+                      child: Text(entry.key.replaceAll('_', ' ').titleCase),
+                    ),
                     Text('${entry.value}'),
                   ],
                 ),
@@ -460,9 +502,10 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
 
   Widget _buildUsageChart(List<EnhancedAudioModel> audios) {
     final playedFiles = audios.where((audio) => audio.playCount > 0).length;
-    final averagePlayCount = audios.isEmpty 
-        ? 0.0 
-        : audios.fold<int>(0, (sum, audio) => sum + audio.playCount) / audios.length;
+    final averagePlayCount = audios.isEmpty
+        ? 0.0
+        : audios.fold<int>(0, (sum, audio) => sum + audio.playCount) /
+              audios.length;
 
     return Card(
       child: Padding(
@@ -476,8 +519,14 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
             ),
             SizedBox(height: 16),
             _buildUsageRow('Files Played', '$playedFiles / ${audios.length}'),
-            _buildUsageRow('Average Plays', '${averagePlayCount.toStringAsFixed(1)}'),
-            _buildUsageRow('Most Played', '${audios.isEmpty ? 0 : audios.map((a) => a.playCount).reduce((a, b) => a > b ? a : b)}'),
+            _buildUsageRow(
+              'Average Plays',
+              '${averagePlayCount.toStringAsFixed(1)}',
+            ),
+            _buildUsageRow(
+              'Most Played',
+              '${audios.isEmpty ? 0 : audios.map((a) => a.playCount).reduce((a, b) => a > b ? a : b)}',
+            ),
           ],
         ),
       ),
@@ -498,8 +547,8 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
   }
 
   Widget _buildTopFiles(List<EnhancedAudioModel> audios) {
-    final sortedByPlays = audios.where((audio) => audio.playCount > 0)
-        .toList()..sort((a, b) => b.playCount.compareTo(a.playCount));
+    final sortedByPlays = audios.where((audio) => audio.playCount > 0).toList()
+      ..sort((a, b) => b.playCount.compareTo(a.playCount));
 
     return Card(
       child: Padding(
@@ -512,35 +561,51 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
-            ...sortedByPlays.take(5).map((audio) =>
-              ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: _getCategoryColor(audio.category),
-                  child: Icon(_getCategoryIcon(audio.category), color: Colors.white),
+            ...sortedByPlays
+                .take(5)
+                .map(
+                  (audio) => ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _getCategoryColor(audio.category),
+                      child: Icon(
+                        _getCategoryIcon(audio.category),
+                        color: Colors.white,
+                      ),
+                    ),
+                    title: Text(audio.title ?? audio.fileName),
+                    subtitle: Text(
+                      '${audio.durationFormatted} • ${audio.category?.replaceAll('_', ' ').titleCase ?? 'Other'}',
+                    ),
+                    trailing: Text('${audio.playCount} plays'),
+                    dense: true,
+                  ),
                 ),
-                title: Text(audio.title ?? audio.fileName),
-                subtitle: Text('${audio.durationFormatted} • ${audio.category?.replaceAll('_', ' ').titleCase ?? 'Other'}'),
-                trailing: Text('${audio.playCount} plays'),
-                dense: true,
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  List<EnhancedAudioModel> _filterAndSortAudios(List<EnhancedAudioModel> audios) {
+  List<EnhancedAudioModel> _filterAndSortAudios(
+    List<EnhancedAudioModel> audios,
+  ) {
     var filtered = audios.where((audio) {
       // Search filter
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
-        final matchesTitle = audio.title?.toLowerCase().contains(query) ?? false;
+        final matchesTitle =
+            audio.title?.toLowerCase().contains(query) ?? false;
         final matchesFileName = audio.fileName.toLowerCase().contains(query);
-        final matchesTags = audio.tags.any((tag) => tag.toLowerCase().contains(query));
-        final matchesDescription = audio.description?.toLowerCase().contains(query) ?? false;
-        
-        if (!matchesTitle && !matchesFileName && !matchesTags && !matchesDescription) {
+        final matchesTags = audio.tags.any(
+          (tag) => tag.toLowerCase().contains(query),
+        );
+        final matchesDescription =
+            audio.description?.toLowerCase().contains(query) ?? false;
+
+        if (!matchesTitle &&
+            !matchesFileName &&
+            !matchesTags &&
+            !matchesDescription) {
           return false;
         }
       }
@@ -572,10 +637,14 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
         filtered.sort((a, b) => a.createdAt.compareTo(b.createdAt));
         break;
       case 'Name A-Z':
-        filtered.sort((a, b) => (a.title ?? a.fileName).compareTo(b.title ?? b.fileName));
+        filtered.sort(
+          (a, b) => (a.title ?? a.fileName).compareTo(b.title ?? b.fileName),
+        );
         break;
       case 'Name Z-A':
-        filtered.sort((a, b) => (b.title ?? b.fileName).compareTo(a.title ?? a.fileName));
+        filtered.sort(
+          (a, b) => (b.title ?? b.fileName).compareTo(a.title ?? a.fileName),
+        );
         break;
       case 'Duration':
         filtered.sort((a, b) => b.durationMs.compareTo(a.durationMs));
@@ -683,9 +752,12 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
             DropdownButton<String>(
               value: _sortBy,
               isExpanded: true,
-              items: _sortOptions.map((option) => 
-                DropdownMenuItem(value: option, child: Text(option)),
-              ).toList(),
+              items: _sortOptions
+                  .map(
+                    (option) =>
+                        DropdownMenuItem(value: option, child: Text(option)),
+                  )
+                  .toList(),
               onChanged: (value) => setState(() => _sortBy = value!),
             ),
           ],
@@ -734,7 +806,9 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete Audio'),
-        content: Text('Are you sure you want to delete "${audio.title ?? audio.fileName}"?'),
+        content: Text(
+          'Are you sure you want to delete "${audio.title ?? audio.fileName}"?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -747,10 +821,10 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
               if (await file.exists()) {
                 await file.delete();
               }
-              
+
               // Delete from database
               await audio.delete();
-              
+
               Navigator.pop(context);
               setState(() {});
             },
@@ -777,7 +851,7 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
     final hours = twoDigits(duration.inHours);
     final minutes = twoDigits(duration.inMinutes % 60);
     final seconds = twoDigits(duration.inSeconds % 60);
-    
+
     if (duration.inHours > 0) {
       return '$hours:$minutes:$seconds';
     }
@@ -787,8 +861,12 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
 
 extension StringExtensions on String {
   String get titleCase {
-    return split(' ').map((word) => 
-      word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1).toLowerCase()
-    ).join(' ');
+    return split(' ')
+        .map(
+          (word) => word.isEmpty
+              ? ''
+              : word[0].toUpperCase() + word.substring(1).toLowerCase(),
+        )
+        .join(' ');
   }
 }

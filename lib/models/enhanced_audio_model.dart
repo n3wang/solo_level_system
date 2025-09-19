@@ -147,7 +147,8 @@ class EnhancedAudioModel extends HiveObject {
 
   String get fileSizeFormatted {
     if (fileSizeBytes < 1024) return '${fileSizeBytes}B';
-    if (fileSizeBytes < 1024 * 1024) return '${(fileSizeBytes / 1024).toStringAsFixed(1)}KB';
+    if (fileSizeBytes < 1024 * 1024)
+      return '${(fileSizeBytes / 1024).toStringAsFixed(1)}KB';
     return '${(fileSizeBytes / (1024 * 1024)).toStringAsFixed(1)}MB';
   }
 
@@ -158,7 +159,8 @@ class EnhancedAudioModel extends HiveObject {
   }
 
   bool get hasWaveform => waveformData != null && waveformData!.isNotEmpty;
-  bool get hasTranscription => transcription != null && transcription!.isNotEmpty;
+  bool get hasTranscription =>
+      transcription != null && transcription!.isNotEmpty;
   bool get isEdited => processingHistory.isNotEmpty;
   bool get hasBeenPlayed => playCount > 0;
 

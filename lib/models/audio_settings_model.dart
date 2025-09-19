@@ -80,7 +80,18 @@ class AudioSettingsModel extends HiveObject {
     this.playbackSpeed = 1.0,
     this.volume = 0.8,
     this.enableEqualizer = false,
-    this.equalizerBands = const [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    this.equalizerBands = const [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+    ],
     this.enableNoiseReduction = false,
     this.noiseReductionLevel = 0.5,
     this.enableAutoGain = false,
@@ -110,6 +121,8 @@ class AudioSettingsModel extends HiveObject {
 
   // Validate settings
   bool get isValidBitRate => bitRate >= 32 && bitRate <= 320;
-  bool get isValidSampleRate => [8000, 16000, 22050, 44100, 48000].contains(sampleRate);
-  bool get isValidPlaybackSpeed => playbackSpeed >= 0.25 && playbackSpeed <= 3.0;
+  bool get isValidSampleRate =>
+      [8000, 16000, 22050, 44100, 48000].contains(sampleRate);
+  bool get isValidPlaybackSpeed =>
+      playbackSpeed >= 0.25 && playbackSpeed <= 3.0;
 }

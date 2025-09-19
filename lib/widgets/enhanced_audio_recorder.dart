@@ -26,24 +26,24 @@ class EnhancedAudioRecorder extends StatefulWidget {
 class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
     with TickerProviderStateMixin {
   final _recorder = AudioRecorder();
-  
+
   bool _isRecording = false;
   bool _isPaused = false;
   Duration _recordingDuration = Duration.zero;
   Timer? _timer;
-  
+
   // Waveform visualization
   List<double> _realtimeWaveform = [];
   late AnimationController _waveformController;
   late Animation<double> _waveformAnimation;
-  
+
   // Audio level monitoring
   double _currentLevel = 0.0;
   Timer? _levelTimer;
-  
+
   // Settings
   AudioSettingsModel? _audioSettings;
-  
+
   // Recording metadata
   String? _title;
   String? _description;
@@ -69,14 +69,10 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
       duration: Duration(milliseconds: 100),
       vsync: this,
     );
-    
-    _waveformAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _waveformController,
-      curve: Curves.easeInOut,
-    ));
+
+    _waveformAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _waveformController, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -102,7 +98,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
       final config = _getRecordConfig();
 
       await _recorder.start(config, path: filePath);
-      
+
       setState(() {
         _isRecording = true;
         _isPaused = false;
@@ -120,7 +116,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
 
   RecordConfig _getRecordConfig() {
     if (_audioSettings == null) return RecordConfig();
-    
+
     AudioEncoder encoder;
     switch (_audioSettings!.codec) {
       case 'opus':
@@ -162,12 +158,12 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
 
   Future<void> _stopRecording() async {
     final path = await _recorder.stop();
-    
+
     setState(() {
       _isRecording = false;
       _isPaused = false;
     });
-    
+
     _timer?.cancel();
     _levelTimer?.cancel();
     _waveformController.stop();
@@ -184,7 +180,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
     // Get file info
     final stat = await file.stat();
     final fileName = filePath.split('/').last;
-    
+
     // Create enhanced audio model
     final audioModel = EnhancedAudioModel(
       filePath: filePath,
@@ -213,12 +209,12 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
 
     // Notify parent
     widget.onRecordingComplete(audioModel);
-    
+
     // Show success message
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Recording saved successfully!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Recording saved successfully!')));
     }
   }
 
@@ -228,7 +224,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
       _realtimeWaveform.clear();
       _currentLevel = 0.0;
     });
-    
+
     _titleController.clear();
     _descriptionController.clear();
     _tagController.clear();
@@ -240,7 +236,9 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
   void _startTimer() {
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
-        _recordingDuration = Duration(seconds: _recordingDuration.inSeconds + 1);
+        _recordingDuration = Duration(
+          seconds: _recordingDuration.inSeconds + 1,
+        );
       });
     });
   }
@@ -255,10 +253,10 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
     // Simulate audio level (in real implementation, you'd get actual levels)
     final random = Random();
     setState(() {
-      _currentLevel = _isRecording && !_isPaused 
-          ? random.nextDouble() * 0.8 + 0.1 
+      _currentLevel = _isRecording && !_isPaused
+          ? random.nextDouble() * 0.8 + 0.1
           : 0.0;
-      
+
       // Add to waveform data
       if (_realtimeWaveform.length > 200) {
         _realtimeWaveform.removeAt(0);
@@ -329,14 +327,16 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
                 SizedBox(height: 8),
                 Wrap(
                   spacing: 4,
-                  children: _tags.map((tag) => 
-                    Chip(
-                      label: Text(tag),
-                      onDeleted: () {
-                        setState(() => _tags.remove(tag));
-                      },
-                    ),
-                  ).toList(),
+                  children: _tags
+                      .map(
+                        (tag) => Chip(
+                          label: Text(tag),
+                          onDeleted: () {
+                            setState(() => _tags.remove(tag));
+                          },
+                        ),
+                      )
+                      .toList(),
                 ),
               ],
             ],
@@ -350,7 +350,10 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
           ElevatedButton(
             onPressed: () {
               if (_tagController.text.isNotEmpty) {
-                _tags = _tagController.text.split(',').map((e) => e.trim()).toList();
+                _tags = _tagController.text
+                    .split(',')
+                    .map((e) => e.trim())
+                    .toList();
               }
               Navigator.pop(context);
             },
@@ -401,13 +404,10 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _isRecording 
-                    ? (_isPaused ? 'Recording Paused' : 'Recording...') 
+                _isRecording
+                    ? (_isPaused ? 'Recording Paused' : 'Recording...')
                     : 'Ready to Record',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               if (_audioSettings != null)
                 Text(
@@ -470,11 +470,14 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
             ),
           ),
         ),
-        
+
         // Audio Level Indicator
         Column(
           children: [
-            Text('Level', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+            Text(
+              'Level',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
             SizedBox(height: 4),
             Container(
               width: 100,
@@ -488,11 +491,11 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
                 widthFactor: _currentLevel,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: _currentLevel > 0.8 
-                        ? Colors.red 
-                        : _currentLevel > 0.5 
-                            ? Colors.orange 
-                            : Colors.green,
+                    color: _currentLevel > 0.8
+                        ? Colors.red
+                        : _currentLevel > 0.5
+                        ? Colors.orange
+                        : Colors.green,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -521,7 +524,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
             iconSize: 32,
             onPressed: _resetRecording,
           ),
-        
+
         // Pause/Resume
         if (_isRecording)
           IconButton(
@@ -529,15 +532,14 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
             iconSize: 32,
             onPressed: _isPaused ? _resumeRecording : _pauseRecording,
           ),
-        
+
         // Record/Stop
         FloatingActionButton(
           onPressed: _isRecording ? _stopRecording : _startRecording,
-          backgroundColor: _isRecording ? Colors.red : Theme.of(context).primaryColor,
-          child: Icon(
-            _isRecording ? Icons.stop : Icons.mic,
-            size: 32,
-          ),
+          backgroundColor: _isRecording
+              ? Colors.red
+              : Theme.of(context).primaryColor,
+          child: Icon(_isRecording ? Icons.stop : Icons.mic, size: 32),
         ),
       ],
     );
@@ -554,23 +556,33 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_title?.isNotEmpty == true)
-            Text('Title: $_title', style: TextStyle(fontWeight: FontWeight.w500)),
+            Text(
+              'Title: $_title',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
           if (_description?.isNotEmpty == true)
             Text('Description: $_description'),
           if (_tags.isNotEmpty)
             Wrap(
               spacing: 4,
-              children: _tags.map((tag) => 
-                Chip(
-                  label: Text(tag, style: TextStyle(fontSize: 10)),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ).toList(),
+              children: _tags
+                  .map(
+                    (tag) => Chip(
+                      label: Text(tag, style: TextStyle(fontSize: 10)),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  )
+                  .toList(),
             ),
-          if (_title?.isEmpty != false && _description?.isEmpty != false && _tags.isEmpty)
+          if (_title?.isEmpty != false &&
+              _description?.isEmpty != false &&
+              _tags.isEmpty)
             Text(
               'Tap the edit icon to add title, description, and tags',
-              style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
             ),
         ],
       ),
@@ -582,7 +594,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
     final hours = twoDigits(duration.inHours);
     final minutes = twoDigits(duration.inMinutes % 60);
     final seconds = twoDigits(duration.inSeconds % 60);
-    
+
     if (duration.inHours > 0) {
       return '$hours:$minutes:$seconds';
     }
@@ -626,18 +638,18 @@ class RealtimeWaveformPainter extends CustomPainter {
     }
 
     final stepWidth = width / max(waveformData.length, 100);
-    
+
     for (int i = 0; i < waveformData.length; i++) {
       final x = width - (waveformData.length - i) * stepWidth;
       if (x < 0) continue;
-      
+
       final amplitude = waveformData[i] * centerY * 0.8;
-      
+
       // Add slight animation pulse when recording
-      final pulseEffect = isRecording 
-          ? 1.0 + 0.1 * sin(animationValue * pi * 2) 
+      final pulseEffect = isRecording
+          ? 1.0 + 0.1 * sin(animationValue * pi * 2)
           : 1.0;
-      
+
       canvas.drawLine(
         Offset(x, centerY - amplitude * pulseEffect),
         Offset(x, centerY + amplitude * pulseEffect),

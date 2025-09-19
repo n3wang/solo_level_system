@@ -27,11 +27,11 @@ class EnhancedAudioPlayer extends StatefulWidget {
 class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
     with TickerProviderStateMixin {
   final _audioPlayer = ap.AudioPlayer()..setReleaseMode(ap.ReleaseMode.stop);
-  
+
   StreamSubscription<void>? _playerStateChangedSubscription;
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration>? _durationSubscription;
-  
+
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
   double _playbackSpeed = 1.0;
@@ -39,10 +39,10 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
   bool _isPlaying = false;
   bool _showWaveform = true;
   bool _showControls = true;
-  
+
   late AnimationController _waveformAnimationController;
   late Animation<double> _waveformAnimation;
-  
+
   AudioSettingsModel? _audioSettings;
 
   @override
@@ -67,21 +67,21 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
     _playerStateChangedSubscription = _audioPlayer.onPlayerComplete.listen(
       (_) => setState(() => _isPlaying = false),
     );
-    
+
     _positionSubscription = _audioPlayer.onPositionChanged.listen(
       (position) => setState(() => _position = position),
     );
-    
+
     _durationSubscription = _audioPlayer.onDurationChanged.listen(
       (duration) => setState(() => _duration = duration),
     );
 
     _audioPlayer.setSource(
-      kIsWeb 
-        ? ap.UrlSource(widget.audioModel.filePath) 
-        : ap.DeviceFileSource(widget.audioModel.filePath),
+      kIsWeb
+          ? ap.UrlSource(widget.audioModel.filePath)
+          : ap.DeviceFileSource(widget.audioModel.filePath),
     );
-    
+
     _audioPlayer.setVolume(_volume);
     _audioPlayer.setPlaybackRate(_playbackSpeed);
   }
@@ -91,15 +91,14 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
       duration: Duration(seconds: 2),
       vsync: this,
     );
-    
-    _waveformAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _waveformAnimationController,
-      curve: Curves.easeInOut,
-    ));
-    
+
+    _waveformAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _waveformAnimationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
     if (_isPlaying) {
       _waveformAnimationController.repeat();
     }
@@ -182,17 +181,22 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${widget.audioModel.durationFormatted} • ${widget.audioModel.qualityDescription}'),
+          Text(
+            '${widget.audioModel.durationFormatted} • ${widget.audioModel.qualityDescription}',
+          ),
           if (widget.audioModel.tags.isNotEmpty)
             Wrap(
               spacing: 4,
-              children: widget.audioModel.tags.take(3).map((tag) => 
-                Chip(
-                  label: Text(tag, style: TextStyle(fontSize: 10)),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                ),
-              ).toList(),
+              children: widget.audioModel.tags
+                  .take(3)
+                  .map(
+                    (tag) => Chip(
+                      label: Text(tag, style: TextStyle(fontSize: 10)),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  )
+                  .toList(),
             ),
         ],
       ),
@@ -200,7 +204,11 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: Icon(widget.audioModel.isFavorite ? Icons.favorite : Icons.favorite_border),
+            icon: Icon(
+              widget.audioModel.isFavorite
+                  ? Icons.favorite
+                  : Icons.favorite_border,
+            ),
             onPressed: _toggleFavorite,
             color: widget.audioModel.isFavorite ? Colors.red : null,
           ),
@@ -238,8 +246,8 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
               size: Size.infinite,
               painter: WaveformPainter(
                 waveformData: widget.audioModel.waveformData!,
-                progress: _duration.inMilliseconds > 0 
-                    ? _position.inMilliseconds / _duration.inMilliseconds 
+                progress: _duration.inMilliseconds > 0
+                    ? _position.inMilliseconds / _duration.inMilliseconds
                     : 0.0,
                 color: Theme.of(context).primaryColor,
                 isPlaying: _isPlaying,
@@ -257,8 +265,8 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
         return CustomPaint(
           size: Size.infinite,
           painter: GeneratedWaveformPainter(
-            progress: _duration.inMilliseconds > 0 
-                ? _position.inMilliseconds / _duration.inMilliseconds 
+            progress: _duration.inMilliseconds > 0
+                ? _position.inMilliseconds / _duration.inMilliseconds
                 : 0.0,
             color: Theme.of(context).primaryColor,
             isPlaying: _isPlaying,
@@ -316,23 +324,25 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
               PopupMenuItem(value: 2.0, child: Text('2.0x')),
             ],
           ),
-          
+
           // Seek Backward
           IconButton(
             icon: Icon(Icons.replay_10),
             onPressed: () {
               final newPosition = _position - Duration(seconds: 10);
-              _seekTo(newPosition < Duration.zero ? Duration.zero : newPosition);
+              _seekTo(
+                newPosition < Duration.zero ? Duration.zero : newPosition,
+              );
             },
           ),
-          
+
           // Play/Pause
           FloatingActionButton(
             mini: true,
             onPressed: _togglePlayback,
             child: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
           ),
-          
+
           // Seek Forward
           IconButton(
             icon: Icon(Icons.forward_10),
@@ -341,7 +351,7 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
               _seekTo(newPosition > _duration ? _duration : newPosition);
             },
           ),
-          
+
           // Volume Control
           PopupMenuButton<double>(
             child: Chip(
@@ -371,16 +381,37 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildMetadataRow('File Size', widget.audioModel.fileSizeFormatted),
-              _buildMetadataRow('Format', widget.audioModel.format.toUpperCase()),
-              _buildMetadataRow('Bit Rate', '${widget.audioModel.bitRate} kbps'),
-              _buildMetadataRow('Sample Rate', '${widget.audioModel.sampleRate} Hz'),
-              _buildMetadataRow('Channels', widget.audioModel.channels == 2 ? 'Stereo' : 'Mono'),
+              _buildMetadataRow(
+                'File Size',
+                widget.audioModel.fileSizeFormatted,
+              ),
+              _buildMetadataRow(
+                'Format',
+                widget.audioModel.format.toUpperCase(),
+              ),
+              _buildMetadataRow(
+                'Bit Rate',
+                '${widget.audioModel.bitRate} kbps',
+              ),
+              _buildMetadataRow(
+                'Sample Rate',
+                '${widget.audioModel.sampleRate} Hz',
+              ),
+              _buildMetadataRow(
+                'Channels',
+                widget.audioModel.channels == 2 ? 'Stereo' : 'Mono',
+              ),
               _buildMetadataRow('Play Count', '${widget.audioModel.playCount}'),
               if (widget.audioModel.hasBeenPlayed)
-                _buildMetadataRow('Last Played', widget.audioModel.lastPlayedAt.toString()),
+                _buildMetadataRow(
+                  'Last Played',
+                  widget.audioModel.lastPlayedAt.toString(),
+                ),
               if (widget.audioModel.description != null)
-                _buildMetadataRow('Description', widget.audioModel.description!),
+                _buildMetadataRow(
+                  'Description',
+                  widget.audioModel.description!,
+                ),
             ],
           ),
         ),
@@ -401,9 +432,7 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
               style: TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
-          Expanded(
-            child: Text(value),
-          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );
@@ -418,9 +447,9 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
 
   void _shareAudio() {
     // Implement sharing functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Share functionality coming soon!')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Share functionality coming soon!')));
   }
 }
 
@@ -455,15 +484,15 @@ class WaveformPainter extends CustomPainter {
     final width = size.width;
     final height = size.height;
     final centerY = height / 2;
-    
+
     final stepWidth = width / waveformData.length;
-    
+
     for (int i = 0; i < waveformData.length; i++) {
       final x = i * stepWidth;
       final amplitude = waveformData[i] * centerY;
-      
+
       final currentPaint = (x / width) <= progress ? progressPaint : paint;
-      
+
       canvas.drawLine(
         Offset(x, centerY - amplitude),
         Offset(x, centerY + amplitude),
@@ -505,21 +534,23 @@ class GeneratedWaveformPainter extends CustomPainter {
     final width = size.width;
     final height = size.height;
     final centerY = height / 2;
-    
+
     final barCount = 50;
     final stepWidth = width / barCount;
-    
+
     for (int i = 0; i < barCount; i++) {
       final x = i * stepWidth;
       final normalizedX = i / barCount;
-      
+
       // Generate pseudo-random amplitude based on position and animation
-      final amplitude = sin(normalizedX * pi * 4 + animationValue * pi * 2) * 
-                       centerY * 0.5 * 
-                       (0.5 + 0.5 * sin(normalizedX * pi * 8));
-      
+      final amplitude =
+          sin(normalizedX * pi * 4 + animationValue * pi * 2) *
+          centerY *
+          0.5 *
+          (0.5 + 0.5 * sin(normalizedX * pi * 8));
+
       final currentPaint = (x / width) <= progress ? progressPaint : paint;
-      
+
       canvas.drawLine(
         Offset(x, centerY - amplitude.abs()),
         Offset(x, centerY + amplitude.abs()),

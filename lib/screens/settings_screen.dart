@@ -426,7 +426,10 @@ class _SettingsScreenState extends State<SettingsScreen>
               DropdownMenuItem(value: 'default', child: Text('Default')),
               DropdownMenuItem(value: 'bell', child: Text('Bell')),
               DropdownMenuItem(value: 'chime', child: Text('Chime')),
-              DropdownMenuItem(value: 'notification', child: Text('Notification')),
+              DropdownMenuItem(
+                value: 'notification',
+                child: Text('Notification'),
+              ),
             ],
             onChanged: (value) {
               setState(() {
@@ -470,9 +473,9 @@ class _SettingsScreenState extends State<SettingsScreen>
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).primaryColor,
-            ),
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).primaryColor,
+        ),
       ),
     );
   }
