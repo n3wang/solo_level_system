@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -31,6 +30,7 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
   Timer? _levelTimer;
 
   // Audio levels for visualization
+  // ignore: unused_field
   double _currentLevel = 0.0;
   List<double> _audioLevels = [];
 
@@ -175,15 +175,15 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
                 color: _isRecording
                     ? Colors.red.withOpacity(0.1)
                     : widget.hasRecording
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.blue.withOpacity(0.1),
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.blue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _isRecording
                       ? Colors.red
                       : widget.hasRecording
-                          ? Colors.green
-                          : Colors.blue,
+                      ? Colors.green
+                      : Colors.blue,
                   width: 2,
                 ),
               ),
@@ -198,14 +198,14 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
                           _isRecording
                               ? Icons.stop
                               : widget.hasRecording
-                                  ? Icons.refresh
-                                  : Icons.mic,
+                              ? Icons.refresh
+                              : Icons.mic,
                           size: 24,
                           color: _isRecording
                               ? Colors.red
                               : widget.hasRecording
-                                  ? Colors.green
-                                  : Colors.blue,
+                              ? Colors.green
+                              : Colors.blue,
                         ),
                         if (_isRecording) ...[
                           SizedBox(height: 4),

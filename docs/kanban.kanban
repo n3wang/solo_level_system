@@ -10,15 +10,6 @@
       "title": "To Do",
       "cards": [
         {
-          "id": "09c807a2-ade6-4b85-92a0-e0acf0638e5d",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Search of UI inspiration",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
           "id": "44f685f4-0964-4f23-a017-20d88bd23131",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "Being able to rate down or up music tracks",
@@ -41,42 +32,7 @@
     {
       "id": "125bd6ab-d32d-460e-9159-9c34b027ef62",
       "title": "Doing",
-      "cards": [
-        {
-          "id": "40cdecac-3475-441e-a057-ba5a36903cbb",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Better Focus UI",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": [
-            {
-              "id": "cf096495-6119-46c2-9365-3f6380f12927",
-              "comment": "Make the image display as a rounded square and on the overlay of it the text containing hte time left, today sessions the audio."
-            },
-            {
-              "id": "68ad614f-acdd-4034-aa81-b183f994f160",
-              "comment": "Create a circle component surrounding the time with green that completes itsefl as time remaining is being discounted "
-            },
-            {
-              "id": "d31ddf30-b616-4300-9cf6-607f6158063c",
-              "comment": "Improve the pomodoro UI for stopping the timer, just by clicking the timer is enoguh, for muting then click ino the music audio for Playuing another random swap the audio and for resetting swap the timer down and instant finish swap the timer up"
-            },
-            {
-              "id": "b4ccb651-ac4a-4977-a6c7-c6b6b584ca6f",
-              "comment": "Default color theme as black"
-            },
-            {
-              "id": "da8e420e-8789-4609-96d7-c8d03d80e3e5",
-              "comment": "\nWhen the work time is finished, have the recording and capturing evidence button to the side of the timer as sqauare buttons. ready to record only when task finished, when that happens also hide the music audio controls. \n\n"
-            },
-            {
-              "id": "a56b3241-d890-4069-a2fd-80be31ff9b93",
-              "comment": "vInstead of showing today sessions: x number, have a small green square for each session completed inside the timer square."
-            }
-          ]
-        }
-      ]
+      "cards": []
     },
     {
       "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",

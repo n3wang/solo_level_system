@@ -9,8 +9,7 @@ import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/config_model.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
-import 'package:solo_level_system/widgets/enhanced_audio_player.dart';
-import 'package:solo_level_system/widgets/enhanced_audio_recorder.dart';
+
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:solo_level_system/utils/database_utils.dart';
@@ -18,6 +17,11 @@ import 'package:solo_level_system/utils/background_music_service.dart';
 import 'package:solo_level_system/utils/sound_effects_service.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
+
+// New imports for refactored widgets and constants
+import 'package:solo_level_system/utils/pomodoro_sizing.dart';
+import 'package:solo_level_system/widgets/pomodoro/compact_music_widget.dart';
+import 'package:solo_level_system/widgets/pomodoro/session_squares_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsChanged;
@@ -51,35 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final _bgPlayer = ap.AudioPlayer();
   final _backgroundMusicService = BackgroundMusicService();
   final _soundEffectsService = SoundEffectsService();
-
-  // Helper method to check if recording/photo features should be available
-  bool get _shouldShowRecordingFeatures {
-    // Only show during break or when stopped (not during active work session)
-    return !isRunning || onBreak || canSubmitLog;
-  }
-
-  // Helper method to calculate dynamic album container size
-  double _getAlbumContainerSize(BuildContext context) {
-    final screenH = MediaQuery.of(context).size.height;
-    final eightyPercent = screenH * 0.6;
-    return eightyPercent > 200 ? eightyPercent : 200;
-  }
-
-  // Helper method to calculate dynamic font size based on container size
-  double _getTimerFontSize(BuildContext context) {
-    final containerSize = _getAlbumContainerSize(context);
-    // Scale font size proportionally: 48px for 200px container
-    return (containerSize / 200) * 48;
-  }
-
-  // Helper method to calculate music widget width
-  double _getMusicWidgetWidth(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final albumSize = _getAlbumContainerSize(context);
-    final availableWidth =
-        screenWidth - albumSize - 80; // 80 for padding and spacing
-    return availableWidth > 150 ? 150 : availableWidth.clamp(100.0, 150.0);
-  }
 
   void _playLofi() async {
     if (_backgroundMusicService.isPlaying) {
@@ -305,40 +280,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<EnhancedAudioModel?> _getEnhancedAudioByPath(String path) async {
-    try {
-      final box = Hive.box<EnhancedAudioModel>('audioFiles');
-      final existingAudio = box.values
-          .where((audio) => audio.filePath == path)
-          .firstOrNull;
-
-      if (existingAudio != null) {
-        return existingAudio;
-      }
-
-      // Create a new audio model with default values
-      final audioModel = EnhancedAudioModel(
-        filePath: path,
-        fileName: path.split('/').last,
-        createdAt: DateTime.now(),
-        durationMs: 0, // Default, will be updated when played
-        fileSizeBytes: 0, // Default, will be updated when file is analyzed
-        format: 'm4a', // Default format
-        bitRate: 64000, // Default bitrate
-        sampleRate: 44100, // Default sample rate
-        channels: 1, // Mono recording
-        category: 'voice_note',
-      );
-
-      // Save to box
-      await box.add(audioModel);
-      return audioModel;
-    } catch (e) {
-      print('Error loading enhanced audio: $e');
-      return null;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -462,14 +403,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   // Album image with timer overlay
                   Container(
-                    width: _getAlbumContainerSize(context),
-                    height: _getAlbumContainerSize(context),
+                    width: PomodoroSizing.getAlbumContainerSize(context),
+                    height: PomodoroSizing.getAlbumContainerSize(context),
                     child: Stack(
                       children: [
                         // Album background image
                         Container(
-                          width: _getAlbumContainerSize(context),
-                          height: _getAlbumContainerSize(context),
+                          width: PomodoroSizing.getAlbumContainerSize(context),
+                          height: PomodoroSizing.getAlbumContainerSize(context),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
@@ -503,8 +444,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         // Timer overlay with semi-transparent background
                         Container(
-                          width: _getAlbumContainerSize(context),
-                          height: _getAlbumContainerSize(context),
+                          width: PomodoroSizing.getAlbumContainerSize(context),
+                          height: PomodoroSizing.getAlbumContainerSize(context),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
                             color: Colors.black.withOpacity(0.3),
@@ -515,7 +456,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               Text(
                                 formatTime(remainingSeconds),
                                 style: TextStyle(
-                                  fontSize: _getTimerFontSize(context),
+                                  fontSize: PomodoroSizing.getTimerFontSize(
+                                    context,
+                                  ),
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                   shadows: [
@@ -551,7 +494,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 textAlign: TextAlign.center,
                               ),
                               SizedBox(height: 8),
-                              _buildSessionSquares(),
+                              SessionSquaresWidget(
+                                completedSessions: countCompletedToday,
+                              ),
                             ],
                           ),
                         ),
@@ -564,8 +509,29 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Music widget next to album (hidden when paused)
                   if (isRunning || canSubmitLog)
                     Container(
-                      width: _getMusicWidgetWidth(context),
-                      child: _buildCompactMusicWidget(),
+                      width: PomodoroSizing.getMusicWidgetWidth(context),
+                      child: CompactMusicWidget(
+                        allowMusic: allowMusic,
+                        currentlyPlayingTrack: currentlyPlayingTrack,
+                        onToggleMusic: () {
+                          setState(() {
+                            if (allowMusic) {
+                              _stopLofi();
+                              allowMusic = false;
+                            } else {
+                              allowMusic = true;
+                              if (isRunning) {
+                                _playLofi();
+                              }
+                            }
+                          });
+                        },
+                        onChangeTrack: () {
+                          if (allowMusic) {
+                            _playLofi(); // This plays a random track
+                          }
+                        },
+                      ),
                     ),
                 ],
               )
@@ -574,14 +540,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   // Album image with timer overlay
                   Container(
-                    width: _getAlbumContainerSize(context),
-                    height: _getAlbumContainerSize(context),
+                    width: PomodoroSizing.getAlbumContainerSize(context),
+                    height: PomodoroSizing.getAlbumContainerSize(context),
                     child: Stack(
                       children: [
                         // Album background image
                         Container(
-                          width: _getAlbumContainerSize(context),
-                          height: _getAlbumContainerSize(context),
+                          width: PomodoroSizing.getAlbumContainerSize(context),
+                          height: PomodoroSizing.getAlbumContainerSize(context),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
@@ -615,8 +581,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         // Timer overlay with semi-transparent background
                         Container(
-                          width: _getAlbumContainerSize(context),
-                          height: _getAlbumContainerSize(context),
+                          width: PomodoroSizing.getAlbumContainerSize(context),
+                          height: PomodoroSizing.getAlbumContainerSize(context),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
                             color: Colors.black.withOpacity(0.3),
@@ -627,7 +593,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               Text(
                                 formatTime(remainingSeconds),
                                 style: TextStyle(
-                                  fontSize: _getTimerFontSize(context),
+                                  fontSize: PomodoroSizing.getTimerFontSize(
+                                    context,
+                                  ),
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                   shadows: [
@@ -663,7 +631,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 textAlign: TextAlign.center,
                               ),
                               SizedBox(height: 8),
-                              _buildSessionSquares(),
+                              SessionSquaresWidget(
+                                completedSessions: countCompletedToday,
+                              ),
                             ],
                           ),
                         ),
@@ -675,114 +645,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (isRunning || canSubmitLog) ...[
                     SizedBox(height: 20),
                     Container(
-                      width: _getAlbumContainerSize(
+                      width: PomodoroSizing.getAlbumContainerSize(
                         context,
                       ).clamp(150.0, 400.0),
-                      child: _buildCompactMusicWidget(),
+                      child: CompactMusicWidget(
+                        allowMusic: allowMusic,
+                        currentlyPlayingTrack: currentlyPlayingTrack,
+                        onToggleMusic: () {
+                          setState(() {
+                            if (allowMusic) {
+                              _stopLofi();
+                              allowMusic = false;
+                            } else {
+                              allowMusic = true;
+                              if (isRunning) {
+                                _playLofi();
+                              }
+                            }
+                          });
+                        },
+                        onChangeTrack: () {
+                          if (allowMusic) {
+                            _playLofi(); // This plays a random track
+                          }
+                        },
+                      ),
                     ),
                   ],
                 ],
               ),
-      ),
-    );
-  }
-
-  Widget _buildSessionSquares() {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 4,
-      runSpacing: 4,
-      children: List.generate(
-        countCompletedToday,
-        (index) => Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(2),
-            border: Border.all(color: Colors.green, width: 0.5),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCompactMusicWidget() {
-    return GestureDetector(
-      onTap: () {
-        // Tap to mute/unmute
-        setState(() {
-          if (allowMusic) {
-            _stopLofi();
-            allowMusic = false;
-          } else {
-            allowMusic = true;
-            if (isRunning) {
-              _playLofi();
-            }
-          }
-        });
-      },
-      onHorizontalDragEnd: (details) {
-        // Swipe left/right to change track
-        if (details.velocity.pixelsPerSecond.dx.abs() > 300) {
-          if (allowMusic) {
-            _playLofi(); // This plays a random track
-          }
-        }
-      },
-      child: Container(
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: allowMusic
-              ? Colors.green.withOpacity(0.1)
-              : Colors.grey.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: allowMusic ? Colors.green : Colors.grey,
-            width: 1,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  allowMusic ? Icons.music_note : Icons.volume_off,
-                  size: 16,
-                  color: allowMusic ? Colors.green : Colors.grey,
-                ),
-                SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    allowMusic
-                        ? currentlyPlayingTrack ?? 'Unknown Track'
-                        : 'Music Muted',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: allowMusic ? Colors.green : Colors.grey,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 4),
-            Text(
-              'Tap to ${allowMusic ? 'Mute' : 'Unmute'} • ← → Swipe for Random Track',
-              style: TextStyle(
-                fontSize: 8,
-                color: Colors.grey[600],
-                fontStyle: FontStyle.italic,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -794,8 +685,8 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         // Album image with timer overlay (center)
         Container(
-          width: _getAlbumContainerSize(context),
-          height: _getAlbumContainerSize(context),
+          width: PomodoroSizing.getAlbumContainerSize(context),
+          height: PomodoroSizing.getAlbumContainerSize(context),
           child: GestureDetector(
             onTap: () {
               if (canSubmitLog) {
@@ -817,8 +708,8 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 // Timer overlay with semi-transparent background
                 Container(
-                  width: _getAlbumContainerSize(context),
-                  height: _getAlbumContainerSize(context),
+                  width: PomodoroSizing.getAlbumContainerSize(context),
+                  height: PomodoroSizing.getAlbumContainerSize(context),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     color: Colors.black.withOpacity(0.3),
@@ -829,7 +720,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         formatTime(remainingSeconds),
                         style: TextStyle(
-                          fontSize: _getTimerFontSize(context),
+                          fontSize: PomodoroSizing.getTimerFontSize(context),
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                           shadows: [
@@ -859,7 +750,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         textAlign: TextAlign.center,
                       ),
                       SizedBox(height: 8),
-                      _buildSessionSquares(),
+                      SessionSquaresWidget(
+                        completedSessions: countCompletedToday,
+                      ),
                     ],
                   ),
                 ),
@@ -884,9 +777,30 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             if (isRunning || canSubmitLog)
               Container(
-                width: _getMusicWidgetWidth(context),
+                width: PomodoroSizing.getMusicWidgetWidth(context),
                 margin: EdgeInsets.only(left: 20, top: 10),
-                child: _buildCompactMusicWidget(),
+                child: CompactMusicWidget(
+                  allowMusic: allowMusic,
+                  currentlyPlayingTrack: currentlyPlayingTrack,
+                  onToggleMusic: () {
+                    setState(() {
+                      if (allowMusic) {
+                        _stopLofi();
+                        allowMusic = false;
+                      } else {
+                        allowMusic = true;
+                        if (isRunning) {
+                          _playLofi();
+                        }
+                      }
+                    });
+                  },
+                  onChangeTrack: () {
+                    if (allowMusic) {
+                      _playLofi(); // This plays a random track
+                    }
+                  },
+                ),
               ),
           ],
         ),
@@ -944,157 +858,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFocusModeWidget() {
-    return Container(
-      key: ValueKey('focus_mode_widget'),
-      child: (!_shouldShowRecordingFeatures && isRunning && !onBreak)
-          ? Container()
-          : SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildControlButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        if (!isRunning && !canSubmitLog)
-          ElevatedButton(onPressed: startTimer, child: Text('Start')),
-        if (isRunning)
-          ElevatedButton(onPressed: stopTimer, child: Text('Stop')),
-        if (!isRunning && canSubmitLog)
-          TextButton(
-            onPressed: submitLog,
-            child: Text('[Submit Log]', style: TextStyle(color: Colors.green)),
-          ),
-        ElevatedButton(onPressed: resetTimer, child: Text('Reset')),
-      ],
-    );
-  }
-
-  Widget _buildAudioControls() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        ElevatedButton(
-          onPressed: () {
-            setState(() {
-              if (allowMusic) {
-                _stopLofi();
-                allowMusic = false;
-              } else {
-                allowMusic = true;
-                if (isRunning) {
-                  _playLofi();
-                }
-              }
-            });
-          },
-          child: Text(allowMusic ? 'Mute' : 'Unmute'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            setState(() {
-              if (allowMusic) {
-                _playLofi();
-              } else {
-                _stopLofi();
-              }
-            });
-          },
-          child: Text(allowMusic ? 'Play M' : 'Stop M'),
-        ),
-        if (!canSubmitLog)
-          ElevatedButton(
-            onPressed: instantFinish,
-            child: Text('Instant Finish', style: TextStyle(color: Colors.red)),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildConditionalRecordingSection() {
-    return Container(
-      key: ValueKey('conditional_recording_section'),
-      child: (_shouldShowRecordingFeatures && !canSubmitLog)
-          ? Column(children: [_buildRecordingSection(), SizedBox(height: 20)])
-          : SizedBox(height: 20),
-    );
-  }
-
-  Widget _buildRecordingSection() {
-    return Column(
-      key: ValueKey('recording_section'),
-      children: [
-        Text(
-          'Session Recording',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [_buildSimplifiedRecordingButton(), _buildPhotoSection()],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAudioSection() {
-    return Container(
-      key: ValueKey('audio_section_container'),
-      child: config?.showAudioRecordButton == true
-          ? (showPlayer && recordedAudio != null)
-                ? Column(
-                    children: [
-                      EnhancedAudioPlayer(
-                        audioModel: recordedAudio!,
-                        onDelete: () {
-                          setState(() {
-                            audioPath = null;
-                            recordedAudio = null;
-                            showPlayer = false;
-                          });
-                        },
-                      ),
-                    ],
-                  )
-                : EnhancedAudioRecorder(
-                    onRecordingComplete: (EnhancedAudioModel audioModel) {
-                      _soundEffectsService.playAudioRecordSubmitted();
-                      setState(() {
-                        audioPath = audioModel.filePath;
-                        recordedAudio = audioModel;
-                        showPlayer = true;
-                        canSubmitLog = true;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Recording completed successfully!'),
-                        ),
-                      );
-                    },
-                    category: 'voice_note',
-                  )
-          : SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildPhotoSection() {
-    return Container(
-      key: ValueKey('photo_section_container'),
-      child: config?.showPhotoButton == true
-          ? ElevatedButton.icon(
-              icon: imagePath != null
-                  ? Icon(Icons.camera_alt)
-                  : Icon(Icons.camera_alt_outlined),
-              label: imagePath != null
-                  ? Text('Taken')
-                  : Text('Capture Evidence'),
-              onPressed: takePhoto,
-            )
-          : SizedBox.shrink(),
-    );
-  }
-
   @override
   void dispose() {
     timer?.cancel();
@@ -1130,8 +893,6 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
   Timer? _timer;
   Timer? _levelTimer;
 
-  // Audio levels for visualization
-  double _currentLevel = 0.0;
   List<double> _audioLevels = [];
 
   late AnimationController _pulseController;
@@ -1207,7 +968,6 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
 
       setState(() {
         _isRecording = false;
-        _currentLevel = 0.0;
       });
     } catch (e) {
       print('Error stopping recording: $e');
@@ -1231,7 +991,6 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
         final level = amplitude.current.clamp(0.0, 1.0);
 
         setState(() {
-          _currentLevel = level;
           _audioLevels.add(level);
           if (_audioLevels.length > 50) {
             _audioLevels.removeAt(0);
