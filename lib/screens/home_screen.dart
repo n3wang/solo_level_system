@@ -10,6 +10,8 @@ import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/config_model.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
 import 'package:solo_level_system/models/project_model.dart';
+import 'package:solo_level_system/models/user_progress_model.dart';
+import 'package:solo_level_system/models/reward_model.dart';
 
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
@@ -58,6 +60,12 @@ class _HomeScreenState extends State<HomeScreen> {
   List<ProjectModel> projects = [];
   ProjectModel? selectedProject;
 
+  // Progress system state
+  UserProgressModel? userProgress;
+
+  // Session timing
+  DateTime? sessionStartTime;
+
   final _bgPlayer = ap.AudioPlayer();
   final _backgroundMusicService = BackgroundMusicService();
   final _soundEffectsService = SoundEffectsService();
@@ -97,7 +105,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void startTimer() {
     _playLofi();
-    setState(() => isRunning = true);
+    setState(() {
+      isRunning = true;
+      if (!onBreak) {
+        sessionStartTime = DateTime.now();
+      }
+    });
     timer = Timer.periodic(Duration(seconds: 1), (timer) {
       if (remainingSeconds <= 0) {
         _stopLofi();
@@ -167,11 +180,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void saveSession({cleanVariables = true}) async {
     countCompletedToday++;
+
+    // Calculate actual minutes spent
+    int minutesSpent = workMinutes; // Default to planned minutes
+    if (sessionStartTime != null) {
+      final actualDuration = DateTime.now().difference(sessionStartTime!);
+      minutesSpent = actualDuration.inMinutes;
+      // Ensure minimum of 1 minute and maximum of planned minutes + 5 (for flexibility)
+      minutesSpent = minutesSpent.clamp(1, workMinutes + 5);
+    }
+
     final session = PomodoroModel(
-      startTime: DateTime.now(),
+      startTime: sessionStartTime ?? DateTime.now(),
       audioPath: audioPath,
       imagePath: imagePath,
       dayPomodoroNumber: countCompletedToday + 1,
+      duration: minutesSpent.toString(),
       project_id: selectedProject?.id,
       project_name: selectedProject?.name,
     );
@@ -183,12 +207,41 @@ class _HomeScreenState extends State<HomeScreen> {
       selectedProject!.addPomodoroSession();
     }
 
-    print("Saved session at ${session.startTime}");
+    // Award XP and points for completing the session (now based on actual minutes)
+    if (userProgress != null) {
+      userProgress!.completePomodoro(
+        sessionDate: session.startTime,
+        minutesSpent: minutesSpent,
+      );
+
+      // Show reward notification
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.star, color: Colors.amber),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '+${minutesSpent * UserProgressModel.XP_PER_MINUTE} XP, +${minutesSpent * UserProgressModel.POINTS_PER_MINUTE} Points! ($minutesSpent min) Level ${userProgress!.currentLevel}',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+
+    print("Saved session at ${session.startTime} - Duration: $minutesSpent minutes");
     if (cleanVariables) {
       audioPath = null;
       recordedAudio = null;
       imagePath = null;
       showPlayer = false;
+      sessionStartTime = null;
     }
   }
 
@@ -214,6 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
       recordedAudio = null;
       showPlayer = false;
       isRunning = false;
+      sessionStartTime = null;
     });
   }
 
@@ -246,6 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await _loadConfig();
       await _loadUserSettings();
       await _loadProjects();
+      await _loadUserProgress();
       await _backgroundMusicService.initialize();
       final count = await getTodayCompletedSessions();
       if (mounted) {
@@ -355,6 +410,42 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _loadUserProgress() async {
+    try {
+      if (!Hive.isBoxOpen('userProgress')) {
+        await Hive.openBox<UserProgressModel>('userProgress');
+      }
+      final box = Hive.box<UserProgressModel>('userProgress');
+
+      userProgress = box.get('progress');
+      if (userProgress == null) {
+        // Create new progress tracking
+        userProgress = UserProgressModel();
+        await box.put('progress', userProgress!);
+
+        // Initialize empty rewards box if it doesn't exist
+        await _initializeRewardsBox();
+      }
+
+      setState(() {});
+    } catch (e) {
+      print('Error loading user progress: $e');
+      userProgress = UserProgressModel();
+      setState(() {});
+    }
+  }
+
+  Future<void> _initializeRewardsBox() async {
+    try {
+      if (!Hive.isBoxOpen('rewards')) {
+        await Hive.openBox<RewardModel>('rewards');
+      }
+      print('✓ Rewards box initialized (user-created rewards only)');
+    } catch (e) {
+      print('Error initializing rewards box: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -378,8 +469,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTimerSection() {
     return Column(
       children: [
-        // Project selector (only when not running or when paused)
-        if (!isRunning || canSubmitLog)
+        // Project selector - always show if there are projects
+        // When running and project selected: show only selected project
+        // When not running: show all projects for selection
+        // When paused (canSubmitLog): show selected project if any
+        if (projects.isNotEmpty &&
+            (!isRunning || canSubmitLog || selectedProject != null))
           ProjectSelectorWidget(
             projects: projects,
             selectedProject: selectedProject,
@@ -388,7 +483,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 selectedProject = project;
               });
             },
-            isCollapsed: canSubmitLog, // Collapse when session is complete
+            isCollapsed: isRunning && !canSubmitLog, // Collapse when actively running
           ),
 
         // Timer with recording buttons when session complete

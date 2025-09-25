@@ -5,8 +5,10 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/habit_tracker_model.dart';
+import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/screens/audio_management_screen.dart';
 import 'package:solo_level_system/screens/history_screen.dart';
+import 'package:solo_level_system/screens/rewards_screen.dart';
 
 extension StringExtension on String {
   String capitalizeFirst() {
@@ -29,7 +31,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -68,8 +70,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
             Tab(icon: Icon(Icons.timer), text: 'Focus'),
             Tab(icon: Icon(Icons.fitness_center), text: 'Workouts'),
-            Tab(icon: Icon(Icons.track_changes), text: 'Habits'),
-            Tab(icon: Icon(Icons.audiotrack), text: 'Audio'),
+            Tab(icon: Icon(Icons.lock_open), text: 'Features'),
           ],
         ),
       ),
@@ -79,8 +80,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           _buildOverviewTab(),
           _buildFocusTab(),
           _buildWorkoutsTab(),
-          _buildHabitsTab(),
+          // _buildHabitsTab(),
           _buildAudioTab(),
+          _buildRewardsTab(),
         ],
       ),
     );
@@ -99,23 +101,31 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Text('Error loading data: ${snapshot.error}'),
-          );
+          return Center(child: Text('Error loading data: ${snapshot.error}'));
         }
 
         return ValueListenableBuilder(
           valueListenable: Hive.box<PomodoroModel>('pomodoros').listenable(),
           builder: (context, pomodoroBox, _) {
             return ValueListenableBuilder(
-              valueListenable: Hive.box<WorkoutSessionModel>('workoutSessions').listenable(),
+              valueListenable: Hive.box<WorkoutSessionModel>(
+                'workoutSessions',
+              ).listenable(),
               builder: (context, workoutBox, _) {
                 return ValueListenableBuilder(
-                  valueListenable: Hive.box<HabitTrackerModel>('habits').listenable(),
+                  valueListenable: Hive.box<HabitTrackerModel>(
+                    'habits',
+                  ).listenable(),
                   builder: (context, habitBox, _) {
-                    final pomodoros = _filterSessionsByPeriod(pomodoroBox.values.toList());
-                    final workouts = _filterWorkoutsByPeriod(workoutBox.values.toList());
-                    final habits = habitBox.values.where((h) => h.isActive).toList();
+                    final pomodoros = _filterSessionsByPeriod(
+                      pomodoroBox.values.toList(),
+                    );
+                    final workouts = _filterWorkoutsByPeriod(
+                      workoutBox.values.toList(),
+                    );
+                    final habits = habitBox.values
+                        .where((h) => h.isActive)
+                        .toList();
 
                     return SingleChildScrollView(
                       padding: EdgeInsets.all(16),
@@ -123,8 +133,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildQuickStats(pomodoros, workouts, habits),
-                          SizedBox(height: 24),
-                          _buildProductivityScore(pomodoros, workouts, habits),
+                          // SizedBox(height: 24),
+                          // _buildProductivityScore(pomodoros, workouts, habits),
                           SizedBox(height: 24),
                           _buildWeeklyOverview(pomodoros),
                           SizedBox(height: 24),
@@ -226,9 +236,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildHabitsTab() {
+  Widget _buildFeaturesTab() {
     return FutureBuilder(
-      future: _ensureBoxIsOpen<HabitTrackerModel>('habits'),
+      future: _ensureBoxIsOpen<UserProgressModel>('userProgress'),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
@@ -236,27 +246,80 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
         if (snapshot.hasError) {
           return Center(
-            child: Text('Error loading habits data: ${snapshot.error}'),
+            child: Text('Error loading progress data: ${snapshot.error}'),
           );
         }
 
         return ValueListenableBuilder(
-          valueListenable: Hive.box<HabitTrackerModel>('habits').listenable(),
-          builder: (context, Box<HabitTrackerModel> box, _) {
-            final habits = box.values.where((h) => h.isActive).toList();
+          valueListenable: Hive.box<UserProgressModel>(
+            'userProgress',
+          ).listenable(),
+          builder: (context, box, _) {
+            final userProgress = box.get('progress');
 
-            return SingleChildScrollView(
+            if (userProgress == null) {
+              return Center(child: Text('No progress data available'));
+            }
+
+            final featureRequirements =
+                ProgressConstants.FEATURE_UNLOCK_REQUIREMENTS;
+            final featureDescriptions = ProgressConstants.FEATURE_DESCRIPTIONS;
+
+            return ListView(
               padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHabitsOverview(habits),
-                  SizedBox(height: 24),
-                  _buildHabitsGrid(habits),
-                  SizedBox(height: 24),
-                  _buildStreaksLeaderboard(habits),
-                ],
-              ),
+              children: featureRequirements.entries.map((entry) {
+                final isUnlocked =
+                    userProgress.canUnlockFeature(entry.key, entry.value) ||
+                    userProgress.isFeatureUnlocked(entry.key);
+                final canUnlock = userProgress.canUnlockFeature(
+                  entry.key,
+                  entry.value,
+                );
+
+                return Card(
+                  child: ListTile(
+                    leading: Icon(
+                      isUnlocked ? Icons.lock_open : Icons.lock,
+                      color: isUnlocked ? Colors.green : Colors.grey,
+                    ),
+                    title: Text(
+                      entry.key.replaceAll('_', ' ').toUpperCase(),
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          featureDescriptions[entry.key] ??
+                              'Feature description',
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Requires ${entry.value} XP',
+                          style: TextStyle(
+                            color: isUnlocked ? Colors.green : Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                    trailing: isUnlocked
+                        ? Icon(Icons.check_circle, color: Colors.green)
+                        : canUnlock
+                        ? ElevatedButton(
+                            onPressed: () =>
+                                _unlockFeature(entry.key, userProgress),
+                            child: Text('Unlock'),
+                          )
+                        : Text(
+                            '${entry.value - userProgress.totalExperience} XP needed',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                  ),
+                );
+              }).toList(),
             );
           },
         );
@@ -264,7 +327,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildQuickStats(List<PomodoroModel> pomodoros, List<WorkoutSessionModel> workouts, List<HabitTrackerModel> habits) {
+  void _unlockFeature(String featureId, UserProgressModel userProgress) {
+    userProgress.unlockFeature(featureId);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🎉 Feature unlocked! Check the app for new options.'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  Widget _buildQuickStats(
+    List<PomodoroModel> pomodoros,
+    List<WorkoutSessionModel> workouts,
+    List<HabitTrackerModel> habits,
+  ) {
     final focusSessions = pomodoros.length;
     final completedWorkouts = workouts.where((w) => w.isCompleted).length;
     final completedHabits = habits.where((h) => h.isCompleted).length;
@@ -284,13 +361,25 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             Row(
               children: [
                 Expanded(
-                  child: _buildStatItem('Focus Sessions', '$focusSessions', Icons.timer),
+                  child: _buildStatItem(
+                    'Focus Sessions',
+                    '$focusSessions',
+                    Icons.timer,
+                  ),
                 ),
                 Expanded(
-                  child: _buildStatItem('Workouts', '$completedWorkouts', Icons.fitness_center),
+                  child: _buildStatItem(
+                    'Workouts',
+                    '$completedWorkouts',
+                    Icons.fitness_center,
+                  ),
                 ),
                 Expanded(
-                  child: _buildStatItem('Habits', '$completedHabits/$totalHabits', Icons.track_changes),
+                  child: _buildStatItem(
+                    'Habits',
+                    '$completedHabits/$totalHabits',
+                    Icons.track_changes,
+                  ),
                 ),
               ],
             ),
@@ -318,13 +407,25 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildProductivityScore(List<PomodoroModel> pomodoros, List<WorkoutSessionModel> workouts, List<HabitTrackerModel> habits) {
+  Widget _buildProductivityScore(
+    List<PomodoroModel> pomodoros,
+    List<WorkoutSessionModel> workouts,
+    List<HabitTrackerModel> habits,
+  ) {
     // Calculate scores based on targets
-    final focusTarget = _selectedPeriod == 'Today' ? 3 : (_selectedPeriod == 'Week' ? 20 : 100);
-    final workoutTarget = _selectedPeriod == 'Today' ? 1 : (_selectedPeriod == 'Week' ? 3 : 12);
+    final focusTarget = _selectedPeriod == 'Today'
+        ? 3
+        : (_selectedPeriod == 'Week' ? 20 : 100);
+    final workoutTarget = _selectedPeriod == 'Today'
+        ? 1
+        : (_selectedPeriod == 'Week' ? 3 : 12);
 
     final focusScore = (pomodoros.length / focusTarget).clamp(0.0, 1.0);
-    final exerciseScore = (workouts.where((w) => w.isCompleted).length / workoutTarget).clamp(0.0, 1.0);
+    final exerciseScore =
+        (workouts.where((w) => w.isCompleted).length / workoutTarget).clamp(
+          0.0,
+          1.0,
+        );
 
     double habitScore = 0.0;
     if (habits.isNotEmpty) {
@@ -356,8 +457,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                         strokeWidth: 8,
                         backgroundColor: Colors.grey[300],
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          overallScore >= 0.8 ? Colors.green :
-                          overallScore >= 0.5 ? Colors.orange : Colors.red
+                          overallScore >= 0.8
+                              ? Colors.green
+                              : overallScore >= 0.5
+                              ? Colors.orange
+                              : Colors.red,
                         ),
                       ),
                       SizedBox(height: 8),
@@ -374,7 +478,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildScoreBreakdown('Focus', focusScore, Colors.blue),
-                      _buildScoreBreakdown('Exercise', exerciseScore, Colors.orange),
+                      _buildScoreBreakdown(
+                        'Exercise',
+                        exerciseScore,
+                        Colors.orange,
+                      ),
                       _buildScoreBreakdown('Habits', habitScore, Colors.green),
                     ],
                   ),
@@ -415,15 +523,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
     final weekData = List.generate(7, (index) {
       final day = startOfWeek.add(Duration(days: index));
-      final dayPomodoros = pomodoros.where((p) =>
-        p.startTime.year == day.year &&
-        p.startTime.month == day.month &&
-        p.startTime.day == day.day
-      ).length;
+      final dayPomodoros = pomodoros
+          .where(
+            (p) =>
+                p.startTime.year == day.year &&
+                p.startTime.month == day.month &&
+                p.startTime.day == day.day,
+          )
+          .length;
       return dayPomodoros;
     });
 
-    final maxSessions = weekData.isNotEmpty ? weekData.reduce((a, b) => a > b ? a : b) : 1;
+    final maxSessions = weekData.isNotEmpty
+        ? weekData.reduce((a, b) => a > b ? a : b)
+        : 1;
 
     return Card(
       child: Padding(
@@ -442,9 +555,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: List.generate(7, (index) {
-                  final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                  final dayNames = [
+                    'Mon',
+                    'Tue',
+                    'Wed',
+                    'Thu',
+                    'Fri',
+                    'Sat',
+                    'Sun',
+                  ];
                   final sessions = weekData[index];
-                  final height = maxSessions > 0 ? (sessions / maxSessions) * 100 : 0.0;
+                  final height = maxSessions > 0
+                      ? (sessions / maxSessions) * 100
+                      : 0.0;
 
                   return Column(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -453,12 +576,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                         width: 20,
                         height: height.clamp(5.0, 100.0),
                         decoration: BoxDecoration(
-                          color: sessions > 0 ? Theme.of(context).primaryColor : Colors.grey[300],
+                          color: sessions > 0
+                              ? Colors.grey[300]
+                              : Theme.of(context).primaryColor,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                       SizedBox(height: 8),
-                      Text(sessions.toString(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text(
+                        sessions.toString(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       Text(dayNames[index], style: TextStyle(fontSize: 12)),
                     ],
                   );
@@ -471,12 +602,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildGoalsProgress(List<PomodoroModel> pomodoros, List<WorkoutSessionModel> workouts, List<HabitTrackerModel> habits) {
+  Widget _buildGoalsProgress(
+    List<PomodoroModel> pomodoros,
+    List<WorkoutSessionModel> workouts,
+    List<HabitTrackerModel> habits,
+  ) {
     final todayPomodoros = pomodoros.where((p) {
       final today = DateTime.now();
       return p.startTime.year == today.year &&
-             p.startTime.month == today.month &&
-             p.startTime.day == today.day;
+          p.startTime.month == today.month &&
+          p.startTime.day == today.day;
     }).length;
 
     final weeklyWorkouts = workouts.where((w) => w.isCompleted).length;
@@ -494,8 +629,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             ),
             SizedBox(height: 16),
             _buildGoalItem('Daily Focus Sessions', todayPomodoros, 5),
-            _buildGoalItem('${_selectedPeriod} Workouts', weeklyWorkouts, _selectedPeriod == 'Week' ? 4 : _selectedPeriod == 'Today' ? 1 : 15),
-            _buildGoalItem('Habit Completion', completedHabits, habits.length > 0 ? habits.length : 1),
+            _buildGoalItem(
+              '${_selectedPeriod} Workouts',
+              weeklyWorkouts,
+              _selectedPeriod == 'Week'
+                  ? 4
+                  : _selectedPeriod == 'Today'
+                  ? 1
+                  : 15,
+            ),
+            _buildGoalItem(
+              'Habit Completion',
+              completedHabits,
+              habits.length > 0 ? habits.length : 1,
+            ),
           ],
         ),
       ),
@@ -633,38 +780,40 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   )
                 : Column(
                     children: projectStats.entries
-                        .map((entry) => Padding(
-                              padding: EdgeInsets.symmetric(vertical: 4),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 12,
-                                        height: 12,
-                                        decoration: BoxDecoration(
-                                          color: _getProjectColor(entry.key),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
+                        .map(
+                          (entry) => Padding(
+                            padding: EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: _getProjectColor(entry.key),
+                                        borderRadius: BorderRadius.circular(6),
                                       ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        projectNames[entry.key] ?? 'Unknown',
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    '${entry.value} sessions',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.grey[700],
                                     ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      projectNames[entry.key] ?? 'Unknown',
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  '${entry.value} sessions',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey[700],
                                   ),
-                                ],
-                              ),
-                            ))
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
                         .toList(),
                   ),
           ],
@@ -744,10 +893,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     for (int i = 0; i < 365; i++) {
       final checkDate = today.subtract(Duration(days: i));
-      final hasSessions = sessions.any((s) =>
-        s.startTime.year == checkDate.year &&
-        s.startTime.month == checkDate.month &&
-        s.startTime.day == checkDate.day
+      final hasSessions = sessions.any(
+        (s) =>
+            s.startTime.year == checkDate.year &&
+            s.startTime.month == checkDate.month &&
+            s.startTime.day == checkDate.day,
       );
 
       if (hasSessions) {
@@ -762,8 +912,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   Widget _buildWorkoutStats(List<WorkoutSessionModel> sessions) {
     final completedSessions = sessions.where((s) => s.isCompleted).toList();
-    final totalHours = completedSessions.fold<int>(0, (sum, s) => sum + s.durationMinutes) / 60;
-    final totalCalories = completedSessions.fold<int>(0, (sum, s) => sum + s.caloriesBurned);
+    final totalHours =
+        completedSessions.fold<int>(0, (sum, s) => sum + s.durationMinutes) /
+        60;
+    final totalCalories = completedSessions.fold<int>(
+      0,
+      (sum, s) => sum + s.caloriesBurned,
+    );
 
     return Row(
       children: [
@@ -778,14 +933,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           child: _buildStatCard(
             'Hours',
             totalHours > 0 ? '${totalHours.toStringAsFixed(1)}' : '0',
-            Icons.schedule
-          )
+            Icons.schedule,
+          ),
         ),
         Expanded(
           child: _buildStatCard(
             'Calories',
             '$totalCalories',
-            Icons.local_fire_department
+            Icons.local_fire_department,
           ),
         ),
       ],
@@ -819,7 +974,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     child: Center(
                       child: Text(
                         '${sessions.length} total sessions recorded',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
@@ -830,7 +988,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   Widget _buildPersonalRecords(List<WorkoutSessionModel> sessions) {
-    final recordSessions = sessions.where((s) => s.personalRecordsSet.isNotEmpty).toList();
+    final recordSessions = sessions
+        .where((s) => s.personalRecordsSet.isNotEmpty)
+        .toList();
 
     return Card(
       child: Padding(
@@ -852,7 +1012,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     children: [
                       Text(
                         '🏆 ${recordSessions.fold<int>(0, (sum, s) => sum + s.personalRecordsSet.length)} records set',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       SizedBox(height: 8),
                       Text(
@@ -912,7 +1075,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   Widget _buildHabitsOverview(List<HabitTrackerModel> habits) {
     final completedToday = habits.where((h) => h.isCompleted).length;
     final totalHabits = habits.length;
-    final completionRate = totalHabits > 0 ? (completedToday / totalHabits * 100).round() : 0;
+    final completionRate = totalHabits > 0
+        ? (completedToday / totalHabits * 100).round()
+        : 0;
 
     return Card(
       child: Padding(
@@ -928,7 +1093,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildHabitStat('Completed Today', '$completedToday/$totalHabits'),
+                _buildHabitStat(
+                  'Completed Today',
+                  '$completedToday/$totalHabits',
+                ),
                 _buildHabitStat('Completion Rate', '$completionRate%'),
               ],
             ),
@@ -986,10 +1154,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                       return Container(
                         padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: habit.isCompleted ? Colors.green[100] : Colors.grey[100],
+                          color: habit.isCompleted
+                              ? Colors.green[100]
+                              : Colors.grey[100],
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: habit.isCompleted ? Colors.green : Colors.grey,
+                            color: habit.isCompleted
+                                ? Colors.green
+                                : Colors.grey,
                           ),
                         ),
                         child: Column(
@@ -1051,10 +1223,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                         dense: true,
                         leading: CircleAvatar(
                           radius: 16,
-                          backgroundColor: index == 0 ? Colors.amber :
-                                         index == 1 ? Colors.grey[400] :
-                                         index == 2 ? Colors.brown[300] :
-                                         Colors.grey[300],
+                          backgroundColor: index == 0
+                              ? Colors.amber
+                              : index == 1
+                              ? Colors.grey[400]
+                              : index == 2
+                              ? Colors.brown[300]
+                              : Colors.grey[300],
                           child: Text(
                             '${index + 1}',
                             style: TextStyle(
@@ -1064,15 +1239,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                             ),
                           ),
                         ),
-                        title: Text(
-                          habit.name,
-                          style: TextStyle(fontSize: 14),
-                        ),
+                        title: Text(habit.name, style: TextStyle(fontSize: 14)),
                         trailing: Text(
                           '${habit.currentStreak} days',
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
-                            color: habit.currentStreak > 0 ? Colors.orange : Colors.grey,
+                            color: habit.currentStreak > 0
+                                ? Colors.orange
+                                : Colors.grey,
                           ),
                         ),
                       );
@@ -1092,7 +1266,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         children: [
           Card(
             child: ListTile(
-              leading: Icon(Icons.audiotrack, color: Theme.of(context).primaryColor),
+              leading: Icon(
+                Icons.audiotrack,
+                color: Theme.of(context).primaryColor,
+              ),
               title: Text('Audio Management'),
               subtitle: Text('Manage background music and sound effects'),
               trailing: Icon(Icons.arrow_forward_ios),
@@ -1107,7 +1284,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           SizedBox(height: 16),
           Card(
             child: ListTile(
-              leading: Icon(Icons.history, color: Theme.of(context).primaryColor),
+              leading: Icon(
+                Icons.history,
+                color: Theme.of(context).primaryColor,
+              ),
               title: Text('Session History'),
               subtitle: Text('View all your pomodoro session records'),
               trailing: Icon(Icons.arrow_forward_ios),
@@ -1136,6 +1316,204 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRewardsTab() {
+    return FutureBuilder(
+      future: _ensureBoxIsOpen<UserProgressModel>('userProgress'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Error loading progress data: ${snapshot.error}'),
+          );
+        }
+
+        return ValueListenableBuilder(
+          valueListenable: Hive.box<UserProgressModel>(
+            'userProgress',
+          ).listenable(),
+          builder: (context, box, _) {
+            final userProgress = box.get('progress');
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (userProgress != null) ...[
+                    _buildProgressSummary(userProgress),
+                    SizedBox(height: 24),
+                    _buildQuickActions(),
+                  ] else ...[
+                    Center(
+                      child: Text(
+                        'Start completing pomodoros to track your progress!',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildProgressSummary(UserProgressModel userProgress) {
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your Progress',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 35,
+                        backgroundColor: Theme.of(context).primaryColor,
+                        child: Text(
+                          '${userProgress.currentLevel}',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        userProgress.levelTitle,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 20),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildProgressRow(
+                        'Experience',
+                        '${userProgress.totalExperience} XP',
+                        Icons.stars,
+                      ),
+                      SizedBox(height: 8),
+                      _buildProgressRow(
+                        'Available Points',
+                        '${userProgress.availablePoints}',
+                        Icons.monetization_on,
+                      ),
+                      SizedBox(height: 8),
+                      _buildProgressRow(
+                        'Current Streak',
+                        '${userProgress.currentStreak} days',
+                        Icons.local_fire_department,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Level Progress',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: userProgress.progressToNextLevel,
+              backgroundColor: Colors.grey[300],
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).primaryColor,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              '${userProgress.experienceNeededForNextLevel} XP to level ${userProgress.currentLevel + 1}',
+              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        SizedBox(width: 8),
+        Text('$label: ', style: TextStyle(color: Colors.grey[600])),
+        Text(value, style: TextStyle(fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Rewards & Features',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            ListTile(
+              leading: Icon(Icons.star, color: Colors.amber),
+              title: Text('View All Rewards'),
+              subtitle: Text('Spend your points on custom rewards'),
+              trailing: Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => RewardsScreen()),
+                );
+              },
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.lock_open, color: Colors.green),
+              title: Text('Unlock Features'),
+              subtitle: Text('Use experience to unlock app features'),
+              trailing: Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => RewardsScreen()),
+                ).then((_) {
+                  // Navigate to features tab when returning
+                  // This could be enhanced with a parameter
+                });
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

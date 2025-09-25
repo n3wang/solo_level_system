@@ -2,7 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:solo_level_system/screens/home_screen.dart';
 import 'package:solo_level_system/screens/analytics_screen.dart';
-import 'package:solo_level_system/screens/workout_mode_screen.dart';
+import 'package:solo_level_system/screens/projects_management_screen.dart';
+import 'package:solo_level_system/screens/rewards_management_screen.dart';
 import 'package:solo_level_system/screens/settings_screen.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
 
@@ -26,7 +27,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _screens = [
       HomeScreen(onSettingsChanged: () => widget.onSettingsChanged?.call),
       AnalyticsScreen(),
-      WorkoutModeScreen(),
+      ProjectsManagementScreen(),
+      RewardsManagementScreen(),
       SettingsScreen(),
     ];
   }
@@ -63,10 +65,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             tooltip: 'Progress & Statistics',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.fitness_center_outlined),
-            activeIcon: Icon(Icons.fitness_center),
+            icon: Icon(Icons.folder_outlined),
+            activeIcon: Icon(Icons.folder),
             label: '',
-            tooltip: 'Workout Routines & Tracking',
+            tooltip: 'Project Management',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.card_giftcard_outlined),
+            activeIcon: Icon(Icons.card_giftcard),
+            label: '',
+            tooltip: 'Rewards & Points',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),

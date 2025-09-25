@@ -28,10 +28,19 @@
           "comments": []
         },
         {
-          "id": "46add1df-fab5-46d8-bb40-2d6c60f5f73c",
+          "id": "40417605-f923-4544-9026-299e2e464952",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Rewards and experience system",
-          "description": "The rewards system that provides 25 points and 25 experience for a block of 25 minutes of work, meaning that you can ",
+          "title": "Predefining times.",
+          "description": "On settings have predefined work and break durations that you can click and sets the work duration and break douration on clicking the predefined such as\n\n15, 25 30, 50 mins for work\n1, 5, 10 for break as defaults",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "e52cb33d-ab02-4f2e-bf3c-af29bd899061",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Create play notification from a button",
+          "description": "",
           "labels": [],
           "checkboxes": [],
           "comments": []
@@ -47,6 +56,15 @@
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
           "title": "Habits and Projects Creations",
           "description": "Create something called a project model , in which you can have set up project each project can be hooked  to havbits where to schedule count of times of pomodoros to perform on a weekday, on which weekday, which can be multiple weekdays you can have up to 6 projects. When working on the pomodoro you can select the project by pressing the project that you are working when the pomodoro is paused by having up to 6 squared small text tags for the project you are working, once selected the pomodoro becaomes only showing that project clicking again untoggles it and shows all the projects options. Th\n\n\n",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "46add1df-fab5-46d8-bb40-2d6c60f5f73c",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Rewards and experience system",
+          "description": "\nCreate an experience and pointage system, The rewards system that provides 25 points and 25 experience for a block of 25 minutes of work. You can create your own rewards like \"3D printer allowance\" for 2000 pts meaning that u can spend 2000 pts to allow yourself to buy a 3d printer. and like so. The experience system is for unlocking more features on the application itself (will be used later) but for now have a screen in the analytics systems for viewing how many points and experience, management of rewards and and toggle distoggle features of the application that can only be toggled after certain experience points",
           "labels": [],
           "checkboxes": [],
           "comments": []

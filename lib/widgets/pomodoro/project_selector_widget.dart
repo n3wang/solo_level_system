@@ -18,32 +18,29 @@ class ProjectSelectorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeProjects = projects.where((p) => p.isActiveToday).take(6).toList();
+    final activeProjects = projects
+        .where((p) => p.isActiveToday)
+        .take(6)
+        .toList();
 
     if (activeProjects.isEmpty) {
       return SizedBox.shrink();
     }
+
+    // If a project is selected, show only that project
+    final projectsToShow = selectedProject != null
+        ? activeProjects.where((p) => p.id == selectedProject!.id).toList()
+        : activeProjects;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isCollapsed) ...[
-            Text(
-              'Select Project',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-              ),
-            ),
-            SizedBox(height: 8),
-          ],
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: activeProjects.map((project) {
+            children: projectsToShow.map((project) {
               final isSelected = selectedProject?.id == project.id;
               return _buildProjectChip(context, project, isSelected);
             }).toList(),
@@ -53,7 +50,11 @@ class ProjectSelectorWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildProjectChip(BuildContext context, ProjectModel project, bool isSelected) {
+  Widget _buildProjectChip(
+    BuildContext context,
+    ProjectModel project,
+    bool isSelected,
+  ) {
     final color = _parseColor(project.color);
 
     return GestureDetector(
@@ -71,10 +72,7 @@ class ProjectSelectorWidget extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? color : color.withOpacity(0.1),
-          border: Border.all(
-            color: color,
-            width: isSelected ? 2 : 1,
-          ),
+          border: Border.all(color: color, width: isSelected ? 2 : 1),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -167,19 +165,27 @@ class CompactProjectSelectorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeProjects = projects.where((p) => p.isActiveToday).take(6).toList();
+    final activeProjects = projects
+        .where((p) => p.isActiveToday)
+        .take(6)
+        .toList();
 
     if (activeProjects.isEmpty) {
       return SizedBox.shrink();
     }
 
+    // If a project is selected, show only that project
+    final projectsToShow = selectedProject != null
+        ? activeProjects.where((p) => p.id == selectedProject!.id).toList()
+        : activeProjects;
+
     return Container(
       height: 40,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: activeProjects.length,
+        itemCount: projectsToShow.length,
         itemBuilder: (context, index) {
-          final project = activeProjects[index];
+          final project = projectsToShow[index];
           final isSelected = selectedProject?.id == project.id;
           final color = _parseColor(project.color);
 
@@ -199,10 +205,7 @@ class CompactProjectSelectorWidget extends StatelessWidget {
                 height: 32,
                 decoration: BoxDecoration(
                   color: isSelected ? color : color.withOpacity(0.1),
-                  border: Border.all(
-                    color: color,
-                    width: isSelected ? 2 : 1,
-                  ),
+                  border: Border.all(color: color, width: isSelected ? 2 : 1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
