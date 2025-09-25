@@ -424,9 +424,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         // Timer with recording buttons when session complete
-        canSubmitLog ? _buildTimerWithRecordingButtons() : _buildGestureTimer(),
         SizedBox(height: 20),
-        _buildFocusModeWidget(),
+        // _buildFocusModeWidget(),
+        canSubmitLog ? _buildTimerWithRecordingButtons() : _buildGestureTimer(),
       ],
     );
   }
@@ -772,13 +772,6 @@ class _HomeScreenState extends State<HomeScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Recording button (left side)
-        if (config?.showAudioRecordButton == true)
-          Container(
-            margin: EdgeInsets.only(right: 20),
-            child: _buildSimplifiedRecordingButton(),
-          ),
-
         // Album image with timer overlay (center)
         Container(
           width: _getAlbumContainerSize(context),
@@ -802,32 +795,6 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             child: Stack(
               children: [
-                // Album background image
-                Container(
-                  width: _getAlbumContainerSize(context),
-                  height: _getAlbumContainerSize(context),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.green, width: 2),
-                    image:
-                        _backgroundMusicService.currentTrack?.albumImagePath !=
-                            null
-                        ? DecorationImage(
-                            image: AssetImage(
-                              _backgroundMusicService
-                                  .currentTrack!
-                                  .albumImagePath!,
-                            ),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                    color:
-                        _backgroundMusicService.currentTrack?.albumImagePath ==
-                            null
-                        ? Colors.green.withOpacity(0.1)
-                        : null,
-                  ),
-                ),
                 // Timer overlay with semi-transparent background
                 Container(
                   width: _getAlbumContainerSize(context),
@@ -880,69 +847,30 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-
-        // Evidence button (right side)
-        if (config?.showPhotoButton == true)
-          Container(
-            margin: EdgeInsets.only(left: 20),
-            child: _buildSquareEvidenceButton(),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildSquareRecordingButton() {
-    return GestureDetector(
-      onTap: () async {
-        // Audio recording logic
-        await showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) => Container(
-            height: MediaQuery.of(context).size.height * 0.85,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+        // vertical stack
+        Column(
+          children: [
+            // Recording button (left side)
+            if (config?.showAudioRecordButton == true)
+              Container(
+                margin: EdgeInsets.only(left: 20, top: 10, bottom: 10),
+                child: _buildSimplifiedRecordingButton(),
               ),
-            ),
-            child: EnhancedAudioRecorder(
-              onRecordingComplete: (audioModel) async {
-                setState(() {
-                  audioPath = audioModel.filePath;
-                  recordedAudio = audioModel;
-                  showPlayer = true;
-                  canSubmitLog = true;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Recording completed successfully!')),
-                );
-              },
-            ),
-          ),
-        );
-      },
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: (audioPath != null)
-              ? Colors.green.withOpacity(0.1)
-              : Colors.blue.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: (audioPath != null) ? Colors.green : Colors.blue,
-            width: 2,
-          ),
+
+            if (config?.showPhotoButton == true)
+              Container(
+                margin: EdgeInsets.only(left: 20, bottom: 10),
+                child: _buildSquareEvidenceButton(),
+              ),
+            if (currentlyPlayingTrack != null)
+              Container(
+                width: _getMusicWidgetWidth(context),
+                margin: EdgeInsets.only(left: 20, top: 10),
+                child: _buildCompactMusicWidget(),
+              ),
+          ],
         ),
-        child: Icon(
-          (audioPath != null) ? Icons.mic : Icons.mic_none,
-          size: 30,
-          color: (audioPath != null) ? Colors.green : Colors.blue,
-        ),
-      ),
+      ],
     );
   }
 
@@ -993,159 +921,6 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       },
       hasRecording: audioPath != null,
-    );
-  }
-
-  Widget _buildGestureMusic() {
-    return GestureDetector(
-      onTap: () {
-        // Click music area to mute/unmute
-        setState(() {
-          if (allowMusic) {
-            _stopLofi();
-            allowMusic = false;
-          } else {
-            allowMusic = true;
-            if (isRunning) {
-              _playLofi();
-            }
-          }
-        });
-      },
-      onHorizontalDragEnd: (details) {
-        // Swipe left/right to play random track
-        if (details.velocity.pixelsPerSecond.dx.abs() > 300) {
-          if (allowMusic) {
-            _playLofi(); // This plays a random track
-          }
-        }
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        child: currentlyPlayingTrack != null
-            ? Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: allowMusic
-                      ? Colors.green.withOpacity(0.1)
-                      : Colors.grey.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: allowMusic ? Colors.green : Colors.grey,
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          allowMusic ? Icons.music_note : Icons.music_off,
-                          size: 20,
-                          color: allowMusic ? Colors.green : Colors.grey,
-                        ),
-                        SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            allowMusic
-                                ? 'Playing: $currentlyPlayingTrack'
-                                : 'Music Muted',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: allowMusic ? Colors.green : Colors.grey,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Tap to ${allowMusic ? 'Mute' : 'Unmute'} • ← → Swipe for Random Track',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              )
-            : Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey, width: 1),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.music_off, size: 20, color: Colors.grey),
-                        SizedBox(width: 8),
-                        Text(
-                          'No Music Playing',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Tap to Enable • ← → Swipe for Random Track',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _buildCurrentTrackWidget() {
-    return Container(
-      key: ValueKey('current_track_widget'),
-      child: currentlyPlayingTrack != null
-          ? Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.music_note, size: 16, color: Colors.green),
-                      SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'Playing: $currentlyPlayingTrack',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontStyle: FontStyle.italic,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 10),
-              ],
-            )
-          : SizedBox.shrink(),
     );
   }
 
