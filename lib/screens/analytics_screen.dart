@@ -8,6 +8,13 @@ import 'package:solo_level_system/models/habit_tracker_model.dart';
 import 'package:solo_level_system/screens/audio_management_screen.dart';
 import 'package:solo_level_system/screens/history_screen.dart';
 
+extension StringExtension on String {
+  String capitalizeFirst() {
+    if (isEmpty) return this;
+    return this[0].toUpperCase() + substring(1);
+  }
+}
+
 class AnalyticsScreen extends StatefulWidget {
   @override
   _AnalyticsScreenState createState() => _AnalyticsScreenState();
@@ -80,20 +87,58 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   Widget _buildOverviewTab() {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildQuickStats(),
-          SizedBox(height: 24),
-          _buildProductivityScore(),
-          SizedBox(height: 24),
-          _buildWeeklyOverview(),
-          SizedBox(height: 24),
-          _buildGoalsProgress(),
-        ],
-      ),
+    return FutureBuilder(
+      future: Future.wait([
+        _ensureBoxIsOpen<PomodoroModel>('pomodoros'),
+        _ensureBoxIsOpen<WorkoutSessionModel>('workoutSessions'),
+        _ensureBoxIsOpen<HabitTrackerModel>('habits'),
+      ]),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Error loading data: ${snapshot.error}'),
+          );
+        }
+
+        return ValueListenableBuilder(
+          valueListenable: Hive.box<PomodoroModel>('pomodoros').listenable(),
+          builder: (context, pomodoroBox, _) {
+            return ValueListenableBuilder(
+              valueListenable: Hive.box<WorkoutSessionModel>('workoutSessions').listenable(),
+              builder: (context, workoutBox, _) {
+                return ValueListenableBuilder(
+                  valueListenable: Hive.box<HabitTrackerModel>('habits').listenable(),
+                  builder: (context, habitBox, _) {
+                    final pomodoros = _filterSessionsByPeriod(pomodoroBox.values.toList());
+                    final workouts = _filterWorkoutsByPeriod(workoutBox.values.toList());
+                    final habits = habitBox.values.where((h) => h.isActive).toList();
+
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildQuickStats(pomodoros, workouts, habits),
+                          SizedBox(height: 24),
+                          _buildProductivityScore(pomodoros, workouts, habits),
+                          SizedBox(height: 24),
+                          _buildWeeklyOverview(pomodoros),
+                          SizedBox(height: 24),
+                          _buildGoalsProgress(pomodoros, workouts, habits),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -128,7 +173,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   SizedBox(height: 24),
                   _buildProjectBreakdown(filteredSessions),
                   SizedBox(height: 24),
-                  _buildStreakInfo(),
+                  _buildStreakInfo(sessions),
                 ],
               ),
             );
@@ -169,7 +214,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   SizedBox(height: 24),
                   _buildWorkoutChart(filteredSessions),
                   SizedBox(height: 24),
-                  _buildPersonalRecords(),
+                  _buildPersonalRecords(filteredSessions),
                   SizedBox(height: 24),
                   _buildMuscleGroupBreakdown(filteredSessions),
                 ],
@@ -219,7 +264,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildQuickStats() {
+  Widget _buildQuickStats(List<PomodoroModel> pomodoros, List<WorkoutSessionModel> workouts, List<HabitTrackerModel> habits) {
+    final focusSessions = pomodoros.length;
+    final completedWorkouts = workouts.where((w) => w.isCompleted).length;
+    final completedHabits = habits.where((h) => h.isCompleted).length;
+    final totalHabits = habits.length;
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -227,20 +277,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Quick Stats',
+              'Quick Stats - ${_selectedPeriod}',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: _buildStatItem('Focus Sessions', '12', Icons.timer),
+                  child: _buildStatItem('Focus Sessions', '$focusSessions', Icons.timer),
                 ),
                 Expanded(
-                  child: _buildStatItem('Workouts', '4', Icons.fitness_center),
+                  child: _buildStatItem('Workouts', '$completedWorkouts', Icons.fitness_center),
                 ),
                 Expanded(
-                  child: _buildStatItem('Habits', '8/10', Icons.track_changes),
+                  child: _buildStatItem('Habits', '$completedHabits/$totalHabits', Icons.track_changes),
                 ),
               ],
             ),
@@ -268,7 +318,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildProductivityScore() {
+  Widget _buildProductivityScore(List<PomodoroModel> pomodoros, List<WorkoutSessionModel> workouts, List<HabitTrackerModel> habits) {
+    // Calculate scores based on targets
+    final focusTarget = _selectedPeriod == 'Today' ? 3 : (_selectedPeriod == 'Week' ? 20 : 100);
+    final workoutTarget = _selectedPeriod == 'Today' ? 1 : (_selectedPeriod == 'Week' ? 3 : 12);
+
+    final focusScore = (pomodoros.length / focusTarget).clamp(0.0, 1.0);
+    final exerciseScore = (workouts.where((w) => w.isCompleted).length / workoutTarget).clamp(0.0, 1.0);
+
+    double habitScore = 0.0;
+    if (habits.isNotEmpty) {
+      final completedHabits = habits.where((h) => h.isCompleted).length;
+      habitScore = (completedHabits / habits.length).clamp(0.0, 1.0);
+    }
+
+    final overallScore = (focusScore + exerciseScore + habitScore) / 3;
+    final scoreDisplay = (overallScore * 100).round();
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -286,14 +352,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   child: Column(
                     children: [
                       CircularProgressIndicator(
-                        value: 0.75,
+                        value: overallScore,
                         strokeWidth: 8,
                         backgroundColor: Colors.grey[300],
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          overallScore >= 0.8 ? Colors.green :
+                          overallScore >= 0.5 ? Colors.orange : Colors.red
+                        ),
                       ),
                       SizedBox(height: 8),
                       Text(
-                        '75/100',
+                        '$scoreDisplay/100',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -304,9 +373,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildScoreBreakdown('Focus', 0.8, Colors.blue),
-                      _buildScoreBreakdown('Exercise', 0.7, Colors.orange),
-                      _buildScoreBreakdown('Habits', 0.75, Colors.green),
+                      _buildScoreBreakdown('Focus', focusScore, Colors.blue),
+                      _buildScoreBreakdown('Exercise', exerciseScore, Colors.orange),
+                      _buildScoreBreakdown('Habits', habitScore, Colors.green),
                     ],
                   ),
                 ),
@@ -341,7 +410,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildWeeklyOverview() {
+  Widget _buildWeeklyOverview(List<PomodoroModel> pomodoros) {
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final weekData = List.generate(7, (index) {
+      final day = startOfWeek.add(Duration(days: index));
+      final dayPomodoros = pomodoros.where((p) =>
+        p.startTime.year == day.year &&
+        p.startTime.month == day.month &&
+        p.startTime.day == day.day
+      ).length;
+      return dayPomodoros;
+    });
+
+    final maxSessions = weekData.isNotEmpty ? weekData.reduce((a, b) => a > b ? a : b) : 1;
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -349,7 +432,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'This Week',
+              'This Week - Focus Sessions',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
@@ -359,29 +442,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: List.generate(7, (index) {
-                  final dayNames = [
-                    'Mon',
-                    'Tue',
-                    'Wed',
-                    'Thu',
-                    'Fri',
-                    'Sat',
-                    'Sun',
-                  ];
-                  final heights = [0.8, 0.6, 0.9, 0.4, 0.7, 0.3, 0.5];
+                  final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                  final sessions = weekData[index];
+                  final height = maxSessions > 0 ? (sessions / maxSessions) * 100 : 0.0;
 
                   return Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Container(
                         width: 20,
-                        height: heights[index] * 100,
+                        height: height.clamp(5.0, 100.0),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor,
+                          color: sessions > 0 ? Theme.of(context).primaryColor : Colors.grey[300],
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                       SizedBox(height: 8),
+                      Text(sessions.toString(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                       Text(dayNames[index], style: TextStyle(fontSize: 12)),
                     ],
                   );
@@ -394,7 +471,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildGoalsProgress() {
+  Widget _buildGoalsProgress(List<PomodoroModel> pomodoros, List<WorkoutSessionModel> workouts, List<HabitTrackerModel> habits) {
+    final todayPomodoros = pomodoros.where((p) {
+      final today = DateTime.now();
+      return p.startTime.year == today.year &&
+             p.startTime.month == today.month &&
+             p.startTime.day == today.day;
+    }).length;
+
+    final weeklyWorkouts = workouts.where((w) => w.isCompleted).length;
+    final completedHabits = habits.where((h) => h.isCompleted).length;
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -406,9 +493,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
-            _buildGoalItem('Daily Focus Sessions', 3, 5),
-            _buildGoalItem('Weekly Workouts', 2, 4),
-            _buildGoalItem('Habit Completion', 8, 10),
+            _buildGoalItem('Daily Focus Sessions', todayPomodoros, 5),
+            _buildGoalItem('${_selectedPeriod} Workouts', weeklyWorkouts, _selectedPeriod == 'Week' ? 4 : _selectedPeriod == 'Today' ? 1 : 15),
+            _buildGoalItem('Habit Completion', completedHabits, habits.length > 0 ? habits.length : 1),
           ],
         ),
       ),
@@ -531,7 +618,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildStreakInfo() {
+  Widget _buildStreakInfo(List<PomodoroModel> sessions) {
+    int currentStreak = _calculateCurrentStreak(sessions);
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -547,7 +636,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               children: [
                 Icon(
                   Icons.local_fire_department,
-                  color: Colors.orange,
+                  color: currentStreak > 0 ? Colors.orange : Colors.grey,
                   size: 32,
                 ),
                 SizedBox(width: 16),
@@ -555,7 +644,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '7 days',
+                      currentStreak > 0 ? '$currentStreak days' : 'No streak',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -575,19 +664,57 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
+  int _calculateCurrentStreak(List<PomodoroModel> sessions) {
+    if (sessions.isEmpty) return 0;
+
+    int streak = 0;
+    final today = DateTime.now();
+
+    for (int i = 0; i < 365; i++) {
+      final checkDate = today.subtract(Duration(days: i));
+      final hasSessions = sessions.any((s) =>
+        s.startTime.year == checkDate.year &&
+        s.startTime.month == checkDate.month &&
+        s.startTime.day == checkDate.day
+      );
+
+      if (hasSessions) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
   Widget _buildWorkoutStats(List<WorkoutSessionModel> sessions) {
+    final completedSessions = sessions.where((s) => s.isCompleted).toList();
+    final totalHours = completedSessions.fold<int>(0, (sum, s) => sum + s.durationMinutes) / 60;
+    final totalCalories = completedSessions.fold<int>(0, (sum, s) => sum + s.caloriesBurned);
+
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
             'Workouts',
-            '${sessions.length}',
+            '${completedSessions.length}',
             Icons.fitness_center,
           ),
         ),
-        Expanded(child: _buildStatCard('Hours', '0', Icons.schedule)),
         Expanded(
-          child: _buildStatCard('Calories', '0', Icons.local_fire_department),
+          child: _buildStatCard(
+            'Hours',
+            totalHours > 0 ? '${totalHours.toStringAsFixed(1)}' : '0',
+            Icons.schedule
+          )
+        ),
+        Expanded(
+          child: _buildStatCard(
+            'Calories',
+            '$totalCalories',
+            Icons.local_fire_department
+          ),
         ),
       ],
     );
@@ -597,35 +724,161 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
-        child: Text('Workout chart placeholder'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Workout Frequency',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            sessions.isEmpty
+                ? Container(
+                    height: 100,
+                    child: Center(
+                      child: Text(
+                        'No workout data yet. Start your first workout!',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
+                  )
+                : Container(
+                    height: 100,
+                    child: Center(
+                      child: Text(
+                        '${sessions.length} total sessions recorded',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPersonalRecords() {
+  Widget _buildPersonalRecords(List<WorkoutSessionModel> sessions) {
+    final recordSessions = sessions.where((s) => s.personalRecordsSet.isNotEmpty).toList();
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
-        child: Text('Personal records placeholder'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Personal Records',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            recordSessions.isEmpty
+                ? Text(
+                    'No personal records set yet. Keep pushing!',
+                    style: TextStyle(color: Colors.grey[600]),
+                  )
+                : Column(
+                    children: [
+                      Text(
+                        '🏆 ${recordSessions.fold<int>(0, (sum, s) => sum + s.personalRecordsSet.length)} records set',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Across ${recordSessions.length} sessions',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildMuscleGroupBreakdown(List<WorkoutSessionModel> sessions) {
+    final locations = <String, int>{};
+    for (final session in sessions.where((s) => s.location != null)) {
+      locations[session.location!] = (locations[session.location!] ?? 0) + 1;
+    }
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
-        child: Text('Muscle group breakdown placeholder'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Workout Locations',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            locations.isEmpty
+                ? Text(
+                    'No location data available',
+                    style: TextStyle(color: Colors.grey[600]),
+                  )
+                : Column(
+                    children: locations.entries.map((entry) {
+                      return Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(entry.key.capitalizeFirst()),
+                            Text('${entry.value} sessions'),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHabitsOverview(List<HabitTrackerModel> habits) {
+    final completedToday = habits.where((h) => h.isCompleted).length;
+    final totalHabits = habits.length;
+    final completionRate = totalHabits > 0 ? (completedToday / totalHabits * 100).round() : 0;
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
-        child: Text('Habits overview placeholder'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Habits Overview',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildHabitStat('Completed Today', '$completedToday/$totalHabits'),
+                _buildHabitStat('Completion Rate', '$completionRate%'),
+              ],
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildHabitStat(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
@@ -633,16 +886,128 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
-        child: Text('Habits grid placeholder'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Active Habits',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            habits.isEmpty
+                ? Text(
+                    'No active habits. Create your first habit!',
+                    style: TextStyle(color: Colors.grey[600]),
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 3,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemCount: habits.length,
+                    itemBuilder: (context, index) {
+                      final habit = habits[index];
+                      return Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: habit.isCompleted ? Colors.green[100] : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: habit.isCompleted ? Colors.green : Colors.grey,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              habit.name,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              habit.streakText,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildStreaksLeaderboard(List<HabitTrackerModel> habits) {
+    final sortedHabits = List<HabitTrackerModel>.from(habits)
+      ..sort((a, b) => b.currentStreak.compareTo(a.currentStreak));
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
-        child: Text('Streaks leaderboard placeholder'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Streak Leaderboard',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            sortedHabits.isEmpty
+                ? Text(
+                    'No habits to show',
+                    style: TextStyle(color: Colors.grey[600]),
+                  )
+                : Column(
+                    children: sortedHabits.take(5).map((habit) {
+                      final index = sortedHabits.indexOf(habit);
+                      return ListTile(
+                        dense: true,
+                        leading: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: index == 0 ? Colors.amber :
+                                         index == 1 ? Colors.grey[400] :
+                                         index == 2 ? Colors.brown[300] :
+                                         Colors.grey[300],
+                          child: Text(
+                            '${index + 1}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          habit.name,
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        trailing: Text(
+                          '${habit.currentStreak} days',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: habit.currentStreak > 0 ? Colors.orange : Colors.grey,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+          ],
+        ),
       ),
     );
   }
