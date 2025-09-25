@@ -61,6 +61,29 @@ class _HomeScreenState extends State<HomeScreen> {
     return !isRunning || onBreak || canSubmitLog;
   }
 
+  // Helper method to calculate dynamic album container size
+  double _getAlbumContainerSize(BuildContext context) {
+    final screenH = MediaQuery.of(context).size.height;
+    final eightyPercent = screenH * 0.4;
+    return eightyPercent > 200 ? eightyPercent : 200;
+  }
+
+  // Helper method to calculate dynamic font size based on container size
+  double _getTimerFontSize(BuildContext context) {
+    final containerSize = _getAlbumContainerSize(context);
+    // Scale font size proportionally: 48px for 200px container
+    return (containerSize / 200) * 48;
+  }
+
+  // Helper method to calculate music widget width
+  double _getMusicWidgetWidth(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final albumSize = _getAlbumContainerSize(context);
+    final availableWidth =
+        screenWidth - albumSize - 80; // 80 for padding and spacing
+    return availableWidth > 150 ? 150 : availableWidth.clamp(100.0, 150.0);
+  }
+
   void _playLofi() async {
     if (_backgroundMusicService.isPlaying) {
       await _backgroundMusicService.stop();
@@ -72,6 +95,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _backgroundMusicService.setLooping(config?.playAudioOnRepeat ?? false);
 
       await _backgroundMusicService.playRandomTrack();
+
+      // Update the current track display
+      setState(() {
+        final track = _backgroundMusicService.currentTrack;
+        currentlyPlayingTrack = track?.title ?? 'Unknown Track';
+      });
     } catch (e) {
       print('Failed to play lofi music: $e');
       logStateMessage = 'Music: Failed to load';
@@ -382,16 +411,8 @@ class _HomeScreenState extends State<HomeScreen> {
               // Main Timer Display
               _buildTimerSection(),
 
-              SizedBox(height: 20),
-
-              SizedBox(height: 20),
-
-              SizedBox(height: 20),
-
               // Recording and Photo Section (conditional)
-              _buildConditionalRecordingSection(),
-
-              SizedBox(height: 40), // Extra padding at bottom
+              // _buildConditionalRecordingSection(),
             ],
           ),
         ),
@@ -405,9 +426,6 @@ class _HomeScreenState extends State<HomeScreen> {
         // Timer with recording buttons when session complete
         canSubmitLog ? _buildTimerWithRecordingButtons() : _buildGestureTimer(),
         SizedBox(height: 20),
-        // Hide music controls when session complete
-        if (!canSubmitLog) _buildGestureMusic(),
-        SizedBox(height: 10),
         _buildFocusModeWidget(),
       ],
     );
@@ -441,53 +459,234 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: Container(
         padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-              decoration: BoxDecoration(
-                color: isRunning
-                    ? Colors.red.withOpacity(0.1)
-                    : Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isRunning ? Colors.red : Colors.green,
-                  width: 2,
-                ),
-              ),
-              child: Column(
+        child: MediaQuery.of(context).size.width > 600
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    formatTime(remainingSeconds),
-                    style: TextStyle(
-                      fontSize: 60,
-                      fontWeight: FontWeight.bold,
-                      color: isRunning ? Colors.red : Colors.green,
+                  // Album image with timer overlay
+                  Container(
+                    width: _getAlbumContainerSize(context),
+                    height: _getAlbumContainerSize(context),
+                    child: Stack(
+                      children: [
+                        // Album background image
+                        Container(
+                          width: _getAlbumContainerSize(context),
+                          height: _getAlbumContainerSize(context),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isRunning ? Colors.red : Colors.green,
+                              width: 2,
+                            ),
+                            image:
+                                _backgroundMusicService
+                                        .currentTrack
+                                        ?.albumImagePath !=
+                                    null
+                                ? DecorationImage(
+                                    image: AssetImage(
+                                      _backgroundMusicService
+                                          .currentTrack!
+                                          .albumImagePath!,
+                                    ),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                            color:
+                                _backgroundMusicService
+                                        .currentTrack
+                                        ?.albumImagePath ==
+                                    null
+                                ? (isRunning
+                                      ? Colors.red.withOpacity(0.1)
+                                      : Colors.green.withOpacity(0.1))
+                                : null,
+                          ),
+                        ),
+                        // Timer overlay with semi-transparent background
+                        Container(
+                          width: _getAlbumContainerSize(context),
+                          height: _getAlbumContainerSize(context),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.black.withOpacity(0.3),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                formatTime(remainingSeconds),
+                                style: TextStyle(
+                                  fontSize: _getTimerFontSize(context),
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 10.0,
+                                      color: Colors.black,
+                                      offset: Offset(2.0, 2.0),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                isRunning
+                                    ? (onBreak
+                                          ? 'Break Time - Tap to Stop'
+                                          : 'Focus Time - Tap to Stop')
+                                    : canSubmitLog
+                                    ? 'Session Complete - Tap to Submit!'
+                                    : 'Tap to Start • ↑ Finish • ↓ Reset',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white,
+                                  fontStyle: FontStyle.italic,
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 5.0,
+                                      color: Colors.black,
+                                      offset: Offset(1.0, 1.0),
+                                    ),
+                                  ],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 8),
+                              _buildSessionSquares(),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    isRunning
-                        ? (onBreak
-                              ? 'Break Time - Tap to Stop'
-                              : 'Focus Time - Tap to Stop')
-                        : canSubmitLog
-                        ? 'Session Complete - Tap to Submit!'
-                        : 'Tap to Start • ↑ Finish • ↓ Reset',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                      fontStyle: FontStyle.italic,
+
+                  SizedBox(width: 20),
+
+                  // Music widget next to album
+                  if (currentlyPlayingTrack != null)
+                    Container(
+                      width: _getMusicWidgetWidth(context),
+                      child: _buildCompactMusicWidget(),
                     ),
-                    textAlign: TextAlign.center,
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Album image with timer overlay
+                  Container(
+                    width: _getAlbumContainerSize(context),
+                    height: _getAlbumContainerSize(context),
+                    child: Stack(
+                      children: [
+                        // Album background image
+                        Container(
+                          width: _getAlbumContainerSize(context),
+                          height: _getAlbumContainerSize(context),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isRunning ? Colors.red : Colors.green,
+                              width: 2,
+                            ),
+                            image:
+                                _backgroundMusicService
+                                        .currentTrack
+                                        ?.albumImagePath !=
+                                    null
+                                ? DecorationImage(
+                                    image: AssetImage(
+                                      _backgroundMusicService
+                                          .currentTrack!
+                                          .albumImagePath!,
+                                    ),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                            color:
+                                _backgroundMusicService
+                                        .currentTrack
+                                        ?.albumImagePath ==
+                                    null
+                                ? (isRunning
+                                      ? Colors.red.withOpacity(0.1)
+                                      : Colors.green.withOpacity(0.1))
+                                : null,
+                          ),
+                        ),
+                        // Timer overlay with semi-transparent background
+                        Container(
+                          width: _getAlbumContainerSize(context),
+                          height: _getAlbumContainerSize(context),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.black.withOpacity(0.3),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                formatTime(remainingSeconds),
+                                style: TextStyle(
+                                  fontSize: _getTimerFontSize(context),
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 10.0,
+                                      color: Colors.black,
+                                      offset: Offset(2.0, 2.0),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                isRunning
+                                    ? (onBreak
+                                          ? 'Break Time - Tap to Stop'
+                                          : 'Focus Time - Tap to Stop')
+                                    : canSubmitLog
+                                    ? 'Session Complete - Tap to Submit!'
+                                    : 'Tap to Start • ↑ Finish • ↓ Reset',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white,
+                                  fontStyle: FontStyle.italic,
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 5.0,
+                                      color: Colors.black,
+                                      offset: Offset(1.0, 1.0),
+                                    ),
+                                  ],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 8),
+                              _buildSessionSquares(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  _buildSessionSquares(),
+
+                  // Music widget below album for small screens
+                  if (currentlyPlayingTrack != null) ...[
+                    SizedBox(height: 20),
+                    Container(
+                      width: _getAlbumContainerSize(
+                        context,
+                      ).clamp(150.0, 400.0),
+                      child: _buildCompactMusicWidget(),
+                    ),
+                  ],
                 ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -503,10 +702,67 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 8,
           height: 8,
           decoration: BoxDecoration(
-            color: Colors.green,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(2),
+            border: Border.all(color: Colors.green, width: 0.5),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCompactMusicWidget() {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: allowMusic
+            ? Colors.green.withOpacity(0.1)
+            : Colors.grey.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: allowMusic ? Colors.green : Colors.grey,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                allowMusic ? Icons.music_note : Icons.music_off,
+                size: 16,
+                color: allowMusic ? Colors.green : Colors.grey,
+              ),
+              SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  allowMusic
+                      ? currentlyPlayingTrack ?? 'Unknown Track'
+                      : 'Music Muted',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: allowMusic ? Colors.green : Colors.grey,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Tap Timer Area • ← → Swipe for Random Track',
+            style: TextStyle(
+              fontSize: 8,
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -514,6 +770,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTimerWithRecordingButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // Recording button (left side)
         if (config?.showAudioRecordButton == true)
@@ -522,8 +779,107 @@ class _HomeScreenState extends State<HomeScreen> {
             child: _buildSimplifiedRecordingButton(),
           ),
 
-        // Timer in the center
-        _buildGestureTimer(),
+        // Album image with timer overlay (center)
+        Container(
+          width: _getAlbumContainerSize(context),
+          height: _getAlbumContainerSize(context),
+          child: GestureDetector(
+            onTap: () {
+              if (canSubmitLog) {
+                submitLog();
+              }
+            },
+            onVerticalDragEnd: (details) {
+              if (details.velocity.pixelsPerSecond.dy < -300) {
+                if (isRunning) {
+                  instantFinish();
+                }
+              } else if (details.velocity.pixelsPerSecond.dy > 300) {
+                if (!isRunning) {
+                  resetTimer();
+                }
+              }
+            },
+            child: Stack(
+              children: [
+                // Album background image
+                Container(
+                  width: _getAlbumContainerSize(context),
+                  height: _getAlbumContainerSize(context),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.green, width: 2),
+                    image:
+                        _backgroundMusicService.currentTrack?.albumImagePath !=
+                            null
+                        ? DecorationImage(
+                            image: AssetImage(
+                              _backgroundMusicService
+                                  .currentTrack!
+                                  .albumImagePath!,
+                            ),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    color:
+                        _backgroundMusicService.currentTrack?.albumImagePath ==
+                            null
+                        ? Colors.green.withOpacity(0.1)
+                        : null,
+                  ),
+                ),
+                // Timer overlay with semi-transparent background
+                Container(
+                  width: _getAlbumContainerSize(context),
+                  height: _getAlbumContainerSize(context),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.black.withOpacity(0.3),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        formatTime(remainingSeconds),
+                        style: TextStyle(
+                          fontSize: _getTimerFontSize(context),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              blurRadius: 10.0,
+                              color: Colors.black,
+                              offset: Offset(2.0, 2.0),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Session Complete - Tap to Submit!',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontStyle: FontStyle.italic,
+                          shadows: [
+                            Shadow(
+                              blurRadius: 5.0,
+                              color: Colors.black,
+                              offset: Offset(1.0, 1.0),
+                            ),
+                          ],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 8),
+                      _buildSessionSquares(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
 
         // Evidence button (right side)
         if (config?.showPhotoButton == true)
@@ -594,8 +950,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: takePhoto,
       child: Container(
-        width: 60,
-        height: 60,
+        width: 80,
+        height: 80,
         decoration: BoxDecoration(
           color: (imagePath != null)
               ? Colors.green.withOpacity(0.1)
@@ -608,7 +964,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Icon(
           (imagePath != null) ? Icons.camera_alt : Icons.camera_alt_outlined,
-          size: 30,
+          size: 24,
           color: (imagePath != null) ? Colors.green : Colors.orange,
         ),
       ),
@@ -881,10 +1237,7 @@ class _HomeScreenState extends State<HomeScreen> {
         SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildSimplifiedRecordingButton(),
-            _buildPhotoSection(),
-          ],
+          children: [_buildSimplifiedRecordingButton(), _buildPhotoSection()],
         ),
       ],
     );
@@ -969,7 +1322,8 @@ class _SimplifiedRecordingWidget extends StatefulWidget {
   });
 
   @override
-  State<_SimplifiedRecordingWidget> createState() => _SimplifiedRecordingWidgetState();
+  State<_SimplifiedRecordingWidget> createState() =>
+      _SimplifiedRecordingWidgetState();
 }
 
 class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
@@ -995,19 +1349,16 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
       duration: Duration(milliseconds: 1000),
       vsync: this,
     );
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.2,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
   }
 
   Future<void> _startRecording() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/recording_${DateTime.now().millisecondsSinceEpoch}.wav';
+      final filePath =
+          '${directory.path}/recording_${DateTime.now().millisecondsSinceEpoch}.wav';
 
       await _recorder.start(
         const RecordConfig(
@@ -1042,13 +1393,19 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
       if (path != null) {
         final audioModel = EnhancedAudioModel(
           filePath: path,
-          duration: _recordingDuration,
+          fileName: path.split('/').last,
+          createdAt: DateTime.now(),
+          durationMs: _recordingDuration.inMilliseconds,
+          fileSizeBytes: 0, // Will be calculated later
+          format: 'wav',
+          bitRate: 128000,
+          sampleRate: 44100,
+          channels: 1,
           title: 'Session Recording',
           description: 'Pomodoro session recording',
           tags: ['session'],
-          waveform: _audioLevels,
           category: 'session',
-          timestamp: DateTime.now(),
+          waveformData: _audioLevels,
         );
         widget.onRecordingComplete(audioModel);
       }
@@ -1065,7 +1422,9 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
   void _startTimer() {
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
-        _recordingDuration = Duration(seconds: _recordingDuration.inSeconds + 1);
+        _recordingDuration = Duration(
+          seconds: _recordingDuration.inSeconds + 1,
+        );
       });
     });
   }
@@ -1093,9 +1452,7 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
     if (!_isRecording) return SizedBox.shrink();
 
     return Positioned.fill(
-      child: CustomPaint(
-        painter: _AudioLevelsPainter(_audioLevels),
-      ),
+      child: CustomPaint(painter: _AudioLevelsPainter(_audioLevels)),
     );
   }
 
@@ -1123,15 +1480,15 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
                 color: _isRecording
                     ? Colors.red.withOpacity(0.1)
                     : widget.hasRecording
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.blue.withOpacity(0.1),
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.blue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _isRecording
                       ? Colors.red
                       : widget.hasRecording
-                          ? Colors.green
-                          : Colors.blue,
+                      ? Colors.green
+                      : Colors.blue,
                   width: 2,
                 ),
               ),
@@ -1146,14 +1503,14 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
                           _isRecording
                               ? Icons.stop
                               : widget.hasRecording
-                                  ? Icons.refresh
-                                  : Icons.mic,
+                              ? Icons.refresh
+                              : Icons.mic,
                           size: 24,
                           color: _isRecording
                               ? Colors.red
                               : widget.hasRecording
-                                  ? Colors.green
-                                  : Colors.blue,
+                              ? Colors.green
+                              : Colors.blue,
                         ),
                         if (_isRecording) ...[
                           SizedBox(height: 4),
