@@ -704,3 +704,197 @@ static Future<LofiMapping> getLofiMapping() async {
 - Dispose audio players properly
 
 This pattern scales well from small apps to large applications with hundreds of audio assets, providing a maintainable and extensible solution for dynamic asset management.
+
+## Event-Driven Sound Effects System
+
+### Contextual Audio Feedback Implementation
+
+In productivity apps like pomodoro timers, providing audio feedback for different events enhances the user experience and helps maintain focus flow.
+
+#### 1. **Sound Event Mapping Pattern**
+```dart
+enum SoundEvent {
+  audioRecordSubmitted, // s01 - when audio record is submitted
+  breakTimeStarts,      // s01 - when break time starts
+  workTimeCompleted,    // s03 - when work time is completed
+  breakTimeEnds,        // s02 - when break time ends
+}
+
+static const Map<SoundEvent, String> _soundFiles = {
+  SoundEvent.audioRecordSubmitted: 'audio/s01-video-game-bonus-323603.mp3',
+  SoundEvent.breakTimeStarts: 'audio/s01-video-game-bonus-323603.mp3',
+  SoundEvent.workTimeCompleted: 'audio/s03-positive-notification-new-level-152480.mp3',
+  SoundEvent.breakTimeEnds: 'audio/s02-level-up-4-243762.mp3',
+};
+```
+
+**Benefits:**
+- Type-safe event definitions
+- Centralized sound file management
+- Easy to modify sound mappings
+- Multiple events can share the same sound file
+
+#### 2. **Singleton Service Pattern for Audio**
+```dart
+class SoundEffectsService {
+  static final SoundEffectsService _instance = SoundEffectsService._internal();
+  factory SoundEffectsService() => _instance;
+  SoundEffectsService._internal();
+
+  final AudioPlayer _soundPlayer = AudioPlayer();
+  bool _soundEffectsEnabled = true;
+  double _soundVolume = 0.8;
+}
+```
+
+**Advantages:**
+- Single audio player instance to avoid conflicts
+- Global volume and enable/disable controls
+- Memory efficient - only one service instance
+- Easy to integrate across multiple screens
+
+#### 3. **Strategic Event Integration**
+```dart
+// Work session completed
+if (!onBreak) {
+  _soundEffectsService.playWorkTimeCompleted(); // s03 - achievement sound
+  setState(() {
+    isRunning = false;
+    canSubmitLog = true;
+  });
+}
+
+// Break time starts (user submits log)
+void submitLog() {
+  saveSession();
+  _soundEffectsService.playBreakTimeStarts(); // s01 - positive feedback
+  setState(() {
+    onBreak = true;
+  });
+}
+
+// Audio recording completed
+onRecordingComplete: (audioModel) {
+  _soundEffectsService.playAudioRecordSubmitted(); // s01 - confirmation
+  setState(() {
+    canSubmitLog = true;
+  });
+}
+```
+
+### Sound Design Psychology
+
+#### 1. **Audio Cue Associations**
+- **s01 (Bonus)**: Positive actions - recording completion, break start
+- **s02 (Level Up)**: Transitions - break end, ready for work
+- **s03 (Achievement)**: Accomplishments - work session completion
+
+#### 2. **Volume and Control**
+```dart
+void setSoundVolume(double volume) {
+  _soundVolume = volume.clamp(0.0, 1.0);
+}
+
+void setSoundEffectsEnabled(bool enabled) {
+  _soundEffectsEnabled = enabled;
+}
+
+Future<void> playSound(SoundEvent event) async {
+  if (!_soundEffectsEnabled) return;
+  // Play sound with proper volume and error handling
+}
+```
+
+### Testing Challenges with Audio Services
+
+#### 1. **Platform Channel Dependencies**
+Audio plugins like `audioplayers` require platform channels that aren't available in unit tests:
+
+```dart
+// This will fail in unit tests
+test('Should play sound', () {
+  final service = SoundEffectsService();
+  service.playWorkTimeCompleted(); // MissingPluginException
+});
+```
+
+#### 2. **Testing Strategies**
+- **Unit Tests**: Test business logic (volume control, enable/disable)
+- **Integration Tests**: Test actual audio playback on real devices
+- **Mock Services**: Create mock implementations for UI tests
+
+```dart
+// Better approach - test the logic, not the platform integration
+test('Should respect enabled/disabled state', () {
+  final service = SoundEffectsService();
+  service.setSoundEffectsEnabled(false);
+  expect(service.soundEffectsEnabled, isFalse);
+});
+```
+
+#### 3. **Error Handling**
+```dart
+Future<void> playSound(SoundEvent event) async {
+  if (!_soundEffectsEnabled) return;
+
+  try {
+    final soundFile = _soundFiles[event];
+    if (soundFile == null) return;
+
+    await _soundPlayer.setVolume(_soundVolume);
+    await _soundPlayer.play(AssetSource(soundFile));
+  } catch (e) {
+    print('Failed to play sound: $e');
+    // Fail silently - don't break app functionality
+  }
+}
+```
+
+### Integration Best Practices
+
+#### 1. **Asset Organization**
+```yaml
+# pubspec.yaml
+assets:
+  - assets/audio/    # Sound effects directory
+  - assets/lofi/     # Background music directory
+```
+
+#### 2. **Service Lifecycle Management**
+```dart
+@override
+void dispose() {
+  timer?.cancel();
+  _backgroundMusicService.dispose();
+  _soundEffectsService.dispose(); // Clean up audio resources
+  super.dispose();
+}
+```
+
+#### 3. **Non-Blocking Implementation**
+```dart
+// Don't await sound effects - they should be fire-and-forget
+_soundEffectsService.playWorkTimeCompleted(); // No await
+setState(() {
+  // Continue with UI updates immediately
+});
+```
+
+### Future Enhancements
+
+#### 1. **User Customization**
+- Allow users to upload custom sound files
+- Sound theme selection (game sounds, nature sounds, etc.)
+- Per-event volume controls
+
+#### 2. **Context Awareness**
+- Different sounds for different times of day
+- Intensity-based sounds (louder for longer work sessions)
+- Silent mode during specific hours
+
+#### 3. **Analytics Integration**
+- Track which sounds are most effective for focus
+- A/B test different sound combinations
+- User preference learning
+
+This event-driven sound effects system enhances user experience by providing immediate, contextual audio feedback while maintaining clean architecture and proper error handling.

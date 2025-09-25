@@ -11,7 +11,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:37",
-      "fileSize": 5743
+      "fileSize": 5743,
+      "albumImage": "album/al09-80s.png"
     },
     {
       "id": 2,
@@ -21,7 +22,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:51",
-      "fileSize": 4964
+      "fileSize": 4964,
+      "albumImage": "album/al09-80s.png"
     },
     {
       "id": 3,
@@ -31,7 +33,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:12",
-      "fileSize": 4303
+      "fileSize": 4303,
+      "albumImage": "album/al11-sports.png"
     },
     {
       "id": 4,
@@ -41,7 +44,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:52",
-      "fileSize": 6001
+      "fileSize": 6001,
+      "albumImage": "album/al13-commercial.png"
     },
     {
       "id": 5,
@@ -51,7 +55,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:24",
-      "fileSize": 4496
+      "fileSize": 4496,
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 6,
@@ -61,7 +66,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:48",
-      "fileSize": 4910
+      "fileSize": 4910,
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 7,
@@ -71,7 +77,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:30",
-      "fileSize": 4601
+      "fileSize": 4601,
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 8,
@@ -81,7 +88,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:37",
-      "fileSize": 4730
+      "fileSize": 4730,
+      "albumImage": "album/al1-lofigirl.png"
     },
     {
       "id": 9,
@@ -91,7 +99,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "7:20",
-      "fileSize": 7501
+      "fileSize": 7501,
+      "albumImage": "album/al06-haunted.png"
     },
     {
       "id": 10,
@@ -101,7 +110,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "7:21",
-      "fileSize": 7518
+      "fileSize": 7518,
+      "albumImage": "album/al13-commercial.png"
     },
     {
       "id": 11,
@@ -111,7 +121,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:27",
-      "fileSize": 5571
+      "fileSize": 5571,
+      "albumImage": "album/al05-spaceexploration.png"
     },
     {
       "id": 12,
@@ -121,7 +132,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:07",
-      "fileSize": 4216
+      "fileSize": 4216,
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 13,
@@ -131,7 +143,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "3:07",
-      "fileSize": 3190
+      "fileSize": 3190,
+      "albumImage": "album/al16-wind.png"
     },
     {
       "id": 14,
@@ -141,7 +154,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:43",
-      "fileSize": 5849
+      "fileSize": 5849,
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 15,
@@ -151,7 +165,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "7:20",
-      "fileSize": 7501
+      "fileSize": 7501,
+      "albumImage": "album/al16-wind.png"
     },
     {
       "id": 16,
@@ -161,7 +176,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:30",
-      "fileSize": 5629
+      "fileSize": 5629,
+      "albumImage": "album/al1-lofigirl.png"
     },
     {
       "id": 17,
@@ -171,7 +187,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "3:35",
-      "fileSize": 2646
+      "fileSize": 2646,
+      "albumImage": "album/al06-haunted.png"
     },
     {
       "id": 18,
@@ -181,7 +198,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "3:23",
-      "fileSize": 3468
+      "fileSize": 3468,
+      "albumImage": "album/al08-electronics.png"
     },
     {
       "id": 19,
@@ -191,7 +209,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:53",
-      "fileSize": 3971
+      "fileSize": 3971,
+      "albumImage": "album/a07-elecctronics.png"
     },
     {
       "id": 20,
@@ -201,7 +220,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "7:20",
-      "fileSize": 7501
+      "fileSize": 7501,
+      "albumImage": "album/al14-album.png"
     },
     {
       "id": 21,
@@ -211,7 +231,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:55",
-      "fileSize": 4001
+      "fileSize": 4001,
+      "albumImage": "album/al1-lofigirl.png"
     },
     {
       "id": 22,
@@ -221,7 +242,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:05",
-      "fileSize": 4189
+      "fileSize": 4189,
+      "albumImage": "album/al04-spacecontrols.png"
     },
     {
       "id": 23,
@@ -231,7 +253,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:30",
-      "fileSize": 5626
+      "fileSize": 5626,
+      "albumImage": "album/al13-commercial.png"
     },
     {
       "id": 24,
@@ -241,7 +264,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "3:45",
-      "fileSize": 2813
+      "fileSize": 2813,
+      "albumImage": "album/al05-paranormal.png"
     },
     {
       "id": 25,
@@ -251,7 +275,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:23",
-      "fileSize": 4481
+      "fileSize": 4481,
+      "albumImage": "album/al04-spacedesign.png"
     },
     {
       "id": 26,
@@ -261,7 +286,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:26",
-      "fileSize": 4532
+      "fileSize": 4532,
+      "albumImage": "album/al04-spacecontrols.png"
     },
     {
       "id": 27,
@@ -271,7 +297,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:05",
-      "fileSize": 4174
+      "fileSize": 4174,
+      "albumImage": "album/a07-elecctronics.png"
     },
     {
       "id": 28,
@@ -281,7 +308,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "8:26",
-      "fileSize": 8640
+      "fileSize": 8640,
+      "albumImage": "album/al16-chaos.png"
     },
     {
       "id": 29,
@@ -291,7 +319,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:09",
-      "fileSize": 5279
+      "fileSize": 5279,
+      "albumImage": "album/al09-80s.png"
     },
     {
       "id": 30,
@@ -301,7 +330,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:56",
-      "fileSize": 5053
+      "fileSize": 5053,
+      "albumImage": "album/al10-willsmith.png"
     },
     {
       "id": 31,
@@ -311,7 +341,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:16",
-      "fileSize": 4374
+      "fileSize": 4374,
+      "albumImage": "album/al13-commercial.png"
     },
     {
       "id": 32,
@@ -321,7 +352,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "3:04",
-      "fileSize": 3137
+      "fileSize": 3137,
+      "albumImage": "album/al09-80s.png"
     },
     {
       "id": 33,
@@ -331,7 +363,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "8:33",
-      "fileSize": 7727
+      "fileSize": 7727,
+      "albumImage": "album/al09-80s.png"
     },
     {
       "id": 34,
@@ -341,7 +374,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:43",
-      "fileSize": 4828
+      "fileSize": 4828,
+      "albumImage": "album/al1-lofigirl.png"
     },
     {
       "id": 35,
@@ -351,7 +385,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:41",
-      "fileSize": 5819
+      "fileSize": 5819,
+      "albumImage": "album/al1-lofigirl.png"
     },
     {
       "id": 36,
@@ -361,7 +396,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:48",
-      "fileSize": 5929
+      "fileSize": 5929,
+      "albumImage": "album/al16-spaceship.png"
     },
     {
       "id": 37,
@@ -371,7 +407,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:46",
-      "fileSize": 4885
+      "fileSize": 4885,
+      "albumImage": "album/al05-paranormal.png"
     },
     {
       "id": 38,
@@ -381,7 +418,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:30",
-      "fileSize": 4598
+      "fileSize": 4598,
+      "albumImage": "album/al1-lofigirl.png"
     },
     {
       "id": 39,
@@ -391,7 +429,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:42",
-      "fileSize": 5834
+      "fileSize": 5834,
+      "albumImage": "album/al1-lofigirl.png"
     },
     {
       "id": 40,
@@ -401,7 +440,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:42",
-      "fileSize": 5834
+      "fileSize": 5834,
+      "albumImage": "album/al1-lofigirl.png"
     },
     {
       "id": 41,
@@ -411,7 +451,8 @@
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:32",
-      "fileSize": 5668
+      "fileSize": 5668,
+      "albumImage": "album/al1-lofigirl.png"
     }
   ]
 }

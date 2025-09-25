@@ -7,6 +7,7 @@ class LofiTrack {
   final String site;
   final String duration;
   final int fileSize;
+  final String? albumImage;
 
   const LofiTrack({
     required this.id,
@@ -17,6 +18,7 @@ class LofiTrack {
     required this.site,
     required this.duration,
     required this.fileSize,
+    this.albumImage,
   });
 
   factory LofiTrack.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class LofiTrack {
       site: json['site'] as String,
       duration: json['duration'] as String,
       fileSize: json['fileSize'] as int,
+      albumImage: json['albumImage'] as String?,
     );
   }
 
@@ -42,10 +45,12 @@ class LofiTrack {
       'site': site,
       'duration': duration,
       'fileSize': fileSize,
+      'albumImage': albumImage,
     };
   }
 
   String get fullPath => 'assets/lofi/$filename';
+  String? get albumImagePath => albumImage != null ? 'assets/$albumImage' : null;
 }
 
 class LofiMapping {

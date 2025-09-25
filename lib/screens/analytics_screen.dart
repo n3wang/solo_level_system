@@ -33,7 +33,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Analytics & Insights'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (period) {

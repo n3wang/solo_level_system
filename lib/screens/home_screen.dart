@@ -18,6 +18,7 @@ import 'package:solo_level_system/utils/database_utils.dart';
 import 'package:solo_level_system/utils/background_music_service.dart';
 import 'package:solo_level_system/utils/lofi_service.dart';
 import 'package:solo_level_system/models/lofi_track.dart';
+import 'package:solo_level_system/utils/sound_effects_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsChanged;
@@ -50,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final _bgPlayer = ap.AudioPlayer();
   final _backgroundMusicService = BackgroundMusicService();
+  final _soundEffectsService = SoundEffectsService();
 
   // Helper method to check if recording/photo features should be available
   bool get _shouldShowRecordingFeatures {
@@ -101,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
         timer.cancel();
         if (!onBreak) {
           // Work session finished
+          _soundEffectsService.playWorkTimeCompleted();
           setState(() {
             isRunning = false;
             canSubmitLog = true;
@@ -118,6 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         } else {
           // Break finished
+          _soundEffectsService.playBreakTimeEnds();
           setState(() {
             onBreak = false;
             isRunning = false;
@@ -143,6 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void submitLog() {
     saveSession();
+    _soundEffectsService.playBreakTimeStarts();
     setState(() {
       audioPath = null;
       recordedAudio = null;
@@ -318,7 +323,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Lofi Pomodoro'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (String value) {
@@ -585,6 +589,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   )
                 : EnhancedAudioRecorder(
                     onRecordingComplete: (EnhancedAudioModel audioModel) {
+                      _soundEffectsService.playAudioRecordSubmitted();
                       setState(() {
                         audioPath = audioModel.filePath;
                         recordedAudio = audioModel;
@@ -592,7 +597,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         canSubmitLog = true;
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Recording completed successfully!')),
+                        SnackBar(
+                          content: Text('Recording completed successfully!'),
+                        ),
                       );
                     },
                     category: 'voice_note',
@@ -621,6 +628,7 @@ class _HomeScreenState extends State<HomeScreen> {
     timer?.cancel();
     _bgPlayer.dispose();
     _backgroundMusicService.dispose();
+    _soundEffectsService.dispose();
     super.dispose();
   }
 }

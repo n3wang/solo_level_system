@@ -50,6 +50,7 @@ class LofiOrganizer {
           'site': 'Freesound/Pixabay',
           'duration': estimatedDuration,
           'fileSize': fileSizeKB.round(),
+          'albumImage': _getAlbumImage('Lofi Track ${counter.toString().padLeft(3, '0')}', counter),
         });
 
         counter++;
@@ -81,6 +82,7 @@ class LofiOrganizer {
           'site': metadata['site'],
           'duration': estimatedDuration,
           'fileSize': fileSizeKB.round(),
+          'albumImage': _getAlbumImage(metadata['title'], counter),
         });
 
         // Rename file
@@ -146,6 +148,54 @@ class LofiOrganizer {
     );
 
     print('Saved mapping to: $mappingFile');
+  }
+
+  String _getAlbumImage(String title, int counter) {
+    final titleLower = title.toLowerCase();
+
+    // Theme-based album image selection
+    if (titleLower.contains('80') || titleLower.contains('retro') || titleLower.contains('neon')) {
+      return 'album/al09-80s.png';
+    }
+    if (titleLower.contains('study') || titleLower.contains('lofi') && counter < 10) {
+      return 'album/al02-lofistudybook.png';
+    }
+    if (titleLower.contains('sport') || titleLower.contains('gym') || titleLower.contains('fitness')) {
+      return 'album/al11-sports.png';
+    }
+    if (titleLower.contains('space') || titleLower.contains('interstellar') || titleLower.contains('voyager')) {
+      return 'album/al05-spaceexploration.png';
+    }
+    if (titleLower.contains('science') || titleLower.contains('electronic') || titleLower.contains('tech')) {
+      return 'album/al08-electronics.png';
+    }
+    if (titleLower.contains('dark') || titleLower.contains('melancholy') || titleLower.contains('haunted')) {
+      return 'album/al06-haunted.png';
+    }
+    if (titleLower.contains('ghibli') || titleLower.contains('wind')) {
+      return 'album/al16-wind.png';
+    }
+    if (titleLower.contains('happy') || titleLower.contains('peaceful') || titleLower.contains('calm')) {
+      return 'album/al15-happyplace.png';
+    }
+    if (titleLower.contains('detective') || titleLower.contains('stranger') || titleLower.contains('paranormal')) {
+      return 'album/al05-paranormal.png';
+    }
+    if (titleLower.contains('hero') || titleLower.contains('willsmith')) {
+      return 'album/al10-willsmith.png';
+    }
+    if (titleLower.contains('fashion') || titleLower.contains('commercial') || titleLower.contains('balenciaga')) {
+      return 'album/al13-commercial.png';
+    }
+    if (titleLower.contains('chaos') || titleLower.contains('shattered')) {
+      return 'album/al16-chaos.png';
+    }
+
+    // Default fallback based on ID ranges
+    if (counter <= 10) return 'album/al1-lofigirl.png';
+    if (counter <= 20) return 'album/al02-lofistudybook.png';
+    if (counter <= 30) return 'album/al15-happyplace.png';
+    return 'album/al14-album.png';
   }
 }
 

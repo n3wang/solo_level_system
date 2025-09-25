@@ -10,6 +10,15 @@
       "title": "To Do",
       "cards": [
         {
+          "id": "09c807a2-ade6-4b85-92a0-e0acf0638e5d",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Search of UI inspiration",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
           "id": "44f685f4-0964-4f23-a017-20d88bd23131",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "Being able to rate down or up music tracks",
@@ -34,8 +43,54 @@
       "title": "Doing",
       "cards": [
         {
-          "id": "f86efe09-43c0-4774-92c6-362ad17a2888",
+          "id": "40cdecac-3475-441e-a057-ba5a36903cbb",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Better Focus UI",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": [
+            {
+              "id": "cf096495-6119-46c2-9365-3f6380f12927",
+              "comment": "Make the image display as a rounded square and on the overlay of it the text containing hte time left, today sessions the audio."
+            },
+            {
+              "id": "68ad614f-acdd-4034-aa81-b183f994f160",
+              "comment": "Create a circle component surrounding the time with green that completes itsefl as time remaining is being discounted "
+            },
+            {
+              "id": "d31ddf30-b616-4300-9cf6-607f6158063c",
+              "comment": "Improve the pomodoro UI for stopping the timer, just by clicking the timer is enoguh, for muting then click ino the music audio for Playuing another random swap the audio and for resetting swap the timer down and instant finish swap the timer up"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+      "title": "Done",
+      "cards": [
+        {
+          "id": "c83b0166-1fbc-4aa2-9b6d-8cb78fef771a",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "add completion audios",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "b492c792-699b-4626-83c6-4605f80d437c",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Associate audios with gibli animated images",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "f86efe09-43c0-4774-92c6-362ad17a2888",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
           "title": "Refactor Audios",
           "description": "",
           "labels": [],
@@ -46,13 +101,7 @@
               "comment": "go to assets\\lofi\\ adn refactor them all in simpe filenames also create a  \n   json containing a map of this lofis including author and site and         \n  duration, create a script that automatically creates that json or updates  \n   that in the future, the code should read from that json to retrieve the   \n  avilable audios"
             }
           ]
-        }
-      ]
-    },
-    {
-      "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": "c27e9815-8d13-4a3b-8355-039369262910",
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",

@@ -36,7 +36,6 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Workout Mode'),
         actions: [
           if (_activeSession != null)
             IconButton(
