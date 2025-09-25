@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:solo_level_system/screens/history_screen.dart';
 import 'package:solo_level_system/screens/settings_screen.dart';
@@ -16,8 +15,6 @@ import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:solo_level_system/utils/database_utils.dart';
 import 'package:solo_level_system/utils/background_music_service.dart';
-import 'package:solo_level_system/utils/lofi_service.dart';
-import 'package:solo_level_system/models/lofi_track.dart';
 import 'package:solo_level_system/utils/sound_effects_service.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -64,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Helper method to calculate dynamic album container size
   double _getAlbumContainerSize(BuildContext context) {
     final screenH = MediaQuery.of(context).size.height;
-    final eightyPercent = screenH * 0.4;
+    final eightyPercent = screenH * 0.6;
     return eightyPercent > 200 ? eightyPercent : 200;
   }
 
@@ -424,7 +421,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         // Timer with recording buttons when session complete
-        SizedBox(height: 20),
         // _buildFocusModeWidget(),
         canSubmitLog ? _buildTimerWithRecordingButtons() : _buildGestureTimer(),
       ],
@@ -565,8 +561,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   SizedBox(width: 20),
 
-                  // Music widget next to album
-                  if (currentlyPlayingTrack != null)
+                  // Music widget next to album (hidden when paused)
+                  if (isRunning || canSubmitLog)
                     Container(
                       width: _getMusicWidgetWidth(context),
                       child: _buildCompactMusicWidget(),
@@ -675,8 +671,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  // Music widget below album for small screens
-                  if (currentlyPlayingTrack != null) ...[
+                  // Music widget below album for small screens (hidden when paused)
+                  if (isRunning || canSubmitLog) ...[
                     SizedBox(height: 20),
                     Container(
                       width: _getAlbumContainerSize(
@@ -712,57 +708,81 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCompactMusicWidget() {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: allowMusic
-            ? Colors.green.withOpacity(0.1)
-            : Colors.grey.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: allowMusic ? Colors.green : Colors.grey,
-          width: 1,
+    return GestureDetector(
+      onTap: () {
+        // Tap to mute/unmute
+        setState(() {
+          if (allowMusic) {
+            _stopLofi();
+            allowMusic = false;
+          } else {
+            allowMusic = true;
+            if (isRunning) {
+              _playLofi();
+            }
+          }
+        });
+      },
+      onHorizontalDragEnd: (details) {
+        // Swipe left/right to change track
+        if (details.velocity.pixelsPerSecond.dx.abs() > 300) {
+          if (allowMusic) {
+            _playLofi(); // This plays a random track
+          }
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: allowMusic
+              ? Colors.green.withOpacity(0.1)
+              : Colors.grey.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: allowMusic ? Colors.green : Colors.grey,
+            width: 1,
+          ),
         ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                allowMusic ? Icons.music_note : Icons.music_off,
-                size: 16,
-                color: allowMusic ? Colors.green : Colors.grey,
-              ),
-              SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  allowMusic
-                      ? currentlyPlayingTrack ?? 'Unknown Track'
-                      : 'Music Muted',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: allowMusic ? Colors.green : Colors.grey,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  allowMusic ? Icons.music_note : Icons.volume_off,
+                  size: 16,
+                  color: allowMusic ? Colors.green : Colors.grey,
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Tap Timer Area • ← → Swipe for Random Track',
-            style: TextStyle(
-              fontSize: 8,
-              color: Colors.grey[600],
-              fontStyle: FontStyle.italic,
+                SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    allowMusic
+                        ? currentlyPlayingTrack ?? 'Unknown Track'
+                        : 'Music Muted',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: allowMusic ? Colors.green : Colors.grey,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            SizedBox(height: 4),
+            Text(
+              'Tap to ${allowMusic ? 'Mute' : 'Unmute'} • ← → Swipe for Random Track',
+              style: TextStyle(
+                fontSize: 8,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -862,7 +882,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 margin: EdgeInsets.only(left: 20, bottom: 10),
                 child: _buildSquareEvidenceButton(),
               ),
-            if (currentlyPlayingTrack != null)
+            if (isRunning || canSubmitLog)
               Container(
                 width: _getMusicWidgetWidth(context),
                 margin: EdgeInsets.only(left: 20, top: 10),
