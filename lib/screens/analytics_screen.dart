@@ -5,6 +5,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/habit_tracker_model.dart';
+import 'package:solo_level_system/screens/audio_management_screen.dart';
+import 'package:solo_level_system/screens/history_screen.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   @override
@@ -20,7 +22,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -60,6 +62,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             Tab(icon: Icon(Icons.timer), text: 'Focus'),
             Tab(icon: Icon(Icons.fitness_center), text: 'Workouts'),
             Tab(icon: Icon(Icons.track_changes), text: 'Habits'),
+            Tab(icon: Icon(Icons.audiotrack), text: 'Audio'),
           ],
         ),
       ),
@@ -70,6 +73,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           _buildFocusTab(),
           _buildWorkoutsTab(),
           _buildHabitsTab(),
+          _buildAudioTab(),
         ],
       ),
     );
@@ -639,6 +643,62 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Text('Streaks leaderboard placeholder'),
+      ),
+    );
+  }
+
+  Widget _buildAudioTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.audiotrack, color: Theme.of(context).primaryColor),
+              title: Text('Audio Management'),
+              subtitle: Text('Manage background music and sound effects'),
+              trailing: Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AudioManagementScreen()),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.history, color: Theme.of(context).primaryColor),
+              title: Text('Session History'),
+              subtitle: Text('View all your pomodoro session records'),
+              trailing: Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => HistoryScreen()),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 24),
+          Text(
+            'Audio Statistics',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard('Total Sessions', '0', Icons.play_circle),
+              ),
+              Expanded(
+                child: _buildStatCard('Hours Listened', '0', Icons.headphones),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

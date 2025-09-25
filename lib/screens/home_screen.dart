@@ -283,64 +283,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (String value) {
-              switch (value) {
-                case 'settings':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => SettingsScreen()),
-                  ).then((_) {
-                    _loadConfig();
-                    _loadUserSettings();
-                    widget.onSettingsChanged?.call();
-                  });
-                  break;
-                case 'audio':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => AudioManagementScreen()),
-                  );
-                  break;
-                case 'history':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => HistoryScreen()),
-                  );
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              PopupMenuItem<String>(
-                value: 'settings',
-                child: ListTile(
-                  leading: Icon(Icons.settings),
-                  title: Text('Settings'),
-                  dense: true,
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'audio',
-                child: ListTile(
-                  leading: Icon(Icons.audiotrack),
-                  title: Text('Audio Management'),
-                  dense: true,
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'history',
-                child: ListTile(
-                  leading: Icon(Icons.history),
-                  title: Text('History'),
-                  dense: true,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -362,7 +304,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         // Timer with recording buttons when session complete
-        // _buildFocusModeWidget(),
         canSubmitLog ? _buildTimerWithRecordingButtons() : _buildGestureTimer(),
       ],
     );
@@ -395,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
       child: Container(
-        padding: EdgeInsets.all(20),
+        padding: EdgeInsets.only(left: 20, right: 20, bottom: 20),
         child: MediaQuery.of(context).size.width > 600
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -538,6 +479,8 @@ class _HomeScreenState extends State<HomeScreen> {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Top padding to match bottom spacing
+                  SizedBox(height: 20),
                   // Album image with timer overlay
                   Container(
                     width: PomodoroSizing.getAlbumContainerSize(context),
@@ -679,133 +622,271 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTimerWithRecordingButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Album image with timer overlay (center)
-        Container(
-          width: PomodoroSizing.getAlbumContainerSize(context),
-          height: PomodoroSizing.getAlbumContainerSize(context),
-          child: GestureDetector(
-            onTap: () {
-              if (canSubmitLog) {
-                submitLog();
-              }
-            },
-            onVerticalDragEnd: (details) {
-              if (details.velocity.pixelsPerSecond.dy < -300) {
-                if (isRunning) {
-                  instantFinish();
-                }
-              } else if (details.velocity.pixelsPerSecond.dy > 300) {
-                if (!isRunning) {
-                  resetTimer();
-                }
-              }
-            },
-            child: Stack(
-              children: [
-                // Timer overlay with semi-transparent background
-                Container(
-                  width: PomodoroSizing.getAlbumContainerSize(context),
-                  height: PomodoroSizing.getAlbumContainerSize(context),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    color: Colors.black.withOpacity(0.3),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+    return MediaQuery.of(context).size.width > 600
+        ? Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Album image with timer overlay (center)
+              Container(
+                width: PomodoroSizing.getAlbumContainerSize(context),
+                height: PomodoroSizing.getAlbumContainerSize(context),
+                child: GestureDetector(
+                  onTap: () {
+                    if (canSubmitLog) {
+                      submitLog();
+                    }
+                  },
+                  onVerticalDragEnd: (details) {
+                    if (details.velocity.pixelsPerSecond.dy < -300) {
+                      if (isRunning) {
+                        instantFinish();
+                      }
+                    } else if (details.velocity.pixelsPerSecond.dy > 300) {
+                      if (!isRunning) {
+                        resetTimer();
+                      }
+                    }
+                  },
+                  child: Stack(
                     children: [
-                      Text(
-                        formatTime(remainingSeconds),
-                        style: TextStyle(
-                          fontSize: PomodoroSizing.getTimerFontSize(context),
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          shadows: [
-                            Shadow(
-                              blurRadius: 10.0,
-                              color: Colors.black,
-                              offset: Offset(2.0, 2.0),
+                      // Timer overlay with semi-transparent background
+                      Container(
+                        width: PomodoroSizing.getAlbumContainerSize(context),
+                        height: PomodoroSizing.getAlbumContainerSize(context),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.black.withOpacity(0.3),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              formatTime(remainingSeconds),
+                              style: TextStyle(
+                                fontSize: PomodoroSizing.getTimerFontSize(
+                                  context,
+                                ),
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                shadows: [
+                                  Shadow(
+                                    blurRadius: 10.0,
+                                    color: Colors.black,
+                                    offset: Offset(2.0, 2.0),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Session Complete - Tap to Submit!',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.white,
+                                fontStyle: FontStyle.italic,
+                                shadows: [
+                                  Shadow(
+                                    blurRadius: 5.0,
+                                    color: Colors.black,
+                                    offset: Offset(1.0, 1.0),
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 8),
+                            SessionSquaresWidget(
+                              completedSessions: countCompletedToday,
                             ),
                           ],
                         ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Session Complete - Tap to Submit!',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white,
-                          fontStyle: FontStyle.italic,
-                          shadows: [
-                            Shadow(
-                              blurRadius: 5.0,
-                              color: Colors.black,
-                              offset: Offset(1.0, 1.0),
-                            ),
-                          ],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 8),
-                      SessionSquaresWidget(
-                        completedSessions: countCompletedToday,
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
-        // vertical stack
-        Column(
-          children: [
-            // Recording button (left side)
-            if (config?.showAudioRecordButton == true)
-              Container(
-                margin: EdgeInsets.only(left: 20, top: 10, bottom: 10),
-                child: _buildSimplifiedRecordingButton(),
               ),
+              // vertical stack for horizontal layout
+              Column(
+                children: [
+                  // Recording button (right side)
+                  if (config?.showAudioRecordButton == true)
+                    Container(
+                      margin: EdgeInsets.only(left: 20, top: 10, bottom: 10),
+                      child: _buildSimplifiedRecordingButton(),
+                    ),
 
-            if (config?.showPhotoButton == true)
-              Container(
-                margin: EdgeInsets.only(left: 20, bottom: 10),
-                child: _buildSquareEvidenceButton(),
+                  if (config?.showPhotoButton == true)
+                    Container(
+                      margin: EdgeInsets.only(left: 20, bottom: 10),
+                      child: _buildSquareEvidenceButton(),
+                    ),
+                  if (isRunning || canSubmitLog)
+                    Container(
+                      width: PomodoroSizing.getMusicWidgetWidth(context),
+                      margin: EdgeInsets.only(left: 20, top: 10),
+                      child: CompactMusicWidget(
+                        allowMusic: allowMusic,
+                        currentlyPlayingTrack: currentlyPlayingTrack,
+                        onToggleMusic: () {
+                          setState(() {
+                            if (allowMusic) {
+                              _stopLofi();
+                              allowMusic = false;
+                            } else {
+                              allowMusic = true;
+                              if (isRunning) {
+                                _playLofi();
+                              }
+                            }
+                          });
+                        },
+                        onChangeTrack: () {
+                          if (allowMusic) {
+                            _playLofi(); // This plays a random track
+                          }
+                        },
+                      ),
+                    ),
+                ],
               ),
-            if (isRunning || canSubmitLog)
+            ],
+          )
+        : Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Top padding to match bottom spacing
+              SizedBox(height: 20),
+              // Album image with timer overlay for vertical layout
               Container(
-                width: PomodoroSizing.getMusicWidgetWidth(context),
-                margin: EdgeInsets.only(left: 20, top: 10),
-                child: CompactMusicWidget(
-                  allowMusic: allowMusic,
-                  currentlyPlayingTrack: currentlyPlayingTrack,
-                  onToggleMusic: () {
-                    setState(() {
-                      if (allowMusic) {
-                        _stopLofi();
-                        allowMusic = false;
-                      } else {
-                        allowMusic = true;
-                        if (isRunning) {
-                          _playLofi();
-                        }
-                      }
-                    });
-                  },
-                  onChangeTrack: () {
-                    if (allowMusic) {
-                      _playLofi(); // This plays a random track
+                width: PomodoroSizing.getAlbumContainerSize(context),
+                height: PomodoroSizing.getAlbumContainerSize(context),
+                child: GestureDetector(
+                  onTap: () {
+                    if (canSubmitLog) {
+                      submitLog();
                     }
                   },
+                  onVerticalDragEnd: (details) {
+                    if (details.velocity.pixelsPerSecond.dy < -300) {
+                      if (isRunning) {
+                        instantFinish();
+                      }
+                    } else if (details.velocity.pixelsPerSecond.dy > 300) {
+                      if (!isRunning) {
+                        resetTimer();
+                      }
+                    }
+                  },
+                  child: Stack(
+                    children: [
+                      // Timer overlay with semi-transparent background
+                      Container(
+                        width: PomodoroSizing.getAlbumContainerSize(context),
+                        height: PomodoroSizing.getAlbumContainerSize(context),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.black.withOpacity(0.3),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              formatTime(remainingSeconds),
+                              style: TextStyle(
+                                fontSize: PomodoroSizing.getTimerFontSize(
+                                  context,
+                                ),
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                shadows: [
+                                  Shadow(
+                                    blurRadius: 10.0,
+                                    color: Colors.black,
+                                    offset: Offset(2.0, 2.0),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Session Complete - Tap to Submit!',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.white,
+                                fontStyle: FontStyle.italic,
+                                shadows: [
+                                  Shadow(
+                                    blurRadius: 5.0,
+                                    color: Colors.black,
+                                    offset: Offset(1.0, 1.1),
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 8),
+                            SessionSquaresWidget(
+                              completedSessions: countCompletedToday,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-          ],
-        ),
-      ],
-    );
+
+              // Recording and camera buttons below timer for vertical layout
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Recording button
+                  if (config?.showAudioRecordButton == true) ...[
+                    _buildSimplifiedRecordingButton(),
+                    if (config?.showPhotoButton == true) SizedBox(width: 20),
+                  ],
+
+                  // Camera button
+                  if (config?.showPhotoButton == true)
+                    _buildSquareEvidenceButton(),
+                ],
+              ),
+
+              // Music widget below recording buttons for vertical layout
+              if (isRunning || canSubmitLog) ...[
+                SizedBox(height: 20),
+                Container(
+                  width: PomodoroSizing.getAlbumContainerSize(
+                    context,
+                  ).clamp(150.0, 400.0),
+                  child: CompactMusicWidget(
+                    allowMusic: allowMusic,
+                    currentlyPlayingTrack: currentlyPlayingTrack,
+                    onToggleMusic: () {
+                      setState(() {
+                        if (allowMusic) {
+                          _stopLofi();
+                          allowMusic = false;
+                        } else {
+                          allowMusic = true;
+                          if (isRunning) {
+                            _playLofi();
+                          }
+                        }
+                      });
+                    },
+                    onChangeTrack: () {
+                      if (allowMusic) {
+                        _playLofi(); // This plays a random track
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ],
+          );
   }
 
   Widget _buildSquareEvidenceButton() {
