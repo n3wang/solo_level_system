@@ -414,10 +414,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTimerSection() {
     return Column(
       children: [
-        _buildGestureTimer(),
+        // Timer with recording buttons when session complete
+        canSubmitLog ? _buildTimerWithRecordingButtons() : _buildGestureTimer(),
         Text("Today's sessions: $countCompletedToday"),
         SizedBox(height: 20),
-        _buildGestureMusic(),
+        // Hide music controls when session complete
+        if (!canSubmitLog) _buildGestureMusic(),
         Text(logStateMessage, style: TextStyle(fontSize: 10)),
         SizedBox(height: 10),
         _buildFocusModeWidget(),
@@ -458,7 +460,9 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
               decoration: BoxDecoration(
-                color: isRunning ? Colors.red.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                color: isRunning
+                    ? Colors.red.withOpacity(0.1)
+                    : Colors.green.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isRunning ? Colors.red : Colors.green,
@@ -478,8 +482,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(height: 8),
                   Text(
                     isRunning
-                      ? (onBreak ? 'Break Time - Tap to Stop' : 'Focus Time - Tap to Stop')
-                      : canSubmitLog
+                        ? (onBreak
+                              ? 'Break Time - Tap to Stop'
+                              : 'Focus Time - Tap to Stop')
+                        : canSubmitLog
                         ? 'Session Complete - Tap to Submit!'
                         : 'Tap to Start • ↑ Finish • ↓ Reset',
                     style: TextStyle(
@@ -493,6 +499,106 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimerWithRecordingButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Recording button (left side)
+        if (config?.showAudioRecordButton == true)
+          Container(
+            margin: EdgeInsets.only(right: 20),
+            child: _buildSquareRecordingButton(),
+          ),
+
+        // Timer in the center
+        _buildGestureTimer(),
+
+        // Evidence button (right side)
+        if (config?.showPhotoButton == true)
+          Container(
+            margin: EdgeInsets.only(left: 20),
+            child: _buildSquareEvidenceButton(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSquareRecordingButton() {
+    return GestureDetector(
+      onTap: () async {
+        // Audio recording logic
+        await showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: EnhancedAudioRecorder(
+              onRecordingComplete: (audioModel) async {
+                setState(() {
+                  audioPath = audioModel.filePath;
+                  recordedAudio = audioModel;
+                  showPlayer = true;
+                  canSubmitLog = true;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Recording completed successfully!')),
+                );
+              },
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: (audioPath != null) ? Colors.green.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: (audioPath != null) ? Colors.green : Colors.blue,
+            width: 2,
+          ),
+        ),
+        child: Icon(
+          (audioPath != null) ? Icons.mic : Icons.mic_none,
+          size: 30,
+          color: (audioPath != null) ? Colors.green : Colors.blue,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSquareEvidenceButton() {
+    return GestureDetector(
+      onTap: takePhoto,
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: (imagePath != null) ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: (imagePath != null) ? Colors.green : Colors.orange,
+            width: 2,
+          ),
+        ),
+        child: Icon(
+          (imagePath != null) ? Icons.camera_alt : Icons.camera_alt_outlined,
+          size: 30,
+          color: (imagePath != null) ? Colors.green : Colors.orange,
         ),
       ),
     );
@@ -528,7 +634,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ? Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: allowMusic ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                  color: allowMusic
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.grey.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: allowMusic ? Colors.green : Colors.grey,
@@ -548,7 +656,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            allowMusic ? 'Playing: $currentlyPlayingTrack' : 'Music Muted',
+                            allowMusic
+                                ? 'Playing: $currentlyPlayingTrack'
+                                : 'Music Muted',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -589,10 +699,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(width: 8),
                         Text(
                           'No Music Playing',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -806,10 +913,12 @@ class _HomeScreenState extends State<HomeScreen> {
       key: ValueKey('photo_section_container'),
       child: config?.showPhotoButton == true
           ? ElevatedButton.icon(
-              icon: Icon(Icons.camera_alt),
+              icon: imagePath != null
+                  ? Icon(Icons.camera_alt)
+                  : Icon(Icons.camera_alt_outlined),
               label: imagePath != null
-                  ? Text('Photo Taken')
-                  : Text('Take Photo'),
+                  ? Text('Taken')
+                  : Text('Capture Evidence'),
               onPressed: takePhoto,
             )
           : SizedBox.shrink(),

@@ -65,6 +65,10 @@
             {
               "id": "b4ccb651-ac4a-4977-a6c7-c6b6b584ca6f",
               "comment": "Default color theme as black"
+            },
+            {
+              "id": "da8e420e-8789-4609-96d7-c8d03d80e3e5",
+              "comment": "\nWhen the work time is finished, have the recording and capturing evidence button to the side of the timer as sqauare buttons. ready to record only when task finished, when that happens also hide the music audio controls. \n\n"
             }
           ]
         }
