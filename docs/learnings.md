@@ -505,3 +505,202 @@ testWidgets('Audio player test', (tester) async {
 7. **Test behavior, not implementation**: Focus on user-visible outcomes
 
 **Remember**: Fast tests get run more often, leading to better code quality and faster development cycles!
+
+## Audio Asset Management with JSON Mapping
+
+### Dynamic Audio Asset Organization Pattern
+
+When managing a large number of audio files in Flutter, hardcoding file paths becomes unmaintainable. This pattern demonstrates a scalable approach:
+
+#### 1. **Automated File Organization**
+```dart
+// Dart script that renames files systematically
+final newName = 'lofi_${counter.toString().padLeft(3, '0')}.mp3';
+await file.renameSync(newPath);
+```
+
+**Benefits:**
+- Consistent naming scheme
+- Easier to reference programmatically
+- Better organization for large asset collections
+
+#### 2. **JSON Metadata Mapping**
+```json
+{
+  "version": "1.0",
+  "generated": "2025-09-25T10:41:59.556245",
+  "total_tracks": 41,
+  "tracks": [
+    {
+      "id": 1,
+      "filename": "lofi_001.mp3",
+      "originalName": "10-lady-of-the-80x27s-128379",
+      "title": "Lady Of The 80's",
+      "author": "Unknown Artist",
+      "site": "Freesound/Pixabay",
+      "duration": "6:37",
+      "fileSize": 5743
+    }
+  ]
+}
+```
+
+**Advantages:**
+- Rich metadata without filename clutter
+- Easy to search and filter
+- Version tracking for asset updates
+- Internationalization-ready
+
+#### 3. **Service Layer Abstraction**
+```dart
+class LofiService {
+  static Future<List<LofiTrack>> getAllTracks() async {
+    final mapping = await getLofiMapping();
+    return mapping.tracks;
+  }
+
+  static Future<LofiTrack?> getTrackById(int id) async {
+    final mapping = await getLofiMapping();
+    try {
+      return mapping.tracks.firstWhere((track) => track.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+}
+```
+
+#### 4. **Background Music Service Pattern**
+```dart
+class BackgroundMusicService {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  List<LofiTrack> _playlist = [];
+
+  Future<void> playRandomTrack() async {
+    if (_playlist.isEmpty) {
+      await _refreshPlaylist();
+    }
+    _playlist.shuffle();
+    _currentTrack = _playlist.first;
+    await _playCurrentTrack();
+  }
+}
+```
+
+### Asset Management Best Practices
+
+#### 1. **Pubspec.yaml Optimization**
+Instead of listing every file:
+```yaml
+# Bad - Hard to maintain
+assets:
+  - assets/lofi/track1.mp3
+  - assets/lofi/track2.mp3
+  # ... 40 more files
+
+# Good - Directory-based inclusion
+assets:
+  - assets/lofi/
+```
+
+#### 2. **Automated Asset Organization**
+Create scripts that:
+- Rename files with consistent patterns
+- Extract metadata from filenames
+- Generate JSON mappings automatically
+- Update mappings when new files are added
+
+#### 3. **Runtime Asset Discovery**
+```dart
+// Load available tracks dynamically
+final tracks = await LofiService.getAllTracks();
+final randomTrack = await LofiService.getRandomTrack();
+final durationFiltered = await LofiService.getTracksByDurationRange(
+  minDuration: Duration(minutes: 3),
+  maxDuration: Duration(minutes: 8),
+);
+```
+
+### Integration with Existing Code
+
+#### 1. **Gradual Migration Pattern**
+When refactoring existing hardcoded asset lists:
+
+```dart
+// Before: Hardcoded playlist
+List<String> lofiPlaylist = [
+  'lofi/old-track-1.mp3',
+  'lofi/old-track-2.mp3',
+  // ... many hardcoded entries
+];
+
+// After: Dynamic service-based approach
+void _playLofi() async {
+  try {
+    await _backgroundMusicService.playRandomTrack();
+    final currentTrack = _backgroundMusicService.currentTrack;
+    // Use rich metadata instead of filename parsing
+  } catch (e) {
+    // Graceful error handling
+  }
+}
+```
+
+#### 2. **Backward Compatibility**
+Keep old audio player as fallback while introducing new service:
+
+```dart
+final _bgPlayer = ap.AudioPlayer(); // Legacy player
+final _backgroundMusicService = BackgroundMusicService(); // New service
+
+// Use new service but keep old one for compatibility
+```
+
+### Maintenance and Updates
+
+#### 1. **Simple Update Scripts**
+```batch
+@echo off
+echo Updating lofi audio mapping...
+dart scripts/lofi_organizer.dart
+echo Done! Run 'flutter clean' if you added new files.
+```
+
+#### 2. **Version Control**
+- JSON mapping files should be version controlled
+- Audio files themselves might be `.gitignore`d due to size
+- Scripts and utilities should be committed
+
+#### 3. **Metadata Enhancement**
+Future improvements can add:
+- BPM detection for tempo matching
+- Mood categorization
+- User rating systems
+- Playlist generation based on session duration
+- Audio analysis for volume normalization
+
+### Performance Considerations
+
+#### 1. **Lazy Loading**
+```dart
+static LofiMapping? _cachedMapping;
+
+static Future<LofiMapping> getLofiMapping() async {
+  if (_cachedMapping != null) {
+    return _cachedMapping!;
+  }
+  // Load and cache on first use
+}
+```
+
+#### 2. **Efficient Asset Access**
+- Cache JSON mapping in memory
+- Use asset bundle for fast file access
+- Consider compression for metadata files
+
+#### 3. **Memory Management**
+- Don't load all audio files at once
+- Stream audio content when needed
+- Dispose audio players properly
+
+This pattern scales well from small apps to large applications with hundreds of audio assets, providing a maintainable and extensible solution for dynamic asset management.

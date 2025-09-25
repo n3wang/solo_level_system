@@ -15,6 +15,9 @@ import 'package:solo_level_system/widgets/enhanced_audio_recorder.dart';
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:solo_level_system/utils/database_utils.dart';
+import 'package:solo_level_system/utils/background_music_service.dart';
+import 'package:solo_level_system/utils/lofi_service.dart';
+import 'package:solo_level_system/models/lofi_track.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsChanged;
@@ -46,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int lastTrackIndex = 0;
 
   final _bgPlayer = ap.AudioPlayer();
+  final _backgroundMusicService = BackgroundMusicService();
 
   // Helper method to check if recording/photo features should be available
   bool get _shouldShowRecordingFeatures {
@@ -54,72 +58,35 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _playLofi() async {
-    if (_bgPlayer.state == ap.PlayerState.playing) await _bgPlayer.stop();
+    if (_backgroundMusicService.isPlaying) {
+      await _backgroundMusicService.stop();
+    }
     if (!allowMusic) return;
 
-    List<String> lofiPlaylist = [
-      'lofi/lofi-1.mp3',
-      'lofi/lofi-2.mp3',
-      'lofi/lofi-3.mp3',
-      'lofi/lofi-4.mp3',
-      'lofi/13-high-rise-114783.mp3',
-      'lofi/15-lofi-study-calm-peaceful-chill-hop-musicno-copyright-346767.mp3',
-      'lofi/16-study-110111.mp3',
-      'lofi/17-lofi-study-calm-peaceful-chill-hop-112191.mp3',
-      'lofi/18-relaxing-ambient-music-nostalgic-memories-310690.mp3',
-      'lofi/19-dark-academia-melancholy-262441.mp3',
-      'lofi/20-cops-first-day-on-the-job-anasta-music-293360.mp3',
-      'lofi/21-mezhdunami-voyager-141276.mp3',
-      'lofi/22-the-peoplex27s-land-336886.mp3',
-      'lofi/23-ghibli-style-1-229069.mp3',
-      'lofi/24-days-for-you-336889.mp3',
-      'lofi/25-ghibli-style-2-229070.mp3',
-      'lofi/26-thought-336888.mp3',
-      'lofi/27-the-best-detective-190125.mp3',
-      'lofi/29-singularity-abstract-electronica-281092.mp3',
-      'lofi/30-awake-the-science-technology-electronica-281089.mp3',
-      'lofi/31-lo-fi-for-the-best-vlogs-266458.mp3',
-      'lofi/32-lofi-soul-268728.mp3',
-      'lofi/33-a-new-scientific-research-304924.mp3',
-      'lofi/34-london-fashion-week-304935.mp3',
-      'lofi/35-resurrection-327870.mp3',
-      'lofi/36-the-world-of-science-285320.mp3',
-      'lofi/37-secret-lab-194422.mp3',
-      'lofi/38-doctor-science-calm-electronica-283173.mp3',
-      'lofi/39-shattered-339166.mp3',
-      'lofi/40-cqb-tense-80s-synthwave-instrumental-345187.mp3',
-      'lofi/41-a-hero-of-the-80s-126684.mp3',
-      'lofi/42-balenciaga-trap-music-111733.mp3',
-      'lofi/43-neon-adventure-deep-fashion-house-273895.mp3',
-    ];
+    try {
+      // Set looping based on config
+      _backgroundMusicService.setLooping(config?.playAudioOnRepeat ?? false);
 
-    int trackIndex;
-    if (config?.randomizeAudio == true) {
-      trackIndex = Random().nextInt(lofiPlaylist.length);
-    } else {
-      trackIndex = (lastTrackIndex + 1) % lofiPlaylist.length;
+      await _backgroundMusicService.playRandomTrack();
+
+      final currentTrack = _backgroundMusicService.currentTrack;
+      if (currentTrack != null) {
+        logStateMessage = 'Music: ${currentTrack.title}';
+        setState(() {
+          currentlyPlayingTrack = currentTrack.title;
+        });
+      }
+    } catch (e) {
+      print('Failed to play lofi music: $e');
+      logStateMessage = 'Music: Failed to load';
+      setState(() {
+        currentlyPlayingTrack = 'Error loading music';
+      });
     }
-    lastTrackIndex = trackIndex;
-
-    String track = lofiPlaylist[trackIndex];
-    String trackName = track
-        .split('/')
-        .last
-        .replaceAll('.mp3', '')
-        .replaceAll('-', ' ');
-    setState(() {
-      currentlyPlayingTrack = trackName;
-    });
-
-    ap.ReleaseMode releaseMode = (config?.playAudioOnRepeat == true)
-        ? ap.ReleaseMode.loop
-        : ap.ReleaseMode.release;
-    await _bgPlayer.setReleaseMode(releaseMode);
-    await _bgPlayer.play(ap.AssetSource(track));
   }
 
   void _stopLofi() async {
-    await _bgPlayer.stop();
+    await _backgroundMusicService.stop();
     setState(() {
       currentlyPlayingTrack = null;
     });
@@ -264,6 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await _loadConfig();
       await _loadUserSettings();
+      await _backgroundMusicService.initialize();
       final count = await getTodayCompletedSessions();
       if (mounted) {
         setState(() => countCompletedToday = count);
@@ -646,5 +614,13 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           : SizedBox.shrink(),
     );
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    _bgPlayer.dispose();
+    _backgroundMusicService.dispose();
+    super.dispose();
   }
 }

@@ -6,6 +6,7 @@ import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/workout_set_model.dart';
 import 'package:solo_level_system/models/workout_routine_model.dart';
+import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
 
 class ActiveWorkoutSessionScreen extends StatefulWidget {
   final WorkoutSessionModel session;
@@ -147,6 +148,12 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             ],
           ),
           actions: [
+            if (widget.routine != null)
+              IconButton(
+                icon: Icon(Icons.edit),
+                onPressed: _editRoutine,
+                tooltip: 'Edit Routine',
+              ),
             IconButton(
               icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
               onPressed: _togglePause,
@@ -419,7 +426,19 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                     label: Text('Add Set'),
                   ),
                 ),
-                SizedBox(width: 16),
+                SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _resetSetsToDefault(exercise),
+                    icon: Icon(Icons.refresh),
+                    label: Text(widget.routine != null ? 'Reset' : 'Default'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _allSetsCompleted(exercise)
@@ -479,7 +498,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
               isDense: true,
             ),
             onChanged: (value) {
-              set.reps = int.tryParse(value) ?? 0;
+              setState(() {
+                set.reps = int.tryParse(value) ?? 0;
+              });
             },
           ),
         ),
@@ -494,7 +515,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
               isDense: true,
             ),
             onChanged: (value) {
-              set.weight = double.tryParse(value) ?? 0;
+              setState(() {
+                set.weight = double.tryParse(value) ?? 0;
+              });
             },
           ),
         ),
@@ -648,6 +671,196 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     });
   }
 
+  void _resetSetsToDefault(ExerciseModel exercise) {
+    final hasRoutine =
+        widget.routine != null &&
+        widget.routine!.exerciseSets.containsKey(exercise.id);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Reset Sets'),
+        content: Text(
+          hasRoutine
+              ? 'This will reset all reps and weights for this exercise to the routine\'s original values. Completion status will be preserved. Are you sure?'
+              : 'This will reset all reps and weights for this exercise to default values (10 reps, 0kg). Completion status will be preserved. Are you sure?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _performSetReset(exercise);
+            },
+            child: Text('Reset'),
+            style: TextButton.styleFrom(foregroundColor: Colors.orange),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _performSetReset(ExerciseModel exercise) {
+    setState(() {
+      final currentSets = _exerciseSets[exercise.id]!;
+
+      if (widget.routine != null &&
+          widget.routine!.exerciseSets.containsKey(exercise.id)) {
+        // Reset to routine's default values
+        final routineSets = widget.routine!.exerciseSets[exercise.id]!;
+
+        for (int i = 0; i < currentSets.length; i++) {
+          if (i < routineSets.length) {
+            // Reset to routine values, but preserve completion status
+            final isCompleted = currentSets[i].isCompleted;
+            final completedAt = currentSets[i].completedAt;
+
+            currentSets[i].reps = routineSets[i].reps;
+            currentSets[i].weight = routineSets[i].weight;
+            currentSets[i].restTimeSeconds = routineSets[i].restTimeSeconds;
+            currentSets[i].notes = routineSets[i].notes;
+
+            // Preserve completion status
+            currentSets[i].isCompleted = isCompleted;
+            currentSets[i].completedAt = completedAt;
+          } else {
+            // For extra sets not in routine, reset to default values
+            final isCompleted = currentSets[i].isCompleted;
+            final completedAt = currentSets[i].completedAt;
+
+            currentSets[i].reps = 10;
+            currentSets[i].weight = 0;
+            currentSets[i].restTimeSeconds = 60;
+
+            // Preserve completion status
+            currentSets[i].isCompleted = isCompleted;
+            currentSets[i].completedAt = completedAt;
+          }
+        }
+      } else {
+        // No routine, reset to default values
+        for (final set in currentSets) {
+          final isCompleted = set.isCompleted;
+          final completedAt = set.completedAt;
+
+          set.reps = 10;
+          set.weight = 0;
+          set.restTimeSeconds = 60;
+
+          // Preserve completion status
+          set.isCompleted = isCompleted;
+          set.completedAt = completedAt;
+        }
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Sets reset to default values'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  void _editRoutine() async {
+    if (widget.routine == null) return;
+
+    // Pause the workout timer while editing
+    final wasPaused = _isPaused;
+    if (!_isPaused) {
+      _togglePause();
+    }
+
+    // Navigate to edit routine screen
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddEditRoutineScreen(routine: widget.routine),
+      ),
+    );
+
+    // Resume workout timer if it was running before
+    if (!wasPaused && _isPaused) {
+      _togglePause();
+    }
+
+    // If routine was updated, refresh the current workout
+    if (result == true) {
+      _refreshWorkoutFromRoutine();
+    }
+  }
+
+  void _refreshWorkoutFromRoutine() async {
+    if (widget.routine == null) return;
+
+    try {
+      // Reload the routine from Hive to get the latest changes
+      final routinesBox = await Hive.openBox<WorkoutRoutineModel>(
+        'workoutRoutines',
+      );
+      final updatedRoutine = routinesBox.values.firstWhere(
+        (r) => r.id == widget.routine!.id,
+        orElse: () => widget.routine!,
+      );
+
+      // Update the current exercise sets with any changes from the routine
+      _exerciseSets.forEach((exerciseId, currentSets) {
+        if (updatedRoutine.exerciseSets.containsKey(exerciseId)) {
+          final routineSets = updatedRoutine.exerciseSets[exerciseId]!;
+
+          // Update existing sets while preserving current values and completion status
+          for (
+            int i = 0;
+            i < currentSets.length && i < routineSets.length;
+            i++
+          ) {
+            // Keep current reps, weight, and completion status, but update other properties
+            currentSets[i].restTimeSeconds = routineSets[i].restTimeSeconds;
+            currentSets[i].notes = routineSets[i].notes;
+          }
+
+          // Add any new sets from the routine
+          if (routineSets.length > currentSets.length) {
+            for (int i = currentSets.length; i < routineSets.length; i++) {
+              currentSets.add(
+                WorkoutSetModel(
+                  id: routineSets[i].id,
+                  exerciseId: routineSets[i].exerciseId,
+                  reps: routineSets[i].reps,
+                  weight: routineSets[i].weight,
+                  restTimeSeconds: routineSets[i].restTimeSeconds,
+                  isCompleted: false,
+                  notes: routineSets[i].notes,
+                ),
+              );
+            }
+          }
+        }
+      });
+
+      setState(() {
+        // Trigger UI update
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Routine updated! New sets have been added if any.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating routine: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _nextExercise() {
     if (_currentExerciseIndex < widget.exercises.length - 1) {
       setState(() {
@@ -723,29 +936,33 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
   }
 
   Future<bool> _onWillPop() async {
-    return await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('End Workout?'),
-            content: Text(
-              'Are you sure you want to end this workout? Your progress will be saved.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text('Continue'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context, true);
-                  _endWorkout(false);
-                },
-                child: Text('End Workout'),
-              ),
-            ],
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('End Workout?'),
+        content: Text(
+          'Are you sure you want to end this workout? Your progress will be saved.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Continue'),
           ),
-        ) ??
-        false;
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('End Workout'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      // Save workout without navigating (PopScope will handle the navigation)
+      _endWorkout(false, shouldNavigate: false);
+      return true; // Allow pop
+    }
+
+    return false; // Don't pop
   }
 
   void _showEndWorkoutDialog() {
@@ -779,7 +996,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     );
   }
 
-  void _endWorkout(bool markComplete) async {
+  void _endWorkout(bool markComplete, {bool shouldNavigate = true}) async {
     setState(() => _isLoading = true);
 
     try {
@@ -819,7 +1036,16 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       final sessionsBox = await Hive.openBox<WorkoutSessionModel>(
         'workoutSessions',
       );
-      await sessionsBox.add(widget.session);
+
+      // Find existing session and update it, or create new entry
+      final existingIndex = sessionsBox.values.toList().indexWhere(
+        (s) => s.id == widget.session.id,
+      );
+      if (existingIndex != -1) {
+        await sessionsBox.putAt(existingIndex, widget.session);
+      } else {
+        await sessionsBox.add(widget.session);
+      }
 
       // Update routine completion count if applicable
       if (markComplete && widget.routine != null) {
@@ -837,21 +1063,27 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         }
       }
 
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            markComplete ? 'Workout completed successfully!' : 'Workout saved',
+      if (shouldNavigate) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              markComplete
+                  ? 'Workout completed successfully!'
+                  : 'Workout saved',
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving workout: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (shouldNavigate) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving workout: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       setState(() => _isLoading = false);
     }

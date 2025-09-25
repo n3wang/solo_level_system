@@ -17,6 +17,15 @@
           "labels": [],
           "checkboxes": [],
           "comments": []
+        },
+        {
+          "id": "f1d9bc53-96d5-4f9b-9e86-536aeee5fb3f",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Motivational cards for workout",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
         }
       ]
     },
@@ -25,34 +34,18 @@
       "title": "Doing",
       "cards": [
         {
-          "id": "c27e9815-8d13-4a3b-8355-039369262910",
+          "id": "f86efe09-43c0-4774-92c6-362ad17a2888",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "It keep basic tracking of workout habits",
-          "description": "The application should have a bottom bar for different applications such as \nFocus Pomodoro, Analytics, and Workout Mode.\n\nFor the workout model:\nThe idea is that it should be able to keep track of which workouts to perform. Also the number of times it was completed. \n\nThe routines can be set by the person.\nCan also create workout habit and also the user can create new workouts. these are saved on memory. The workout routines are a collection of different workouts. User can modify the sets to do and weight. As well as track past workouts. and set new records.\n\n",
+          "title": "Refactor Audios",
+          "description": "",
           "labels": [],
-          "checkboxes": [
+          "checkboxes": [],
+          "comments": [
             {
-              "id": "1ddf7d47-7b07-46ba-b0e3-72b877483876",
-              "title": "Allow for working out sessions to be working",
-              "checked": false
-            },
-            {
-              "id": "bf5d182b-4d45-4b88-bce7-58755a35e8ab",
-              "title": "Allows for rest time in between",
-              "checked": false
-            },
-            {
-              "id": "03763464-ee5d-4c65-955c-4c55ee63f42f",
-              "title": "Allows for creating workout routines",
-              "checked": false
-            },
-            {
-              "id": "8083bb89-6e76-41e3-905a-336fe4b89010",
-              "title": "Actually allow for creating excerize screens",
-              "checked": false
+              "id": "00157805-2d09-41c6-b226-8b95fed28ffb",
+              "comment": "go to assets\\lofi\\ adn refactor them all in simpe filenames also create a  \n   json containing a map of this lofis including author and site and         \n  duration, create a script that automatically creates that json or updates  \n   that in the future, the code should read from that json to retrieve the   \n  avilable audios"
             }
-          ],
-          "comments": []
+          ]
         }
       ]
     },
@@ -60,6 +53,36 @@
       "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
       "title": "Done",
       "cards": [
+        {
+          "id": "c27e9815-8d13-4a3b-8355-039369262910",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "It keep basic tracking of workout habits",
+          "description": "The application should have a bottom bar for different applications such as \nFocus Pomodoro, Analytics, and Workout Mode.\n\nFor the workout model:\nThe idea is that it should be able to keep track of which workouts to perform. Also the number of times it was completed. \n\nThe routines can be set by the person.\nCan also create workout habit and also the user can create new workouts. these are saved on memory. The workout routines are a collection of different workouts. User can modify the sets to do and weight. As well as track past workouts. and set new records.\n\n",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "1ddf7d47-7b07-46ba-b0e3-72b877483876",
+              "title": "Allow for working out sessions to be working",
+              "checked": true
+            },
+            {
+              "id": "bf5d182b-4d45-4b88-bce7-58755a35e8ab",
+              "title": "Allows for rest time in between",
+              "checked": true
+            },
+            {
+              "id": "03763464-ee5d-4c65-955c-4c55ee63f42f",
+              "title": "Allows for creating workout routines",
+              "checked": true
+            },
+            {
+              "id": "8083bb89-6e76-41e3-905a-336fe4b89010",
+              "title": "Actually allow for creating excerize screens",
+              "checked": true
+            }
+          ],
+          "comments": []
+        },
         {
           "id": "dd19c095-569b-4cf6-8255-24ca5fb0f5da",
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
