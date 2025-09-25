@@ -26,13 +26,32 @@
           "labels": [],
           "checkboxes": [],
           "comments": []
+        },
+        {
+          "id": "46add1df-fab5-46d8-bb40-2d6c60f5f73c",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Rewards and experience system",
+          "description": "The rewards system that provides 25 points and 25 experience for a block of 25 minutes of work, meaning that you can ",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
         }
       ]
     },
     {
       "id": "125bd6ab-d32d-460e-9159-9c34b027ef62",
       "title": "Doing",
-      "cards": []
+      "cards": [
+        {
+          "id": "8c5bc363-2ef2-4f87-846b-628ded68a974",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Habits and Projects Creations",
+          "description": "Create something called a project model , in which you can have set up project each project can be hooked  to havbits where to schedule count of times of pomodoros to perform on a weekday, on which weekday, which can be multiple weekdays you can have up to 6 projects. When working on the pomodoro you can select the project by pressing the project that you are working when the pomodoro is paused by having up to 6 squared small text tags for the project you are working, once selected the pomodoro becaomes only showing that project clicking again untoggles it and shows all the projects options. Th\n\n\n",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        }
+      ]
     },
     {
       "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",

@@ -9,6 +9,7 @@ import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/config_model.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
+import 'package:solo_level_system/models/project_model.dart';
 
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
@@ -22,6 +23,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:solo_level_system/utils/pomodoro_sizing.dart';
 import 'package:solo_level_system/widgets/pomodoro/compact_music_widget.dart';
 import 'package:solo_level_system/widgets/pomodoro/session_squares_widget.dart';
+import 'package:solo_level_system/widgets/pomodoro/project_selector_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsChanged;
@@ -51,6 +53,10 @@ class _HomeScreenState extends State<HomeScreen> {
   ConfigModel? config;
   UserSettingsModel? userSettings;
   int lastTrackIndex = 0;
+
+  // Project-related state
+  List<ProjectModel> projects = [];
+  ProjectModel? selectedProject;
 
   final _bgPlayer = ap.AudioPlayer();
   final _backgroundMusicService = BackgroundMusicService();
@@ -166,9 +172,17 @@ class _HomeScreenState extends State<HomeScreen> {
       audioPath: audioPath,
       imagePath: imagePath,
       dayPomodoroNumber: countCompletedToday + 1,
+      project_id: selectedProject?.id,
+      project_name: selectedProject?.name,
     );
     final box = Hive.box<PomodoroModel>('pomodoros');
     await box.add(session);
+
+    // Update project statistics if a project is selected
+    if (selectedProject != null) {
+      selectedProject!.addPomodoroSession();
+    }
+
     print("Saved session at ${session.startTime}");
     if (cleanVariables) {
       audioPath = null;
@@ -231,6 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await _loadConfig();
       await _loadUserSettings();
+      await _loadProjects();
       await _backgroundMusicService.initialize();
       final count = await getTodayCompletedSessions();
       if (mounted) {
@@ -280,6 +295,66 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _loadProjects() async {
+    try {
+      if (!Hive.isBoxOpen('projects')) {
+        await Hive.openBox<ProjectModel>('projects');
+      }
+      final box = Hive.box<ProjectModel>('projects');
+
+      // Load existing projects
+      final allProjects = box.values.toList();
+
+      // If no projects exist, create some default ones
+      if (allProjects.isEmpty) {
+        await _createDefaultProjects();
+        final updatedProjects = box.values.toList();
+        setState(() {
+          projects = updatedProjects;
+        });
+      } else {
+        setState(() {
+          projects = allProjects;
+        });
+      }
+    } catch (e) {
+      print('Error loading projects: $e');
+      setState(() {
+        projects = [];
+      });
+    }
+  }
+
+  Future<void> _createDefaultProjects() async {
+    try {
+      final box = Hive.box<ProjectModel>('projects');
+
+      final defaultProjects = [
+        ProjectCreationHelper.createDefault(
+          name: 'Work',
+          description: 'Professional tasks and projects',
+          priority: 1,
+        ),
+        ProjectCreationHelper.createDefault(
+          name: 'Study',
+          description: 'Learning and education',
+          priority: 2,
+        ),
+        ProjectCreationHelper.createDefault(
+          name: 'Personal',
+          description: 'Personal development and tasks',
+          priority: 3,
+        ),
+      ];
+
+      for (final project in defaultProjects) {
+        await box.add(project);
+      }
+    } catch (e) {
+      print('Error creating default projects: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -303,6 +378,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTimerSection() {
     return Column(
       children: [
+        // Project selector (only when not running or when paused)
+        if (!isRunning || canSubmitLog)
+          ProjectSelectorWidget(
+            projects: projects,
+            selectedProject: selectedProject,
+            onProjectSelected: (project) {
+              setState(() {
+                selectedProject = project;
+              });
+            },
+            isCollapsed: canSubmitLog, // Collapse when session is complete
+          ),
+
         // Timer with recording buttons when session complete
         canSubmitLog ? _buildTimerWithRecordingButtons() : _buildGestureTimer(),
       ],

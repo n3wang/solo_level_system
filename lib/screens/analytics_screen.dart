@@ -599,6 +599,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   Widget _buildProjectBreakdown(List<PomodoroModel> sessions) {
+    // Group sessions by project
+    final projectStats = <String, int>{};
+    final projectNames = <String, String>{};
+
+    for (final session in sessions) {
+      if (session.project_id != null && session.project_name != null) {
+        final projectId = session.project_id!;
+        projectStats[projectId] = (projectStats[projectId] ?? 0) + 1;
+        projectNames[projectId] = session.project_name!;
+      } else {
+        // Sessions without project
+        projectStats['unassigned'] = (projectStats['unassigned'] ?? 0) + 1;
+        projectNames['unassigned'] = 'Unassigned';
+      }
+    }
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -606,16 +622,72 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Projects Focus Time',
+              'Project Breakdown',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
-            // Implementation would show project breakdown
-            Text('Project breakdown chart would go here'),
+            projectStats.isEmpty
+                ? Text(
+                    'No project data available',
+                    style: TextStyle(color: Colors.grey[600]),
+                  )
+                : Column(
+                    children: projectStats.entries
+                        .map((entry) => Padding(
+                              padding: EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          color: _getProjectColor(entry.key),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        projectNames[entry.key] ?? 'Unknown',
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    '${entry.value} sessions',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ))
+                        .toList(),
+                  ),
           ],
         ),
       ),
     );
+  }
+
+  Color _getProjectColor(String projectId) {
+    // Simple color assignment based on project ID
+    final colors = [
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.red,
+      Colors.teal,
+    ];
+
+    if (projectId == 'unassigned') return Colors.grey;
+
+    final hash = projectId.hashCode.abs();
+    return colors[hash % colors.length];
   }
 
   Widget _buildStreakInfo(List<PomodoroModel> sessions) {

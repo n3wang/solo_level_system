@@ -11,6 +11,7 @@ import 'models/workout_set_model.dart';
 import 'models/workout_routine_model.dart';
 import 'models/workout_session_model.dart';
 import 'models/habit_tracker_model.dart';
+import 'models/project_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +32,7 @@ void main() async {
     Hive.registerAdapter(WorkoutRoutineModelAdapter());
     Hive.registerAdapter(WorkoutSessionModelAdapter());
     Hive.registerAdapter(HabitTrackerModelAdapter());
+    Hive.registerAdapter(ProjectModelAdapter());
 
     // Open all Hive boxes with detailed logging
     print('Opening Hive boxes...');
