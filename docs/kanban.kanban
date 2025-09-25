@@ -61,6 +61,10 @@
             {
               "id": "d31ddf30-b616-4300-9cf6-607f6158063c",
               "comment": "Improve the pomodoro UI for stopping the timer, just by clicking the timer is enoguh, for muting then click ino the music audio for Playuing another random swap the audio and for resetting swap the timer down and instant finish swap the timer up"
+            },
+            {
+              "id": "b4ccb651-ac4a-4977-a6c7-c6b6b584ca6f",
+              "comment": "Default color theme as black"
             }
           ]
         }

@@ -414,14 +414,202 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTimerSection() {
     return Column(
       children: [
-        Text(formatTime(remainingSeconds), style: TextStyle(fontSize: 60)),
+        _buildGestureTimer(),
         Text("Today's sessions: $countCompletedToday"),
         SizedBox(height: 20),
-        _buildCurrentTrackWidget(),
+        _buildGestureMusic(),
         Text(logStateMessage, style: TextStyle(fontSize: 10)),
         SizedBox(height: 10),
         _buildFocusModeWidget(),
       ],
+    );
+  }
+
+  Widget _buildGestureTimer() {
+    return GestureDetector(
+      onTap: () {
+        // Click timer to start/stop/submit log
+        if (isRunning) {
+          stopTimer();
+        } else if (canSubmitLog) {
+          submitLog();
+        } else {
+          startTimer();
+        }
+      },
+      onVerticalDragEnd: (details) {
+        // Swipe up for instant finish, swipe down for reset
+        if (details.velocity.pixelsPerSecond.dy < -300) {
+          // Swipe up - instant finish
+          if (isRunning) {
+            instantFinish();
+          }
+        } else if (details.velocity.pixelsPerSecond.dy > 300) {
+          // Swipe down - reset timer
+          if (!isRunning) {
+            resetTimer();
+          }
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+              decoration: BoxDecoration(
+                color: isRunning ? Colors.red.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isRunning ? Colors.red : Colors.green,
+                  width: 2,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    formatTime(remainingSeconds),
+                    style: TextStyle(
+                      fontSize: 60,
+                      fontWeight: FontWeight.bold,
+                      color: isRunning ? Colors.red : Colors.green,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    isRunning
+                      ? (onBreak ? 'Break Time - Tap to Stop' : 'Focus Time - Tap to Stop')
+                      : canSubmitLog
+                        ? 'Session Complete - Tap to Submit!'
+                        : 'Tap to Start • ↑ Finish • ↓ Reset',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGestureMusic() {
+    return GestureDetector(
+      onTap: () {
+        // Click music area to mute/unmute
+        setState(() {
+          if (allowMusic) {
+            _stopLofi();
+            allowMusic = false;
+          } else {
+            allowMusic = true;
+            if (isRunning) {
+              _playLofi();
+            }
+          }
+        });
+      },
+      onHorizontalDragEnd: (details) {
+        // Swipe left/right to play random track
+        if (details.velocity.pixelsPerSecond.dx.abs() > 300) {
+          if (allowMusic) {
+            _playLofi(); // This plays a random track
+          }
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        child: currentlyPlayingTrack != null
+            ? Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: allowMusic ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: allowMusic ? Colors.green : Colors.grey,
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          allowMusic ? Icons.music_note : Icons.music_off,
+                          size: 20,
+                          color: allowMusic ? Colors.green : Colors.grey,
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            allowMusic ? 'Playing: $currentlyPlayingTrack' : 'Music Muted',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: allowMusic ? Colors.green : Colors.grey,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Tap to ${allowMusic ? 'Mute' : 'Unmute'} • ← → Swipe for Random Track',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              )
+            : Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey, width: 1),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.music_off, size: 20, color: Colors.grey),
+                        SizedBox(width: 8),
+                        Text(
+                          'No Music Playing',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Tap to Enable • ← → Swipe for Random Track',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+      ),
     );
   }
 
@@ -516,8 +704,13 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() {
               if (allowMusic) {
                 _stopLofi();
+                allowMusic = false;
+              } else {
+                allowMusic = true;
+                if (isRunning) {
+                  _playLofi();
+                }
               }
-              allowMusic = !allowMusic;
             });
           },
           child: Text(allowMusic ? 'Mute' : 'Unmute'),
