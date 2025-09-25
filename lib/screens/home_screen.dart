@@ -416,7 +416,6 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         // Timer with recording buttons when session complete
         canSubmitLog ? _buildTimerWithRecordingButtons() : _buildGestureTimer(),
-        Text("Today's sessions: $countCompletedToday"),
         SizedBox(height: 20),
         // Hide music controls when session complete
         if (!canSubmitLog) _buildGestureMusic(),
@@ -495,10 +494,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ),
+                  SizedBox(height: 8),
+                  _buildSessionSquares(),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSessionSquares() {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 4,
+      runSpacing: 4,
+      children: List.generate(
+        countCompletedToday,
+        (index) => Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: Colors.green,
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
       ),
     );
