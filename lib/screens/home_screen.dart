@@ -846,7 +846,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildConditionalRecordingSection() {
     return Container(
       key: ValueKey('conditional_recording_section'),
-      child: _shouldShowRecordingFeatures
+      child: (_shouldShowRecordingFeatures && !canSubmitLog)
           ? Column(children: [_buildRecordingSection(), SizedBox(height: 20)])
           : SizedBox(height: 20),
     );
