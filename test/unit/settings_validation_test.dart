@@ -8,7 +8,7 @@ void main() {
       final settings = UserSettingsModel();
 
       expect(settings.theme, equals('system'));
-      expect(settings.primaryColor, equals('red'));
+      expect(settings.primaryColor, equals('green'));
       expect(settings.defaultWorkMinutes, equals(25));
       expect(settings.defaultBreakMinutes, equals(5));
       expect(settings.enableNotifications, equals(true));

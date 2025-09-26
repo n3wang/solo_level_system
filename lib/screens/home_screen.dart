@@ -18,6 +18,7 @@ import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:solo_level_system/utils/database_utils.dart';
 import 'package:solo_level_system/utils/background_music_service.dart';
 import 'package:solo_level_system/utils/sound_effects_service.dart';
+import 'package:solo_level_system/utils/notification_service.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -36,7 +37,7 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int workMinutes = 25;
   int breakMinutes = 5;
   int remainingSeconds = 1500;
@@ -69,6 +70,21 @@ class _HomeScreenState extends State<HomeScreen> {
   final _bgPlayer = ap.AudioPlayer();
   final _backgroundMusicService = BackgroundMusicService();
   final _soundEffectsService = SoundEffectsService();
+  final _notificationService = NotificationService();
+
+  void toggleMute() {
+    setState(() {
+      if (allowMusic) {
+        _stopLofi();
+        allowMusic = false;
+      } else {
+        allowMusic = true;
+        if (isRunning) {
+          _playLofi();
+        }
+      }
+    });
+  }
 
   void _playLofi() async {
     if (_backgroundMusicService.isPlaying) {
@@ -111,6 +127,18 @@ class _HomeScreenState extends State<HomeScreen> {
         sessionStartTime = DateTime.now();
       }
     });
+
+    // Show notification with pause/reset/mute controls
+    _notificationService.showTimerNotification(
+      remainingSeconds: remainingSeconds,
+      isRunning: true,
+      isBreak: onBreak,
+      onPlay: startTimer,
+      onPause: stopTimer,
+      onReset: resetTimer,
+      onMute: toggleMute,
+    );
+
     timer = Timer.periodic(Duration(seconds: 1), (timer) {
       if (remainingSeconds <= 0) {
         _stopLofi();
@@ -123,6 +151,9 @@ class _HomeScreenState extends State<HomeScreen> {
             canSubmitLog = true;
             logStateMessage = "State: Finished – Submit Log";
           });
+
+          // Hide notification when session completes
+          _notificationService.hideTimerNotification();
 
           // Auto-start break if enabled
           if (userSettings?.autoStartBreaks == true) {
@@ -142,6 +173,9 @@ class _HomeScreenState extends State<HomeScreen> {
             remainingSeconds = workMinutes * 60;
             logStateMessage = "State: Work";
           });
+
+          // Hide notification when break completes
+          _notificationService.hideTimerNotification();
 
           // Auto-start work if enabled
           if (userSettings?.autoStartWork == true) {
@@ -235,7 +269,9 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    print("Saved session at ${session.startTime} - Duration: $minutesSpent minutes");
+    print(
+      "Saved session at ${session.startTime} - Duration: $minutesSpent minutes",
+    );
     if (cleanVariables) {
       audioPath = null;
       recordedAudio = null;
@@ -258,6 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void stopTimer() {
     _stopLofi();
     timer?.cancel();
+    _notificationService.hideTimerNotification();
     if (audioPath != null) {
       final file = File(audioPath!);
       if (file.existsSync()) file.deleteSync();
@@ -291,8 +328,39 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Simplified initialization to prevent hanging
     _safeInitialize();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Refresh projects when app is resumed
+      _loadProjects();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      // Show notification when app goes to background
+      if (isRunning) {
+        _notificationService.showTimerNotification(
+          remainingSeconds: remainingSeconds,
+          isRunning: isRunning,
+          isBreak: onBreak,
+          onPlay: startTimer,
+          onPause: stopTimer,
+          onReset: resetTimer,
+          onMute: toggleMute,
+        );
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Refresh projects when returning to home screen
+    _loadProjects();
   }
 
   void _safeInitialize() async {
@@ -302,6 +370,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await _loadProjects();
       await _loadUserProgress();
       await _backgroundMusicService.initialize();
+      await _notificationService.initialize();
       final count = await getTodayCompletedSessions();
       if (mounted) {
         setState(() => countCompletedToday = count);
@@ -357,56 +426,20 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       final box = Hive.box<ProjectModel>('projects');
 
-      // Load existing projects
+      // Load only active projects (user-created projects)
       final allProjects = box.values.toList();
+      final activeProjects = allProjects.where((p) => p.isActive).toList();
 
-      // If no projects exist, create some default ones
-      if (allProjects.isEmpty) {
-        await _createDefaultProjects();
-        final updatedProjects = box.values.toList();
-        setState(() {
-          projects = updatedProjects;
-        });
-      } else {
-        setState(() {
-          projects = allProjects;
-        });
-      }
+      setState(() {
+        projects = activeProjects;
+      });
+
+      print('Loaded ${activeProjects.length} active projects');
     } catch (e) {
       print('Error loading projects: $e');
       setState(() {
         projects = [];
       });
-    }
-  }
-
-  Future<void> _createDefaultProjects() async {
-    try {
-      final box = Hive.box<ProjectModel>('projects');
-
-      final defaultProjects = [
-        ProjectCreationHelper.createDefault(
-          name: 'Work',
-          description: 'Professional tasks and projects',
-          priority: 1,
-        ),
-        ProjectCreationHelper.createDefault(
-          name: 'Study',
-          description: 'Learning and education',
-          priority: 2,
-        ),
-        ProjectCreationHelper.createDefault(
-          name: 'Personal',
-          description: 'Personal development and tasks',
-          priority: 3,
-        ),
-      ];
-
-      for (final project in defaultProjects) {
-        await box.add(project);
-      }
-    } catch (e) {
-      print('Error creating default projects: $e');
     }
   }
 
@@ -483,7 +516,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 selectedProject = project;
               });
             },
-            isCollapsed: isRunning && !canSubmitLog, // Collapse when actively running
+            isCollapsed:
+                isRunning && !canSubmitLog, // Collapse when actively running
           ),
 
         // Timer with recording buttons when session complete
@@ -904,7 +938,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       margin: EdgeInsets.only(left: 20, bottom: 10),
                       child: _buildSquareEvidenceButton(),
                     ),
-                  if (isRunning || canSubmitLog)
+                  if (isRunning && !canSubmitLog)
                     Container(
                       width: PomodoroSizing.getMusicWidgetWidth(context),
                       margin: EdgeInsets.only(left: 20, top: 10),
@@ -1038,7 +1072,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               // Music widget below recording buttons for vertical layout
-              if (isRunning || canSubmitLog) ...[
+              if (isRunning && !canSubmitLog) ...[
                 SizedBox(height: 20),
                 Container(
                   width: PomodoroSizing.getAlbumContainerSize(
@@ -1124,10 +1158,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
     _bgPlayer.dispose();
     _backgroundMusicService.dispose();
     _soundEffectsService.dispose();
+    _notificationService.dispose();
     super.dispose();
   }
 }

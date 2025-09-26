@@ -39,6 +39,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
   Map<String, List<WorkoutSetModel>> _exerciseSets = {};
   Map<String, int> _completedSets = {};
 
+  // ignore: unused_field
   bool _isLoading = false;
 
   @override

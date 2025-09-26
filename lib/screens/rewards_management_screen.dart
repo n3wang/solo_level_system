@@ -6,7 +6,8 @@ import 'package:solo_level_system/models/reward_model.dart';
 
 class RewardsManagementScreen extends StatefulWidget {
   @override
-  _RewardsManagementScreenState createState() => _RewardsManagementScreenState();
+  _RewardsManagementScreenState createState() =>
+      _RewardsManagementScreenState();
 }
 
 class _RewardsManagementScreenState extends State<RewardsManagementScreen>
@@ -61,13 +62,16 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
     if (isLoading) {
       return Scaffold(
         appBar: AppBar(title: Text('Rewards')),
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Rewards'),
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -78,14 +82,13 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildAvailableRewardsTab(),
-          _buildPurchasedRewardsTab(),
-        ],
+        children: [_buildAvailableRewardsTab(), _buildPurchasedRewardsTab()],
       ),
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton.extended(
               onPressed: _showAddRewardDialog,
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
               icon: Icon(Icons.add),
               label: Text('Create Reward'),
             )
@@ -133,10 +136,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                     ),
                     Text(
                       'Earn 1 point per minute of focused work',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                   ],
                 ),
@@ -177,8 +177,8 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
             SizedBox(height: 16),
             Text(
               canPurchase
-                ? 'No rewards created yet'
-                : 'No rewards purchased yet',
+                  ? 'No rewards created yet'
+                  : 'No rewards purchased yet',
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 16,
@@ -190,10 +190,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
               Text(
                 'Create your first reward!\nSet your own point costs for treats you want.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
               ),
             ],
           ],
@@ -218,13 +215,12 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 padding: EdgeInsets.symmetric(vertical: 8),
                 child: Text(
                   entry.value.first.categoryDisplay,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-              ...entry.value.map((reward) => _buildRewardCard(reward, canPurchase)),
+              ...entry.value.map(
+                (reward) => _buildRewardCard(reward, canPurchase),
+              ),
               SizedBox(height: 16),
             ],
           ],
@@ -240,11 +236,9 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
       margin: EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: _parseColor(reward.color) ?? Theme.of(context).primaryColor,
-          child: Icon(
-            _getIconData(reward.iconName),
-            color: Colors.white,
-          ),
+          backgroundColor:
+              _parseColor(reward.color) ?? Theme.of(context).primaryColor,
+          child: Icon(_getIconData(reward.iconName), color: Colors.white),
         ),
         title: Text(
           reward.title,
@@ -257,7 +251,10 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
             if (reward.timesPurchased > 0)
               Text(
                 'Purchased ${reward.timesPurchased} time(s)',
-                style: TextStyle(color: Colors.green, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
           ],
         ),
@@ -281,12 +278,8 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 ],
               )
             : Icon(Icons.check_circle, color: Colors.green),
-        onTap: canPurchase && canAfford
-            ? () => _purchaseReward(reward)
-            : null,
-        onLongPress: canPurchase
-            ? () => _showRewardOptions(reward)
-            : null,
+        onTap: canPurchase && canAfford ? () => _purchaseReward(reward) : null,
+        onLongPress: canPurchase ? () => _showRewardOptions(reward) : null,
       ),
     );
   }
@@ -321,8 +314,12 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
 
   void _editReward(RewardModel reward) {
     final titleController = TextEditingController(text: reward.title);
-    final descriptionController = TextEditingController(text: reward.description);
-    final pointsController = TextEditingController(text: reward.pointsCost.toString());
+    final descriptionController = TextEditingController(
+      text: reward.description,
+    );
+    final pointsController = TextEditingController(
+      text: reward.pointsCost.toString(),
+    );
     String selectedCategory = reward.category;
 
     showDialog(
@@ -353,13 +350,26 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
               DropdownButtonFormField<String>(
                 value: selectedCategory,
                 decoration: InputDecoration(labelText: 'Category'),
-                items: [
-                  'general', 'electronics', 'entertainment', 'food',
-                  'shopping', 'activities', 'tools', 'books', 'health', 'travel'
-                ].map((category) => DropdownMenuItem(
-                  value: category,
-                  child: Text(category),
-                )).toList(),
+                items:
+                    [
+                          'general',
+                          'electronics',
+                          'entertainment',
+                          'food',
+                          'shopping',
+                          'activities',
+                          'tools',
+                          'books',
+                          'health',
+                          'travel',
+                        ]
+                        .map(
+                          (category) => DropdownMenuItem(
+                            value: category,
+                            child: Text(category),
+                          ),
+                        )
+                        .toList(),
                 onChanged: (value) {
                   if (value != null) selectedCategory = value;
                 },
@@ -373,8 +383,13 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
             child: Text('Cancel'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
-              if (titleController.text.isNotEmpty && pointsController.text.isNotEmpty) {
+              if (titleController.text.isNotEmpty &&
+                  pointsController.text.isNotEmpty) {
                 final points = int.tryParse(pointsController.text);
                 if (points != null && points > 0) {
                   reward.title = titleController.text;
@@ -384,9 +399,9 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                   reward.save();
                   setState(() {});
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Reward updated!')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Reward updated!')));
                 }
               }
             },
@@ -402,7 +417,9 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete Reward'),
-        content: Text('Are you sure you want to delete "${reward.title}"? This action cannot be undone.'),
+        content: Text(
+          'Are you sure you want to delete "${reward.title}"? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -416,9 +433,9 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 rewards.remove(reward);
               });
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Reward deleted')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Reward deleted')));
             },
             child: Text('Delete', style: TextStyle(color: Colors.white)),
           ),
@@ -441,6 +458,10 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
             child: Text('Cancel'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
               if (userProgress!.spendPoints(reward.pointsCost)) {
                 reward.purchase();
@@ -497,7 +518,8 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 controller: pointsController,
                 decoration: InputDecoration(
                   labelText: 'Points Cost',
-                  hintText: 'You decide! 50 for small treats, 500+ for bigger ones',
+                  hintText:
+                      'You decide! 50 for small treats, 500+ for bigger ones',
                 ),
                 keyboardType: TextInputType.number,
               ),
@@ -505,13 +527,26 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
               DropdownButtonFormField<String>(
                 value: selectedCategory,
                 decoration: InputDecoration(labelText: 'Category'),
-                items: [
-                  'general', 'electronics', 'entertainment', 'food',
-                  'shopping', 'activities', 'tools', 'books', 'health', 'travel'
-                ].map((category) => DropdownMenuItem(
-                  value: category,
-                  child: Text(category),
-                )).toList(),
+                items:
+                    [
+                          'general',
+                          'electronics',
+                          'entertainment',
+                          'food',
+                          'shopping',
+                          'activities',
+                          'tools',
+                          'books',
+                          'health',
+                          'travel',
+                        ]
+                        .map(
+                          (category) => DropdownMenuItem(
+                            value: category,
+                            child: Text(category),
+                          ),
+                        )
+                        .toList(),
                 onChanged: (value) {
                   if (value != null) selectedCategory = value;
                 },
@@ -525,8 +560,13 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
             child: Text('Cancel'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
-              if (titleController.text.isNotEmpty && pointsController.text.isNotEmpty) {
+              if (titleController.text.isNotEmpty &&
+                  pointsController.text.isNotEmpty) {
                 final points = int.tryParse(pointsController.text);
                 if (points != null && points > 0) {
                   _addCustomReward(
@@ -546,7 +586,12 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
     );
   }
 
-  Future<void> _addCustomReward(String title, String description, int points, String category) async {
+  Future<void> _addCustomReward(
+    String title,
+    String description,
+    int points,
+    String category,
+  ) async {
     final reward = RewardTemplates.createCustomReward(
       title: title,
       description: description,
@@ -561,9 +606,9 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
       rewards.add(reward);
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('🎉 Your reward has been created!')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('🎉 Your reward has been created!')));
   }
 
   Color? _parseColor(String? colorHex) {

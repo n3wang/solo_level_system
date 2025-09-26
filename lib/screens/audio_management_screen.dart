@@ -340,6 +340,10 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
           ),
           SizedBox(height: 24),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => _tabController.animateTo(1),
             child: Text('Start Recording'),
           ),
@@ -716,6 +720,10 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
             child: Text('Clear'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
               setState(() {});
               Navigator.pop(context);

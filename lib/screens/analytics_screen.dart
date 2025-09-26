@@ -306,6 +306,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                         ? Icon(Icons.check_circle, color: Colors.green)
                         : canUnlock
                         ? ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).primaryColor,
+                              foregroundColor: Colors.white,
+                            ),
                             onPressed: () =>
                                 _unlockFeature(entry.key, userProgress),
                             child: Text('Unlock'),

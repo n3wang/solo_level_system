@@ -44,7 +44,7 @@ void main() {
 
       // Verify key defaults
       expect(settings.theme, equals('system'));
-      expect(settings.primaryColor, equals('red'));
+      expect(settings.primaryColor, equals('green'));
       expect(settings.defaultWorkMinutes, equals(25));
 
       await box.close();

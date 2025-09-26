@@ -55,6 +55,18 @@ class ProjectModel extends HiveObject {
   @HiveField(16)
   List<String> tags;
 
+  @HiveField(17)
+  String targetType; // 'daily' or 'weekly'
+
+  @HiveField(18)
+  int dailySessionTarget; // Target sessions per day
+
+  @HiveField(19)
+  int weeklySessionTarget; // Target sessions per week
+
+  @HiveField(20)
+  int? preferredWorkHour; // Preferred work hour (0-23), null if no preference
+
   ProjectModel({
     required this.id,
     required this.name,
@@ -73,6 +85,10 @@ class ProjectModel extends HiveObject {
     this.priority = 1,
     this.notes,
     this.tags = const [],
+    this.targetType = 'daily',
+    this.dailySessionTarget = 2,
+    this.weeklySessionTarget = 10,
+    this.preferredWorkHour,
   });
 
   // Convenience getters
@@ -87,19 +103,28 @@ class ProjectModel extends HiveObject {
   }
 
   int get todayTarget {
-    final today = DateTime.now().weekday;
-    return weeklyPomodoroTargets[today] ?? 0;
+    if (targetType == 'daily') {
+      return dailySessionTarget;
+    } else {
+      // For weekly targets, distribute across active days
+      final activeDaysThisWeek = activeDays.length;
+      return activeDaysThisWeek > 0
+          ? (weeklySessionTarget / activeDaysThisWeek).ceil()
+          : 0;
+    }
   }
 
   int get todayCompleted {
     final today = DateTime.now();
-    final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final dateKey =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     return dailyStats[dateKey] ?? 0;
   }
 
   double get todayProgress {
-    if (todayTarget == 0) return 0.0;
-    return (todayCompleted / todayTarget).clamp(0.0, 1.0);
+    final target = todayTarget;
+    if (target == 0) return 0.0;
+    return (todayCompleted / target).clamp(0.0, 1.0);
   }
 
   bool get isTodayComplete {
@@ -121,7 +146,8 @@ class ProjectModel extends HiveObject {
 
     for (int i = 0; i < 7; i++) {
       final day = startOfWeek.add(Duration(days: i));
-      final dateKey = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+      final dateKey =
+          '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
       weeklyCount += dailyStats[dateKey] ?? 0;
     }
 
@@ -143,7 +169,8 @@ class ProjectModel extends HiveObject {
   // Methods
   void addPomodoroSession({DateTime? date}) {
     final sessionDate = date ?? DateTime.now();
-    final dateKey = '${sessionDate.year}-${sessionDate.month.toString().padLeft(2, '0')}-${sessionDate.day.toString().padLeft(2, '0')}';
+    final dateKey =
+        '${sessionDate.year}-${sessionDate.month.toString().padLeft(2, '0')}-${sessionDate.day.toString().padLeft(2, '0')}';
 
     dailyStats[dateKey] = (dailyStats[dateKey] ?? 0) + 1;
     totalCompletedPomodoros++;
@@ -219,7 +246,8 @@ class ProjectModel extends HiveObject {
     final end = DateTime(endDate.year, endDate.month, endDate.day);
 
     while (!current.isAfter(end)) {
-      final dateKey = '${current.year}-${current.month.toString().padLeft(2, '0')}-${current.day.toString().padLeft(2, '0')}';
+      final dateKey =
+          '${current.year}-${current.month.toString().padLeft(2, '0')}-${current.day.toString().padLeft(2, '0')}';
       count += dailyStats[dateKey] ?? 0;
       current = current.add(Duration(days: 1));
     }

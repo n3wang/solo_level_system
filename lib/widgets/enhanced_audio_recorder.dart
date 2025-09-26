@@ -348,6 +348,10 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
             child: Text('Cancel'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
               if (_tagController.text.isNotEmpty) {
                 _tags = _tagController.text

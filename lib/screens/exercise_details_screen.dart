@@ -96,7 +96,8 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
         onPressed: _startQuickWorkout,
         icon: Icon(Icons.play_arrow),
         label: Text('Quick Start'),
-        backgroundColor: Colors.green,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
       ),
     );
   }
