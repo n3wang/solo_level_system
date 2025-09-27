@@ -5,6 +5,7 @@ import 'package:solo_level_system/models/user_settings_model.dart';
 import 'package:solo_level_system/models/config_model.dart';
 import 'package:solo_level_system/models/audio_settings_model.dart';
 import 'package:solo_level_system/utils/notification_service.dart';
+import 'package:solo_level_system/utils/timer_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -19,6 +20,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   AudioSettingsModel audioSettings = AudioSettingsModel();
   bool _isLoading = true;
   final _notificationService = NotificationService();
+  final _timerController = TimerController();
 
   @override
   void initState() {
@@ -532,30 +534,34 @@ class _SettingsScreenState extends State<SettingsScreen>
         isRunning: true,
         isBreak: false,
         onPlay: () {
+          _timerController.startTimer();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Play button pressed!')),
+              SnackBar(content: Text('Timer started!')),
             );
           }
         },
         onPause: () {
+          _timerController.pauseTimer();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Pause button pressed!')),
+              SnackBar(content: Text('Timer paused!')),
             );
           }
         },
         onReset: () {
+          _timerController.resetTimer();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Reset button pressed!')),
+              SnackBar(content: Text('Timer reset!')),
             );
           }
         },
         onMute: () {
+          _timerController.toggleMute();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Mute button pressed!')),
+              SnackBar(content: Text('Audio toggled!')),
             );
           }
         },

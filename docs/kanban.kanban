@@ -79,15 +79,6 @@
       "title": "Doing",
       "cards": [
         {
-          "id": "f937d620-e1be-405c-b0f8-cb7d1b48c889",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Better stats",
-          "description": "The stats should display ",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
           "id": "ccdd09ea-116f-4910-9917-b86499807876",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
           "title": "Better Hands off controls",
@@ -110,6 +101,15 @@
               "checked": false
             }
           ],
+          "comments": []
+        },
+        {
+          "id": "f937d620-e1be-405c-b0f8-cb7d1b48c889",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Better stats",
+          "description": "The stats should display ",
+          "labels": [],
+          "checkboxes": [],
           "comments": []
         }
       ]

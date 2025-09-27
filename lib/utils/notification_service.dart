@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:solo_level_system/utils/timer_controller.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -69,19 +70,20 @@ class NotificationService {
 
   void _onNotificationTap(NotificationResponse notificationResponse) {
     final String? actionId = notificationResponse.actionId;
+    final timerController = TimerController();
 
     switch (actionId) {
       case 'play':
-        _onPlay?.call();
+        timerController.startTimer();
         break;
       case 'pause':
-        _onPause?.call();
+        timerController.pauseTimer();
         break;
       case 'reset':
-        _onReset?.call();
+        timerController.resetTimer();
         break;
       case 'mute':
-        _onMute?.call();
+        timerController.toggleMute();
         break;
       default:
         // Handle regular notification tap (open app)
