@@ -83,6 +83,7 @@
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
           "title": "Better Hands off controls",
           "description": "When going out of the application it should display inthe notification section setting shte counter and the play stop controls",
+<<<<<<< HEAD
           "labels": [],
           "checkboxes": [
             {
@@ -108,15 +109,40 @@
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
           "title": "Better stats",
           "description": "The stats should display ",
+=======
+>>>>>>> a67bcccb2a116c6d7b3cc9b8e1bde9e6033b3114
           "labels": [],
-          "checkboxes": [],
+          "checkboxes": [
+            {
+              "id": "a8a2f74b-588d-4dfe-a9dc-246e367929fa",
+              "title": "Notification",
+              "checked": true
+            },
+            {
+              "id": "fd865014-dec7-4431-b1ef-fd973b5cf067",
+              "title": "The pause and stop button doesnt actually work, Do the refactor to make it work",
+              "checked": false
+            },
+            {
+              "id": "55206dcd-4147-4293-aefb-f673fe7a9210",
+              "title": "The controls should change after pause to reset, also replace stop with mute. (foir audio muting)",
+              "checked": false
+            }
+          ],
           "comments": []
         },
         {
+<<<<<<< HEAD
           "id": "f51ff656-e8e0-415f-aae4-353a45550efd",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
           "title": "the projects got removed after reflactring, the user should be able to choose the project chips on top of the timer block",
           "description": "the selectable projects chips got removed after reafcatoring (or is not retrieving the avialable projects), the user should be able to choose the project chips on top of the timer block",
+=======
+          "id": "f937d620-e1be-405c-b0f8-cb7d1b48c889",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Better stats",
+          "description": "The stats should display ",
+>>>>>>> a67bcccb2a116c6d7b3cc9b8e1bde9e6033b3114
           "labels": [],
           "checkboxes": [],
           "comments": []
@@ -128,6 +154,7 @@
       "title": "Done",
       "cards": [
         {
+<<<<<<< HEAD
           "id": "56f0591e-34b3-43a9-876e-f00b160babe7",
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
           "title": "the time pause doenst show",
@@ -137,6 +164,8 @@
           "comments": []
         },
         {
+=======
+>>>>>>> a67bcccb2a116c6d7b3cc9b8e1bde9e6033b3114
           "id": "8c5bc363-2ef2-4f87-846b-628ded68a974",
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
           "title": "Habits and Projects Creations",

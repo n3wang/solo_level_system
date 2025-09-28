@@ -72,7 +72,8 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
               heroTag: "workout_mode_active_session",
               onPressed: () => _navigateToActiveWorkout(),
               child: Icon(Icons.play_arrow),
-              backgroundColor: Colors.green,
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
             )
           : null,
     );
@@ -1035,6 +1036,10 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
               child: Text('Cancel'),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () async {
                 if (_nameController.text.trim().isNotEmpty) {
                   await _quickCreateExercise(

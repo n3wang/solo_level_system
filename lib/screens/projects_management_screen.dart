@@ -5,7 +5,8 @@ import 'package:solo_level_system/models/project_model.dart';
 
 class ProjectsManagementScreen extends StatefulWidget {
   @override
-  _ProjectsManagementScreenState createState() => _ProjectsManagementScreenState();
+  _ProjectsManagementScreenState createState() =>
+      _ProjectsManagementScreenState();
 }
 
 class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
@@ -23,11 +24,20 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
 
   Future<void> _loadProjects() async {
     try {
+      print('Loading projects...');
+
       if (!Hive.isBoxOpen('projects')) {
+        print('Projects box not open, opening it...');
         await Hive.openBox<ProjectModel>('projects');
       }
+
       final box = Hive.box<ProjectModel>('projects');
       projects = box.values.toList();
+
+      print('Loaded ${projects.length} projects');
+      for (var project in projects) {
+        print('Project: ${project.name}');
+      }
 
       setState(() {
         isLoading = false;
@@ -50,16 +60,23 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text('Projects')),
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Projects'),
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
           tabs: [
             Tab(icon: Icon(Icons.folder), text: 'Active'),
             Tab(icon: Icon(Icons.archive), text: 'Archived'),
@@ -68,13 +85,12 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildActiveProjectsTab(),
-          _buildArchivedProjectsTab(),
-        ],
+        children: [_buildActiveProjectsTab(), _buildArchivedProjectsTab()],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showCreateProjectDialog,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
         icon: Icon(Icons.add),
         label: Text('New Project'),
       ),
@@ -116,10 +132,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
               Text(
                 'Create your first project to organize your pomodoro sessions!',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
               ),
             ],
           ],
@@ -213,22 +226,31 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                       ],
                     ),
                   ),
-                  if (!isActive)
-                    Icon(Icons.archive, color: Colors.grey[500]),
+                  if (!isActive) Icon(Icons.archive, color: Colors.grey[500]),
                 ],
               ),
               SizedBox(height: 12),
               Row(
                 children: [
-                  _buildStatChip('Sessions', '${project.totalCompletedPomodoros}', Icons.timer),
+                  _buildStatChip(
+                    'Sessions',
+                    '${project.totalCompletedPomodoros}',
+                    Icons.timer,
+                  ),
                   SizedBox(width: 8),
-                  _buildStatChip('Progress', project.progressText, Icons.trending_up),
+                  _buildStatChip(
+                    'Progress',
+                    project.progressText,
+                    Icons.trending_up,
+                  ),
                   if (project.priority > 0) ...[
                     SizedBox(width: 8),
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: _getPriorityColor(project.priority).withOpacity(0.1),
+                        color: _getPriorityColor(
+                          project.priority,
+                        ).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -264,10 +286,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
           SizedBox(width: 4),
           Text(
             '$label: $value',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[700],
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
           ),
         ],
       ),
@@ -335,10 +354,19 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildDetailRow('Total Sessions', '${project.totalCompletedPomodoros}'),
+                      _buildDetailRow(
+                        'Total Sessions',
+                        '${project.totalCompletedPomodoros}',
+                      ),
                       _buildDetailRow('Progress', project.progressText),
-                      _buildDetailRow('Created', _formatDate(project.createdAt)),
-                      _buildDetailRow('Priority', _getPriorityText(project.priority)),
+                      _buildDetailRow(
+                        'Created',
+                        _formatDate(project.createdAt),
+                      ),
+                      _buildDetailRow(
+                        'Priority',
+                        _getPriorityText(project.priority),
+                      ),
                       _buildDetailRow('Status', project.statusText),
                       if (project.tags.isNotEmpty) ...[
                         SizedBox(height: 16),
@@ -349,10 +377,19 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                         SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
-                          children: project.tags.map((tag) => Chip(
-                            label: Text(tag),
-                            backgroundColor: Colors.grey[100],
-                          )).toList(),
+                          children: project.tags
+                              .map(
+                                (tag) => Chip(
+                                  label: Text(tag),
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).primaryColor.withOpacity(0.1),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                ),
+                              )
+                              .toList(),
                         ),
                       ],
                     ],
@@ -383,10 +420,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
+            child: Text(value, style: TextStyle(fontWeight: FontWeight.w500)),
           ),
         ],
       ),
@@ -443,7 +477,9 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete Project'),
-        content: Text('Are you sure you want to delete "${project.name}"? This action cannot be undone.'),
+        content: Text(
+          'Are you sure you want to delete "${project.name}"? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -457,9 +493,9 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                 projects.remove(project);
               });
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Project deleted')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Project deleted')));
             },
             child: Text('Delete', style: TextStyle(color: Colors.white)),
           ),
@@ -475,108 +511,282 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
   void _showProjectDialog({ProjectModel? project}) {
     final isEditing = project != null;
     final nameController = TextEditingController(text: project?.name ?? '');
-    final descriptionController = TextEditingController(text: project?.description ?? '');
+    final descriptionController = TextEditingController(
+      text: project?.description ?? '',
+    );
     String selectedColor = project?.color ?? '#2196F3';
     String selectedIcon = project?.iconName ?? 'folder';
     int selectedPriority = project?.priority ?? 1;
+    String selectedTargetType = project?.targetType ?? 'daily';
+    int selectedDailyTarget = project?.dailySessionTarget ?? 2;
+    int selectedWeeklyTarget = project?.weeklySessionTarget ?? 10;
+    int? selectedWorkHour = project?.preferredWorkHour;
+    List<int> selectedActiveDays = List.from(
+      project?.activeDays ?? [1, 2, 3, 4, 5],
+    );
+    final dailyTargetController = TextEditingController(
+      text: selectedDailyTarget.toString(),
+    );
+    final weeklyTargetController = TextEditingController(
+      text: selectedWeeklyTarget.toString(),
+    );
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isEditing ? 'Edit Project' : 'Create New Project'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Project Name',
-                  hintText: 'e.g., "Learn Flutter"',
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(isEditing ? 'Edit Project' : 'Create New Project'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Project Name',
+                    hintText: 'e.g., "Learn Flutter"',
+                  ),
                 ),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description (Optional)',
-                  hintText: 'Brief description of your project',
+                SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: InputDecoration(
+                    labelText: 'Description (Optional)',
+                    hintText: 'Brief description of your project',
+                  ),
+                  maxLines: 2,
                 ),
-                maxLines: 2,
-              ),
-              SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                value: selectedPriority,
-                decoration: InputDecoration(labelText: 'Priority'),
-                items: [
-                  DropdownMenuItem(value: 1, child: Text('Low')),
-                  DropdownMenuItem(value: 2, child: Text('Medium')),
-                  DropdownMenuItem(value: 3, child: Text('High')),
-                  DropdownMenuItem(value: 4, child: Text('Urgent')),
-                ],
-                onChanged: (value) {
-                  if (value != null) selectedPriority = value;
-                },
-              ),
-            ],
+                SizedBox(height: 16),
+                DropdownButtonFormField<int>(
+                  value: selectedPriority,
+                  decoration: InputDecoration(labelText: 'Priority'),
+                  items: [
+                    DropdownMenuItem(value: 1, child: Text('Low')),
+                    DropdownMenuItem(value: 2, child: Text('Medium')),
+                    DropdownMenuItem(value: 3, child: Text('High')),
+                    DropdownMenuItem(value: 4, child: Text('Urgent')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) selectedPriority = value;
+                  },
+                ),
+                SizedBox(height: 16),
+                // Target Type Selection
+                DropdownButtonFormField<String>(
+                  value: selectedTargetType,
+                  decoration: InputDecoration(labelText: 'Target Type'),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'daily',
+                      child: Text('Daily Target'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'weekly',
+                      child: Text('Weekly Target'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        selectedTargetType = value;
+                      });
+                    }
+                  },
+                ),
+                SizedBox(height: 16),
+                // Session Target Input
+                if (selectedTargetType == 'daily')
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: 'Daily Session Target',
+                      hintText: 'Number of sessions per day',
+                    ),
+                    keyboardType: TextInputType.number,
+                    controller: dailyTargetController,
+                    onChanged: (value) {
+                      selectedDailyTarget =
+                          int.tryParse(value) ?? selectedDailyTarget;
+                    },
+                  ),
+                if (selectedTargetType == 'weekly')
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: 'Weekly Session Target',
+                      hintText: 'Number of sessions per week',
+                    ),
+                    keyboardType: TextInputType.number,
+                    controller: weeklyTargetController,
+                    onChanged: (value) {
+                      selectedWeeklyTarget =
+                          int.tryParse(value) ?? selectedWeeklyTarget;
+                    },
+                  ),
+                SizedBox(height: 16),
+                // Active Days Selection
+                Text(
+                  'Active Days:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (int day = 1; day <= 7; day++)
+                      FilterChip(
+                        label: Text(_getDayName(day)),
+                        selected: selectedActiveDays.contains(day),
+                        selectedColor: Colors.green.withOpacity(0.6),
+                        checkmarkColor: Theme.of(context).primaryColor,
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              selectedActiveDays.add(day);
+                            } else {
+                              selectedActiveDays.remove(day);
+                            }
+                          });
+                        },
+                      ),
+                  ],
+                ),
+                SizedBox(height: 16),
+                // Preferred Work Hour
+                DropdownButtonFormField<int?>(
+                  dropdownColor: Theme.of(context).canvasColor,
+                  value: selectedWorkHour,
+                  decoration: InputDecoration(
+                    labelText: 'Preferred Work Hour (Optional)',
+                  ),
+                  items: [
+                    DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('No preference'),
+                    ),
+                    for (int hour = 0; hour < 24; hour++)
+                      DropdownMenuItem<int?>(
+                        value: hour,
+                        child: Text('${hour.toString().padLeft(2, '0')}:00'),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      selectedWorkHour = value;
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty) {
-                if (isEditing) {
-                  project.name = nameController.text;
-                  project.description = descriptionController.text;
-                  project.priority = selectedPriority;
-                  project.save();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Project updated!')),
-                  );
-                } else {
-                  _createProject(
-                    nameController.text,
-                    descriptionController.text,
-                    selectedColor,
-                    selectedIcon,
-                    selectedPriority,
-                  );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                if (nameController.text.isNotEmpty) {
+                  if (isEditing) {
+                    project.name = nameController.text;
+                    project.description = descriptionController.text;
+                    project.priority = selectedPriority;
+                    project.targetType = selectedTargetType;
+                    project.dailySessionTarget = selectedDailyTarget;
+                    project.weeklySessionTarget = selectedWeeklyTarget;
+                    project.preferredWorkHour = selectedWorkHour;
+                    project.activeDays = selectedActiveDays;
+                    project.save();
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Project updated!')));
+                  } else {
+                    _createProject(
+                      nameController.text,
+                      descriptionController.text,
+                      selectedColor,
+                      selectedIcon,
+                      selectedPriority,
+                      selectedTargetType,
+                      selectedDailyTarget,
+                      selectedWeeklyTarget,
+                      selectedWorkHour,
+                      selectedActiveDays,
+                    );
+                  }
+                  Navigator.of(context).pop();
                 }
-                Navigator.of(context).pop();
-              }
-            },
-            child: Text(isEditing ? 'Update' : 'Create'),
-          ),
-        ],
+              },
+              child: Text(isEditing ? 'Update' : 'Create'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _createProject(String name, String description, String color, String icon, int priority) async {
-    final project = ProjectModel(
-      id: 'project_${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
-      description: description,
-      color: color,
-      iconName: icon,
-      priority: priority,
-      createdAt: DateTime.now(),
-    );
+  Future<void> _createProject(
+    String name,
+    String description,
+    String color,
+    String icon,
+    int priority,
+    String targetType,
+    int dailyTarget,
+    int weeklyTarget,
+    int? workHour,
+    List<int> activeDays,
+  ) async {
+    try {
+      print('Creating project with name: $name');
 
-    final box = Hive.box<ProjectModel>('projects');
-    await box.add(project);
+      final project = ProjectModel(
+        id: 'project_${DateTime.now().millisecondsSinceEpoch}',
+        name: name,
+        description: description,
+        color: color,
+        iconName: icon,
+        priority: priority,
+        targetType: targetType,
+        dailySessionTarget: dailyTarget,
+        weeklySessionTarget: weeklyTarget,
+        preferredWorkHour: workHour,
+        activeDays: activeDays,
+        createdAt: DateTime.now(),
+      );
 
-    setState(() {
-      projects.add(project);
-    });
+      print('Project object created successfully');
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('🎉 Project created!')),
-    );
+      // Ensure the box is open
+      if (!Hive.isBoxOpen('projects')) {
+        await Hive.openBox<ProjectModel>('projects');
+        print('Opened projects box');
+      }
+
+      final box = Hive.box<ProjectModel>('projects');
+      await box.add(project);
+      print('Project saved to Hive');
+
+      setState(() {
+        projects.add(project);
+      });
+
+      print('UI updated with new project');
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('🎉 Project created!')));
+    } catch (e) {
+      print('Error creating project: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating project: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Color _parseColor(String colorHex) {
@@ -589,21 +799,31 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
 
   Color _getPriorityColor(int priority) {
     switch (priority) {
-      case 1: return Colors.green;
-      case 2: return Colors.orange;
-      case 3: return Colors.red;
-      case 4: return Colors.purple;
-      default: return Colors.grey;
+      case 1:
+        return Colors.green;
+      case 2:
+        return Colors.orange;
+      case 3:
+        return Colors.red;
+      case 4:
+        return Colors.purple;
+      default:
+        return Colors.grey;
     }
   }
 
   String _getPriorityText(int priority) {
     switch (priority) {
-      case 1: return 'Low';
-      case 2: return 'Medium';
-      case 3: return 'High';
-      case 4: return 'Urgent';
-      default: return 'None';
+      case 1:
+        return 'Low';
+      case 2:
+        return 'Medium';
+      case 3:
+        return 'High';
+      case 4:
+        return 'Urgent';
+      default:
+        return 'None';
     }
   }
 
@@ -613,19 +833,53 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
 
   IconData _getIconData(String iconName) {
     switch (iconName) {
-      case 'work': return Icons.work;
-      case 'school': return Icons.school;
-      case 'fitness_center': return Icons.fitness_center;
-      case 'palette': return Icons.palette;
-      case 'code': return Icons.code;
-      case 'music_note': return Icons.music_note;
-      case 'home': return Icons.home;
-      case 'business': return Icons.business;
-      case 'psychology': return Icons.psychology;
-      case 'science': return Icons.science;
-      case 'book': return Icons.book;
-      case 'camera': return Icons.camera_alt;
-      default: return Icons.folder;
+      case 'work':
+        return Icons.work;
+      case 'school':
+        return Icons.school;
+      case 'fitness_center':
+        return Icons.fitness_center;
+      case 'palette':
+        return Icons.palette;
+      case 'code':
+        return Icons.code;
+      case 'music_note':
+        return Icons.music_note;
+      case 'home':
+        return Icons.home;
+      case 'business':
+        return Icons.business;
+      case 'psychology':
+        return Icons.psychology;
+      case 'science':
+        return Icons.science;
+      case 'book':
+        return Icons.book;
+      case 'camera':
+        return Icons.camera_alt;
+      default:
+        return Icons.folder;
+    }
+  }
+
+  String _getDayName(int day) {
+    switch (day) {
+      case 1:
+        return 'Mon';
+      case 2:
+        return 'Tue';
+      case 3:
+        return 'Wed';
+      case 4:
+        return 'Thu';
+      case 5:
+        return 'Fri';
+      case 6:
+        return 'Sat';
+      case 7:
+        return 'Sun';
+      default:
+        return '';
     }
   }
 }

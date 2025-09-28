@@ -4,6 +4,8 @@ import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
 import 'package:solo_level_system/models/config_model.dart';
 import 'package:solo_level_system/models/audio_settings_model.dart';
+import 'package:solo_level_system/utils/notification_service.dart';
+import 'package:solo_level_system/utils/timer_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -17,6 +19,8 @@ class _SettingsScreenState extends State<SettingsScreen>
   ConfigModel config = ConfigModel.getDefault();
   AudioSettingsModel audioSettings = AudioSettingsModel();
   bool _isLoading = true;
+  final _notificationService = NotificationService();
+  final _timerController = TimerController();
 
   @override
   void initState() {
@@ -118,7 +122,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
-
   @override
   void dispose() {
     _tabController.dispose();
@@ -129,7 +132,6 @@ class _SettingsScreenState extends State<SettingsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings'),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -277,7 +279,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-
   Widget _buildNotificationsTab() {
     return ListView(
       padding: EdgeInsets.all(16),
@@ -325,6 +326,16 @@ class _SettingsScreenState extends State<SettingsScreen>
               });
               await _saveUserSettings();
             },
+          ),
+        ),
+        Divider(),
+        _buildSectionHeader('Test Notifications'),
+        ListTile(
+          title: Text('Test Notification'),
+          subtitle: Text('Test if notifications are working properly'),
+          trailing: ElevatedButton(
+            onPressed: _testNotification,
+            child: Text('Test'),
           ),
         ),
         Divider(),
@@ -537,6 +548,67 @@ class _SettingsScreenState extends State<SettingsScreen>
         ),
       ],
     );
+  }
+
+  Future<void> _testNotification() async {
+    try {
+      await _notificationService.initialize();
+      await _notificationService.showTimerNotification(
+        remainingSeconds: 1500, // 25:00
+        isRunning: true,
+        isBreak: false,
+        onPlay: () {
+          _timerController.startTimer();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Timer started!')),
+            );
+          }
+        },
+        onPause: () {
+          _timerController.pauseTimer();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Timer paused!')),
+            );
+          }
+        },
+        onReset: () {
+          _timerController.resetTimer();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Timer reset!')),
+            );
+          }
+        },
+        onMute: () {
+          _timerController.toggleMute();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Audio toggled!')),
+            );
+          }
+        },
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Test notification sent! Check your notification panel.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send notification: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildSectionHeader(String title) {

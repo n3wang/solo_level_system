@@ -898,3 +898,259 @@ setState(() {
 - User preference learning
 
 This event-driven sound effects system enhances user experience by providing immediate, contextual audio feedback while maintaining clean architecture and proper error handling.
+
+## Flutter Local Notifications with Android Integration
+
+### Background Timer Notifications Implementation
+
+When building productivity apps like pomodoro timers, users need to see timer progress and controls even when the app is in the background. This requires proper notification setup with Android permissions.
+
+#### 1. **Notification Service Architecture**
+```dart
+class NotificationService {
+  static final NotificationService _instance = NotificationService._internal();
+  factory NotificationService() => _instance;
+  NotificationService._internal();
+
+  final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
+  Timer? _updateTimer;
+  int _remainingSeconds = 0;
+}
+```
+
+**Key Design Decisions:**
+- Singleton pattern ensures single notification instance
+- Internal timer for countdown updates
+- State tracking for pause/resume functionality
+
+#### 2. **Android Manifest Permissions**
+```xml
+<!-- Required for notification functionality -->
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+<uses-permission android:name="android.permission.VIBRATE" />
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+```
+
+**Permission Rationale:**
+- `POST_NOTIFICATIONS`: Required for Android 13+ notification display
+- `WAKE_LOCK`: Keep timer running when screen is off
+- `VIBRATE`: Optional vibration for timer completion
+- `FOREGROUND_SERVICE`: For persistent timer notifications
+
+#### 3. **Ongoing Notification Configuration**
+```dart
+final AndroidNotificationDetails androidNotificationDetails = AndroidNotificationDetails(
+  'pomodoro_timer',
+  'Pomodoro Timer',
+  channelDescription: 'Notification for pomodoro timer controls',
+  importance: Importance.low,         // Avoid interrupting user
+  priority: Priority.low,             // Less intrusive
+  ongoing: true,                      // Cannot be swiped away
+  autoCancel: false,                  // Persist until manually cleared
+  showWhen: false,                    // Don't show timestamp
+  category: AndroidNotificationCategory.stopwatch,
+  actions: _buildNotificationActions(isRunning),
+);
+```
+
+**Configuration Benefits:**
+- Low importance/priority prevents interruption
+- Ongoing status keeps notification persistent
+- Stopwatch category optimizes for timer use case
+- Action buttons provide direct control
+
+#### 4. **Real-time Timer Updates**
+```dart
+void _startUpdateTimer() {
+  _hasActiveTimer = true;
+  _updateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    if (_remainingSeconds > 0) {
+      _remainingSeconds--;
+      _updateNotificationTime();
+    } else {
+      _stopUpdateTimer();
+    }
+  });
+}
+
+void _updateNotificationTime() {
+  final String timeText = formatTime(_remainingSeconds);
+  final String status = _isBreak ? 'Break' : 'Focus';
+  final String title = '$status Time - $timeText';
+
+  _notifications.show(1, title, 'Tap to open app', notificationDetails);
+}
+```
+
+**Update Strategy:**
+- Separate timer for notification updates
+- Efficient string formatting for countdown display
+- Memory management with proper timer disposal
+
+#### 5. **App Lifecycle Integration**
+```dart
+@override
+void didChangeAppLifecycleState(AppLifecycleState state) {
+  super.didChangeAppLifecycleState(state);
+  if (state == AppLifecycleState.resumed) {
+    _loadProjects();
+  } else if (state == AppLifecycleState.paused ||
+             state == AppLifecycleState.inactive) {
+    if (isRunning) {
+      _notificationService.showTimerNotification(
+        remainingSeconds: remainingSeconds,
+        isRunning: isRunning,
+        isBreak: onBreak,
+        onPlay: startTimer,
+        onPause: stopTimer,
+        onStop: resetTimer,
+      );
+    }
+  }
+}
+```
+
+**Lifecycle Management:**
+- Show notification when app goes to background
+- Hide notification when app returns to foreground
+- Maintain timer state consistency
+
+#### 6. **Notification Action Callbacks**
+```dart
+void _onNotificationTap(NotificationResponse notificationResponse) {
+  final String? payload = notificationResponse.payload;
+
+  switch (payload) {
+    case 'play':
+      _onPlay?.call();
+      break;
+    case 'pause':
+      _onPause?.call();
+      break;
+    case 'stop':
+      _onStop?.call();
+      break;
+  }
+}
+
+List<AndroidNotificationAction> _buildNotificationActions(bool isRunning) {
+  return [
+    if (isRunning)
+      const AndroidNotificationAction('pause', 'Pause', cancelNotification: false)
+    else
+      const AndroidNotificationAction('play', 'Play', cancelNotification: false),
+    const AndroidNotificationAction('stop', 'Stop', cancelNotification: false),
+  ];
+}
+```
+
+**Action System:**
+- Dynamic action buttons based on current state
+- Callback system links notifications to app logic
+- Non-canceling actions maintain notification persistence
+
+### Testing and Debugging Notifications
+
+#### 1. **Test Button Implementation**
+```dart
+Future<void> _testNotification() async {
+  try {
+    await _notificationService.initialize();
+    await _notificationService.showTimerNotification(
+      remainingSeconds: 1500, // 25:00
+      isRunning: true,
+      isBreak: false,
+      onPlay: () => _showTestResult('Play button pressed!'),
+      onPause: () => _showTestResult('Pause button pressed!'),
+      onStop: () => _showTestResult('Stop button pressed!'),
+    );
+  } catch (e) {
+    _showError('Failed to send notification: $e');
+  }
+}
+```
+
+**Testing Benefits:**
+- Manual notification testing without timer dependency
+- Immediate feedback on notification functionality
+- Easy debugging of permission issues
+
+#### 2. **Common Debugging Issues**
+- **Permissions**: Android 13+ requires runtime permission requests
+- **Initialization**: Service must be initialized before use
+- **Channel Registration**: Notification channels must be created first
+- **Action IDs**: Unique action identifiers prevent conflicts
+
+#### 3. **Error Handling Patterns**
+```dart
+Future<void> showTimerNotification({...}) async {
+  if (!_isInitialized) await initialize();
+
+  try {
+    await _notifications.show(1, title, body, notificationDetails);
+  } catch (e) {
+    print('Notification error: $e');
+    // Fail gracefully - don't crash the app
+  }
+}
+```
+
+**Resilience Strategies:**
+- Graceful degradation when notifications fail
+- Silent error handling to maintain app stability
+- Automatic initialization attempts
+
+### Integration Best Practices
+
+#### 1. **Service Initialization Order**
+```dart
+void _safeInitialize() async {
+  try {
+    await _loadConfig();
+    await _loadUserSettings();
+    await _backgroundMusicService.initialize();
+    await _notificationService.initialize(); // After other services
+    // Continue with app setup
+  } catch (e) {
+    // Handle initialization errors
+  }
+}
+```
+
+#### 2. **Resource Cleanup**
+```dart
+@override
+void dispose() {
+  timer?.cancel();
+  _backgroundMusicService.dispose();
+  _soundEffectsService.dispose();
+  _notificationService.dispose(); // Clean up notification timers
+  super.dispose();
+}
+```
+
+#### 3. **State Synchronization**
+- Ensure notification state matches app timer state
+- Handle edge cases like app termination during timer
+- Provide user feedback for notification permissions
+
+### Performance Considerations
+
+#### 1. **Efficient Updates**
+- Only update notification text when time changes
+- Batch multiple state changes
+- Use lightweight string formatting
+
+#### 2. **Memory Management**
+- Cancel timers when not needed
+- Dispose of notification plugin properly
+- Avoid memory leaks in callback functions
+
+#### 3. **Battery Optimization**
+- Use low-priority notifications
+- Minimize update frequency when appropriate
+- Respect system doze mode and app standby
+
+This notification implementation provides seamless background timer functionality while maintaining good Android citizenship and user experience standards.

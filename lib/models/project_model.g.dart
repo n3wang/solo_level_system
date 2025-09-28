@@ -34,13 +34,17 @@ class ProjectModelAdapter extends TypeAdapter<ProjectModel> {
       priority: fields[14] as int,
       notes: fields[15] as String?,
       tags: (fields[16] as List).cast<String>(),
+      targetType: fields[17] as String,
+      dailySessionTarget: fields[18] as int,
+      weeklySessionTarget: fields[19] as int,
+      preferredWorkHour: fields[20] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ProjectModel obj) {
     writer
-      ..writeByte(17)
+      ..writeByte(21)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -74,7 +78,15 @@ class ProjectModelAdapter extends TypeAdapter<ProjectModel> {
       ..writeByte(15)
       ..write(obj.notes)
       ..writeByte(16)
-      ..write(obj.tags);
+      ..write(obj.tags)
+      ..writeByte(17)
+      ..write(obj.targetType)
+      ..writeByte(18)
+      ..write(obj.dailySessionTarget)
+      ..writeByte(19)
+      ..write(obj.weeklySessionTarget)
+      ..writeByte(20)
+      ..write(obj.preferredWorkHour);
   }
 
   @override

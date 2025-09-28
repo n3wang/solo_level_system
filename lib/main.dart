@@ -140,6 +140,54 @@ void main() async {
       print('✓ Recreated habits box');
     }
 
+    try {
+      await Hive.openBox<ProjectModel>('projects');
+      print('✓ Opened projects box');
+    } catch (e) {
+      print('⚠️ Error opening projects box, clearing and recreating: $e');
+      try {
+        await Hive.deleteBoxFromDisk('projects');
+      } catch (deleteError) {
+        print(
+          'Note: Could not delete projects box (may not exist): $deleteError',
+        );
+      }
+      await Hive.openBox<ProjectModel>('projects');
+      print('✓ Recreated projects box');
+    }
+
+    try {
+      await Hive.openBox<UserProgressModel>('userProgress');
+      print('✓ Opened userProgress box');
+    } catch (e) {
+      print('⚠️ Error opening userProgress box, clearing and recreating: $e');
+      try {
+        await Hive.deleteBoxFromDisk('userProgress');
+      } catch (deleteError) {
+        print(
+          'Note: Could not delete userProgress box (may not exist): $deleteError',
+        );
+      }
+      await Hive.openBox<UserProgressModel>('userProgress');
+      print('✓ Recreated userProgress box');
+    }
+
+    try {
+      await Hive.openBox<RewardModel>('rewards');
+      print('✓ Opened rewards box');
+    } catch (e) {
+      print('⚠️ Error opening rewards box, clearing and recreating: $e');
+      try {
+        await Hive.deleteBoxFromDisk('rewards');
+      } catch (deleteError) {
+        print(
+          'Note: Could not delete rewards box (may not exist): $deleteError',
+        );
+      }
+      await Hive.openBox<RewardModel>('rewards');
+      print('✓ Recreated rewards box');
+    }
+
     print('All Hive boxes opened successfully');
 
     runApp(MyApp());
