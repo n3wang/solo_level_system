@@ -38,13 +38,15 @@ class ProjectModelAdapter extends TypeAdapter<ProjectModel> {
       dailySessionTarget: fields[18] as int,
       weeklySessionTarget: fields[19] as int,
       preferredWorkHour: fields[20] as int?,
+      workDurationMinutes: fields[21] as int,
+      breakDurationMinutes: fields[22] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, ProjectModel obj) {
     writer
-      ..writeByte(21)
+      ..writeByte(23)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -86,7 +88,11 @@ class ProjectModelAdapter extends TypeAdapter<ProjectModel> {
       ..writeByte(19)
       ..write(obj.weeklySessionTarget)
       ..writeByte(20)
-      ..write(obj.preferredWorkHour);
+      ..write(obj.preferredWorkHour)
+      ..writeByte(21)
+      ..write(obj.workDurationMinutes)
+      ..writeByte(22)
+      ..write(obj.breakDurationMinutes);
   }
 
   @override

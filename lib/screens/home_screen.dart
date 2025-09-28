@@ -81,11 +81,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!_timerController.allowMusic) return;
 
     // Check user settings for audio control
-    if (!_timerController.onBreak && !(userSettings?.playAudioDuringWork ?? true)) {
+    if (!_timerController.onBreak &&
+        !(userSettings?.playAudioDuringWork ?? true)) {
       // Don't play music during work sessions if disabled
       return;
     }
-    if (_timerController.onBreak && !(userSettings?.playAudioDuringBreaks ?? false)) {
+    if (_timerController.onBreak &&
+        !(userSettings?.playAudioDuringBreaks ?? false)) {
       // Don't play music during break sessions if disabled
       return;
     }
@@ -345,8 +347,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final box = Hive.box<UserSettingsModel>('userSettings');
       userSettings = box.get('settings') ?? UserSettingsModel();
       setState(() {
-        workMinutes = userSettings!.defaultWorkMinutes;
-        breakMinutes = userSettings!.defaultBreakMinutes;
+        // If a project is selected, use its durations, otherwise use user defaults
+        if (selectedProject != null) {
+          workMinutes = selectedProject!.workDurationMinutes;
+          breakMinutes = selectedProject!.breakDurationMinutes;
+        } else {
+          workMinutes = userSettings!.defaultWorkMinutes;
+          breakMinutes = userSettings!.defaultBreakMinutes;
+        }
       });
 
       // Update timer controller with new durations
@@ -456,24 +464,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildTimerSection() {
     return Column(
       children: [
-        // Project selector - always show if there are projects
-        // When running and project selected: show only selected project
-        // When not running: show all projects for selection
-        // When paused (canSubmitLog): show selected project if any
-        if (projects.isNotEmpty &&
-            (!_timerController.isRunning ||
-                canSubmitLog ||
-                selectedProject != null))
+        // Project selector - show when there are projects
+        // Hide during active work sessions, show during breaks/paused/idle
+        if (projects.isNotEmpty)
           ProjectSelectorWidget(
             projects: projects,
             selectedProject: selectedProject,
+            isRunning: _timerController.isRunning,
+            canSubmitLog: canSubmitLog,
             onProjectSelected: (project) {
               setState(() {
                 selectedProject = project;
+                // Update timer durations based on selected project
+                if (project != null) {
+                  workMinutes = project.workDurationMinutes;
+                  breakMinutes = project.breakDurationMinutes;
+                  _timerController.updateDurations(workMinutes, breakMinutes);
+                } else {
+                  // No project selected, use user default settings
+                  workMinutes = userSettings?.defaultWorkMinutes ?? 25;
+                  breakMinutes = userSettings?.defaultBreakMinutes ?? 5;
+                  _timerController.updateDurations(workMinutes, breakMinutes);
+                }
               });
             },
-            isCollapsed:
-                _timerController.isRunning && !canSubmitLog, // Collapse when actively running
+            isCollapsed: false, // Always show full project info when visible
           ),
 
         // Timer with recording buttons when session complete

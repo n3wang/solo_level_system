@@ -67,6 +67,12 @@ class ProjectModel extends HiveObject {
   @HiveField(20)
   int? preferredWorkHour; // Preferred work hour (0-23), null if no preference
 
+  @HiveField(21)
+  int workDurationMinutes; // Custom work session duration in minutes
+
+  @HiveField(22)
+  int breakDurationMinutes; // Custom break session duration in minutes
+
   ProjectModel({
     required this.id,
     required this.name,
@@ -89,6 +95,8 @@ class ProjectModel extends HiveObject {
     this.dailySessionTarget = 2,
     this.weeklySessionTarget = 10,
     this.preferredWorkHour,
+    this.workDurationMinutes = 25, // Default 25 minutes work
+    this.breakDurationMinutes = 5, // Default 5 minutes break
   });
 
   // Convenience getters
@@ -271,6 +279,25 @@ class ProjectModel extends HiveObject {
     return (todayTarget - todayCompleted).clamp(0, todayTarget);
   }
 
+  // Methods for custom durations
+  String get durationInfo {
+    return '${workDurationMinutes}m work / ${breakDurationMinutes}m break';
+  }
+
+  void updateWorkDuration(int minutes) {
+    if (minutes > 0 && minutes <= 120) {
+      workDurationMinutes = minutes;
+      save();
+    }
+  }
+
+  void updateBreakDuration(int minutes) {
+    if (minutes > 0 && minutes <= 60) {
+      breakDurationMinutes = minutes;
+      save();
+    }
+  }
+
   @override
   String toString() {
     return 'ProjectModel(id: $id, name: $name, todayProgress: ${progressText})';
@@ -301,6 +328,8 @@ class ProjectCreationHelper {
     required String name,
     String? description,
     int priority = 1,
+    int workMinutes = 25,
+    int breakMinutes = 5,
   }) {
     final colorIndex = (priority - 1) % defaultColors.length;
     final iconIndex = (priority - 1) % defaultIcons.length;
@@ -321,6 +350,51 @@ class ProjectCreationHelper {
         4: 2, // Thursday
         5: 2, // Friday
       },
+      workDurationMinutes: workMinutes,
+      breakDurationMinutes: breakMinutes,
     );
+  }
+
+  // Preset project types with different durations
+  static ProjectModel createDrawingProject({
+    required String name,
+    String? description,
+    int priority = 1,
+  }) {
+    return createDefault(
+      name: name,
+      description: description,
+      priority: priority,
+      workMinutes: 50, // Longer work sessions for drawing
+      breakMinutes: 10, // Longer breaks for drawing
+    )..iconName = 'palette';
+  }
+
+  static ProjectModel createCodingProject({
+    required String name,
+    String? description,
+    int priority = 1,
+  }) {
+    return createDefault(
+      name: name,
+      description: description,
+      priority: priority,
+      workMinutes: 25, // Standard pomodoro for coding
+      breakMinutes: 5,
+    )..iconName = 'code';
+  }
+
+  static ProjectModel createStudyProject({
+    required String name,
+    String? description,
+    int priority = 1,
+  }) {
+    return createDefault(
+      name: name,
+      description: description,
+      priority: priority,
+      workMinutes: 45, // Longer sessions for deep study
+      breakMinutes: 15, // Longer breaks for study
+    )..iconName = 'school';
   }
 }
