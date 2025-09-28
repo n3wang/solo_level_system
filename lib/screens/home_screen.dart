@@ -81,11 +81,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!_timerController.allowMusic) return;
 
     // Check user settings for audio control
-    if (!onBreak && !(userSettings?.playAudioDuringWork ?? true)) {
+    if (!_timerController.onBreak && !(userSettings?.playAudioDuringWork ?? true)) {
       // Don't play music during work sessions if disabled
       return;
     }
-    if (onBreak && !(userSettings?.playAudioDuringBreaks ?? false)) {
+    if (_timerController.onBreak && !(userSettings?.playAudioDuringBreaks ?? false)) {
       // Don't play music during break sessions if disabled
       return;
     }
@@ -124,8 +124,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final shouldPlayDuringBreaks =
           userSettings?.playAudioDuringBreaks ?? false;
 
-      if ((!onBreak && !shouldPlayDuringWork) ||
-          (onBreak && !shouldPlayDuringBreaks)) {
+      if ((!_timerController.onBreak && !shouldPlayDuringWork) ||
+          (_timerController.onBreak && !shouldPlayDuringBreaks)) {
         _stopLofi();
       }
     }
@@ -138,52 +138,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
     });
     _playLofi(); // This now checks settings internally
-    timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (remainingSeconds <= 0) {
-        _stopLofi();
-        timer.cancel();
-        if (!onBreak) {
-          // Work session finished
-          _soundEffectsService.playWorkTimeCompleted();
-          setState(() {
-            isRunning = false;
-            canSubmitLog = true;
-            logStateMessage = "State: Finished – Submit Log";
-          });
-
-          // Auto-start break if enabled
-          if (userSettings?.autoStartBreaks == true) {
-            Future.delayed(Duration(seconds: 2), () {
-              if (canSubmitLog) {
-                // Only if user hasn't manually submitted
-                submitLog();
-              }
-            });
-          }
-        } else {
-          // Break finished
-          _soundEffectsService.playBreakTimeEnds();
-          setState(() {
-            onBreak = false;
-            isRunning = false;
-            remainingSeconds = workMinutes * 60;
-            logStateMessage = "State: Work";
-          });
-
-          // Auto-start work if enabled
-          if (userSettings?.autoStartWork == true) {
-            Future.delayed(Duration(seconds: 2), () {
-              if (!isRunning) {
-                // Only if user hasn't manually started
-                startTimer();
-              }
-            });
-          }
-        }
-      } else {
-        setState(() => remainingSeconds--);
-      }
-    });
+    _timerController.startTimer();
   }
 
   void submitLog() {
@@ -392,10 +347,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       setState(() {
         workMinutes = userSettings!.defaultWorkMinutes;
         breakMinutes = userSettings!.defaultBreakMinutes;
-        if (!isRunning && !onBreak) {
-          remainingSeconds = workMinutes * 60;
-        }
       });
+
+      // Update timer controller with new durations
+      _timerController.updateDurations(workMinutes, breakMinutes);
 
       // Handle audio settings change
       _handleAudioSettingsChange();
@@ -518,7 +473,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               });
             },
             isCollapsed:
-                isRunning && !canSubmitLog, // Collapse when actively running
+                _timerController.isRunning && !canSubmitLog, // Collapse when actively running
           ),
 
         // Timer with recording buttons when session complete
