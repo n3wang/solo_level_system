@@ -228,10 +228,24 @@ class _SettingsScreenState extends State<SettingsScreen>
                   userSettings.defaultWorkMinutes = value.round();
                 });
                 await _saveUserSettings();
+                _timerController.updateDurations(userSettings.defaultWorkMinutes, userSettings.defaultBreakMinutes);
               },
             ),
           ),
         ),
+        _buildPresetButtons(
+          title: 'Quick Work Presets',
+          values: [15, 25, 30, 50],
+          currentValue: userSettings.defaultWorkMinutes,
+          onSelected: (value) async {
+            setState(() {
+              userSettings.defaultWorkMinutes = value;
+            });
+            await _saveUserSettings();
+            _timerController.updateDurations(userSettings.defaultWorkMinutes, userSettings.defaultBreakMinutes);
+          },
+        ),
+        SizedBox(height: 16),
         ListTile(
           title: Text('Break Duration'),
           subtitle: Text('${userSettings.defaultBreakMinutes} minutes'),
@@ -247,9 +261,22 @@ class _SettingsScreenState extends State<SettingsScreen>
                   userSettings.defaultBreakMinutes = value.round();
                 });
                 await _saveUserSettings();
+                _timerController.updateDurations(userSettings.defaultWorkMinutes, userSettings.defaultBreakMinutes);
               },
             ),
           ),
+        ),
+        _buildPresetButtons(
+          title: 'Quick Break Presets',
+          values: [1, 5, 10],
+          currentValue: userSettings.defaultBreakMinutes,
+          onSelected: (value) async {
+            setState(() {
+              userSettings.defaultBreakMinutes = value;
+            });
+            await _saveUserSettings();
+            _timerController.updateDurations(userSettings.defaultWorkMinutes, userSettings.defaultBreakMinutes);
+          },
         ),
         Divider(),
         _buildSectionHeader('Automation'),
@@ -609,6 +636,64 @@ class _SettingsScreenState extends State<SettingsScreen>
         );
       }
     }
+  }
+
+  Widget _buildPresetButtons({
+    required String title,
+    required List<int> values,
+    required int currentValue,
+    required Function(int) onSelected,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: 16, top: 8, bottom: 8),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Wrap(
+            spacing: 8,
+            children: values.map((value) {
+              final isSelected = currentValue == value;
+              return GestureDetector(
+                onTap: () => onSelected(value),
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Theme.of(context).primaryColor
+                        : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected
+                          ? Theme.of(context).primaryColor
+                          : Colors.grey[300]!,
+                    ),
+                  ),
+                  child: Text(
+                    '${value}m',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey[700],
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildSectionHeader(String title) {
