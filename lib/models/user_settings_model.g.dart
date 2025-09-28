@@ -30,6 +30,8 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
       audioFormat: fields[10] as String,
       defaultAudioPath: fields[11] as String,
       enableNoiseReduction: fields[12] as bool,
+      playAudioDuringWork: fields[19] as bool,
+      playAudioDuringBreaks: fields[20] as bool,
       language: fields[13] as String,
       dateFormat: fields[14] as String,
       timeFormat: fields[15] as String,
@@ -42,7 +44,7 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
   @override
   void write(BinaryWriter writer, UserSettingsModel obj) {
     writer
-      ..writeByte(19)
+      ..writeByte(21)
       ..writeByte(0)
       ..write(obj.theme)
       ..writeByte(1)
@@ -69,6 +71,10 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
       ..write(obj.defaultAudioPath)
       ..writeByte(12)
       ..write(obj.enableNoiseReduction)
+      ..writeByte(19)
+      ..write(obj.playAudioDuringWork)
+      ..writeByte(20)
+      ..write(obj.playAudioDuringBreaks)
       ..writeByte(13)
       ..write(obj.language)
       ..writeByte(14)

@@ -22,7 +22,7 @@
           "id": "f1d9bc53-96d5-4f9b-9e86-536aeee5fb3f",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "Motivational cards for workout",
-          "description": "",
+          "description": "One should be able to create motivational cards and ",
           "labels": [],
           "checkboxes": [],
           "comments": []
@@ -44,6 +44,33 @@
           "labels": [],
           "checkboxes": [],
           "comments": []
+        },
+        {
+          "id": "26b305e6-64e3-461c-805f-75c81987c4b4",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Long hold on audio to have a selector of what song audio to play.",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "641883aa-e179-4abc-a590-0c61fad393cc",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "have an almbum manager on the configurations to toggle which musics to allow and which not ot.",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "93bca62b-4887-44c0-9c76-af5f74de96e0",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Solving the accent issues",
+          "description": "On dark mode I cant see what I am clicking. Also why does accent setting nt actually reflect on the aplication? Why the my rewards when tab is selected is purple and not my selected accent color on settings? Do I need to restart teh application to see this accent color changes?",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
         }
       ]
     },
@@ -52,19 +79,44 @@
       "title": "Doing",
       "cards": [
         {
-          "id": "8c5bc363-2ef2-4f87-846b-628ded68a974",
+          "id": "ccdd09ea-116f-4910-9917-b86499807876",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Habits and Projects Creations",
-          "description": "Create something called a project model , in which you can have set up project each project can be hooked  to havbits where to schedule count of times of pomodoros to perform on a weekday, on which weekday, which can be multiple weekdays you can have up to 6 projects. When working on the pomodoro you can select the project by pressing the project that you are working when the pomodoro is paused by having up to 6 squared small text tags for the project you are working, once selected the pomodoro becaomes only showing that project clicking again untoggles it and shows all the projects options. Th\n\n\n",
+          "title": "Better Hands off controls",
+          "description": "When going out of the application it should display inthe notification section setting shte counter and the play stop controls",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "a8a2f74b-588d-4dfe-a9dc-246e367929fa",
+              "title": "Notification",
+              "checked": true
+            },
+            {
+              "id": "fd865014-dec7-4431-b1ef-fd973b5cf067",
+              "title": "The pause and stop button doesnt actually work, Do the refactor to make it work",
+              "checked": false
+            },
+            {
+              "id": "55206dcd-4147-4293-aefb-f673fe7a9210",
+              "title": "The controls should change after pause to reset, also replace stop with mute. (foir audio muting)",
+              "checked": false
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "f937d620-e1be-405c-b0f8-cb7d1b48c889",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Better stats",
+          "description": "The stats should display ",
           "labels": [],
           "checkboxes": [],
           "comments": []
         },
         {
-          "id": "46add1df-fab5-46d8-bb40-2d6c60f5f73c",
+          "id": "f51ff656-e8e0-415f-aae4-353a45550efd",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Rewards and experience system",
-          "description": "\nCreate an experience and pointage system, The rewards system that provides 25 points and 25 experience for a block of 25 minutes of work. You can create your own rewards like \"3D printer allowance\" for 2000 pts meaning that u can spend 2000 pts to allow yourself to buy a 3d printer. and like so. The experience system is for unlocking more features on the application itself (will be used later) but for now have a screen in the analytics systems for viewing how many points and experience, management of rewards and and toggle distoggle features of the application that can only be toggled after certain experience points",
+          "title": "the projects got removed after reflactring, the user should be able to choose the project chips on top of the timer block",
+          "description": "the selectable projects chips got removed after reafcatoring (or is not retrieving the avialable projects), the user should be able to choose the project chips on top of the timer block",
           "labels": [],
           "checkboxes": [],
           "comments": []
@@ -75,6 +127,35 @@
       "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
       "title": "Done",
       "cards": [
+        {
+          "id": "56f0591e-34b3-43a9-876e-f00b160babe7",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "the time pause doenst show",
+          "description": "Swapping down only finishes the work session, even if is on the break time ",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "8c5bc363-2ef2-4f87-846b-628ded68a974",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Habits and Projects Creations",
+          "description": "Create something called a project model , in which you can have set up project each project can be hooked  to havbits where to schedule count of times of pomodoros to perform on a weekday, on which weekday, which can be multiple weekdays you can have up to 6 projects. When working on the pomodoro you can select the project by pressing the project that you are working when the pomodoro is paused by having up to 6 squared small text tags for the project you are working, once selected the pomodoro becaomes only showing that project clicking again untoggles it and shows all the projects options. Th\n\n\n",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "dfc57aa9-61db-4c26-b89d-b5b62c415e3f",
+              "title": "The project should be created, but is not",
+              "checked": true
+            },
+            {
+              "id": "61b3c583-a748-4d83-984d-821b4f822d5f",
+              "title": "On settings allow for Primary Color",
+              "checked": true
+            }
+          ],
+          "comments": []
+        },
         {
           "id": "c83b0166-1fbc-4aa2-9b6d-8cb78fef771a",
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
@@ -89,6 +170,15 @@
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
           "title": "Associate audios with gibli animated images",
           "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "46add1df-fab5-46d8-bb40-2d6c60f5f73c",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Rewards and experience system",
+          "description": "\nCreate an experience and pointage system, The rewards system that provides 25 points and 25 experience for a block of 25 minutes of work. You can create your own rewards like \"3D printer allowance\" for 2000 pts meaning that u can spend 2000 pts to allow yourself to buy a 3d printer. and like so. The experience system is for unlocking more features on the application itself (will be used later) but for now have a screen in the analytics systems for viewing how many points and experience, management of rewards and and toggle distoggle features of the application that can only be toggled after certain experience points",
           "labels": [],
           "checkboxes": [],
           "comments": []

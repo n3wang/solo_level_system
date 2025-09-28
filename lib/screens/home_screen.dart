@@ -1,9 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:solo_level_system/screens/history_screen.dart';
-import 'package:solo_level_system/screens/settings_screen.dart';
-import 'package:solo_level_system/screens/audio_management_screen.dart';
 import 'package:solo_level_system/utils/image_utils.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
@@ -76,6 +73,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     if (!allowMusic) return;
 
+    // Check user settings for audio control
+    if (!onBreak && !(userSettings?.playAudioDuringWork ?? true)) {
+      // Don't play music during work sessions if disabled
+      return;
+    }
+    if (onBreak && !(userSettings?.playAudioDuringBreaks ?? false)) {
+      // Don't play music during break sessions if disabled
+      return;
+    }
+
     try {
       // Set looping based on config
       _backgroundMusicService.setLooping(config?.playAudioOnRepeat ?? false);
@@ -103,14 +110,28 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _handleAudioSettingsChange() async {
+    // Check if music should be stopped due to settings change
+    if (_backgroundMusicService.isPlaying) {
+      final shouldPlayDuringWork = userSettings?.playAudioDuringWork ?? true;
+      final shouldPlayDuringBreaks =
+          userSettings?.playAudioDuringBreaks ?? false;
+
+      if ((!onBreak && !shouldPlayDuringWork) ||
+          (onBreak && !shouldPlayDuringBreaks)) {
+        _stopLofi();
+      }
+    }
+  }
+
   void startTimer() {
-    _playLofi();
     setState(() {
       isRunning = true;
       if (!onBreak) {
         sessionStartTime = DateTime.now();
       }
     });
+    _playLofi(); // This now checks settings internally
     timer = Timer.periodic(Duration(seconds: 1), (timer) {
       if (remainingSeconds <= 0) {
         _stopLofi();
@@ -235,7 +256,9 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    print("Saved session at ${session.startTime} - Duration: $minutesSpent minutes");
+    print(
+      "Saved session at ${session.startTime} - Duration: $minutesSpent minutes",
+    );
     if (cleanVariables) {
       audioPath = null;
       recordedAudio = null;
@@ -328,6 +351,9 @@ class _HomeScreenState extends State<HomeScreen> {
           remainingSeconds = workMinutes * 60;
         }
       });
+
+      // Handle audio settings change
+      _handleAudioSettingsChange();
     } catch (e) {
       print('Error loading user settings: $e');
       setState(() {
@@ -483,7 +509,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 selectedProject = project;
               });
             },
-            isCollapsed: isRunning && !canSubmitLog, // Collapse when actively running
+            isCollapsed:
+                isRunning && !canSubmitLog, // Collapse when actively running
           ),
 
         // Timer with recording buttons when session complete

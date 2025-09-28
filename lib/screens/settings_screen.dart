@@ -383,6 +383,30 @@ class _SettingsScreenState extends State<SettingsScreen>
           },
         ),
         Divider(),
+        _buildSectionHeader('Background Music Control'),
+        SwitchListTile(
+          title: Text('Play Audio During Work Sessions'),
+          subtitle: Text('Enable background music during pomodoro work sessions'),
+          value: userSettings.playAudioDuringWork,
+          onChanged: (bool value) async {
+            setState(() {
+              userSettings.playAudioDuringWork = value;
+            });
+            await _saveUserSettings();
+          },
+        ),
+        SwitchListTile(
+          title: Text('Play Audio During Breaks'),
+          subtitle: Text('Enable background music during break sessions'),
+          value: userSettings.playAudioDuringBreaks,
+          onChanged: (bool value) async {
+            setState(() {
+              userSettings.playAudioDuringBreaks = value;
+            });
+            await _saveUserSettings();
+          },
+        ),
+        Divider(),
         _buildSectionHeader('Session Recording'),
         SwitchListTile(
           title: Text('Show Photo Button'),

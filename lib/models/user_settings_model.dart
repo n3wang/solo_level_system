@@ -47,6 +47,13 @@ class UserSettingsModel extends HiveObject {
   @HiveField(12)
   bool enableNoiseReduction;
 
+  // Background Music Settings
+  @HiveField(19)
+  bool playAudioDuringWork; // Controls music during work sessions
+
+  @HiveField(20)
+  bool playAudioDuringBreaks; // Controls music during break sessions
+
   // Language & Localization
   @HiveField(13)
   String language; // 'en', 'es', 'fr', etc.
@@ -81,6 +88,8 @@ class UserSettingsModel extends HiveObject {
     this.audioFormat = 'm4a',
     this.defaultAudioPath = '',
     this.enableNoiseReduction = false,
+    this.playAudioDuringWork = true,
+    this.playAudioDuringBreaks = false,
     this.language = 'en',
     this.dateFormat = 'MM/dd/yyyy',
     this.timeFormat = '12h',

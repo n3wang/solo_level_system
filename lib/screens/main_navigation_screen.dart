@@ -25,12 +25,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void initState() {
     super.initState();
     _screens = [
-      HomeScreen(onSettingsChanged: () => widget.onSettingsChanged?.call),
+      HomeScreen(onSettingsChanged: () => _notifySettingsChanged()),
       AnalyticsScreen(),
       ProjectsManagementScreen(),
       RewardsManagementScreen(),
       SettingsScreen(),
     ];
+  }
+
+  void _notifySettingsChanged() {
+    widget.onSettingsChanged?.call(UserSettingsModel());
   }
 
   @override
@@ -47,9 +51,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         showSelectedLabels: false,
         showUnselectedLabels: false,
         onTap: (index) {
+          final bool comingFromSettings = _currentIndex == 4;
           setState(() {
             _currentIndex = index;
           });
+
+          // If switching to home screen from settings, reload settings
+          if (comingFromSettings && index == 0) {
+            _notifySettingsChanged();
+          }
         },
         items: [
           BottomNavigationBarItem(

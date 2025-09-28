@@ -17,6 +17,13 @@ class CompactMusicWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Hide widget if music is allowed but no track is available
+    if (allowMusic &&
+        (currentlyPlayingTrack == null ||
+            currentlyPlayingTrack == 'Unknown Track')) {
+      return const SizedBox.shrink();
+    }
+
     return GestureDetector(
       onTap: onToggleMusic,
       onHorizontalDragEnd: (details) {
@@ -60,9 +67,7 @@ class CompactMusicWidget extends StatelessWidget {
                 const SizedBox(width: PomodoroConstants.elementSpacing),
                 Flexible(
                   child: Text(
-                    allowMusic
-                        ? currentlyPlayingTrack ?? 'Unknown Track'
-                        : 'Music Muted',
+                    allowMusic ? currentlyPlayingTrack! : 'Music Muted',
                     style: TextStyle(
                       fontSize: PomodoroConstants.musicWidgetFontSize,
                       fontWeight: FontWeight.w500,
