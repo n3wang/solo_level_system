@@ -5,6 +5,7 @@ import 'package:solo_level_system/screens/analytics_screen.dart';
 import 'package:solo_level_system/screens/projects_management_screen.dart';
 import 'package:solo_level_system/screens/rewards_management_screen.dart';
 import 'package:solo_level_system/screens/settings_screen.dart';
+import 'package:solo_level_system/screens/workout_navigation_screen.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -28,6 +29,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       HomeScreen(onSettingsChanged: () => _notifySettingsChanged()),
       AnalyticsScreen(),
       ProjectsManagementScreen(),
+      WorkoutNavigationScreen(),
       RewardsManagementScreen(),
       SettingsScreen(),
     ];
@@ -51,7 +53,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         showSelectedLabels: false,
         showUnselectedLabels: false,
         onTap: (index) {
-          final bool comingFromSettings = _currentIndex == 4;
+          final bool comingFromSettings = _currentIndex == 5;
           setState(() {
             _currentIndex = index;
           });
@@ -79,6 +81,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             activeIcon: Icon(Icons.folder),
             label: '',
             tooltip: 'Project Management',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.fitness_center_outlined),
+            activeIcon: Icon(Icons.fitness_center),
+            label: '',
+            tooltip: 'Workout & Exercise Tracker',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.card_giftcard_outlined),

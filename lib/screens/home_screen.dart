@@ -1,14 +1,17 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+
+import 'package:solo_level_system/models/project_model.dart';
+import 'package:solo_level_system/widgets/pomodoro/project_selector_widget.dart';
 import 'package:solo_level_system/utils/image_utils.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/config_model.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
-import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
+
 
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
@@ -24,7 +27,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:solo_level_system/utils/pomodoro_sizing.dart';
 import 'package:solo_level_system/widgets/pomodoro/compact_music_widget.dart';
 import 'package:solo_level_system/widgets/pomodoro/session_squares_widget.dart';
-import 'package:solo_level_system/widgets/pomodoro/project_selector_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsChanged;
@@ -36,10 +38,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  int workMinutes = 25;
+  int breakMinutes = 5;
+  int remainingSeconds = 1500;
+  bool isRunning = false;
+  bool onBreak = false;
   bool showPlayer = false;
   String? audioPath;
   EnhancedAudioModel? recordedAudio;
   String logStateMessage = "State: ";
+  bool allowMusic = true;
   int countCompletedToday = 0;
   bool canSubmitLog = false;
   String? imagePath;
@@ -47,8 +55,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   ConfigModel? config;
   UserSettingsModel? userSettings;
   int lastTrackIndex = 0;
-
-  // Project-related state
   List<ProjectModel> projects = [];
   ProjectModel? selectedProject;
 
@@ -58,8 +64,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Timer-related state
   Timer? timer;
   DateTime? sessionStartTime;
-  int workMinutes = 25;
-  int breakMinutes = 5;
 
   final _bgPlayer = ap.AudioPlayer();
   final _backgroundMusicService = BackgroundMusicService();
@@ -70,7 +74,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _onTimerStateChanged() {
     setState(() {
       // Update UI when timer state changes
+      remainingSeconds = _timerController.remainingSeconds;
+      isRunning = _timerController.isRunning;
+      onBreak = _timerController.onBreak;
       currentlyPlayingTrack = _timerController.getCurrentTrackTitle();
+
+      // If work session completed (not running, not on break, timer at 0)
+      if (!_timerController.isRunning && !_timerController.onBreak && _timerController.remainingSeconds == 0) {
+        canSubmitLog = true;
+        logStateMessage = "State: Finished – Submit Log";
+      }
     });
   }
 
@@ -266,12 +279,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void instantFinish() {
-    // Force complete the current session
-    _timerController.pauseTimer();
-    setState(() {
-      canSubmitLog = true;
-      logStateMessage = "State: Finished – Submit Log";
-    });
+    // Set timer to 1 second to let it complete naturally
+    _timerController.setRemainingSeconds(1);
   }
 
   String formatTime(int seconds) {
@@ -287,36 +296,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _timerController.addListener(_onTimerStateChanged);
     // Simplified initialization to prevent hanging
     _safeInitialize();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      // Refresh projects when app is resumed
-      _loadProjects();
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      // Show notification when app goes to background
-      if (_timerController.isRunning) {
-        _notificationService.showTimerNotification(
-          remainingSeconds: _timerController.remainingSeconds,
-          isRunning: _timerController.isRunning,
-          isBreak: _timerController.onBreak,
-          onPlay: startTimer,
-          onPause: stopTimer,
-          onReset: resetTimer,
-          onMute: toggleMute,
-        );
-      }
-    }
-  }
-
-  @override
-  void didUpdateWidget(HomeScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Refresh projects when returning to home screen
-    _loadProjects();
   }
 
   void _safeInitialize() async {
@@ -342,68 +321,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _loadUserSettings() async {
-    try {
-      final box = Hive.box<UserSettingsModel>('userSettings');
-      userSettings = box.get('settings') ?? UserSettingsModel();
-      setState(() {
-        // If a project is selected, use its durations, otherwise use user defaults
-        if (selectedProject != null) {
-          workMinutes = selectedProject!.workDurationMinutes;
-          breakMinutes = selectedProject!.breakDurationMinutes;
-        } else {
-          workMinutes = userSettings!.defaultWorkMinutes;
-          breakMinutes = userSettings!.defaultBreakMinutes;
-        }
-      });
 
-      // Update timer controller with new durations
-      _timerController.updateDurations(workMinutes, breakMinutes);
-
-      // Handle audio settings change
-      _handleAudioSettingsChange();
-    } catch (e) {
-      print('Error loading user settings: $e');
-      _timerController.updateDurations(25, 5);
-      setState(() {});
-    }
-  }
-
-  Future<void> _loadConfig() async {
-    try {
-      final box = Hive.box<ConfigModel>('config');
-      config = box.get('settings') ?? ConfigModel.getDefault();
-      setState(() {});
-    } catch (e) {
-      print('Error loading config: $e');
-      config = ConfigModel.getDefault();
-      setState(() {});
-    }
-  }
-
-  Future<void> _loadProjects() async {
-    try {
-      if (!Hive.isBoxOpen('projects')) {
-        await Hive.openBox<ProjectModel>('projects');
-      }
-      final box = Hive.box<ProjectModel>('projects');
-
-      // Load only active projects (user-created projects)
-      final allProjects = box.values.toList();
-      final activeProjects = allProjects.where((p) => p.isActive).toList();
-
-      setState(() {
-        projects = activeProjects;
-      });
-
-      print('Loaded ${activeProjects.length} active projects');
-    } catch (e) {
-      print('Error loading projects: $e');
-      setState(() {
-        projects = [];
-      });
-    }
-  }
 
   Future<void> _loadUserProgress() async {
     try {
@@ -441,6 +359,93 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _loadUserSettings() async {
+    try {
+      final box = Hive.box<UserSettingsModel>('userSettings');
+      userSettings = box.get('settings') ?? UserSettingsModel();
+      setState(() {
+        workMinutes = userSettings!.defaultWorkMinutes;
+        breakMinutes = userSettings!.defaultBreakMinutes;
+        if (!isRunning && !onBreak) {
+          remainingSeconds = workMinutes * 60;
+        }
+      });
+    } catch (e) {
+      print('Error loading user settings: $e');
+      setState(() {
+        workMinutes = 25;
+        breakMinutes = 5;
+        remainingSeconds = workMinutes * 60;
+      });
+    }
+  }
+
+  Future<void> _loadProjects() async {
+    try {
+      if (!Hive.isBoxOpen('projects')) {
+        await Hive.openBox<ProjectModel>('projects');
+      }
+      final box = Hive.box<ProjectModel>('projects');
+
+      // Load only active projects (user-created projects)
+      final allProjects = box.values.toList();
+      final activeProjects = allProjects.where((p) => p.isActive).toList();
+
+      setState(() {
+        projects = activeProjects;
+      });
+
+      print('Loaded ${activeProjects.length} active projects');
+    } catch (e) {
+      print('Error loading projects: $e');
+      setState(() {
+        projects = [];
+      });
+    }
+  }
+
+  Future<void> _loadConfig() async {
+    try {
+      final box = Hive.box<ConfigModel>('config');
+      config = box.get('settings') ?? ConfigModel.getDefault();
+      setState(() {});
+    } catch (e) {
+      print('Error loading config: $e');
+      config = ConfigModel.getDefault();
+      setState(() {});
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Refresh projects when app is resumed
+      _loadProjects();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      // Show notification when app goes to background
+      if (_timerController.isRunning) {
+        _notificationService.showTimerNotification(
+          remainingSeconds: _timerController.remainingSeconds,
+          isRunning: _timerController.isRunning,
+          isBreak: _timerController.onBreak,
+          onPlay: startTimer,
+          onPause: stopTimer,
+          onReset: resetTimer,
+          onMute: toggleMute,
+        );
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Refresh projects when returning to home screen
+    _loadProjects();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -464,8 +469,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildTimerSection() {
     return Column(
       children: [
-        // Project selector - show when there are projects
-        // Hide during active work sessions, show during breaks/paused/idle
+        // Timer with recording buttons when session complete
         if (projects.isNotEmpty)
           ProjectSelectorWidget(
             projects: projects,
@@ -490,8 +494,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             },
             isCollapsed: false, // Always show full project info when visible
           ),
-
-        // Timer with recording buttons when session complete
         canSubmitLog ? _buildTimerWithRecordingButtons() : _buildGestureTimer(),
       ],
     );
@@ -512,7 +514,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       onVerticalDragEnd: (details) {
         // Swipe up for instant finish, swipe down for reset
         if (details.velocity.pixelsPerSecond.dy < -300) {
-          // Swipe up - instant finish
+          // Swipe up - instant finish current session (work or break)
           if (_timerController.isRunning) {
             instantFinish();
           }
@@ -543,9 +545,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: _timerController.isRunning
-                                  ? Colors.red
-                                  : Colors.green,
+                              color: isRunning ? Colors.red : Colors.green,
                               width: 2,
                             ),
                             image:
@@ -567,7 +567,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         .currentTrack
                                         ?.albumImagePath ==
                                     null
-                                ? (_timerController.isRunning
+                                ? (isRunning
                                       ? Colors.red.withOpacity(0.1)
                                       : Colors.green.withOpacity(0.1))
                                 : null,
@@ -585,7 +585,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                formatTime(_timerController.remainingSeconds),
+                                formatTime(remainingSeconds),
                                 style: TextStyle(
                                   fontSize: PomodoroSizing.getTimerFontSize(
                                     context,
@@ -603,8 +603,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                _timerController.isRunning
-                                    ? (_timerController.onBreak
+                                isRunning
+                                    ? (onBreak
                                           ? 'Break Time - Tap to Stop'
                                           : 'Focus Time - Tap to Stop')
                                     : canSubmitLog
@@ -638,17 +638,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   SizedBox(width: 20),
 
                   // Music widget next to album (hidden when paused)
-                  if (_timerController.isRunning || canSubmitLog)
+                  if (isRunning || canSubmitLog)
                     Container(
                       width: PomodoroSizing.getMusicWidgetWidth(context),
                       child: CompactMusicWidget(
-                        allowMusic: _timerController.allowMusic,
+                        allowMusic: allowMusic,
                         currentlyPlayingTrack: currentlyPlayingTrack,
                         onToggleMusic: () {
-                          _timerController.toggleMute();
+                          setState(() {
+                            if (allowMusic) {
+                              _stopLofi();
+                              allowMusic = false;
+                            } else {
+                              allowMusic = true;
+                              if (isRunning) {
+                                _playLofi();
+                              }
+                            }
+                          });
                         },
                         onChangeTrack: () {
-                          // Track change will be handled by timer controller's music service
+                          if (allowMusic) {
+                            _playLofi(); // This plays a random track
+                          }
                         },
                       ),
                     ),
@@ -672,9 +684,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: _timerController.isRunning
-                                  ? Colors.red
-                                  : Colors.green,
+                              color: isRunning ? Colors.red : Colors.green,
                               width: 2,
                             ),
                             image:
@@ -696,7 +706,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         .currentTrack
                                         ?.albumImagePath ==
                                     null
-                                ? (_timerController.isRunning
+                                ? (isRunning
                                       ? Colors.red.withOpacity(0.1)
                                       : Colors.green.withOpacity(0.1))
                                 : null,
@@ -714,7 +724,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                formatTime(_timerController.remainingSeconds),
+                                formatTime(remainingSeconds),
                                 style: TextStyle(
                                   fontSize: PomodoroSizing.getTimerFontSize(
                                     context,
@@ -732,8 +742,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                _timerController.isRunning
-                                    ? (_timerController.onBreak
+                                isRunning
+                                    ? (onBreak
                                           ? 'Break Time - Tap to Stop'
                                           : 'Focus Time - Tap to Stop')
                                     : canSubmitLog
@@ -765,20 +775,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
 
                   // Music widget below album for small screens (hidden when paused)
-                  if (_timerController.isRunning || canSubmitLog) ...[
+                  if (isRunning || canSubmitLog) ...[
                     SizedBox(height: 20),
                     Container(
                       width: PomodoroSizing.getAlbumContainerSize(
                         context,
                       ).clamp(150.0, 400.0),
                       child: CompactMusicWidget(
-                        allowMusic: _timerController.allowMusic,
+                        allowMusic: allowMusic,
                         currentlyPlayingTrack: currentlyPlayingTrack,
                         onToggleMusic: () {
-                          _timerController.toggleMute();
+                          setState(() {
+                            if (allowMusic) {
+                              _stopLofi();
+                              allowMusic = false;
+                            } else {
+                              allowMusic = true;
+                              if (isRunning) {
+                                _playLofi();
+                              }
+                            }
+                          });
                         },
                         onChangeTrack: () {
-                          // Track change will be handled by timer controller's music service
+                          if (allowMusic) {
+                            _playLofi(); // This plays a random track
+                          }
                         },
                       ),
                     ),
@@ -806,12 +828,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     }
                   },
                   onVerticalDragEnd: (details) {
+                    // Swipe up for instant finish, swipe down for reset
                     if (details.velocity.pixelsPerSecond.dy < -300) {
-                      if (_timerController.isRunning) {
+                      // Swipe up - instant finish current session (work or break)
+                      if (isRunning) {
                         instantFinish();
                       }
                     } else if (details.velocity.pixelsPerSecond.dy > 300) {
-                      if (!_timerController.isRunning) {
+                      // Swipe down - reset timer
+                      if (!isRunning) {
                         resetTimer();
                       }
                     }
@@ -830,7 +855,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              formatTime(_timerController.remainingSeconds),
+                              formatTime(remainingSeconds),
                               style: TextStyle(
                                 fontSize: PomodoroSizing.getTimerFontSize(
                                   context,
@@ -889,18 +914,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       margin: EdgeInsets.only(left: 20, bottom: 10),
                       child: _buildSquareEvidenceButton(),
                     ),
-                  if (_timerController.isRunning && !canSubmitLog)
+                  if (isRunning || canSubmitLog)
                     Container(
                       width: PomodoroSizing.getMusicWidgetWidth(context),
                       margin: EdgeInsets.only(left: 20, top: 10),
                       child: CompactMusicWidget(
-                        allowMusic: _timerController.allowMusic,
+                        allowMusic: allowMusic,
                         currentlyPlayingTrack: currentlyPlayingTrack,
                         onToggleMusic: () {
-                          _timerController.toggleMute();
+                          setState(() {
+                            if (allowMusic) {
+                              _stopLofi();
+                              allowMusic = false;
+                            } else {
+                              allowMusic = true;
+                              if (isRunning) {
+                                _playLofi();
+                              }
+                            }
+                          });
                         },
                         onChangeTrack: () {
-                          // Track change will be handled by timer controller's music service
+                          if (allowMusic) {
+                            _playLofi(); // This plays a random track
+                          }
                         },
                       ),
                     ),
@@ -924,12 +961,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     }
                   },
                   onVerticalDragEnd: (details) {
+                    // Swipe up for instant finish, swipe down for reset
                     if (details.velocity.pixelsPerSecond.dy < -300) {
-                      if (_timerController.isRunning) {
+                      // Swipe up - instant finish current session (work or break)
+                      if (isRunning) {
                         instantFinish();
                       }
                     } else if (details.velocity.pixelsPerSecond.dy > 300) {
-                      if (!_timerController.isRunning) {
+                      // Swipe down - reset timer
+                      if (!isRunning) {
                         resetTimer();
                       }
                     }
@@ -948,7 +988,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              formatTime(_timerController.remainingSeconds),
+                              formatTime(remainingSeconds),
                               style: TextStyle(
                                 fontSize: PomodoroSizing.getTimerFontSize(
                                   context,
@@ -1011,22 +1051,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
 
               // Music widget below recording buttons for vertical layout
-              if (_timerController.isRunning && !canSubmitLog) ...[
+              if (isRunning || canSubmitLog) ...[
                 SizedBox(height: 20),
                 Container(
                   width: PomodoroSizing.getAlbumContainerSize(
                     context,
                   ).clamp(150.0, 400.0),
                   child: CompactMusicWidget(
-                    allowMusic: _timerController.allowMusic,
+                    allowMusic: allowMusic,
                     currentlyPlayingTrack: currentlyPlayingTrack,
                     onToggleMusic: () {
                       setState(() {
-                        _timerController.toggleMute();
+                        if (allowMusic) {
+                          _stopLofi();
+                          allowMusic = false;
+                        } else {
+                          allowMusic = true;
+                          if (isRunning) {
+                            _playLofi();
+                          }
+                        }
                       });
                     },
                     onChangeTrack: () {
-                      if (_timerController.allowMusic) {
+                      if (allowMusic) {
                         _playLofi(); // This plays a random track
                       }
                     },

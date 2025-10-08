@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/project_model.dart';
+import 'package:solo_level_system/widgets/common/index.dart';
 
 class ProjectsManagementScreen extends StatefulWidget {
   @override
@@ -58,16 +59,14 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(
-            color: Theme.of(context).primaryColor,
-          ),
-        ),
-      );
-    }
+    return TabbedScreenWrapper(
+      isLoading: isLoading,
+      loadingMessage: 'Loading projects...',
+      builder: () => _buildContent(),
+    );
+  }
 
+  Widget _buildContent() {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
@@ -87,12 +86,10 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
         controller: _tabController,
         children: [_buildActiveProjectsTab(), _buildArchivedProjectsTab()],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: CustomFloatingActionButton(
+        label: 'New Project',
+        icon: Icons.add,
         onPressed: _showCreateProjectDialog,
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-        icon: Icon(Icons.add),
-        label: Text('New Project'),
       ),
     );
   }
@@ -109,34 +106,12 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
 
   Widget _buildProjectsList(List<ProjectModel> projectList, bool isActive) {
     if (projectList.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isActive ? Icons.folder_open : Icons.archive,
-              size: 64,
-              color: Colors.grey[400],
-            ),
-            SizedBox(height: 16),
-            Text(
-              isActive ? 'No active projects' : 'No archived projects',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            if (isActive) ...[
-              SizedBox(height: 8),
-              Text(
-                'Create your first project to organize your pomodoro sessions!',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[500], fontSize: 14),
-              ),
-            ],
-          ],
-        ),
+      return EmptyState(
+        icon: isActive ? Icons.folder_open : Icons.archive,
+        title: isActive ? 'No active projects' : 'No archived projects',
+        subtitle: isActive
+            ? 'Create your first project to organize your pomodoro sessions!'
+            : null,
       );
     }
 
@@ -153,140 +128,40 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
   Widget _buildProjectCard(ProjectModel project, bool isActive) {
     final color = _parseColor(project.color);
 
-    return Card(
-      margin: EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () => _showProjectDetails(project),
-        onLongPress: () => _showProjectOptions(project, isActive),
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  if (project.iconName != null)
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        _getIconData(project.iconName!),
-                        color: color,
-                        size: 20,
-                      ),
-                    )
-                  else
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          project.name[0].toUpperCase(),
-                          style: TextStyle(
-                            color: color,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          project.name,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (project.description?.isNotEmpty == true) ...[
-                          SizedBox(height: 4),
-                          Text(
-                            project.description!,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  if (!isActive) Icon(Icons.archive, color: Colors.grey[500]),
-                ],
-              ),
-              SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildStatChip(
-                    'Sessions',
-                    '${project.totalCompletedPomodoros}',
-                    Icons.timer,
-                  ),
-                  SizedBox(width: 8),
-                  _buildStatChip(
-                    'Progress',
-                    project.progressText,
-                    Icons.trending_up,
-                  ),
-                  if (project.priority > 0) ...[
-                    SizedBox(width: 8),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getPriorityColor(
-                          project.priority,
-                        ).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _getPriorityText(project.priority),
-                        style: TextStyle(
-                          color: _getPriorityColor(project.priority),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatChip(String label, String value, IconData icon) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    return BaseCard(
+      onTap: () => _showProjectDetails(project),
+      onLongPress: () => _showProjectOptions(project, isActive),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 14, color: Colors.grey[600]),
-          SizedBox(width: 4),
-          Text(
-            '$label: $value',
-            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+          CardHeader(
+            title: project.name,
+            description: project.description,
+            color: color,
+            iconName: project.iconName,
+            trailing: !isActive
+                ? Icon(Icons.archive, color: Colors.grey[500])
+                : null,
+          ),
+          SizedBox(height: 12),
+          Row(
+            children: [
+              StatChip(
+                label: 'Sessions',
+                value: '${project.totalCompletedPomodoros}',
+                icon: Icons.timer,
+              ),
+              SizedBox(width: 8),
+              StatChip(
+                label: 'Progress',
+                value: project.progressText,
+                icon: Icons.trending_up,
+              ),
+              if (project.priority > 0) ...[
+                SizedBox(width: 8),
+                PriorityChip(priority: project.priority),
+              ],
+            ],
           ),
         ],
       ),
@@ -300,104 +175,47 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.9,
-        minChildSize: 0.5,
-        builder: (context, scrollController) => Container(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  if (project.iconName != null)
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: _parseColor(project.color).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        _getIconData(project.iconName!),
-                        color: _parseColor(project.color),
-                        size: 24,
-                      ),
-                    ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          project.name,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+      builder: (context) => CustomBottomSheet(
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CardHeader(
+              title: project.name,
+              description: project.description,
+              color: _parseColor(project.color),
+              iconName: project.iconName,
+            ),
+            SizedBox(height: 20),
+            _buildDetailRow(
+              'Total Sessions',
+              '${project.totalCompletedPomodoros}',
+            ),
+            _buildDetailRow('Progress', project.progressText),
+            _buildDetailRow('Created', _formatDate(project.createdAt)),
+            _buildDetailRow('Priority', _getPriorityText(project.priority)),
+            _buildDetailRow('Status', project.statusText),
+            if (project.tags.isNotEmpty) ...[
+              SizedBox(height: 16),
+              Text('Tags', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: project.tags
+                    .map(
+                      (tag) => Chip(
+                        label: Text(tag),
+                        backgroundColor: Theme.of(
+                          context,
+                        ).primaryColor.withOpacity(0.1),
+                        labelStyle: TextStyle(
+                          color: Theme.of(context).primaryColor,
                         ),
-                        if (project.description?.isNotEmpty == true)
-                          Text(
-                            project.description!,
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildDetailRow(
-                        'Total Sessions',
-                        '${project.totalCompletedPomodoros}',
                       ),
-                      _buildDetailRow('Progress', project.progressText),
-                      _buildDetailRow(
-                        'Created',
-                        _formatDate(project.createdAt),
-                      ),
-                      _buildDetailRow(
-                        'Priority',
-                        _getPriorityText(project.priority),
-                      ),
-                      _buildDetailRow('Status', project.statusText),
-                      if (project.tags.isNotEmpty) ...[
-                        SizedBox(height: 16),
-                        Text(
-                          'Tags',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          children: project.tags
-                              .map(
-                                (tag) => Chip(
-                                  label: Text(tag),
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).primaryColor.withOpacity(0.1),
-                                  labelStyle: TextStyle(
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+                    )
+                    .toList(),
               ),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -430,22 +248,17 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
   void _showProjectOptions(ProjectModel project, bool isActive) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: Icon(Icons.edit),
-            title: Text('Edit Project'),
-            onTap: () {
-              Navigator.pop(context);
-              _editProject(project);
-            },
+      builder: (context) => OptionsBottomSheet(
+        options: [
+          BottomSheetOption(
+            title: 'Edit Project',
+            icon: Icons.edit,
+            onTap: () => _editProject(project),
           ),
-          ListTile(
-            leading: Icon(isActive ? Icons.archive : Icons.unarchive),
-            title: Text(isActive ? 'Archive Project' : 'Restore Project'),
+          BottomSheetOption(
+            title: isActive ? 'Archive Project' : 'Restore Project',
+            icon: isActive ? Icons.archive : Icons.unarchive,
             onTap: () {
-              Navigator.pop(context);
               if (isActive) {
                 project.archive();
               } else {
@@ -454,15 +267,12 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
               setState(() {});
             },
           ),
-          ListTile(
-            leading: Icon(Icons.delete, color: Colors.red),
-            title: Text('Delete Project', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.pop(context);
-              _deleteProject(project);
-            },
+          BottomSheetOption(
+            title: 'Delete Project',
+            icon: Icons.delete,
+            onTap: () => _deleteProject(project),
+            isDestructive: true,
           ),
-          SizedBox(height: MediaQuery.of(context).padding.bottom),
         ],
       ),
     );
@@ -475,31 +285,21 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
   void _deleteProject(ProjectModel project) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Delete Project'),
-        content: Text(
-          'Are you sure you want to delete "${project.name}"? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () {
-              project.delete();
-              setState(() {
-                projects.remove(project);
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Project deleted')));
-            },
-            child: Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+      builder: (context) => ConfirmationDialog(
+        title: 'Delete Project',
+        message:
+            'Are you sure you want to delete "${project.name}"? This action cannot be undone.',
+        confirmText: 'Delete',
+        isDestructive: true,
+        onConfirm: () {
+          project.delete();
+          setState(() {
+            projects.remove(project);
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Project deleted')));
+        },
       ),
     );
   }
@@ -522,14 +322,13 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
     int selectedWeeklyTarget = project?.weeklySessionTarget ?? 10;
     int? selectedWorkHour = project?.preferredWorkHour;
     List<int> selectedActiveDays = List.from(
-      project?.activeDays ?? [1, 2, 3, 4, 5],
+      project?.activeDays ?? [1, 2, 3, 4, 5, 6, 7],
     );
     final dailyTargetController = TextEditingController(
       text: selectedDailyTarget.toString(),
     );
-    final weeklyTargetController = TextEditingController(
-      text: selectedWeeklyTarget.toString(),
-    );
+    int selectedWorkDuration = project?.workDurationMinutes ?? 25;
+    int selectedBreakDuration = project?.breakDurationMinutes ?? 5;
 
     showDialog(
       context: context,
@@ -540,6 +339,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // MOST IMPORTANT FIELDS FIRST
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
@@ -547,7 +347,123 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                     hintText: 'e.g., "Learn Flutter"',
                   ),
                 ),
+                SizedBox(height: 20),
+
+                // Daily Session Target - Second most important
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Daily Session Target',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              if (selectedDailyTarget > 1) {
+                                selectedDailyTarget--;
+                                dailyTargetController.text = selectedDailyTarget
+                                    .toString();
+                              }
+                            });
+                          },
+                          icon: Icon(Icons.remove_circle_outline),
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        SizedBox(
+                          width: 60,
+                          child: TextField(
+                            controller: dailyTargetController,
+                            textAlign: TextAlign.center,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(vertical: 8),
+                            ),
+                            onChanged: (value) {
+                              final parsed = int.tryParse(value);
+                              if (parsed != null && parsed > 0) {
+                                selectedDailyTarget = parsed;
+                              }
+                            },
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              if (selectedDailyTarget < 20) {
+                                selectedDailyTarget++;
+                                dailyTargetController.text = selectedDailyTarget
+                                    .toString();
+                              }
+                            });
+                          },
+                          icon: Icon(Icons.add_circle_outline),
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+
+                // Active Days - Third most important
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Active Days',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (int day = 1; day <= 7; day++)
+                          FilterChip(
+                            label: Text(_getDayName(day)),
+                            selected: selectedActiveDays.contains(day),
+                            selectedColor: Colors.green.withOpacity(0.6),
+                            checkmarkColor: Theme.of(context).primaryColor,
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  selectedActiveDays.add(day);
+                                } else {
+                                  selectedActiveDays.remove(day);
+                                }
+                              });
+                            },
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: 24),
+
+                // DIVIDER FOR LESS IMPORTANT SETTINGS
+                Divider(thickness: 1),
+                Text(
+                  'Additional Settings',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[600],
+                  ),
+                ),
                 SizedBox(height: 16),
+
+                // Less important fields below
                 TextField(
                   controller: descriptionController,
                   decoration: InputDecoration(
@@ -569,85 +485,6 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                   onChanged: (value) {
                     if (value != null) selectedPriority = value;
                   },
-                ),
-                SizedBox(height: 16),
-                // Target Type Selection
-                DropdownButtonFormField<String>(
-                  value: selectedTargetType,
-                  decoration: InputDecoration(labelText: 'Target Type'),
-                  items: [
-                    DropdownMenuItem(
-                      value: 'daily',
-                      child: Text('Daily Target'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'weekly',
-                      child: Text('Weekly Target'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        selectedTargetType = value;
-                      });
-                    }
-                  },
-                ),
-                SizedBox(height: 16),
-                // Session Target Input
-                if (selectedTargetType == 'daily')
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Daily Session Target',
-                      hintText: 'Number of sessions per day',
-                    ),
-                    keyboardType: TextInputType.number,
-                    controller: dailyTargetController,
-                    onChanged: (value) {
-                      selectedDailyTarget =
-                          int.tryParse(value) ?? selectedDailyTarget;
-                    },
-                  ),
-                if (selectedTargetType == 'weekly')
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Weekly Session Target',
-                      hintText: 'Number of sessions per week',
-                    ),
-                    keyboardType: TextInputType.number,
-                    controller: weeklyTargetController,
-                    onChanged: (value) {
-                      selectedWeeklyTarget =
-                          int.tryParse(value) ?? selectedWeeklyTarget;
-                    },
-                  ),
-                SizedBox(height: 16),
-                // Active Days Selection
-                Text(
-                  'Active Days:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-                SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    for (int day = 1; day <= 7; day++)
-                      FilterChip(
-                        label: Text(_getDayName(day)),
-                        selected: selectedActiveDays.contains(day),
-                        selectedColor: Colors.green.withOpacity(0.6),
-                        checkmarkColor: Theme.of(context).primaryColor,
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              selectedActiveDays.add(day);
-                            } else {
-                              selectedActiveDays.remove(day);
-                            }
-                          });
-                        },
-                      ),
-                  ],
                 ),
                 SizedBox(height: 16),
                 // Preferred Work Hour
@@ -674,6 +511,124 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                     });
                   },
                 ),
+                SizedBox(height: 16),
+                // Work Session Duration
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Work Session Duration (minutes)',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              if (selectedWorkDuration > 5) {
+                                selectedWorkDuration -= 5;
+                              }
+                            });
+                          },
+                          icon: Icon(Icons.remove_circle_outline),
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$selectedWorkDuration min',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              if (selectedWorkDuration < 60) {
+                                selectedWorkDuration += 5;
+                              }
+                            });
+                          },
+                          icon: Icon(Icons.add_circle_outline),
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16),
+                // Break Session Duration
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Break Duration (minutes)',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              if (selectedBreakDuration > 1) {
+                                selectedBreakDuration -= 1;
+                              }
+                            });
+                          },
+                          icon: Icon(Icons.remove_circle_outline),
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$selectedBreakDuration min',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              if (selectedBreakDuration < 30) {
+                                selectedBreakDuration += 1;
+                              }
+                            });
+                          },
+                          icon: Icon(Icons.add_circle_outline),
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -698,6 +653,8 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                     project.weeklySessionTarget = selectedWeeklyTarget;
                     project.preferredWorkHour = selectedWorkHour;
                     project.activeDays = selectedActiveDays;
+                    project.workDurationMinutes = selectedWorkDuration;
+                    project.breakDurationMinutes = selectedBreakDuration;
                     project.save();
                     ScaffoldMessenger.of(
                       context,
@@ -714,6 +671,8 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                       selectedWeeklyTarget,
                       selectedWorkHour,
                       selectedActiveDays,
+                      selectedWorkDuration,
+                      selectedBreakDuration,
                     );
                   }
                   Navigator.of(context).pop();
@@ -738,6 +697,8 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
     int weeklyTarget,
     int? workHour,
     List<int> activeDays,
+    int workDuration,
+    int breakDuration,
   ) async {
     try {
       print('Creating project with name: $name');
@@ -754,6 +715,8 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
         weeklySessionTarget: weeklyTarget,
         preferredWorkHour: workHour,
         activeDays: activeDays,
+        workDurationMinutes: workDuration,
+        breakDurationMinutes: breakDuration,
         createdAt: DateTime.now(),
       );
 
