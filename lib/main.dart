@@ -14,6 +14,7 @@ import 'models/habit_tracker_model.dart';
 import 'models/project_model.dart';
 import 'models/user_progress_model.dart';
 import 'models/reward_model.dart';
+import 'models/motivational_card_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +38,7 @@ void main() async {
     Hive.registerAdapter(ProjectModelAdapter());
     Hive.registerAdapter(UserProgressModelAdapter());
     Hive.registerAdapter(RewardModelAdapter());
+    Hive.registerAdapter(MotivationalCardModelAdapter());
 
     // Open all Hive boxes with detailed logging
     print('Opening Hive boxes...');
@@ -186,6 +188,24 @@ void main() async {
       }
       await Hive.openBox<RewardModel>('rewards');
       print('✓ Recreated rewards box');
+    }
+
+    try {
+      await Hive.openBox<MotivationalCardModel>('motivationalCards');
+      print('✓ Opened motivationalCards box');
+    } catch (e) {
+      print(
+        '⚠️ Error opening motivationalCards box, clearing and recreating: $e',
+      );
+      try {
+        await Hive.deleteBoxFromDisk('motivationalCards');
+      } catch (deleteError) {
+        print(
+          'Note: Could not delete motivationalCards box (may not exist): $deleteError',
+        );
+      }
+      await Hive.openBox<MotivationalCardModel>('motivationalCards');
+      print('✓ Recreated motivationalCards box');
     }
 
     print('All Hive boxes opened successfully');

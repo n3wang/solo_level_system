@@ -31,21 +31,15 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
     });
   }
 
-  Future<T> _ensureBoxIsOpen<T>(String boxName) async {
+  Future<void> _ensureBoxIsOpen<T>(String boxName) async {
     if (!Hive.isBoxOpen(boxName)) {
       await Hive.openBox<T>(boxName);
     }
-    return Hive.box<T>(boxName) as T;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Workout History'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-      ),
       body: _isLoading
           ? LoadingIndicator(message: 'Loading workout history...')
           : Column(
@@ -62,9 +56,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withOpacity(0.2)),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.2))),
       ),
       child: Row(
         children: [
@@ -110,7 +102,9 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
 
   Widget _buildHistoryList() {
     return ValueListenableBuilder(
-      valueListenable: Hive.box<WorkoutSessionModel>('workoutSessions').listenable(),
+      valueListenable: Hive.box<WorkoutSessionModel>(
+        'workoutSessions',
+      ).listenable(),
       builder: (context, Box<WorkoutSessionModel> box, _) {
         final allSessions = box.values.toList();
         final filteredSessions = _filterSessions(allSessions);
@@ -147,7 +141,8 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
   }
 
   Widget _buildSessionCard(WorkoutSessionModel session) {
-    final duration = session.endTime?.difference(session.startTime) ?? Duration.zero;
+    final duration =
+        session.endTime?.difference(session.startTime) ?? Duration.zero;
     final isCompleted = session.endTime != null;
 
     return BaseCard(
@@ -185,10 +180,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
                     SizedBox(height: 4),
                     Text(
                       _formatSessionDate(session.startTime),
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                   ],
                 ),
@@ -199,7 +191,9 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isCompleted ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                      color: isCompleted
+                          ? Colors.green.withOpacity(0.1)
+                          : Colors.orange.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -215,10 +209,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
                     SizedBox(height: 4),
                     Text(
                       _formatDuration(duration),
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                   ],
                 ],
@@ -256,7 +247,9 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
     );
   }
 
-  List<WorkoutSessionModel> _filterSessions(List<WorkoutSessionModel> sessions) {
+  List<WorkoutSessionModel> _filterSessions(
+    List<WorkoutSessionModel> sessions,
+  ) {
     final now = DateTime.now();
 
     return sessions.where((session) {
@@ -397,39 +390,30 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
           children: [
             Text(
               _getSessionTitle(session),
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             Text(
               'Started: ${_formatSessionDate(session.startTime)}',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
             if (session.endTime != null) ...[
               Text(
                 'Duration: ${_formatDuration(session.endTime!.difference(session.startTime))}',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
             ],
             SizedBox(height: 16),
-            _buildDetailRow('Exercises Completed', '${session.completedExerciseIds.length}'),
+            _buildDetailRow(
+              'Exercises Completed',
+              '${session.completedExerciseIds.length}',
+            ),
             if (session.caloriesBurned > 0)
               _buildDetailRow('Calories Burned', '${session.caloriesBurned}'),
             _buildDetailRow('Workout Type', _getSessionTypeLabel(session)),
             if (session.notes?.isNotEmpty == true) ...[
               SizedBox(height: 16),
-              Text(
-                'Notes',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              Text('Notes', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
               Text(session.notes!),
             ],
@@ -452,10 +436,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
               color: Colors.grey[600],
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
+          Text(value, style: TextStyle(fontWeight: FontWeight.w500)),
         ],
       ),
     );

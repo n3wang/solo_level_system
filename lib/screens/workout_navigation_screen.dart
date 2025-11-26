@@ -4,11 +4,13 @@ import 'package:solo_level_system/screens/workout_routines_screen.dart';
 import 'package:solo_level_system/screens/workout_exercises_screen.dart';
 import 'package:solo_level_system/screens/workout_quick_start_screen.dart';
 import 'package:solo_level_system/screens/workout_history_screen.dart';
+import 'package:solo_level_system/screens/motivational_cards_screen.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 
 class WorkoutNavigationScreen extends StatefulWidget {
   @override
-  _WorkoutNavigationScreenState createState() => _WorkoutNavigationScreenState();
+  _WorkoutNavigationScreenState createState() =>
+      _WorkoutNavigationScreenState();
 }
 
 class _WorkoutNavigationScreenState extends State<WorkoutNavigationScreen> {
@@ -36,6 +38,7 @@ class _WorkoutNavigationScreenState extends State<WorkoutNavigationScreen> {
         onActiveSessionChanged: _handleActiveSessionChanged,
       ),
       WorkoutHistoryScreen(),
+      MotivationalCardsScreen(),
     ];
   }
 
@@ -65,6 +68,12 @@ class _WorkoutNavigationScreenState extends State<WorkoutNavigationScreen> {
         label: 'History',
         tooltip: 'Workout History & Progress',
       ),
+      WorkoutNavigationItem(
+        icon: Icons.auto_awesome_outlined,
+        activeIcon: Icons.auto_awesome,
+        label: 'Motivation',
+        tooltip: 'Motivational Cards & Inspiration',
+      ),
     ];
   }
 
@@ -90,44 +99,82 @@ class _WorkoutNavigationScreenState extends State<WorkoutNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      body: Column(
+        children: [
+          _buildTopNavigationBar(),
+          Expanded(
+            child: IndexedStack(index: _currentIndex, children: _screens),
+          ),
+        ],
       ),
-      bottomNavigationBar: Container(
+      floatingActionButton: _activeSession != null
+          ? _buildActiveSessionFAB()
+          : null,
+    );
+  }
+
+  Widget _buildTopNavigationBar() {
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        padding: EdgeInsets.only(top: 16, bottom: 8),
         decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
           border: Border(
-            top: BorderSide(
-              color: Colors.grey.withOpacity(0.2),
-              width: 0.5,
-            ),
+            bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 0.5),
           ),
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: Theme.of(context).primaryColor,
-          unselectedItemColor: Colors.grey[600],
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          elevation: 8,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          onTap: (index) {
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: _navigationItems.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            return _buildNavigationButton(index, item);
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavigationButton(int index, WorkoutNavigationItem item) {
+    final isSelected = _currentIndex == index;
+
+    return Expanded(
+      child: Tooltip(
+        message: item.tooltip,
+        child: InkWell(
+          onTap: () {
             setState(() {
               _currentIndex = index;
             });
           },
-          items: _navigationItems.map((item) {
-            final isSelected = _currentIndex == _navigationItems.indexOf(item);
-            return BottomNavigationBarItem(
-              icon: Icon(isSelected ? item.activeIcon : item.icon),
-              label: item.label,
-              tooltip: item.tooltip,
-            );
-          }).toList(),
+          child: Container(
+            height: 60,
+            margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? Theme.of(context).primaryColor.withOpacity(0.1)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected
+                    ? Theme.of(context).primaryColor
+                    : Colors.grey.withOpacity(0.3),
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                isSelected ? item.activeIcon : item.icon,
+                color: isSelected
+                    ? Theme.of(context).primaryColor
+                    : Colors.grey[600],
+                size: 28,
+              ),
+            ),
+          ),
         ),
       ),
-      floatingActionButton: _activeSession != null ? _buildActiveSessionFAB() : null,
     );
   }
 

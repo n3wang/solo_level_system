@@ -37,18 +37,16 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
     });
   }
 
-  Future<T> _ensureBoxIsOpen<T>(String boxName) async {
+  Future<void> _ensureBoxIsOpen<T>(String boxName) async {
     if (!Hive.isBoxOpen(boxName)) {
       await Hive.openBox<T>(boxName);
     }
-    return Hive.box<T>(boxName) as T;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Workout Routines'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         actions: [

@@ -1154,3 +1154,306 @@ void dispose() {
 - Respect system doze mode and app standby
 
 This notification implementation provides seamless background timer functionality while maintaining good Android citizenship and user experience standards.
+
+## Image Overlay UI Pattern with Stack Widgets
+
+### Full-Screen Image Cards with Text Overlays
+
+When creating motivational cards or visual content that combines images with text, Flutter's `Stack` widget provides powerful layering capabilities.
+
+#### 1. **Stack Widget Fundamentals**
+```dart
+Stack(
+  fit: StackFit.expand,  // Children fill the entire stack
+  children: [
+    // Layer 1: Background image
+    Image.file(File(imagePath), fit: BoxFit.cover),
+
+    // Layer 2: Dark overlay for text readability
+    Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withOpacity(0.3),
+            Colors.black.withOpacity(0.6),
+          ],
+        ),
+      ),
+    ),
+
+    // Layer 3: Text content
+    Center(
+      child: Text('Motivational text here',
+        style: TextStyle(
+          color: Colors.white,
+          shadows: [Shadow(blurRadius: 6, color: Colors.black)],
+        ),
+      ),
+    ),
+  ],
+)
+```
+
+**Key Concepts:**
+- **StackFit.expand**: Makes all children fill the available space
+- **BoxFit.cover**: Image fills width while maintaining aspect ratio
+- **Gradient Overlay**: Improves text readability over images
+- **Text Shadows**: Ensures text visibility regardless of background
+
+#### 2. **Dynamic Image Handling**
+```dart
+if (card.imagePath != null && File(card.imagePath!).existsSync())
+  Image.file(File(card.imagePath!), fit: BoxFit.cover)
+else
+  Container(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Theme.of(context).primaryColor.withOpacity(0.7),
+          Theme.of(context).primaryColor,
+        ],
+      ),
+    ),
+  )
+```
+
+**Benefits:**
+- Graceful fallback when no image is provided
+- File existence check prevents runtime errors
+- Themed gradient maintains visual consistency
+- Null safety with proper null checking
+
+#### 3. **Hive Storage for Images**
+```dart
+@HiveType(typeId: 23)
+class MotivationalCardModel extends HiveObject {
+  @HiveField(0)
+  String id;
+
+  @HiveField(1)
+  String text;
+
+  @HiveField(2)
+  String? imagePath;  // Store file path, not the image itself
+
+  @HiveField(3)
+  DateTime createdAt;
+}
+```
+
+**Storage Strategy:**
+- Store file paths, not binary data
+- Use `path_provider` to get app directory
+- Copy picked images to persistent location
+- Clean up image files when deleting cards
+
+#### 4. **Image Picker Integration**
+```dart
+Future<String?> pickImageFromGallery() async {
+  final picker = ImagePicker();
+  final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+  if (pickedFile == null) return null;
+
+  // Save to app directory with unique filename
+  final dir = await getApplicationDocumentsDirectory();
+  final fileName = 'card_${DateTime.now().millisecondsSinceEpoch}.jpg';
+  final newPath = '${dir.path}/$fileName';
+  final newFile = await File(pickedFile.path).copy(newPath);
+
+  return newFile.path;
+}
+```
+
+**Implementation Details:**
+- Unique filenames prevent collisions
+- Files stored in app documents directory
+- Original file copied to permanent location
+- Returns path for database storage
+
+#### 5. **Grid View for Card Display**
+```dart
+GridView.builder(
+  padding: const EdgeInsets.all(16),
+  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+    crossAxisCount: 2,
+    crossAxisSpacing: 16,
+    mainAxisSpacing: 16,
+    childAspectRatio: 0.75,  // Portrait cards
+  ),
+  itemCount: cards.length,
+  itemBuilder: (context, index) => _buildCardTile(cards[index]),
+)
+```
+
+**Layout Benefits:**
+- Responsive grid adapts to screen size
+- Fixed aspect ratio maintains card proportions
+- Proper spacing for touch targets
+- Efficient item building with builder pattern
+
+#### 6. **Full-Screen Detail View**
+```dart
+Scaffold(
+  backgroundColor: Colors.black,
+  extendBodyBehindAppBar: true,  // AppBar transparent over content
+  appBar: AppBar(
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+  ),
+  body: GestureDetector(
+    onTap: () => Navigator.pop(context),  // Tap to close
+    child: Stack(/* content */),
+  ),
+)
+```
+
+**UX Features:**
+- Immersive full-screen experience
+- Transparent app bar with back button
+- Tap-anywhere to close
+- Black background for focus
+
+### Service Layer Pattern for Feature Modules
+
+#### 1. **Dedicated Service Class**
+```dart
+class MotivationalCardService {
+  static const String _boxName = 'motivationalCards';
+
+  List<MotivationalCardModel> getAllCards() {
+    final box = Hive.box<MotivationalCardModel>(_boxName);
+    return box.values.toList();
+  }
+
+  Future<MotivationalCardModel> createCard({
+    required String text,
+    String? imagePath,
+  }) async {
+    final box = Hive.box<MotivationalCardModel>(_boxName);
+    final card = MotivationalCardModel(/* ... */);
+    await box.add(card);
+    return card;
+  }
+
+  Future<void> deleteCard(String id) async {
+    final box = Hive.box<MotivationalCardModel>(_boxName);
+    // Delete from database and clean up image file
+  }
+}
+```
+
+**Service Benefits:**
+- Centralized business logic
+- Consistent error handling
+- Easy to test independently
+- Reusable across multiple screens
+
+#### 2. **ValueListenableBuilder for Reactive UI**
+```dart
+ValueListenableBuilder(
+  valueListenable: Hive.box<MotivationalCardModel>('motivationalCards').listenable(),
+  builder: (context, Box<MotivationalCardModel> box, _) {
+    final cards = box.values.toList();
+
+    if (cards.isEmpty) {
+      return EmptyState();
+    }
+
+    return GridView.builder(/* ... */);
+  },
+)
+```
+
+**Reactivity Benefits:**
+- Automatic UI updates when data changes
+- No manual setState() calls needed
+- Efficient re-rendering
+- Clean separation of concerns
+
+### Navigation Integration Patterns
+
+#### 1. **Tab-Based Navigation**
+```dart
+TabController(length: 3, vsync: this);  // Add new tab
+
+TabBar(
+  controller: _tabController,
+  tabs: [
+    Tab(icon: Icon(Icons.card_giftcard), text: 'Rewards'),
+    Tab(icon: Icon(Icons.history), text: 'History'),
+    Tab(icon: Icon(Icons.auto_awesome), text: 'Motivation'),  // New tab
+  ],
+)
+
+TabBarView(
+  controller: _tabController,
+  children: [
+    RewardsTab(),
+    HistoryTab(),
+    MotivationalCardsScreen(),  // New screen
+  ],
+)
+```
+
+**Integration Strategy:**
+- Add to existing screen as new tab
+- Maintains navigation context
+- Logical grouping with related features
+- No changes to bottom navigation bar
+
+#### 2. **Empty State UI**
+```dart
+if (cards.isEmpty) {
+  return Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.auto_awesome, size: 64, color: Colors.grey[400]),
+        SizedBox(height: 16),
+        Text('No motivational cards yet'),
+        SizedBox(height: 8),
+        Text('Tap the + button to create your first card'),
+        SizedBox(height: 24),
+        ElevatedButton.icon(
+          onPressed: _navigateToAddCard,
+          icon: Icon(Icons.add),
+          label: Text('Create Card'),
+        ),
+      ],
+    ),
+  );
+}
+```
+
+**UX Best Practices:**
+- Clear empty state messaging
+- Visual icon for context
+- Call-to-action button
+- Helpful guidance text
+
+### Testing Considerations
+
+#### 1. **Image File Testing**
+- Mock file system operations
+- Use test fixtures for image paths
+- Test both with and without images
+- Verify cleanup on deletion
+
+#### 2. **Service Testing**
+- Test CRUD operations
+- Verify Hive box interactions
+- Test error handling paths
+- Mock image picker for unit tests
+
+#### 3. **UI Testing**
+- Test navigation flows
+- Verify empty states
+- Test image display
+- Test overlay text rendering
+
+This pattern demonstrates building a complete feature module with image handling, persistent storage, service layer architecture, and seamless navigation integration - all following Flutter best practices for maintainable, scalable code.

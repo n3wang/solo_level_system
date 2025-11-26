@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:solo_level_system/utils/background_music_service.dart';
 import 'package:solo_level_system/utils/sound_effects_service.dart';
 import 'package:solo_level_system/utils/notification_service.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class TimerController {
   static final TimerController _instance = TimerController._internal();
@@ -75,6 +76,9 @@ class TimerController {
       await _playLofi();
     }
 
+    // Enable wakelock to keep screen on during pomodoro
+    await WakelockPlus.enable();
+
     _isRunning = true;
     if (!_onBreak) {
       _sessionStartTime = DateTime.now();
@@ -103,10 +107,14 @@ class TimerController {
   }
 
   // Pause timer
-  void pauseTimer() {
+  void pauseTimer() async {
     _stopLofi();
     _timer?.cancel();
     _isRunning = false;
+
+    // Disable wakelock when timer is paused
+    await WakelockPlus.disable();
+
     _notifyListeners();
     _notificationService.hideTimerNotification();
   }
@@ -116,6 +124,12 @@ class TimerController {
     pauseTimer();
     _remainingSeconds = _onBreak ? _breakMinutes * 60 : _workMinutes * 60;
     _sessionStartTime = null;
+    _notifyListeners();
+  }
+
+  // Set remaining seconds (for instant finish)
+  void setRemainingSeconds(int seconds) {
+    _remainingSeconds = seconds;
     _notifyListeners();
   }
 
@@ -131,14 +145,18 @@ class TimerController {
   }
 
   // Complete session
-  void _completeSession() {
+  void _completeSession() async {
     _stopLofi();
     _timer?.cancel();
+
+    // Disable wakelock when session completes
+    await WakelockPlus.disable();
 
     if (!_onBreak) {
       // Work session finished
       _soundEffectsService.playWorkTimeCompleted();
       _isRunning = false;
+      _remainingSeconds = 0; // Keep at 0 to show completion
       _notificationService.hideTimerNotification();
       _notifyListeners();
     } else {
@@ -187,8 +205,9 @@ class TimerController {
   }
 
   // Dispose
-  void dispose() {
+  void dispose() async {
     _timer?.cancel();
+    await WakelockPlus.disable();
     _backgroundMusicService.dispose();
     _soundEffectsService.dispose();
     _notificationService.dispose();

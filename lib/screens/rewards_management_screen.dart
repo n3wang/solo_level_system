@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
+import 'motivational_cards_screen.dart';
 
 class RewardsManagementScreen extends StatefulWidget {
   @override
@@ -20,7 +21,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadData();
   }
 
@@ -77,12 +78,17 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
           tabs: [
             Tab(icon: Icon(Icons.card_giftcard), text: 'My Rewards'),
             Tab(icon: Icon(Icons.history), text: 'Purchased'),
+            Tab(icon: Icon(Icons.auto_awesome), text: 'Motivation'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildAvailableRewardsTab(), _buildPurchasedRewardsTab()],
+        children: [
+          _buildAvailableRewardsTab(),
+          _buildPurchasedRewardsTab(),
+          MotivationalCardsScreen(),
+        ],
       ),
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton.extended(
