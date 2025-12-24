@@ -44,6 +44,24 @@
           "labels": [],
           "checkboxes": [],
           "comments": []
+        },
+        {
+          "id": "01e685b2-8aec-4463-997b-3ef4099ce64d",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Chrome Extension",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "e2eb75c4-1ad5-4730-a6cd-aebe64352f6a",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Building chrome extension more than anything for the pomodoro Tracking Situation",
+          "description": "https://chatgpt.com/c/69238403-080c-832a-8865-f66c0838d53b",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
         }
       ]
     },
@@ -51,15 +69,6 @@
       "id": "125bd6ab-d32d-460e-9159-9c34b027ef62",
       "title": "Doing",
       "cards": [
-        {
-          "id": "e52cb33d-ab02-4f2e-bf3c-af29bd899061",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Create play notification from a button",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
         {
           "id": "f1d9bc53-96d5-4f9b-9e86-536aeee5fb3f",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
@@ -84,6 +93,15 @@
               "comment": "The user should allow for creating images (uploading images, optional) and have motivational cards, when viewing the motivanal card, the text shoudl appear overalying the image and the image should be fitting the width, the users shoudl be able to have an access to view all his motivational cards. Create and migrate the models required for self storing thes on  Hive"
             }
           ]
+        },
+        {
+          "id": "5d3e0edb-8d9d-4f59-a3c8-ba3a5bed089c",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Pressing in the routine, lcosing and saving",
+          "description": "Pressing in the routine  workout button selection doesnt open the routine screen with the workouts. It should open that list  where can open the screen to continue the workout",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
         }
       ]
     },
@@ -91,6 +109,24 @@
       "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
       "title": "Done",
       "cards": [
+        {
+          "id": "e52cb33d-ab02-4f2e-bf3c-af29bd899061",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Create play notification from a button",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "53797126-6748-4c7d-9c2a-7bd20cf0f7a0",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Youtube Playlist for Pomodoros",
+          "description": "For the pomodoros instead of playing music I want to also have a feature where the user can link a playlist from youtube to play that video instead, if the user has youtube already isntalled you should be able to use those settings like logged in account etc. Is that possible? The user should be able to create playlist and choose between either music or one the playlist selected, the idea is that if using playlist then when stopping or not stopping the thing it shouldnt reset or change the playtime, since for example this is designed to have mit lectures on the background, it wouldn tit be convenient if it keeps resetting. ",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
         {
           "id": "44f685f4-0964-4f23-a017-20d88bd23131",
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",

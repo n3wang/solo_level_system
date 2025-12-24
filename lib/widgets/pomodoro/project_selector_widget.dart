@@ -68,6 +68,8 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                 });
               },
               child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                margin: EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
@@ -75,7 +77,22 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [SizedBox(width: 4)],
+                  children: [
+                    Text(
+                      showAllProjects ? 'Show less' : 'Show all projects',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(
+                      showAllProjects ? Icons.expand_less : Icons.expand_more,
+                      size: 16,
+                      color: Colors.grey[700],
+                    ),
+                  ],
                 ),
               ),
             ),

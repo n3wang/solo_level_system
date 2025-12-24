@@ -136,35 +136,37 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           Navigator.pop(context);
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.session.routineName),
-              Text(
-                _formatDuration(_workoutDuration),
-                style: TextStyle(fontSize: 14, color: Colors.grey[300]),
+      child: Stack(
+        children: [
+          Scaffold(
+            appBar: AppBar(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.session.routineName),
+                  Text(
+                    _formatDuration(_workoutDuration),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[300]),
+                  ),
+                ],
               ),
-            ],
-          ),
-          actions: [
-            if (widget.routine != null)
-              IconButton(
-                icon: Icon(Icons.edit),
-                onPressed: _editRoutine,
-                tooltip: 'Edit Routine',
-              ),
-            IconButton(
-              icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
-              onPressed: _togglePause,
-            ),
-            IconButton(
-              icon: Icon(Icons.stop),
-              onPressed: _showEndWorkoutDialog,
-            ),
-          ],
-          bottom: TabBar(
+              actions: [
+                if (widget.routine != null)
+                  IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: _editRoutine,
+                    tooltip: 'Edit Routine',
+                  ),
+                IconButton(
+                  icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
+                  onPressed: _togglePause,
+                ),
+                IconButton(
+                  icon: Icon(Icons.stop),
+                  onPressed: _showEndWorkoutDialog,
+                ),
+              ],
+              bottom: TabBar(
             controller: _tabController,
             isScrollable: true,
             tabs: widget.exercises.map((exercise) {
@@ -207,6 +209,31 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             _buildBottomControls(),
           ],
         ),
+      ),
+          if (_isLoading)
+            Container(
+              color: Colors.black54,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Saving workout...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -421,18 +448,16 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: ElevatedButton(
                     onPressed: () => _addSet(exercise),
-                    icon: Icon(Icons.add),
-                    label: Text('Add Set'),
+                    child: Icon(Icons.add),
                   ),
                 ),
                 SizedBox(width: 8),
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: ElevatedButton(
                     onPressed: () => _resetSetsToDefault(exercise),
-                    icon: Icon(Icons.refresh),
-                    label: Text(widget.routine != null ? 'Reset' : 'Default'),
+                    child: Icon(Icons.refresh),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
                       foregroundColor: Colors.white,
@@ -441,12 +466,11 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                 ),
                 SizedBox(width: 8),
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: ElevatedButton(
                     onPressed: _allSetsCompleted(exercise)
                         ? () => _nextExercise()
                         : null,
-                    icon: Icon(Icons.arrow_forward),
-                    label: Text('Next Exercise'),
+                    child: Icon(Icons.arrow_forward),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _allSetsCompleted(exercise)
                           ? Colors.green
@@ -951,16 +975,16 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('End Workout'),
+            child: Text('Save & Exit'),
           ),
         ],
       ),
     );
 
     if (result == true) {
-      // Save workout without navigating (PopScope will handle the navigation)
-      _endWorkout(false, shouldNavigate: false);
-      return true; // Allow pop
+      // Save workout and navigate to summary screen
+      _endWorkout(false, shouldNavigate: true);
+      return false; // Don't pop, let _endWorkout handle navigation
     }
 
     return false; // Don't pop
@@ -997,8 +1021,10 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     );
   }
 
-  void _endWorkout(bool markComplete, {bool shouldNavigate = true}) async {
-    setState(() => _isLoading = true);
+  Future<void> _endWorkout(bool markComplete, {bool shouldNavigate = true}) async {
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
 
     try {
       // Update session with current sets data
@@ -1064,29 +1090,42 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         }
       }
 
-      if (shouldNavigate) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              markComplete
-                  ? 'Workout completed successfully!'
-                  : 'Workout saved',
-            ),
-          ),
-        );
+      // Clear loading state before navigation
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+
+      if (shouldNavigate && mounted) {
+        // Pop back to workout list with summary data
+        Navigator.of(context).pop({
+          'session': widget.session,
+          'exercises': widget.exercises,
+          'totalSetsCompleted': _getTotalCompletedSets(),
+          'totalSets': _getTotalSets(),
+        });
       }
     } catch (e) {
-      if (shouldNavigate) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving workout: $e'),
-            backgroundColor: Colors.red,
+      // Clear loading state on error
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+
+      if (shouldNavigate && mounted) {
+        // Show error dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Error Saving Workout'),
+            content: Text('Failed to save workout: $e\n\nPlease try again.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('OK'),
+              ),
+            ],
           ),
         );
       }
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 }
