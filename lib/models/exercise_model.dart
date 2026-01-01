@@ -87,7 +87,7 @@ class ExerciseModel extends HiveObject {
   String get displayName => name.trim();
   bool get hasPersonalRecord => personalRecord != null;
   String get formattedPersonalRecord => hasPersonalRecord
-      ? '${personalRecord} ${personalRecordUnit ?? ''}'
+      ? '$personalRecord ${personalRecordUnit ?? ''}'
       : 'No PR';
 
   // Methods

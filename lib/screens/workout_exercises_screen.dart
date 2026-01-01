@@ -8,6 +8,8 @@ import 'package:solo_level_system/screens/exercise_details_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
 
 class WorkoutExercisesScreen extends StatefulWidget {
+  const WorkoutExercisesScreen({super.key});
+
   @override
   _WorkoutExercisesScreenState createState() => _WorkoutExercisesScreenState();
 }
@@ -19,13 +21,30 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
   String _searchQuery = '';
 
   final List<String> _categories = [
-    'all', 'strength', 'cardio', 'flexibility', 'sports', 'functional',
-    'powerlifting', 'bodybuilding', 'crossfit', 'yoga', 'pilates'
+    'all',
+    'strength',
+    'cardio',
+    'flexibility',
+    'sports',
+    'functional',
+    'powerlifting',
+    'bodybuilding',
+    'crossfit',
+    'yoga',
+    'pilates',
   ];
 
   final List<String> _muscleGroups = [
-    'all', 'chest', 'back', 'legs', 'arms', 'shoulders', 'core',
-    'glutes', 'calves', 'full_body'
+    'all',
+    'chest',
+    'back',
+    'legs',
+    'arms',
+    'shoulders',
+    'core',
+    'glutes',
+    'calves',
+    'full_body',
   ];
 
   @override
@@ -75,9 +94,7 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.withOpacity(0.2)),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.2))),
       ),
       child: Column(
         children: [
@@ -149,7 +166,8 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
           return EmptyState(
             icon: Icons.fitness_center,
             title: 'No Exercises',
-            subtitle: 'Create your first exercise to build your workout library',
+            subtitle:
+                'Create your first exercise to build your workout library',
             action: PrimaryActionButton(
               text: 'Create Exercise',
               icon: Icons.add,
@@ -232,7 +250,8 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
       }
 
       // Category filter
-      if (_selectedCategory != 'all' && exercise.category != _selectedCategory) {
+      if (_selectedCategory != 'all' &&
+          exercise.category != _selectedCategory) {
         return false;
       }
 
@@ -248,14 +267,26 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
 
   String _formatCategoryName(String category) {
     if (category == 'all') return 'All Categories';
-    return category.replaceAll('_', ' ').split(' ').map((word) =>
-        word.isEmpty ? word : word[0].toUpperCase() + word.substring(1)).join(' ');
+    return category
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map(
+          (word) =>
+              word.isEmpty ? word : word[0].toUpperCase() + word.substring(1),
+        )
+        .join(' ');
   }
 
   String _formatMuscleGroupName(String muscle) {
     if (muscle == 'all') return 'All Muscles';
-    return muscle.replaceAll('_', ' ').split(' ').map((word) =>
-        word.isEmpty ? word : word[0].toUpperCase() + word.substring(1)).join(' ');
+    return muscle
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map(
+          (word) =>
+              word.isEmpty ? word : word[0].toUpperCase() + word.substring(1),
+        )
+        .join(' ');
   }
 
   String _formatDifficultyName(String difficulty) {
@@ -348,9 +379,7 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
   void _createNewExercise() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => AddEditExerciseScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => AddEditExerciseScreen()),
     );
   }
 
@@ -378,14 +407,15 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
       context: context,
       builder: (context) => ConfirmationDialog(
         title: 'Delete Exercise',
-        message: 'Are you sure you want to delete "${exercise.name}"? This action cannot be undone.',
+        message:
+            'Are you sure you want to delete "${exercise.name}"? This action cannot be undone.',
         confirmText: 'Delete',
         isDestructive: true,
         onConfirm: () {
           exercise.delete();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Exercise deleted')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Exercise deleted')));
         },
       ),
     );

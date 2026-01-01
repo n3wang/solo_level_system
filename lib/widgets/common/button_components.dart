@@ -11,14 +11,14 @@ class PrimaryActionButton extends StatelessWidget {
   final Color? foregroundColor;
 
   const PrimaryActionButton({
-    Key? key,
+    super.key,
     required this.text,
     this.onPressed,
     this.icon,
     this.isLoading = false,
     this.backgroundColor,
     this.foregroundColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +28,7 @@ class PrimaryActionButton extends StatelessWidget {
           backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
           foregroundColor: foregroundColor ?? Colors.white,
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         onPressed: isLoading ? null : onPressed,
         icon: isLoading
@@ -52,9 +50,7 @@ class PrimaryActionButton extends StatelessWidget {
         backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
         foregroundColor: foregroundColor ?? Colors.white,
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       onPressed: isLoading ? null : onPressed,
       child: isLoading
@@ -80,13 +76,13 @@ class SecondaryActionButton extends StatelessWidget {
   final Color? textColor;
 
   const SecondaryActionButton({
-    Key? key,
+    super.key,
     required this.text,
     this.onPressed,
     this.icon,
     this.borderColor,
     this.textColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -98,9 +94,7 @@ class SecondaryActionButton extends StatelessWidget {
           foregroundColor: color,
           side: BorderSide(color: borderColor ?? color),
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         onPressed: onPressed,
         icon: Icon(icon),
@@ -113,9 +107,7 @@ class SecondaryActionButton extends StatelessWidget {
         foregroundColor: color,
         side: BorderSide(color: borderColor ?? color),
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       onPressed: onPressed,
       child: Text(text),
@@ -133,14 +125,14 @@ class CustomFloatingActionButton extends StatelessWidget {
   final bool extended;
 
   const CustomFloatingActionButton({
-    Key? key,
+    super.key,
     required this.label,
     required this.icon,
     required this.onPressed,
     this.backgroundColor,
     this.foregroundColor,
     this.extended = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -171,12 +163,12 @@ class DestructiveActionButton extends StatelessWidget {
   final bool isLoading;
 
   const DestructiveActionButton({
-    Key? key,
+    super.key,
     required this.text,
     this.onPressed,
     this.icon,
     this.isLoading = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

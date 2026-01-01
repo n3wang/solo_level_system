@@ -6,8 +6,7 @@ import '../models/motivational_card_model.dart';
 class MotivationalCardDetailScreen extends StatelessWidget {
   final MotivationalCardModel card;
 
-  const MotivationalCardDetailScreen({Key? key, required this.card})
-    : super(key: key);
+  const MotivationalCardDetailScreen({super.key, required this.card});
 
   @override
   Widget build(BuildContext context) {

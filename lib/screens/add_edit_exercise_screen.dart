@@ -6,7 +6,7 @@ import 'package:solo_level_system/models/exercise_model.dart';
 class AddEditExerciseScreen extends StatefulWidget {
   final ExerciseModel? exercise; // null for adding, non-null for editing
 
-  const AddEditExerciseScreen({Key? key, this.exercise}) : super(key: key);
+  const AddEditExerciseScreen({super.key, this.exercise});
 
   @override
   _AddEditExerciseScreenState createState() => _AddEditExerciseScreenState();
@@ -434,7 +434,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
         SizedBox(width: 12),
         Expanded(
           child: DropdownButtonFormField<String>(
-            value: value,
+            initialValue: value,
             decoration: InputDecoration(
               labelText: label,
               border: OutlineInputBorder(),

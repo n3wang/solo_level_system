@@ -8,7 +8,7 @@ import '../utils/motivational_card_service.dart';
 class AddEditMotivationalCardScreen extends StatefulWidget {
   final MotivationalCardModel? card;
 
-  const AddEditMotivationalCardScreen({Key? key, this.card}) : super(key: key);
+  const AddEditMotivationalCardScreen({super.key, this.card});
 
   @override
   _AddEditMotivationalCardScreenState createState() =>
@@ -57,9 +57,9 @@ class _AddEditMotivationalCardScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
       }
     } finally {
       setState(() => _isLoading = false);
@@ -138,9 +138,9 @@ class _AddEditMotivationalCardScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving card: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving card: $e')));
       }
     } finally {
       if (mounted) {
@@ -155,7 +155,9 @@ class _AddEditMotivationalCardScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Motivational Card' : 'New Motivational Card'),
+        title: Text(
+          isEditing ? 'Edit Motivational Card' : 'New Motivational Card',
+        ),
         actions: [
           if (_isLoading)
             const Center(
@@ -169,10 +171,7 @@ class _AddEditMotivationalCardScreenState
               ),
             )
           else
-            IconButton(
-              icon: const Icon(Icons.check),
-              onPressed: _saveCard,
-            ),
+            IconButton(icon: const Icon(Icons.check), onPressed: _saveCard),
         ],
       ),
       body: Form(
@@ -243,7 +242,9 @@ class _AddEditMotivationalCardScreenState
                   child: ElevatedButton.icon(
                     onPressed: _isLoading ? null : _showImageSourceDialog,
                     icon: const Icon(Icons.add_photo_alternate),
-                    label: Text(_imagePath != null ? 'Change Image' : 'Add Image'),
+                    label: Text(
+                      _imagePath != null ? 'Change Image' : 'Add Image',
+                    ),
                   ),
                 ),
               ],
@@ -289,10 +290,7 @@ class _AddEditMotivationalCardScreenState
                     if (_imagePath != null)
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          File(_imagePath!),
-                          fit: BoxFit.cover,
-                        ),
+                        child: Image.file(File(_imagePath!), fit: BoxFit.cover),
                       ),
                     Container(
                       decoration: BoxDecoration(

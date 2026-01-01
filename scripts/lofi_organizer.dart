@@ -18,7 +18,8 @@ class LofiOrganizer {
       return;
     }
 
-    final files = directory.listSync()
+    final files = directory
+        .listSync()
         .where((entity) => entity is File && entity.path.endsWith('.mp3'))
         .cast<File>()
         .toList();
@@ -50,7 +51,10 @@ class LofiOrganizer {
           'site': 'Freesound/Pixabay',
           'duration': estimatedDuration,
           'fileSize': fileSizeKB.round(),
-          'albumImage': _getAlbumImage('Lofi Track ${counter.toString().padLeft(3, '0')}', counter),
+          'albumImage': _getAlbumImage(
+            'Lofi Track ${counter.toString().padLeft(3, '0')}',
+            counter,
+          ),
         });
 
         counter++;
@@ -112,7 +116,10 @@ class LofiOrganizer {
     // Basic title formatting
     final title = cleanName
         .split(' ')
-        .map((word) => word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : '')
+        .map(
+          (word) =>
+              word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : '',
+        )
         .join(' ');
 
     return {
@@ -128,7 +135,7 @@ class LofiOrganizer {
     final seconds = ((fileSizeKB % 1024) / 17).round(); // Rough conversion
 
     if (minutes > 0) {
-      return '${minutes}:${seconds.toString().padLeft(2, '0')}';
+      return '$minutes:${seconds.toString().padLeft(2, '0')}';
     } else {
       return '0:${seconds.toString().padLeft(2, '0')}';
     }
@@ -154,37 +161,54 @@ class LofiOrganizer {
     final titleLower = title.toLowerCase();
 
     // Theme-based album image selection
-    if (titleLower.contains('80') || titleLower.contains('retro') || titleLower.contains('neon')) {
+    if (titleLower.contains('80') ||
+        titleLower.contains('retro') ||
+        titleLower.contains('neon')) {
       return 'album/al09-80s.png';
     }
-    if (titleLower.contains('study') || titleLower.contains('lofi') && counter < 10) {
+    if (titleLower.contains('study') ||
+        titleLower.contains('lofi') && counter < 10) {
       return 'album/al02-lofistudybook.png';
     }
-    if (titleLower.contains('sport') || titleLower.contains('gym') || titleLower.contains('fitness')) {
+    if (titleLower.contains('sport') ||
+        titleLower.contains('gym') ||
+        titleLower.contains('fitness')) {
       return 'album/al11-sports.png';
     }
-    if (titleLower.contains('space') || titleLower.contains('interstellar') || titleLower.contains('voyager')) {
+    if (titleLower.contains('space') ||
+        titleLower.contains('interstellar') ||
+        titleLower.contains('voyager')) {
       return 'album/al05-spaceexploration.png';
     }
-    if (titleLower.contains('science') || titleLower.contains('electronic') || titleLower.contains('tech')) {
+    if (titleLower.contains('science') ||
+        titleLower.contains('electronic') ||
+        titleLower.contains('tech')) {
       return 'album/al08-electronics.png';
     }
-    if (titleLower.contains('dark') || titleLower.contains('melancholy') || titleLower.contains('haunted')) {
+    if (titleLower.contains('dark') ||
+        titleLower.contains('melancholy') ||
+        titleLower.contains('haunted')) {
       return 'album/al06-haunted.png';
     }
     if (titleLower.contains('ghibli') || titleLower.contains('wind')) {
       return 'album/al16-wind.png';
     }
-    if (titleLower.contains('happy') || titleLower.contains('peaceful') || titleLower.contains('calm')) {
+    if (titleLower.contains('happy') ||
+        titleLower.contains('peaceful') ||
+        titleLower.contains('calm')) {
       return 'album/al15-happyplace.png';
     }
-    if (titleLower.contains('detective') || titleLower.contains('stranger') || titleLower.contains('paranormal')) {
+    if (titleLower.contains('detective') ||
+        titleLower.contains('stranger') ||
+        titleLower.contains('paranormal')) {
       return 'album/al05-paranormal.png';
     }
     if (titleLower.contains('hero') || titleLower.contains('willsmith')) {
       return 'album/al10-willsmith.png';
     }
-    if (titleLower.contains('fashion') || titleLower.contains('commercial') || titleLower.contains('balenciaga')) {
+    if (titleLower.contains('fashion') ||
+        titleLower.contains('commercial') ||
+        titleLower.contains('balenciaga')) {
       return 'album/al13-commercial.png';
     }
     if (titleLower.contains('chaos') || titleLower.contains('shattered')) {
@@ -198,4 +222,3 @@ class LofiOrganizer {
     return 'album/al14-album.png';
   }
 }
-

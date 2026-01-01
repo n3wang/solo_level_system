@@ -6,11 +6,7 @@ class LoadingIndicator extends StatelessWidget {
   final String? message;
   final Color? color;
 
-  const LoadingIndicator({
-    Key? key,
-    this.message,
-    this.color,
-  }) : super(key: key);
+  const LoadingIndicator({super.key, this.message, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -25,10 +21,7 @@ class LoadingIndicator extends StatelessWidget {
             SizedBox(height: 16),
             Text(
               message!,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 16,
-              ),
+              style: TextStyle(color: Colors.grey[600], fontSize: 16),
             ),
           ],
         ],
@@ -46,13 +39,13 @@ class EmptyState extends StatelessWidget {
   final Color? iconColor;
 
   const EmptyState({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     this.subtitle,
     this.action,
     this.iconColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -60,11 +53,7 @@ class EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: 64,
-            color: iconColor ?? Colors.grey[400],
-          ),
+          Icon(icon, size: 64, color: iconColor ?? Colors.grey[400]),
           SizedBox(height: 16),
           Text(
             title,
@@ -79,16 +68,10 @@ class EmptyState extends StatelessWidget {
             Text(
               subtitle!,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey[500], fontSize: 14),
             ),
           ],
-          if (action != null) ...[
-            SizedBox(height: 16),
-            action!,
-          ],
+          if (action != null) ...[SizedBox(height: 16), action!],
         ],
       ),
     );
@@ -103,12 +86,12 @@ class ErrorState extends StatelessWidget {
   final String retryText;
 
   const ErrorState({
-    Key? key,
+    super.key,
     required this.title,
     this.message,
     this.onRetry,
     this.retryText = 'Retry',
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -116,11 +99,7 @@ class ErrorState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red[300],
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
           SizedBox(height: 16),
           Text(
             title,
@@ -135,18 +114,12 @@ class ErrorState extends StatelessWidget {
             Text(
               message!,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey[500], fontSize: 14),
             ),
           ],
           if (onRetry != null) ...[
             SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: onRetry,
-              child: Text(retryText),
-            ),
+            ElevatedButton(onPressed: onRetry, child: Text(retryText)),
           ],
         ],
       ),
@@ -161,18 +134,16 @@ class TabbedScreenWrapper extends StatelessWidget {
   final Widget Function() builder;
 
   const TabbedScreenWrapper({
-    Key? key,
+    super.key,
     required this.isLoading,
     this.loadingMessage,
     required this.builder,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return Scaffold(
-        body: LoadingIndicator(message: loadingMessage),
-      );
+      return Scaffold(body: LoadingIndicator(message: loadingMessage));
     }
 
     return builder();

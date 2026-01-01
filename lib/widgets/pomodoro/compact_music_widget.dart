@@ -8,12 +8,12 @@ class CompactMusicWidget extends StatelessWidget {
   final VoidCallback onChangeTrack;
 
   const CompactMusicWidget({
-    Key? key,
+    super.key,
     required this.allowMusic,
     required this.onToggleMusic,
     required this.onChangeTrack,
     this.currentlyPlayingTrack,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

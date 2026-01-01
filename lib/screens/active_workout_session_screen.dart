@@ -14,11 +14,11 @@ class ActiveWorkoutSessionScreen extends StatefulWidget {
   final WorkoutRoutineModel? routine;
 
   const ActiveWorkoutSessionScreen({
-    Key? key,
+    super.key,
     required this.session,
     required this.exercises,
     this.routine,
-  }) : super(key: key);
+  });
 
   @override
   _ActiveWorkoutSessionScreenState createState() =>
@@ -36,8 +36,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
   Duration _restDuration = Duration.zero;
 
   late TabController _tabController;
-  Map<String, List<WorkoutSetModel>> _exerciseSets = {};
-  Map<String, int> _completedSets = {};
+  final Map<String, List<WorkoutSetModel>> _exerciseSets = {};
+  final Map<String, int> _completedSets = {};
 
   // ignore: unused_field
   bool _isLoading = false;
@@ -167,49 +167,51 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                 ),
               ],
               bottom: TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            tabs: widget.exercises.map((exercise) {
-              final completedSets = _completedSets[exercise.id] ?? 0;
-              final totalSets = _exerciseSets[exercise.id]?.length ?? 0;
-
-              return Tab(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      exercise.name,
-                      style: TextStyle(fontSize: 12),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      '$completedSets/$totalSets',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: completedSets == totalSets ? Colors.green : null,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        body: Column(
-          children: [
-            if (_isResting) _buildRestTimer(),
-            Expanded(
-              child: TabBarView(
                 controller: _tabController,
-                children: widget.exercises.map((exercise) {
-                  return _buildExerciseView(exercise);
+                isScrollable: true,
+                tabs: widget.exercises.map((exercise) {
+                  final completedSets = _completedSets[exercise.id] ?? 0;
+                  final totalSets = _exerciseSets[exercise.id]?.length ?? 0;
+
+                  return Tab(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          exercise.name,
+                          style: TextStyle(fontSize: 12),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          '$completedSets/$totalSets',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: completedSets == totalSets
+                                ? Colors.green
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 }).toList(),
               ),
             ),
-            _buildBottomControls(),
-          ],
-        ),
-      ),
+            body: Column(
+              children: [
+                if (_isResting) _buildRestTimer(),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: widget.exercises.map((exercise) {
+                      return _buildExerciseView(exercise);
+                    }).toList(),
+                  ),
+                ),
+                _buildBottomControls(),
+              ],
+            ),
+          ),
           if (_isLoading)
             Container(
               color: Colors.black54,
@@ -457,11 +459,11 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => _resetSetsToDefault(exercise),
-                    child: Icon(Icons.refresh),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
                       foregroundColor: Colors.white,
                     ),
+                    child: Icon(Icons.refresh),
                   ),
                 ),
                 SizedBox(width: 8),
@@ -470,12 +472,12 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                     onPressed: _allSetsCompleted(exercise)
                         ? () => _nextExercise()
                         : null,
-                    child: Icon(Icons.arrow_forward),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _allSetsCompleted(exercise)
                           ? Colors.green
                           : null,
                     ),
+                    child: Icon(Icons.arrow_forward),
                   ),
                 ),
               ],
@@ -608,11 +610,11 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           Flexible(
             child: ElevatedButton(
               onPressed: _showEndWorkoutDialog,
-              child: Text('Finish'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
               ),
+              child: Text('Finish'),
             ),
           ),
         ],
@@ -720,8 +722,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
               Navigator.pop(context);
               _performSetReset(exercise);
             },
-            child: Text('Reset'),
             style: TextButton.styleFrom(foregroundColor: Colors.orange),
+            child: Text('Reset'),
           ),
         ],
       ),
@@ -1013,15 +1015,18 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
               Navigator.pop(context);
               _endWorkout(true);
             },
-            child: Text('Mark Complete'),
             style: TextButton.styleFrom(foregroundColor: Colors.green),
+            child: Text('Mark Complete'),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _endWorkout(bool markComplete, {bool shouldNavigate = true}) async {
+  Future<void> _endWorkout(
+    bool markComplete, {
+    bool shouldNavigate = true,
+  }) async {
     if (mounted) {
       setState(() => _isLoading = true);
     }

@@ -5,10 +5,10 @@ class CameraButtonWidget extends StatelessWidget {
   final bool hasImage;
 
   const CameraButtonWidget({
-    Key? key,
+    super.key,
     required this.onTap,
     required this.hasImage,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

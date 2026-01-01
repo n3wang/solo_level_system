@@ -11,8 +11,7 @@ import 'package:solo_level_system/models/user_settings_model.dart';
 class MainNavigationScreen extends StatefulWidget {
   final Function(UserSettingsModel)? onSettingsChanged;
 
-  const MainNavigationScreen({Key? key, this.onSettingsChanged})
-    : super(key: key);
+  const MainNavigationScreen({super.key, this.onSettingsChanged});
   @override
   _MainNavigationScreenState createState() => _MainNavigationScreenState();
 }

@@ -8,6 +8,8 @@ import 'package:solo_level_system/screens/motivational_cards_screen.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 
 class WorkoutNavigationScreen extends StatefulWidget {
+  const WorkoutNavigationScreen({super.key});
+
   @override
   _WorkoutNavigationScreenState createState() =>
       _WorkoutNavigationScreenState();

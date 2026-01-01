@@ -10,11 +10,11 @@ class RecordingButtonWidget extends StatefulWidget {
   final bool hasRecording;
 
   const RecordingButtonWidget({
-    Key? key,
+    super.key,
     required this.onRecordingComplete,
     required this.onReset,
     required this.hasRecording,
-  }) : super(key: key);
+  });
 
   @override
   State<RecordingButtonWidget> createState() => _RecordingButtonWidgetState();
@@ -32,7 +32,7 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
   // Audio levels for visualization
   // ignore: unused_field
   double _currentLevel = 0.0;
-  List<double> _audioLevels = [];
+  final List<double> _audioLevels = [];
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;

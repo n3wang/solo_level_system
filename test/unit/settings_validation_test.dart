@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
-import 'package:solo_level_system/models/audio_settings_model.dart';
 
 void main() {
   group('Settings Validation Tests', () {

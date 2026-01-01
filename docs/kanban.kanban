@@ -62,6 +62,24 @@
           "labels": [],
           "checkboxes": [],
           "comments": []
+        },
+        {
+          "id": "6c216767-786b-4558-a01e-ffd77e9af02e",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "State Machine Mode",
+          "description": "State machine idea is that in a specific project you should be able to to have multiple states the default being 5 mins break etc, but is that what you want? Actually is good just game + 25 nmins break.",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "91dd0a36-c431-4123-bf4c-9e09c9d007de",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Improve the musics",
+          "description": "Search for youtube and add more musics based on the schedule. of musics.",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
         }
       ]
     },

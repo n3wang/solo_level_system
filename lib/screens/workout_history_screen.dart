@@ -6,6 +6,8 @@ import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
 
 class WorkoutHistoryScreen extends StatefulWidget {
+  const WorkoutHistoryScreen({super.key});
+
   @override
   _WorkoutHistoryScreenState createState() => _WorkoutHistoryScreenState();
 }
@@ -320,14 +322,14 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
   }
 
   String _getSessionTitle(WorkoutSessionModel session) {
-    if (session.routineName?.isNotEmpty == true) {
-      return session.routineName!;
+    if (session.routineName.isNotEmpty == true) {
+      return session.routineName;
     }
     return 'Custom Workout';
   }
 
   String _getSessionType(WorkoutSessionModel session) {
-    if (session.routineName?.isNotEmpty == true) {
+    if (session.routineName.isNotEmpty == true) {
       return 'routine';
     }
     return 'custom';

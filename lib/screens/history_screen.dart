@@ -8,6 +8,8 @@ import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/widgets/audio_player.dart';
 
 class HistoryScreen extends StatefulWidget {
+  const HistoryScreen({super.key});
+
   @override
   _HistoryScreenState createState() => _HistoryScreenState();
 }

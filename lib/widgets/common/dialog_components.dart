@@ -9,26 +9,20 @@ class FormDialog extends StatelessWidget {
   final bool scrollable;
 
   const FormDialog({
-    Key? key,
+    super.key,
     required this.title,
     required this.content,
     this.actions,
     this.scrollable = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(title),
-      content: scrollable
-          ? SingleChildScrollView(
-              child: content,
-            )
-          : content,
+      content: scrollable ? SingleChildScrollView(child: content) : content,
       actions: actions,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 }
@@ -45,7 +39,7 @@ class ConfirmationDialog extends StatelessWidget {
   final bool isDestructive;
 
   const ConfirmationDialog({
-    Key? key,
+    super.key,
     required this.title,
     required this.message,
     required this.onConfirm,
@@ -54,16 +48,14 @@ class ConfirmationDialog extends StatelessWidget {
     this.cancelText = 'Cancel',
     this.confirmColor,
     this.isDestructive = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(title),
       content: Text(message),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       actions: [
         TextButton(
           onPressed: onCancel ?? () => Navigator.of(context).pop(),
@@ -97,14 +89,14 @@ class CustomBottomSheet extends StatelessWidget {
   final double minChildSize;
 
   const CustomBottomSheet({
-    Key? key,
+    super.key,
     this.title,
     required this.content,
     this.isScrollable = true,
     this.initialChildSize = 0.7,
     this.maxChildSize = 0.9,
     this.minChildSize = 0.5,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -124,10 +116,7 @@ class CustomBottomSheet extends StatelessWidget {
             if (title != null) ...[
               Text(
                 title!,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 16),
             ],
@@ -151,32 +140,29 @@ class CustomBottomSheet extends StatelessWidget {
 class OptionsBottomSheet extends StatelessWidget {
   final List<BottomSheetOption> options;
 
-  const OptionsBottomSheet({
-    Key? key,
-    required this.options,
-  }) : super(key: key);
+  const OptionsBottomSheet({super.key, required this.options});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ...options.map((option) => ListTile(
-          leading: Icon(
-            option.icon,
-            color: option.isDestructive ? Colors.red : null,
-          ),
-          title: Text(
-            option.title,
-            style: TextStyle(
+        ...options.map(
+          (option) => ListTile(
+            leading: Icon(
+              option.icon,
               color: option.isDestructive ? Colors.red : null,
             ),
+            title: Text(
+              option.title,
+              style: TextStyle(color: option.isDestructive ? Colors.red : null),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              option.onTap();
+            },
           ),
-          onTap: () {
-            Navigator.pop(context);
-            option.onTap();
-          },
-        )),
+        ),
         SizedBox(height: MediaQuery.of(context).padding.bottom),
       ],
     );

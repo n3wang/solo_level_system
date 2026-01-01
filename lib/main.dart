@@ -223,7 +223,7 @@ void main() async {
 class MyApp extends StatefulWidget {
   final String? initializationError;
 
-  const MyApp({Key? key, this.initializationError}) : super(key: key);
+  const MyApp({super.key, this.initializationError});
 
   @override
   _MyAppState createState() => _MyAppState();

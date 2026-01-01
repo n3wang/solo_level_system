@@ -15,7 +15,7 @@ class PomodoroTimerWidget extends StatelessWidget {
   final BackgroundMusicService backgroundMusicService;
 
   const PomodoroTimerWidget({
-    Key? key,
+    super.key,
     required this.remainingSeconds,
     required this.isRunning,
     required this.onBreak,
@@ -24,7 +24,7 @@ class PomodoroTimerWidget extends StatelessWidget {
     required this.backgroundMusicService,
     this.onTap,
     this.onVerticalDragEnd,
-  }) : super(key: key);
+  });
 
   String _getInstructionText() {
     if (isRunning) {
@@ -44,7 +44,7 @@ class PomodoroTimerWidget extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       onVerticalDragEnd: onVerticalDragEnd,
-      child: Container(
+      child: SizedBox(
         width: albumSize,
         height: albumSize,
         child: Stack(

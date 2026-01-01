@@ -5,6 +5,8 @@ import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
 
 class RewardsScreen extends StatefulWidget {
+  const RewardsScreen({super.key});
+
   @override
   _RewardsScreenState createState() => _RewardsScreenState();
 }
@@ -94,8 +96,8 @@ class _RewardsScreenState extends State<RewardsScreen>
               onPressed: _showAddRewardDialog,
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
-              child: Icon(Icons.add),
               tooltip: 'Create Custom Reward',
+              child: Icon(Icons.add),
             )
           : null,
     );
@@ -410,7 +412,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                   ),
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -715,7 +717,7 @@ class _RewardsScreenState extends State<RewardsScreen>
               ),
               SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedCategory,
+                initialValue: selectedCategory,
                 decoration: InputDecoration(labelText: 'Category'),
                 items:
                     [

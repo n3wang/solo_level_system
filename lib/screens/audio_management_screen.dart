@@ -9,6 +9,8 @@ import 'package:solo_level_system/widgets/enhanced_audio_player.dart';
 import 'package:solo_level_system/widgets/enhanced_audio_recorder.dart';
 
 class AudioManagementScreen extends StatefulWidget {
+  const AudioManagementScreen({super.key});
+
   @override
   _AudioManagementScreenState createState() => _AudioManagementScreenState();
 }
@@ -525,7 +527,7 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
             _buildUsageRow('Files Played', '$playedFiles / ${audios.length}'),
             _buildUsageRow(
               'Average Plays',
-              '${averagePlayCount.toStringAsFixed(1)}',
+              averagePlayCount.toStringAsFixed(1),
             ),
             _buildUsageRow(
               'Most Played',

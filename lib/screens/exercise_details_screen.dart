@@ -9,8 +9,7 @@ import 'package:solo_level_system/screens/active_workout_session_screen.dart';
 class ExerciseDetailsScreen extends StatefulWidget {
   final ExerciseModel exercise;
 
-  const ExerciseDetailsScreen({Key? key, required this.exercise})
-    : super(key: key);
+  const ExerciseDetailsScreen({super.key, required this.exercise});
 
   @override
   _ExerciseDetailsScreenState createState() => _ExerciseDetailsScreenState();

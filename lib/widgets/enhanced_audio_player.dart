@@ -38,7 +38,7 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
   double _volume = 0.8;
   bool _isPlaying = false;
   bool _showWaveform = true;
-  bool _showControls = true;
+  final bool _showControls = true;
 
   late AnimationController _waveformAnimationController;
   late Animation<double> _waveformAnimation;
@@ -310,10 +310,6 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
         children: [
           // Speed Control
           PopupMenuButton<double>(
-            child: Chip(
-              label: Text('${_playbackSpeed}x'),
-              avatar: Icon(Icons.speed, size: 16),
-            ),
             onSelected: _changeSpeed,
             itemBuilder: (context) => [
               PopupMenuItem(value: 0.5, child: Text('0.5x')),
@@ -323,6 +319,10 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
               PopupMenuItem(value: 1.5, child: Text('1.5x')),
               PopupMenuItem(value: 2.0, child: Text('2.0x')),
             ],
+            child: Chip(
+              label: Text('${_playbackSpeed}x'),
+              avatar: Icon(Icons.speed, size: 16),
+            ),
           ),
 
           // Seek Backward
@@ -355,10 +355,6 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
 
           // Volume Control
           PopupMenuButton<double>(
-            child: Chip(
-              label: Text('${(_volume * 100).round()}%'),
-              avatar: Icon(Icons.volume_up, size: 16),
-            ),
             onSelected: _changeVolume,
             itemBuilder: (context) => [
               PopupMenuItem(value: 0.0, child: Text('Mute')),
@@ -367,6 +363,10 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
               PopupMenuItem(value: 0.75, child: Text('75%')),
               PopupMenuItem(value: 1.0, child: Text('100%')),
             ],
+            child: Chip(
+              label: Text('${(_volume * 100).round()}%'),
+              avatar: Icon(Icons.volume_up, size: 16),
+            ),
           ),
         ],
       ),

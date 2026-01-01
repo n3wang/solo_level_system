@@ -12,7 +12,6 @@ import 'package:solo_level_system/models/user_settings_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
 
-
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:solo_level_system/utils/database_utils.dart';
@@ -31,7 +30,7 @@ import 'package:solo_level_system/widgets/pomodoro/session_squares_widget.dart';
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsChanged;
 
-  const HomeScreen({Key? key, this.onSettingsChanged}) : super(key: key);
+  const HomeScreen({super.key, this.onSettingsChanged});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -80,7 +79,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       currentlyPlayingTrack = _timerController.getCurrentTrackTitle();
 
       // If work session completed (not running, not on break, timer at 0)
-      if (!_timerController.isRunning && !_timerController.onBreak && _timerController.remainingSeconds == 0) {
+      if (!_timerController.isRunning &&
+          !_timerController.onBreak &&
+          _timerController.remainingSeconds == 0) {
         canSubmitLog = true;
         logStateMessage = "State: Finished – Submit Log";
       }
@@ -321,8 +322,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-
-
   Future<void> _loadUserProgress() async {
     try {
       if (!Hive.isBoxOpen('userProgress')) {
@@ -533,7 +532,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Album image with timer overlay
-                  Container(
+                  SizedBox(
                     width: PomodoroSizing.getAlbumContainerSize(context),
                     height: PomodoroSizing.getAlbumContainerSize(context),
                     child: Stack(
@@ -639,7 +638,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                   // Music widget next to album (hidden when paused)
                   if (isRunning || canSubmitLog)
-                    Container(
+                    SizedBox(
                       width: PomodoroSizing.getMusicWidgetWidth(context),
                       child: CompactMusicWidget(
                         allowMusic: allowMusic,
@@ -672,7 +671,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // Top padding to match bottom spacing
                   SizedBox(height: 20),
                   // Album image with timer overlay
-                  Container(
+                  SizedBox(
                     width: PomodoroSizing.getAlbumContainerSize(context),
                     height: PomodoroSizing.getAlbumContainerSize(context),
                     child: Stack(
@@ -777,7 +776,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // Music widget below album for small screens (hidden when paused)
                   if (isRunning || canSubmitLog) ...[
                     SizedBox(height: 20),
-                    Container(
+                    SizedBox(
                       width: PomodoroSizing.getAlbumContainerSize(
                         context,
                       ).clamp(150.0, 400.0),
@@ -818,7 +817,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Album image with timer overlay (center)
-              Container(
+              SizedBox(
                 width: PomodoroSizing.getAlbumContainerSize(context),
                 height: PomodoroSizing.getAlbumContainerSize(context),
                 child: GestureDetector(
@@ -951,7 +950,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               // Top padding to match bottom spacing
               SizedBox(height: 20),
               // Album image with timer overlay for vertical layout
-              Container(
+              SizedBox(
                 width: PomodoroSizing.getAlbumContainerSize(context),
                 height: PomodoroSizing.getAlbumContainerSize(context),
                 child: GestureDetector(
@@ -1053,7 +1052,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               // Music widget below recording buttons for vertical layout
               if (isRunning || canSubmitLog) ...[
                 SizedBox(height: 20),
-                Container(
+                SizedBox(
                   width: PomodoroSizing.getAlbumContainerSize(
                     context,
                   ).clamp(150.0, 400.0),
@@ -1172,7 +1171,7 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
   Timer? _timer;
   Timer? _levelTimer;
 
-  List<double> _audioLevels = [];
+  final List<double> _audioLevels = [];
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;

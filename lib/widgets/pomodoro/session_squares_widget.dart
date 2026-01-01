@@ -5,8 +5,7 @@ import '../../constants/pomodoro_constants.dart';
 class SessionSquaresWidget extends StatelessWidget {
   final int completedSessions;
 
-  const SessionSquaresWidget({Key? key, required this.completedSessions})
-    : super(key: key);
+  const SessionSquaresWidget({super.key, required this.completedSessions});
 
   @override
   Widget build(BuildContext context) {

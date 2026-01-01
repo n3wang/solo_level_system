@@ -8,6 +8,8 @@ import 'package:solo_level_system/utils/notification_service.dart';
 import 'package:solo_level_system/utils/timer_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
 }
@@ -228,7 +230,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                   userSettings.defaultWorkMinutes = value.round();
                 });
                 await _saveUserSettings();
-                _timerController.updateDurations(userSettings.defaultWorkMinutes, userSettings.defaultBreakMinutes);
+                _timerController.updateDurations(
+                  userSettings.defaultWorkMinutes,
+                  userSettings.defaultBreakMinutes,
+                );
               },
             ),
           ),
@@ -242,7 +247,10 @@ class _SettingsScreenState extends State<SettingsScreen>
               userSettings.defaultWorkMinutes = value;
             });
             await _saveUserSettings();
-            _timerController.updateDurations(userSettings.defaultWorkMinutes, userSettings.defaultBreakMinutes);
+            _timerController.updateDurations(
+              userSettings.defaultWorkMinutes,
+              userSettings.defaultBreakMinutes,
+            );
           },
         ),
         SizedBox(height: 16),
@@ -261,7 +269,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                   userSettings.defaultBreakMinutes = value.round();
                 });
                 await _saveUserSettings();
-                _timerController.updateDurations(userSettings.defaultWorkMinutes, userSettings.defaultBreakMinutes);
+                _timerController.updateDurations(
+                  userSettings.defaultWorkMinutes,
+                  userSettings.defaultBreakMinutes,
+                );
               },
             ),
           ),
@@ -275,7 +286,10 @@ class _SettingsScreenState extends State<SettingsScreen>
               userSettings.defaultBreakMinutes = value;
             });
             await _saveUserSettings();
-            _timerController.updateDurations(userSettings.defaultWorkMinutes, userSettings.defaultBreakMinutes);
+            _timerController.updateDurations(
+              userSettings.defaultWorkMinutes,
+              userSettings.defaultBreakMinutes,
+            );
           },
         ),
         Divider(),
@@ -424,7 +438,9 @@ class _SettingsScreenState extends State<SettingsScreen>
         _buildSectionHeader('Background Music Control'),
         SwitchListTile(
           title: Text('Play Audio During Work Sessions'),
-          subtitle: Text('Enable background music during pomodoro work sessions'),
+          subtitle: Text(
+            'Enable background music during pomodoro work sessions',
+          ),
           value: userSettings.playAudioDuringWork,
           onChanged: (bool value) async {
             setState(() {
@@ -587,33 +603,33 @@ class _SettingsScreenState extends State<SettingsScreen>
         onPlay: () {
           _timerController.startTimer();
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Timer started!')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Timer started!')));
           }
         },
         onPause: () {
           _timerController.pauseTimer();
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Timer paused!')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Timer paused!')));
           }
         },
         onReset: () {
           _timerController.resetTimer();
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Timer reset!')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Timer reset!')));
           }
         },
         onMute: () {
           _timerController.toggleMute();
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Audio toggled!')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Audio toggled!')));
           }
         },
       );
@@ -621,7 +637,9 @@ class _SettingsScreenState extends State<SettingsScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Test notification sent! Check your notification panel.'),
+            content: Text(
+              'Test notification sent! Check your notification panel.',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -684,7 +702,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                     '${value}m',
                     style: TextStyle(
                       color: isSelected ? Colors.white : Colors.grey[700],
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ),

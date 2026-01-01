@@ -8,26 +8,25 @@ import 'package:solo_level_system/widgets/common/index.dart';
 class WorkoutQuickStartScreen extends StatefulWidget {
   final Function(WorkoutSessionModel?)? onActiveSessionChanged;
 
-  const WorkoutQuickStartScreen({
-    Key? key,
-    this.onActiveSessionChanged,
-  }) : super(key: key);
+  const WorkoutQuickStartScreen({super.key, this.onActiveSessionChanged});
 
   @override
-  _WorkoutQuickStartScreenState createState() => _WorkoutQuickStartScreenState();
+  _WorkoutQuickStartScreenState createState() =>
+      _WorkoutQuickStartScreenState();
 }
 
 class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
   bool _isLoading = true;
   String _selectedWorkoutType = 'custom';
-  List<ExerciseModel> _selectedExercises = [];
+  final List<ExerciseModel> _selectedExercises = [];
   int _estimatedDuration = 30;
 
   final List<QuickStartTemplate> _templates = [
     QuickStartTemplate(
       id: 'full_body',
       name: 'Full Body Strength',
-      description: 'Complete full body workout targeting all major muscle groups',
+      description:
+          'Complete full body workout targeting all major muscle groups',
       duration: 45,
       difficulty: 'intermediate',
       icon: Icons.fitness_center,
@@ -36,7 +35,8 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
     QuickStartTemplate(
       id: 'cardio_hiit',
       name: 'HIIT Cardio',
-      description: 'High-intensity interval training for cardiovascular fitness',
+      description:
+          'High-intensity interval training for cardiovascular fitness',
       duration: 20,
       difficulty: 'advanced',
       icon: Icons.directions_run,
@@ -54,7 +54,8 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
     QuickStartTemplate(
       id: 'flexibility',
       name: 'Flexibility & Mobility',
-      description: 'Stretching and mobility routine for recovery and flexibility',
+      description:
+          'Stretching and mobility routine for recovery and flexibility',
       duration: 25,
       difficulty: 'beginner',
       icon: Icons.self_improvement,
@@ -116,10 +117,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
       children: [
         Text(
           'Workout Type',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 12),
         Row(
@@ -149,7 +147,13 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
     );
   }
 
-  Widget _buildWorkoutTypeCard(String type, String title, String subtitle, IconData icon, Color color) {
+  Widget _buildWorkoutTypeCard(
+    String type,
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+  ) {
     final isSelected = _selectedWorkoutType == type;
 
     return GestureDetector(
@@ -172,11 +176,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              color: isSelected ? color : Colors.grey[600],
-              size: 32,
-            ),
+            Icon(icon, color: isSelected ? color : Colors.grey[600], size: 32),
             SizedBox(height: 8),
             Text(
               title,
@@ -189,10 +189,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
             SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
           ],
@@ -207,13 +204,12 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
       children: [
         Text(
           'Choose a Template',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 12),
-        ...(_templates.map((template) => _buildTemplateCard(template)).toList()),
+        ...(_templates
+            .map((template) => _buildTemplateCard(template))
+            .toList()),
       ],
     );
   }
@@ -231,11 +227,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
               color: template.color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              template.icon,
-              color: template.color,
-              size: 28,
-            ),
+            child: Icon(template.icon, color: template.color, size: 28),
           ),
           SizedBox(width: 16),
           Expanded(
@@ -244,18 +236,12 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
               children: [
                 Text(
                   template.name,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 4),
                 Text(
                   template.description,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
                 SizedBox(height: 8),
                 Row(
@@ -289,10 +275,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
       children: [
         Text(
           'Build Custom Workout',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 12),
         _buildDurationSelector(),
@@ -307,11 +290,8 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Estimated Duration: ${_estimatedDuration} minutes',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          'Estimated Duration: $_estimatedDuration minutes',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
         Slider(
@@ -319,7 +299,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
           min: 10,
           max: 120,
           divisions: 22,
-          label: '${_estimatedDuration} min',
+          label: '$_estimatedDuration min',
           onChanged: (value) {
             setState(() {
               _estimatedDuration = value.round();
@@ -339,10 +319,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
           children: [
             Text(
               'Selected Exercises (${_selectedExercises.length})',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             SecondaryActionButton(
               text: 'Add Exercise',
@@ -364,7 +341,9 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
             ),
           )
         else
-          ..._selectedExercises.map((exercise) => _buildSelectedExerciseCard(exercise)).toList(),
+          ..._selectedExercises.map(
+            (exercise) => _buildSelectedExerciseCard(exercise),
+          ),
       ],
     );
   }
@@ -374,10 +353,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
       margin: EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(
-            Icons.fitness_center,
-            color: Theme.of(context).primaryColor,
-          ),
+          Icon(Icons.fitness_center, color: Theme.of(context).primaryColor),
           SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -389,10 +365,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
                 ),
                 Text(
                   exercise.muscleGroup.replaceAll('_', ' '),
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               ],
             ),
@@ -411,7 +384,8 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
   }
 
   Widget _buildStartWorkoutSection() {
-    final canStart = _selectedWorkoutType == 'template' || _selectedExercises.isNotEmpty;
+    final canStart =
+        _selectedWorkoutType == 'template' || _selectedExercises.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -425,10 +399,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
           SizedBox(height: 8),
           Text(
             'Select a template or add exercises to start your workout',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Colors.grey[600], fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ],

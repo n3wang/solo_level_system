@@ -18,6 +18,8 @@ extension StringExtension on String {
 }
 
 class AnalyticsScreen extends StatefulWidget {
+  const AnalyticsScreen({super.key});
+
   @override
   _AnalyticsScreenState createState() => _AnalyticsScreenState();
 }
@@ -358,7 +360,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Quick Stats - ${_selectedPeriod}',
+              'Quick Stats - $_selectedPeriod',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
@@ -553,7 +555,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
-            Container(
+            SizedBox(
               height: 150,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -634,7 +636,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             SizedBox(height: 16),
             _buildGoalItem('Daily Focus Sessions', todayPomodoros, 5),
             _buildGoalItem(
-              '${_selectedPeriod} Workouts',
+              '$_selectedPeriod Workouts',
               weeklyWorkouts,
               _selectedPeriod == 'Week'
                   ? 4
@@ -645,7 +647,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             _buildGoalItem(
               'Habit Completion',
               completedHabits,
-              habits.length > 0 ? habits.length : 1,
+              habits.isNotEmpty ? habits.length : 1,
             ),
           ],
         ),
@@ -697,7 +699,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         Expanded(
           child: _buildStatCard(
             'Avg/Day',
-            '${avgPerDay.toStringAsFixed(1)}',
+            avgPerDay.toStringAsFixed(1),
             Icons.trending_up,
           ),
         ),
@@ -739,7 +741,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
-            Container(
+            SizedBox(
               height: 200,
               child: Center(child: Text('Chart would go here')),
             ),
@@ -936,7 +938,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         Expanded(
           child: _buildStatCard(
             'Hours',
-            totalHours > 0 ? '${totalHours.toStringAsFixed(1)}' : '0',
+            totalHours > 0 ? totalHours.toStringAsFixed(1) : '0',
             Icons.schedule,
           ),
         ),
@@ -964,7 +966,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             ),
             SizedBox(height: 16),
             sessions.isEmpty
-                ? Container(
+                ? SizedBox(
                     height: 100,
                     child: Center(
                       child: Text(
@@ -973,7 +975,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                       ),
                     ),
                   )
-                : Container(
+                : SizedBox(
                     height: 100,
                     child: Center(
                       child: Text(

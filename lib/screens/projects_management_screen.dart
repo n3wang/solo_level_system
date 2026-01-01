@@ -5,6 +5,8 @@ import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
 
 class ProjectsManagementScreen extends StatefulWidget {
+  const ProjectsManagementScreen({super.key});
+
   @override
   _ProjectsManagementScreenState createState() =>
       _ProjectsManagementScreenState();
@@ -474,7 +476,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                 ),
                 SizedBox(height: 16),
                 DropdownButtonFormField<int>(
-                  value: selectedPriority,
+                  initialValue: selectedPriority,
                   decoration: InputDecoration(labelText: 'Priority'),
                   items: [
                     DropdownMenuItem(value: 1, child: Text('Low')),
@@ -490,7 +492,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                 // Preferred Work Hour
                 DropdownButtonFormField<int?>(
                   dropdownColor: Theme.of(context).canvasColor,
-                  value: selectedWorkHour,
+                  initialValue: selectedWorkHour,
                   decoration: InputDecoration(
                     labelText: 'Preferred Work Hour (Optional)',
                   ),

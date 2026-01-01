@@ -9,7 +9,7 @@ import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 class AddEditRoutineScreen extends StatefulWidget {
   final WorkoutRoutineModel? routine; // null for adding, non-null for editing
 
-  const AddEditRoutineScreen({Key? key, this.routine}) : super(key: key);
+  const AddEditRoutineScreen({super.key, this.routine});
 
   @override
   _AddEditRoutineScreenState createState() => _AddEditRoutineScreenState();
@@ -273,7 +273,7 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Estimated Duration: ${_estimatedDuration} minutes',
+                        'Estimated Duration: $_estimatedDuration minutes',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -284,7 +284,7 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                         min: 10,
                         max: 120,
                         divisions: 22,
-                        label: '${_estimatedDuration} min',
+                        label: '$_estimatedDuration min',
                         onChanged: (value) {
                           setState(() => _estimatedDuration = value.round());
                         },
@@ -519,7 +519,7 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
         SizedBox(width: 12),
         Expanded(
           child: DropdownButtonFormField<String>(
-            value: value,
+            initialValue: value,
             decoration: InputDecoration(
               labelText: label,
               border: OutlineInputBorder(),
@@ -844,10 +844,10 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                         });
                         Navigator.pop(context);
                       },
-                      child: Text('Save'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                       ),
+                      child: Text('Save'),
                     ),
                   ),
                 ],

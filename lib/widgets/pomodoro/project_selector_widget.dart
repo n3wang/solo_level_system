@@ -11,14 +11,14 @@ class ProjectSelectorWidget extends StatefulWidget {
   final bool canSubmitLog;
 
   const ProjectSelectorWidget({
-    Key? key,
+    super.key,
     required this.projects,
     required this.selectedProject,
     required this.onProjectSelected,
     this.isCollapsed = false,
     this.isRunning = false,
     this.canSubmitLog = false,
-  }) : super(key: key);
+  });
 
   @override
   _ProjectSelectorWidgetState createState() => _ProjectSelectorWidgetState();
@@ -243,11 +243,11 @@ class CompactProjectSelectorWidget extends StatelessWidget {
   final Function(ProjectModel?) onProjectSelected;
 
   const CompactProjectSelectorWidget({
-    Key? key,
+    super.key,
     required this.projects,
     required this.selectedProject,
     required this.onProjectSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -265,7 +265,7 @@ class CompactProjectSelectorWidget extends StatelessWidget {
         ? activeProjects.where((p) => p.id == selectedProject!.id).toList()
         : activeProjects;
 
-    return Container(
+    return SizedBox(
       height: 40,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,

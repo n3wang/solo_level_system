@@ -1,11 +1,10 @@
-import 'dart:math';
-import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'lofi_service.dart';
 import '../models/lofi_track.dart';
 
 class BackgroundMusicService {
-  static final BackgroundMusicService _instance = BackgroundMusicService._internal();
+  static final BackgroundMusicService _instance =
+      BackgroundMusicService._internal();
   factory BackgroundMusicService() => _instance;
   BackgroundMusicService._internal();
 
@@ -95,7 +94,9 @@ class BackgroundMusicService {
   Future<void> playPreviousTrack() async {
     if (_playlist.isEmpty) return;
 
-    _currentTrackIndex = _currentTrackIndex > 0 ? _currentTrackIndex - 1 : _playlist.length - 1;
+    _currentTrackIndex = _currentTrackIndex > 0
+        ? _currentTrackIndex - 1
+        : _playlist.length - 1;
     _currentTrack = _playlist[_currentTrackIndex];
     await _playCurrentTrack();
   }
@@ -132,13 +133,18 @@ class BackgroundMusicService {
     }
   }
 
-  Future<List<LofiTrack>> getPlaylistForDuration(Duration targetDuration) async {
+  Future<List<LofiTrack>> getPlaylistForDuration(
+    Duration targetDuration,
+  ) async {
     final tracks = await LofiService.getAllTracks();
     final selectedTracks = <LofiTrack>[];
     Duration totalDuration = Duration.zero;
 
     // Sort by duration to optimize selection
-    tracks.sort((a, b) => _parseDuration(a.duration).compareTo(_parseDuration(b.duration)));
+    tracks.sort(
+      (a, b) =>
+          _parseDuration(a.duration).compareTo(_parseDuration(b.duration)),
+    );
 
     for (final track in tracks) {
       final trackDuration = _parseDuration(track.duration);

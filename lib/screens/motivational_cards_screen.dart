@@ -8,7 +8,7 @@ import 'add_edit_motivational_card_screen.dart';
 import 'motivational_card_detail_screen.dart';
 
 class MotivationalCardsScreen extends StatefulWidget {
-  const MotivationalCardsScreen({Key? key}) : super(key: key);
+  const MotivationalCardsScreen({super.key});
 
   @override
   _MotivationalCardsScreenState createState() =>
@@ -58,7 +58,9 @@ class _MotivationalCardsScreenState extends State<MotivationalCardsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Card'),
-        content: const Text('Are you sure you want to delete this motivational card?'),
+        content: const Text(
+          'Are you sure you want to delete this motivational card?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -78,15 +80,15 @@ class _MotivationalCardsScreenState extends State<MotivationalCardsScreen> {
         await _service.deleteCard(card.id);
         if (mounted) {
           setState(() {});
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Card deleted')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Card deleted')));
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting card: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error deleting card: $e')));
         }
       }
     }
@@ -96,7 +98,9 @@ class _MotivationalCardsScreenState extends State<MotivationalCardsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ValueListenableBuilder(
-        valueListenable: Hive.box<MotivationalCardModel>('motivationalCards').listenable(),
+        valueListenable: Hive.box<MotivationalCardModel>(
+          'motivationalCards',
+        ).listenable(),
         builder: (context, Box<MotivationalCardModel> box, _) {
           final cards = box.values.toList();
 
@@ -105,26 +109,16 @@ class _MotivationalCardsScreenState extends State<MotivationalCardsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
+                  Icon(Icons.auto_awesome, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     'No motivational cards yet',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Tap the + button to create your first card',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
@@ -172,10 +166,7 @@ class _MotivationalCardsScreenState extends State<MotivationalCardsScreen> {
           children: [
             // Background image or color
             if (card.imagePath != null && File(card.imagePath!).existsSync())
-              Image.file(
-                File(card.imagePath!),
-                fit: BoxFit.cover,
-              )
+              Image.file(File(card.imagePath!), fit: BoxFit.cover)
             else
               Container(
                 decoration: BoxDecoration(
@@ -196,10 +187,7 @@ class _MotivationalCardsScreenState extends State<MotivationalCardsScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.7),
-                  ],
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                 ),
               ),
             ),

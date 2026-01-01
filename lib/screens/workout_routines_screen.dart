@@ -14,10 +14,10 @@ class WorkoutRoutinesScreen extends StatefulWidget {
   final WorkoutSessionModel? activeSession;
 
   const WorkoutRoutinesScreen({
-    Key? key,
+    super.key,
     this.onActiveSessionChanged,
     this.activeSession,
-  }) : super(key: key);
+  });
 
   @override
   _WorkoutRoutinesScreenState createState() => _WorkoutRoutinesScreenState();
@@ -73,7 +73,9 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
 
   Widget _buildRoutinesList() {
     return ValueListenableBuilder(
-      valueListenable: Hive.box<WorkoutRoutineModel>('workoutRoutines').listenable(),
+      valueListenable: Hive.box<WorkoutRoutineModel>(
+        'workoutRoutines',
+      ).listenable(),
       builder: (context, Box<WorkoutRoutineModel> box, _) {
         final routines = box.values.toList();
 
@@ -81,7 +83,8 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
           return EmptyState(
             icon: Icons.fitness_center,
             title: 'No Workout Routines',
-            subtitle: 'Create your first routine to get started with structured workouts',
+            subtitle:
+                'Create your first routine to get started with structured workouts',
             action: PrimaryActionButton(
               text: 'Create Routine',
               icon: Icons.add,
@@ -318,9 +321,7 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
   void _createNewRoutine() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => AddEditRoutineScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => AddEditRoutineScreen()),
     );
   }
 
@@ -348,14 +349,15 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
       context: context,
       builder: (context) => ConfirmationDialog(
         title: 'Delete Routine',
-        message: 'Are you sure you want to delete "${routine.name}"? This action cannot be undone.',
+        message:
+            'Are you sure you want to delete "${routine.name}"? This action cannot be undone.',
         confirmText: 'Delete',
         isDestructive: true,
         onConfirm: () {
           routine.delete();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Routine deleted')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Routine deleted')));
         },
       ),
     );
@@ -407,7 +409,9 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      session.isCompleted ? 'Workout Complete!' : 'Workout Saved',
+                      session.isCompleted
+                          ? 'Workout Complete!'
+                          : 'Workout Saved',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -427,11 +431,7 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
                   child: Column(
                     children: [
                       if (session.isCompleted) ...[
-                        Icon(
-                          Icons.celebration,
-                          size: 80,
-                          color: Colors.green,
-                        ),
+                        Icon(Icons.celebration, size: 80, color: Colors.green),
                         SizedBox(height: 16),
                         Text(
                           'Great Job!',
@@ -450,11 +450,7 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
                           ),
                         ),
                       ] else ...[
-                        Icon(
-                          Icons.save,
-                          size: 80,
-                          color: Colors.blue,
-                        ),
+                        Icon(Icons.save, size: 80, color: Colors.blue),
                         SizedBox(height: 16),
                         Text(
                           'Workout Saved',
@@ -476,7 +472,9 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
                       SizedBox(height: 40),
                       _buildSummaryStatCard(
                         'Routine',
-                        session.routineName.isEmpty ? 'Custom Workout' : session.routineName,
+                        session.routineName.isEmpty
+                            ? 'Custom Workout'
+                            : session.routineName,
                         Icons.fitness_center,
                         Colors.purple,
                       ),
@@ -524,7 +522,8 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
                           ),
                         ],
                       ),
-                      if (session.totalWeightLifted != null && session.totalWeightLifted! > 0) ...[
+                      if (session.totalWeightLifted != null &&
+                          session.totalWeightLifted! > 0) ...[
                         SizedBox(height: 16),
                         _buildSummaryStatCard(
                           'Total Weight',
@@ -548,7 +547,10 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
                           ),
                           child: Text(
                             'Done',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -563,7 +565,12 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
     );
   }
 
-  Widget _buildSummaryStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildSummaryStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

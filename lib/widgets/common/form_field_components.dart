@@ -13,7 +13,7 @@ class CustomTextField extends StatelessWidget {
   final String? Function(String?)? validator;
 
   const CustomTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.labelText,
     this.hintText,
@@ -22,7 +22,7 @@ class CustomTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.onChanged,
     this.validator,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -31,21 +31,23 @@ class CustomTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: required ? '$labelText *' : labelText,
         hintText: hintText,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface,
       ),
       maxLines: maxLines,
       keyboardType: keyboardType,
       onChanged: onChanged,
-      validator: validator ?? (required ? (value) {
-        if (value?.isEmpty ?? true) {
-          return 'This field is required';
-        }
-        return null;
-      } : null),
+      validator:
+          validator ??
+          (required
+              ? (value) {
+                  if (value?.isEmpty ?? true) {
+                    return 'This field is required';
+                  }
+                  return null;
+                }
+              : null),
     );
   }
 }
@@ -59,34 +61,34 @@ class CustomDropdownField<T> extends StatelessWidget {
   final bool required;
 
   const CustomDropdownField({
-    Key? key,
+    super.key,
     required this.value,
     required this.labelText,
     required this.items,
     required this.onChanged,
     this.required = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<T>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: required ? '$labelText *' : labelText,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface,
       ),
       items: items,
       onChanged: onChanged,
-      validator: required ? (value) {
-        if (value == null) {
-          return 'Please select an option';
-        }
-        return null;
-      } : null,
+      validator: required
+          ? (value) {
+              if (value == null) {
+                return 'Please select an option';
+              }
+              return null;
+            }
+          : null,
     );
   }
 }
@@ -102,7 +104,7 @@ class NumberInputField extends StatelessWidget {
   final Function(int?)? onChanged;
 
   const NumberInputField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.labelText,
     this.hintText,
@@ -110,7 +112,7 @@ class NumberInputField extends StatelessWidget {
     this.max,
     this.required = false,
     this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -154,12 +156,12 @@ class MultiSelectChips extends StatelessWidget {
   final Function(List<dynamic>) onSelectionChanged;
 
   const MultiSelectChips({
-    Key? key,
+    super.key,
     required this.title,
     required this.options,
     required this.selectedValues,
     required this.onSelectionChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -207,8 +209,5 @@ class ChipOption {
   final dynamic value;
   final String label;
 
-  const ChipOption({
-    required this.value,
-    required this.label,
-  });
+  const ChipOption({required this.value, required this.label});
 }

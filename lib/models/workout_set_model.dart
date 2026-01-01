@@ -68,7 +68,7 @@ class WorkoutSetModel extends HiveObject {
     if (weight != null) {
       return '$reps reps @ ${weight}kg';
     } else if (duration != null) {
-      return '${_formatDuration(duration!)}';
+      return _formatDuration(duration!);
     } else if (distance != null) {
       return '${distance}km';
     } else {
@@ -101,7 +101,7 @@ class WorkoutSetModel extends HiveObject {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
     if (minutes > 0) {
-      return '${minutes}:${remainingSeconds.toString().padLeft(2, '0')}';
+      return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
     }
     return '${seconds}s';
   }

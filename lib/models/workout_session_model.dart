@@ -1,6 +1,5 @@
 // lib/models/workout_session_model.dart
 import 'package:hive/hive.dart';
-import 'workout_routine_model.dart';
 part 'workout_session_model.g.dart';
 
 @HiveType(typeId: 7)

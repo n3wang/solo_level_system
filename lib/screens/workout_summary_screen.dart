@@ -10,12 +10,12 @@ class WorkoutSummaryScreen extends StatelessWidget {
   final int totalSets;
 
   const WorkoutSummaryScreen({
-    Key? key,
+    super.key,
     required this.session,
     required this.exercises,
     required this.totalSetsCompleted,
     required this.totalSets,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +24,15 @@ class WorkoutSummaryScreen extends StatelessWidget {
         : Duration.zero;
 
     return Scaffold(
-      backgroundColor: session.isCompleted ? Colors.green.shade50 : Colors.grey.shade100,
+      backgroundColor: session.isCompleted
+          ? Colors.green.shade50
+          : Colors.grey.shade100,
       appBar: AppBar(
         backgroundColor: session.isCompleted ? Colors.green : Colors.grey,
         foregroundColor: Colors.white,
-        title: Text(session.isCompleted ? 'Workout Complete!' : 'Workout Saved'),
+        title: Text(
+          session.isCompleted ? 'Workout Complete!' : 'Workout Saved',
+        ),
         leading: IconButton(
           icon: Icon(Icons.close),
           onPressed: () => _navigateToHome(context),
@@ -39,11 +43,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
         child: Column(
           children: [
             if (session.isCompleted) ...[
-              Icon(
-                Icons.celebration,
-                size: 80,
-                color: Colors.green,
-              ),
+              Icon(Icons.celebration, size: 80, color: Colors.green),
               SizedBox(height: 16),
               Text(
                 'Great Job!',
@@ -56,17 +56,10 @@ class WorkoutSummaryScreen extends StatelessWidget {
               SizedBox(height: 8),
               Text(
                 'You completed your workout',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey.shade700,
-                ),
+                style: TextStyle(fontSize: 18, color: Colors.grey.shade700),
               ),
             ] else ...[
-              Icon(
-                Icons.save,
-                size: 80,
-                color: Colors.blue,
-              ),
+              Icon(Icons.save, size: 80, color: Colors.blue),
               SizedBox(height: 16),
               Text(
                 'Workout Saved',
@@ -79,16 +72,15 @@ class WorkoutSummaryScreen extends StatelessWidget {
               SizedBox(height: 8),
               Text(
                 'Your progress has been saved',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey.shade700,
-                ),
+                style: TextStyle(fontSize: 18, color: Colors.grey.shade700),
               ),
             ],
             SizedBox(height: 40),
             _buildStatCard(
               'Routine',
-              session.routineName.isEmpty ? 'Custom Workout' : session.routineName,
+              session.routineName.isEmpty
+                  ? 'Custom Workout'
+                  : session.routineName,
               Icons.fitness_center,
               Colors.purple,
             ),
@@ -136,7 +128,8 @@ class WorkoutSummaryScreen extends StatelessWidget {
                 ),
               ],
             ),
-            if (session.totalWeightLifted != null && session.totalWeightLifted! > 0) ...[
+            if (session.totalWeightLifted != null &&
+                session.totalWeightLifted! > 0) ...[
               SizedBox(height: 16),
               _buildStatCard(
                 'Total Weight',
@@ -170,7 +163,12 @@ class WorkoutSummaryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -33,7 +33,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
   Timer? _timer;
 
   // Waveform visualization
-  List<double> _realtimeWaveform = [];
+  final List<double> _realtimeWaveform = [];
   late AnimationController _waveformController;
   late Animation<double> _waveformAnimation;
 

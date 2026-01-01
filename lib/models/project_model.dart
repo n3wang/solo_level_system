@@ -102,7 +102,7 @@ class ProjectModel extends HiveObject {
   // Convenience getters
   String get shortName {
     if (name.length <= 8) return name;
-    return name.substring(0, 7) + '…';
+    return '${name.substring(0, 7)}…';
   }
 
   bool get isActiveToday {
@@ -140,7 +140,7 @@ class ProjectModel extends HiveObject {
   }
 
   String get progressText {
-    return '${todayCompleted}/${todayTarget}';
+    return '$todayCompleted/$todayTarget';
   }
 
   int get weeklyTarget {
@@ -300,7 +300,7 @@ class ProjectModel extends HiveObject {
 
   @override
   String toString() {
-    return 'ProjectModel(id: $id, name: $name, todayProgress: ${progressText})';
+    return 'ProjectModel(id: $id, name: $name, todayProgress: $progressText)';
   }
 }
 

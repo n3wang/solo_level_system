@@ -11,14 +11,14 @@ class BaseCard extends StatelessWidget {
   final Color? backgroundColor;
 
   const BaseCard({
-    Key? key,
+    super.key,
     required this.child,
     this.onTap,
     this.onLongPress,
     this.margin,
     this.padding,
     this.backgroundColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +29,7 @@ class BaseCard extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: padding ?? EdgeInsets.all(16),
-          child: child,
-        ),
+        child: Padding(padding: padding ?? EdgeInsets.all(16), child: child),
       ),
     );
   }
@@ -48,14 +45,14 @@ class CardHeader extends StatelessWidget {
   final Widget? trailing;
 
   const CardHeader({
-    Key? key,
+    super.key,
     required this.title,
     this.description,
     required this.color,
     this.icon,
     this.iconName,
     this.trailing,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -69,19 +66,13 @@ class CardHeader extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               if (description?.isNotEmpty == true) ...[
                 SizedBox(height: 4),
                 Text(
                   description!,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -103,11 +94,7 @@ class CardHeader extends StatelessWidget {
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          icon,
-          color: color,
-          size: 20,
-        ),
+        child: Icon(icon, color: color, size: 20),
       );
     } else if (iconName != null) {
       return Container(
@@ -117,11 +104,7 @@ class CardHeader extends StatelessWidget {
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          _getIconData(iconName!),
-          color: color,
-          size: 20,
-        ),
+        child: Icon(_getIconData(iconName!), color: color, size: 20),
       );
     } else {
       return Container(
@@ -185,12 +168,12 @@ class StatChip extends StatelessWidget {
   final Color? color;
 
   const StatChip({
-    Key? key,
+    super.key,
     required this.label,
     required this.value,
     required this.icon,
     this.color,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -203,18 +186,11 @@ class StatChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: color ?? Colors.grey[600],
-          ),
+          Icon(icon, size: 14, color: color ?? Colors.grey[600]),
           SizedBox(width: 4),
           Text(
             '$label: $value',
-            style: TextStyle(
-              fontSize: 12,
-              color: color ?? Colors.grey[700],
-            ),
+            style: TextStyle(fontSize: 12, color: color ?? Colors.grey[700]),
           ),
         ],
       ),
@@ -226,10 +202,7 @@ class StatChip extends StatelessWidget {
 class PriorityChip extends StatelessWidget {
   final int priority;
 
-  const PriorityChip({
-    Key? key,
-    required this.priority,
-  }) : super(key: key);
+  const PriorityChip({super.key, required this.priority});
 
   @override
   Widget build(BuildContext context) {

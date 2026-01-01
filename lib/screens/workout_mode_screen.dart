@@ -11,6 +11,8 @@ import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
 import 'package:solo_level_system/screens/active_workout_session_screen.dart';
 
 class WorkoutModeScreen extends StatefulWidget {
+  const WorkoutModeScreen({super.key});
+
   @override
   _WorkoutModeScreenState createState() => _WorkoutModeScreenState();
 }
@@ -71,9 +73,9 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
           ? FloatingActionButton(
               heroTag: "workout_mode_active_session",
               onPressed: () => _navigateToActiveWorkout(),
-              child: Icon(Icons.play_arrow),
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
+              child: Icon(Icons.play_arrow),
             )
           : null,
     );
@@ -929,9 +931,9 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
   }
 
   void _showQuickAddExercise() {
-    final _nameController = TextEditingController();
-    String _selectedMuscleGroup = 'chest';
-    String _selectedEquipment = 'bodyweight';
+    final nameController = TextEditingController();
+    String selectedMuscleGroup = 'chest';
+    String selectedEquipment = 'bodyweight';
 
     showDialog(
       context: context,
@@ -943,7 +945,7 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextFormField(
-                  controller: _nameController,
+                  controller: nameController,
                   decoration: InputDecoration(
                     labelText: 'Exercise Name',
                     hintText: 'e.g., Push-ups, Squats',
@@ -952,7 +954,7 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                 ),
                 SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedMuscleGroup,
+                  initialValue: selectedMuscleGroup,
                   decoration: InputDecoration(
                     labelText: 'Muscle Group',
                     border: OutlineInputBorder(),
@@ -989,13 +991,13 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                           .toList(),
                   onChanged: (value) {
                     setStateDialog(() {
-                      _selectedMuscleGroup = value!;
+                      selectedMuscleGroup = value!;
                     });
                   },
                 ),
                 SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedEquipment,
+                  initialValue: selectedEquipment,
                   decoration: InputDecoration(
                     labelText: 'Equipment',
                     border: OutlineInputBorder(),
@@ -1023,7 +1025,7 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                           .toList(),
                   onChanged: (value) {
                     setStateDialog(() {
-                      _selectedEquipment = value!;
+                      selectedEquipment = value!;
                     });
                   },
                 ),
@@ -1041,11 +1043,11 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                 foregroundColor: Colors.white,
               ),
               onPressed: () async {
-                if (_nameController.text.trim().isNotEmpty) {
+                if (nameController.text.trim().isNotEmpty) {
                   await _quickCreateExercise(
-                    _nameController.text.trim(),
-                    _selectedMuscleGroup,
-                    _selectedEquipment,
+                    nameController.text.trim(),
+                    selectedMuscleGroup,
+                    selectedEquipment,
                   );
                   Navigator.pop(context);
                 }
@@ -1335,7 +1337,7 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
     } else if (difference == 1) {
       return 'Yesterday';
     } else if (difference < 7) {
-      return '${difference} days ago';
+      return '$difference days ago';
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }

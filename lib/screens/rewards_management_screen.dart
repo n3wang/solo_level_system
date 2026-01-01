@@ -6,6 +6,8 @@ import 'package:solo_level_system/models/reward_model.dart';
 import 'motivational_cards_screen.dart';
 
 class RewardsManagementScreen extends StatefulWidget {
+  const RewardsManagementScreen({super.key});
+
   @override
   _RewardsManagementScreenState createState() =>
       _RewardsManagementScreenState();
@@ -354,7 +356,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
               ),
               SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedCategory,
+                initialValue: selectedCategory,
                 decoration: InputDecoration(labelText: 'Category'),
                 items:
                     [
@@ -531,7 +533,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
               ),
               SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedCategory,
+                initialValue: selectedCategory,
                 decoration: InputDecoration(labelText: 'Category'),
                 items:
                     [
