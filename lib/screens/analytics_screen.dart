@@ -82,9 +82,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           _buildOverviewTab(),
           _buildFocusTab(),
           _buildWorkoutsTab(),
-          // _buildHabitsTab(),
           _buildAudioTab(),
-          _buildRewardsTab(),
         ],
       ),
     );

@@ -1,6 +1,6 @@
 // lib/screens/workout_navigation_screen.dart
 import 'package:flutter/material.dart';
-import 'package:solo_level_system/screens/workout_routines_screen.dart';
+import 'package:solo_level_system/screens/workout_sets_screen.dart';
 import 'package:solo_level_system/screens/workout_exercises_screen.dart';
 import 'package:solo_level_system/screens/workout_quick_start_screen.dart';
 import 'package:solo_level_system/screens/workout_history_screen.dart';
@@ -31,7 +31,7 @@ class _WorkoutNavigationScreenState extends State<WorkoutNavigationScreen> {
 
   void _initializeScreens() {
     _screens = [
-      WorkoutRoutinesScreen(
+      WorkoutSetsScreen(
         onActiveSessionChanged: _handleActiveSessionChanged,
         activeSession: _activeSession,
       ),
@@ -47,10 +47,10 @@ class _WorkoutNavigationScreenState extends State<WorkoutNavigationScreen> {
   void _initializeNavigationItems() {
     _navigationItems = [
       WorkoutNavigationItem(
-        icon: Icons.list_outlined,
-        activeIcon: Icons.list,
-        label: 'Routines',
-        tooltip: 'Workout Routines & Programs',
+        icon: Icons.grid_view_outlined,
+        activeIcon: Icons.grid_view,
+        label: 'Sets',
+        tooltip: 'Workout Sets & Organization',
       ),
       WorkoutNavigationItem(
         icon: Icons.fitness_center_outlined,
@@ -88,7 +88,7 @@ class _WorkoutNavigationScreenState extends State<WorkoutNavigationScreen> {
 
   void _updateScreensWithActiveSession() {
     setState(() {
-      _screens[0] = WorkoutRoutinesScreen(
+      _screens[0] = WorkoutSetsScreen(
         onActiveSessionChanged: _handleActiveSessionChanged,
         activeSession: _activeSession,
       );

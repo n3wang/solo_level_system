@@ -10,6 +10,7 @@ import 'models/exercise_model.dart';
 import 'models/workout_set_model.dart';
 import 'models/workout_routine_model.dart';
 import 'models/workout_session_model.dart';
+import 'models/workout_set_category_model.dart';
 import 'models/habit_tracker_model.dart';
 import 'models/project_model.dart';
 import 'models/user_progress_model.dart';
@@ -34,6 +35,7 @@ void main() async {
     Hive.registerAdapter(WorkoutSetModelAdapter());
     Hive.registerAdapter(WorkoutRoutineModelAdapter());
     Hive.registerAdapter(WorkoutSessionModelAdapter());
+    Hive.registerAdapter(WorkoutSetCategoryModelAdapter());
     Hive.registerAdapter(HabitTrackerModelAdapter());
     Hive.registerAdapter(ProjectModelAdapter());
     Hive.registerAdapter(UserProgressModelAdapter());
@@ -124,6 +126,24 @@ void main() async {
       }
       await Hive.openBox<WorkoutSessionModel>('workoutSessions');
       print('✓ Recreated workoutSessions box');
+    }
+
+    try {
+      await Hive.openBox<WorkoutSetCategoryModel>('workoutSetCategories');
+      print('✓ Opened workoutSetCategories box');
+    } catch (e) {
+      print(
+        '⚠️ Error opening workoutSetCategories box, clearing and recreating: $e',
+      );
+      try {
+        await Hive.deleteBoxFromDisk('workoutSetCategories');
+      } catch (deleteError) {
+        print(
+          'Note: Could not delete workoutSetCategories box (may not exist): $deleteError',
+        );
+      }
+      await Hive.openBox<WorkoutSetCategoryModel>('workoutSetCategories');
+      print('✓ Recreated workoutSetCategories box');
     }
 
     try {

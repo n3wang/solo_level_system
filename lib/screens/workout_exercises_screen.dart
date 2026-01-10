@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
+import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/screens/exercise_details_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
 
 class WorkoutExercisesScreen extends StatefulWidget {
-  const WorkoutExercisesScreen({super.key});
+  final String? filterSetId;
+  final WorkoutSetCategoryModel? setCategory;
+
+  const WorkoutExercisesScreen({super.key, this.filterSetId, this.setCategory});
 
   @override
   _WorkoutExercisesScreenState createState() => _WorkoutExercisesScreenState();
@@ -68,8 +72,11 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isFiltered = widget.filterSetId != null;
+
     return Scaffold(
       appBar: AppBar(
+        title: Text(isFiltered ? widget.setCategory!.name : 'Exercises'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -77,6 +84,7 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
           ? LoadingIndicator(message: 'Loading exercises...')
           : Column(
               children: [
+                if (isFiltered) _buildSetFilterBanner(),
                 _buildSearchAndFilters(),
                 Expanded(child: _buildExercisesList()),
               ],
@@ -85,6 +93,134 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
         label: 'New Exercise',
         icon: Icons.add,
         onPressed: _createNewExercise,
+      ),
+    );
+  }
+
+  Widget _buildSetFilterBanner() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _getSetColor().withOpacity(0.1),
+        border: Border(
+          bottom: BorderSide(color: _getSetColor().withOpacity(0.3), width: 2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.filter_list, color: _getSetColor(), size: 20),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Showing exercises in ${widget.setCategory!.name}',
+              style: TextStyle(
+                color: _getSetColor(),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () {
+              // Show dialog to add/remove exercises from this set
+              _manageSetExercises();
+            },
+            icon: Icon(Icons.settings, size: 18),
+            label: Text('Manage'),
+            style: TextButton.styleFrom(
+              foregroundColor: _getSetColor(),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getSetColor() {
+    if (widget.setCategory?.color != null) {
+      try {
+        return Color(int.parse(widget.setCategory!.color!));
+      } catch (e) {
+        return Colors.purple;
+      }
+    }
+    return Colors.purple;
+  }
+
+  void _manageSetExercises() {
+    final exercisesBox = Hive.box<ExerciseModel>('exercises');
+    final allExercises = exercisesBox.values.toList();
+    final setExerciseIds = widget.setCategory!.exerciseIds.toSet();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Text(
+                'Manage Exercises in ${widget.setCategory!.name}',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  itemCount: allExercises.length,
+                  itemBuilder: (context, index) {
+                    final exercise = allExercises[index];
+                    final isInSet = setExerciseIds.contains(exercise.id);
+
+                    return CheckboxListTile(
+                      title: Text(exercise.name),
+                      subtitle: Text(exercise.description),
+                      value: isInSet,
+                      onChanged: (bool? value) {
+                        if (value == true) {
+                          widget.setCategory!.addExercise(exercise.id);
+                        } else {
+                          widget.setCategory!.removeExercise(exercise.id);
+                        }
+                        // Force rebuild
+                        setState(() {});
+                      },
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text('Done'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -240,6 +376,13 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
 
   List<ExerciseModel> _filterExercises(List<ExerciseModel> exercises) {
     return exercises.where((exercise) {
+      // Set filter - only show exercises in the selected set
+      if (widget.filterSetId != null && widget.setCategory != null) {
+        if (!widget.setCategory!.exerciseIds.contains(exercise.id)) {
+          return false;
+        }
+      }
+
       // Search filter
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();

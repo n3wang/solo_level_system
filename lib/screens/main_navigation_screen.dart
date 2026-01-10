@@ -5,7 +5,7 @@ import 'package:solo_level_system/screens/analytics_screen.dart';
 import 'package:solo_level_system/screens/projects_management_screen.dart';
 import 'package:solo_level_system/screens/rewards_management_screen.dart';
 import 'package:solo_level_system/screens/settings_screen.dart';
-import 'package:solo_level_system/screens/workout_navigation_screen.dart';
+import 'package:solo_level_system/screens/workout_screen.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -28,7 +28,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       HomeScreen(onSettingsChanged: () => _notifySettingsChanged()),
       AnalyticsScreen(),
       ProjectsManagementScreen(),
-      WorkoutNavigationScreen(),
+      WorkoutScreen(),
       RewardsManagementScreen(),
       SettingsScreen(),
     ];

@@ -7,7 +7,9 @@ class PomodoroConstants {
 
   // UI Constants
   static const double minAlbumSize = 200.0;
-  static const double albumSizeRatio = 0.6; // 60% of screen height
+  static const double maxAlbumSize = 500.0;
+  static const double timerPadding = 40.0; // Padding from screen edges
+  static const double albumSizeRatio = 0.5; // 50% of smaller screen dimension for square ratio
   static const double baseFontSize = 48.0;
   static const double baseContainerSize = 200.0;
   static const double musicWidgetMinWidth = 100.0;

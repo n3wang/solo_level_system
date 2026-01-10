@@ -4,12 +4,23 @@ import '../constants/pomodoro_constants.dart';
 /// Utility functions for dynamic sizing calculations
 class PomodoroSizing {
   /// Calculate dynamic album container size based on screen dimensions
+  /// Makes it as large as possible while maintaining square aspect and padding
   static double getAlbumContainerSize(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final calculatedSize = screenHeight * PomodoroConstants.albumSizeRatio;
-    return calculatedSize > PomodoroConstants.minAlbumSize
-        ? calculatedSize
-        : PomodoroConstants.minAlbumSize;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Calculate available space after padding on both sides
+    final availableWidth = screenWidth - (PomodoroConstants.timerPadding * 2);
+    final availableHeight = screenHeight - (PomodoroConstants.timerPadding * 2);
+
+    // Use the smaller dimension to maintain square aspect ratio
+    final maxSize = availableWidth < availableHeight ? availableWidth : availableHeight;
+
+    // Ensure it's not smaller than minimum or larger than maximum
+    return maxSize.clamp(
+      PomodoroConstants.minAlbumSize,
+      PomodoroConstants.maxAlbumSize,
+    );
   }
 
   /// Calculate dynamic font size based on container size

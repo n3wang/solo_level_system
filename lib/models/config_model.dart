@@ -17,7 +17,7 @@ class ConfigModel extends HiveObject {
   bool showAudioRecordButton;
 
   ConfigModel({
-    this.playAudioOnRepeat = true,
+    this.playAudioOnRepeat = false,
     this.randomizeAudio = false,
     this.showPhotoButton = true,
     this.showAudioRecordButton = true,
@@ -25,7 +25,7 @@ class ConfigModel extends HiveObject {
 
   static ConfigModel getDefault() {
     return ConfigModel(
-      playAudioOnRepeat: true,
+      playAudioOnRepeat: false,
       randomizeAudio: false,
       showPhotoButton: true,
       showAudioRecordButton: true,

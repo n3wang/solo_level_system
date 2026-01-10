@@ -11,7 +11,7 @@ class BackgroundMusicService {
   final AudioPlayer _audioPlayer = AudioPlayer();
   LofiTrack? _currentTrack;
   bool _isPlaying = false;
-  bool _isLooping = true;
+  bool _isLooping = false;
   double _volume = 0.7;
   List<LofiTrack> _playlist = [];
   int _currentTrackIndex = 0;
@@ -102,18 +102,26 @@ class BackgroundMusicService {
   }
 
   Future<void> pause() async {
+    print('[BG_SERVICE] pause() called');
+    print('[BG_SERVICE] Before pause - isPlaying: $_isPlaying');
     await _audioPlayer.pause();
     _isPlaying = false;
+    print('[BG_SERVICE] After pause - isPlaying: $_isPlaying');
   }
 
   Future<void> resume() async {
+    print('[BG_SERVICE] resume() called');
+    print('[BG_SERVICE] Before resume - isPlaying: $_isPlaying');
     await _audioPlayer.resume();
     _isPlaying = true;
+    print('[BG_SERVICE] After resume - isPlaying: $_isPlaying');
   }
 
   Future<void> stop() async {
+    print('[BG_SERVICE] stop() called');
     await _audioPlayer.stop();
     _isPlaying = false;
+    print('[BG_SERVICE] After stop - isPlaying: $_isPlaying');
   }
 
   Future<void> setVolume(double volume) async {

@@ -11,6 +11,7 @@ class CustomTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final Function(String)? onChanged;
   final String? Function(String?)? validator;
+  final FocusNode? focusNode;
 
   const CustomTextField({
     super.key,
@@ -22,6 +23,7 @@ class CustomTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.onChanged,
     this.validator,
+    this.focusNode,
   });
 
   @override

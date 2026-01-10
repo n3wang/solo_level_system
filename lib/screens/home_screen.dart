@@ -88,27 +88,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  void _playLofi() async {
+  Future<void> _playLofi() async {
+    print('[MUSIC] _playLofi() called');
     if (_backgroundMusicService.isPlaying) {
+      print('[MUSIC] Music is already playing, stopping it first');
       await _backgroundMusicService.stop();
     }
-    if (!_timerController.allowMusic) return;
+    if (!_timerController.allowMusic) {
+      print('[MUSIC] Timer controller says music not allowed');
+      return;
+    }
 
     // Check user settings for audio control
     if (!_timerController.onBreak &&
         !(userSettings?.playAudioDuringWork ?? true)) {
       // Don't play music during work sessions if disabled
+      print('[MUSIC] Not playing - work session and playAudioDuringWork is disabled');
       return;
     }
     if (_timerController.onBreak &&
         !(userSettings?.playAudioDuringBreaks ?? false)) {
       // Don't play music during break sessions if disabled
+      print('[MUSIC] Not playing - break session and playAudioDuringBreaks is disabled');
       return;
     }
 
     try {
       // Set looping based on config
       _backgroundMusicService.setLooping(config?.playAudioOnRepeat ?? false);
+      print('[MUSIC] Playing random track, looping: ${config?.playAudioOnRepeat ?? false}');
 
       await _backgroundMusicService.playRandomTrack();
 
@@ -117,8 +125,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final track = _backgroundMusicService.currentTrack;
         currentlyPlayingTrack = track?.title ?? 'Unknown Track';
       });
+      print('[MUSIC] Now playing: $currentlyPlayingTrack');
     } catch (e) {
-      print('Failed to play lofi music: $e');
+      print('[MUSIC] Failed to play lofi music: $e');
       logStateMessage = 'Music: Failed to load';
       setState(() {
         currentlyPlayingTrack = 'Error loading music';
@@ -126,11 +135,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _stopLofi() async {
+  Future<void> _pauseLofi() async {
+    print('[MUSIC] Pausing music...');
+    print('[MUSIC] Current track: ${_backgroundMusicService.currentTrack?.title}');
+    print('[MUSIC] Is playing: ${_backgroundMusicService.isPlaying}');
+    await _backgroundMusicService.pause();
+    print('[MUSIC] Pause complete');
+  }
+
+  Future<void> _stopLofi() async {
+    print('[MUSIC] Stopping music...');
     await _backgroundMusicService.stop();
     setState(() {
       currentlyPlayingTrack = null;
     });
+    print('[MUSIC] Stop complete');
+  }
+
+  Future<void> _resumeLofi() async {
+    print('[MUSIC] Resume called...');
+    print('[MUSIC] Current track: ${_backgroundMusicService.currentTrack?.title}');
+    print('[MUSIC] Is playing: ${_backgroundMusicService.isPlaying}');
+
+    if (_backgroundMusicService.currentTrack != null &&
+        !_backgroundMusicService.isPlaying) {
+      print('[MUSIC] Resuming from current position...');
+      await _backgroundMusicService.resume();
+      print('[MUSIC] Resume complete');
+    } else {
+      print('[MUSIC] No track loaded or already playing, playing new track...');
+      // If no track is loaded, play a random one
+      await _playLofi();
+    }
   }
 
   void _handleAudioSettingsChange() async {
@@ -501,12 +537,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildGestureTimer() {
     return GestureDetector(
       onTap: () {
+        print('[HOME] Timer tapped!');
+        print('[HOME] isRunning: ${_timerController.isRunning}, canSubmitLog: $canSubmitLog');
         // Click timer to start/stop/submit log
         if (_timerController.isRunning) {
+          print('[HOME] Calling pauseTimer()');
           _timerController.pauseTimer();
         } else if (canSubmitLog) {
+          print('[HOME] Calling submitLog()');
           submitLog();
         } else {
+          print('[HOME] Calling startTimer()');
           _timerController.startTimer();
         }
       },
@@ -644,15 +685,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         allowMusic: allowMusic,
                         currentlyPlayingTrack: currentlyPlayingTrack,
                         onToggleMusic: () {
+                          print('[TOGGLE] Music toggle tapped');
+                          print('[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning');
                           setState(() {
                             if (allowMusic) {
-                              _stopLofi();
+                              print('[TOGGLE] Pausing music and setting allowMusic to false');
+                              _pauseLofi();
                               allowMusic = false;
                             } else {
+                              print('[TOGGLE] Setting allowMusic to true and resuming');
                               allowMusic = true;
-                              if (isRunning) {
-                                _playLofi();
-                              }
+                              _resumeLofi();
                             }
                           });
                         },
@@ -784,15 +827,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         allowMusic: allowMusic,
                         currentlyPlayingTrack: currentlyPlayingTrack,
                         onToggleMusic: () {
+                          print('[TOGGLE] Music toggle tapped');
+                          print('[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning');
                           setState(() {
                             if (allowMusic) {
-                              _stopLofi();
+                              print('[TOGGLE] Pausing music and setting allowMusic to false');
+                              _pauseLofi();
                               allowMusic = false;
                             } else {
+                              print('[TOGGLE] Setting allowMusic to true and resuming');
                               allowMusic = true;
-                              if (isRunning) {
-                                _playLofi();
-                              }
+                              _resumeLofi();
                             }
                           });
                         },
@@ -921,15 +966,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         allowMusic: allowMusic,
                         currentlyPlayingTrack: currentlyPlayingTrack,
                         onToggleMusic: () {
+                          print('[TOGGLE] Music toggle tapped');
+                          print('[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning');
                           setState(() {
                             if (allowMusic) {
-                              _stopLofi();
+                              print('[TOGGLE] Pausing music and setting allowMusic to false');
+                              _pauseLofi();
                               allowMusic = false;
                             } else {
+                              print('[TOGGLE] Setting allowMusic to true and resuming');
                               allowMusic = true;
-                              if (isRunning) {
-                                _playLofi();
-                              }
+                              _resumeLofi();
                             }
                           });
                         },
@@ -1060,15 +1107,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     allowMusic: allowMusic,
                     currentlyPlayingTrack: currentlyPlayingTrack,
                     onToggleMusic: () {
+                      print('[TOGGLE] Music toggle tapped');
+                      print('[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning');
                       setState(() {
                         if (allowMusic) {
-                          _stopLofi();
+                          print('[TOGGLE] Pausing music and setting allowMusic to false');
+                          _pauseLofi();
                           allowMusic = false;
                         } else {
+                          print('[TOGGLE] Setting allowMusic to true and resuming');
                           allowMusic = true;
-                          if (isRunning) {
-                            _playLofi();
-                          }
+                          _resumeLofi();
                         }
                       });
                     },

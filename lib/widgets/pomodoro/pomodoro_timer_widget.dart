@@ -94,50 +94,61 @@ class PomodoroTimerWidget extends StatelessWidget {
                   alpha: PomodoroConstants.backgroundOpacity,
                 ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    PomodoroSizing.formatTime(remainingSeconds),
-                    style: TextStyle(
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          blurRadius: PomodoroConstants.shadowBlurRadius,
-                          color: Colors.black,
-                          offset: const Offset(
-                            PomodoroConstants.shadowOffset,
-                            PomodoroConstants.shadowOffset,
-                          ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        PomodoroSizing.formatTime(remainingSeconds),
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              blurRadius: PomodoroConstants.shadowBlurRadius,
+                              color: Colors.black,
+                              offset: const Offset(
+                                PomodoroConstants.shadowOffset,
+                                PomodoroConstants.shadowOffset,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: PomodoroConstants.elementSpacing),
-                  Text(
-                    _getInstructionText(),
-                    style: const TextStyle(
-                      fontSize: PomodoroConstants.timerInstructionFontSize,
-                      color: Colors.white,
-                      fontStyle: FontStyle.italic,
-                      shadows: [
-                        Shadow(
-                          blurRadius: PomodoroConstants.smallShadowBlurRadius,
-                          color: Colors.black,
-                          offset: Offset(
-                            PomodoroConstants.smallShadowOffset,
-                            PomodoroConstants.smallShadowOffset,
-                          ),
+                    const SizedBox(height: PomodoroConstants.elementSpacing),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text(
+                        _getInstructionText(),
+                        style: const TextStyle(
+                          fontSize: PomodoroConstants.timerInstructionFontSize,
+                          color: Colors.white,
+                          fontStyle: FontStyle.italic,
+                          shadows: [
+                            Shadow(
+                              blurRadius: PomodoroConstants.smallShadowBlurRadius,
+                              color: Colors.black,
+                              offset: Offset(
+                                PomodoroConstants.smallShadowOffset,
+                                PomodoroConstants.smallShadowOffset,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: PomodoroConstants.elementSpacing),
-                  SessionSquaresWidget(completedSessions: countCompletedToday),
-                ],
+                    const SizedBox(height: PomodoroConstants.elementSpacing),
+                    SessionSquaresWidget(completedSessions: countCompletedToday),
+                  ],
+                ),
               ),
             ),
           ],

@@ -73,10 +73,10 @@
           "comments": []
         },
         {
-          "id": "91dd0a36-c431-4123-bf4c-9e09c9d007de",
+          "id": "7114453c-91fb-4f29-b47e-063c4c42fed8",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Improve the musics",
-          "description": "Search for youtube and add more musics based on the schedule. of musics.",
+          "title": "Design the holo system for playing an holo animation",
+          "description": "",
           "labels": [],
           "checkboxes": [],
           "comments": []
@@ -87,6 +87,71 @@
       "id": "125bd6ab-d32d-460e-9159-9c34b027ef62",
       "title": "Doing",
       "cards": [
+        {
+          "id": "af9a53fb-1333-4af0-bdda-5867061a3208",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Project Screen refactor and habits and model schemas",
+          "description": "",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "b31fd23e-d1fd-4ff4-b5c8-dfa4b15fbb91",
+              "title": "Make general workout screen with only 3 tabs screen for workout",
+              "checked": false
+            },
+            {
+              "id": "ff175111-298e-4f42-b041-5e6bf1f97a93",
+              "title": "Create a yml with the predefined workouts (already existing)",
+              "checked": false
+            },
+            {
+              "id": "dd12a13a-4af2-44e5-a02b-85f31dba3cfc",
+              "title": "Create a sample list 1 and list 2",
+              "checked": false
+            },
+            {
+              "id": "15da03d0-0e3a-4037-a266-319f2bc81408",
+              "title": "Refactor to simplify the exercise",
+              "checked": false
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "91dd0a36-c431-4123-bf4c-9e09c9d007de",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Improve the musics",
+          "description": "Search for youtube and add more musics based on the schedule. of musics. Open for copyright",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "745a19a1-accf-468e-be9e-0705959ba355",
+              "title": "Having some animated gifs on them",
+              "checked": false
+            },
+            {
+              "id": "a547b98e-5556-4fdf-b07b-ff8f5f6d5d62",
+              "title": "Edit music tracks (from the downloads)",
+              "checked": false
+            },
+            {
+              "id": "11a6adf5-6df1-4720-a70f-a3c16fed726a",
+              "title": "Not changing on pause",
+              "checked": true
+            },
+            {
+              "id": "6cf93d47-cf8e-45c2-9886-32edc836228c",
+              "title": "Not looping music behaviour please",
+              "checked": true
+            },
+            {
+              "id": "0305ff9e-db03-46a0-9c9f-1e3376dd764a",
+              "title": "Collect or add 2 or more styles",
+              "checked": false
+            }
+          ],
+          "comments": []
+        },
         {
           "id": "f1d9bc53-96d5-4f9b-9e86-536aeee5fb3f",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
@@ -115,10 +180,46 @@
         {
           "id": "5d3e0edb-8d9d-4f59-a3c8-ba3a5bed089c",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Pressing in the routine, lcosing and saving",
+          "title": "Pressing in the routine, focusing and saving",
           "description": "Pressing in the routine  workout button selection doesnt open the routine screen with the workouts. It should open that list  where can open the screen to continue the workout",
           "labels": [],
-          "checkboxes": [],
+          "checkboxes": [
+            {
+              "id": "46836d27-e487-444d-aeb5-5118c197a398",
+              "title": "Animate the 7 mins workout using the irasutoya style ",
+              "checked": false
+            },
+            {
+              "id": "d69d2d19-f594-4eb5-a2e2-93e73a7c1a37",
+              "title": "Creating icons for common excercises",
+              "checked": false
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "ac5b784b-6bcf-4275-b83d-eb95da82b7ba",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Large refactor of workout",
+          "description": "Refactor the workout screen so that only has threee tabs\n\nThe Sets tab\nHas the lists of workoutrows, and 6 sub tabs auto recomending automatically then 5 sets that work like tags to filter that sets workout tile.\n\n",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "c4313efd-592b-4275-b1d1-fc2022904b05",
+              "title": "Redesign Sets",
+              "checked": false
+            },
+            {
+              "id": "b3056a10-f492-4895-8f15-0733261b0ee7",
+              "title": "Redesign  Motivation",
+              "checked": false
+            },
+            {
+              "id": "e56ccda5-03f3-478e-ba5f-e4744dae6cdf",
+              "title": " Redesign  Timed",
+              "checked": false
+            }
+          ],
           "comments": []
         }
       ]

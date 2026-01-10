@@ -72,8 +72,17 @@ class TimerController {
 
   // Start timer
   void startTimer() async {
+    // Cancel any existing timer first to prevent multiple timers running
+    _timer?.cancel();
+
     if (_allowMusic) {
-      await _playLofi();
+      // If there's a current track playing, resume it. Otherwise play a random track
+      if (_backgroundMusicService.currentTrack != null &&
+          !_backgroundMusicService.isPlaying) {
+        await _backgroundMusicService.resume();
+      } else {
+        await _playLofi();
+      }
     }
 
     // Enable wakelock to keep screen on during pomodoro
@@ -108,13 +117,21 @@ class TimerController {
 
   // Pause timer
   void pauseTimer() async {
-    _stopLofi();
+    print('[TIMER_CONTROLLER] pauseTimer() called');
+    print(
+      '[TIMER_CONTROLLER] Before pause - isRunning: $_isRunning, timer: ${_timer != null}',
+    );
+    // Pause the music instead of stopping it
+    if (_backgroundMusicService.isPlaying) {
+      await _backgroundMusicService.pause();
+    }
     _timer?.cancel();
     _isRunning = false;
 
     // Disable wakelock when timer is paused
     await WakelockPlus.disable();
 
+    print('[TIMER_CONTROLLER] After pause - isRunning: $_isRunning');
     _notifyListeners();
     _notificationService.hideTimerNotification();
   }
@@ -137,7 +154,13 @@ class TimerController {
   void toggleMute() {
     _allowMusic = !_allowMusic;
     if (_allowMusic && _isRunning) {
-      _playLofi();
+      // Resume current track if available, otherwise play a random one
+      if (_backgroundMusicService.currentTrack != null &&
+          !_backgroundMusicService.isPlaying) {
+        _backgroundMusicService.resume();
+      } else {
+        _playLofi();
+      }
     } else if (!_allowMusic) {
       _stopLofi();
     }
