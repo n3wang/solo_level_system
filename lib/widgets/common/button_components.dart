@@ -1,5 +1,6 @@
 // lib/widgets/common/button_components.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 
 /// A reusable primary action button
 class PrimaryActionButton extends StatelessWidget {
@@ -26,7 +27,7 @@ class PrimaryActionButton extends StatelessWidget {
       return ElevatedButton.icon(
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
-          foregroundColor: foregroundColor ?? Colors.white,
+          foregroundColor: foregroundColor ?? AppColorPalette.white,
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
@@ -37,7 +38,7 @@ class PrimaryActionButton extends StatelessWidget {
                 height: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: foregroundColor ?? Colors.white,
+                  color: foregroundColor ?? AppColorPalette.white,
                 ),
               )
             : Icon(icon),
@@ -48,7 +49,7 @@ class PrimaryActionButton extends StatelessWidget {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
-        foregroundColor: foregroundColor ?? Colors.white,
+        foregroundColor: foregroundColor ?? AppColorPalette.white,
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -59,7 +60,7 @@ class PrimaryActionButton extends StatelessWidget {
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: foregroundColor ?? Colors.white,
+                color: foregroundColor ?? AppColorPalette.white,
               ),
             )
           : Text(text),
@@ -140,7 +141,7 @@ class CustomFloatingActionButton extends StatelessWidget {
       return FloatingActionButton.extended(
         onPressed: onPressed,
         backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
-        foregroundColor: foregroundColor ?? Colors.white,
+        foregroundColor: foregroundColor ?? AppColorPalette.white,
         icon: Icon(icon),
         label: Text(label),
       );
@@ -149,7 +150,7 @@ class CustomFloatingActionButton extends StatelessWidget {
     return FloatingActionButton(
       onPressed: onPressed,
       backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
-      foregroundColor: foregroundColor ?? Colors.white,
+      foregroundColor: foregroundColor ?? AppColorPalette.white,
       child: Icon(icon),
     );
   }
@@ -177,8 +178,8 @@ class DestructiveActionButton extends StatelessWidget {
       onPressed: onPressed,
       icon: icon,
       isLoading: isLoading,
-      backgroundColor: Colors.red,
-      foregroundColor: Colors.white,
+      backgroundColor: AppColorPalette.error,
+      foregroundColor: AppColorPalette.white,
     );
   }
 }

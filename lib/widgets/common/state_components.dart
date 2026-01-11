@@ -1,5 +1,6 @@
 // lib/widgets/common/state_components.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 
 /// A reusable loading indicator component
 class LoadingIndicator extends StatelessWidget {
@@ -21,7 +22,7 @@ class LoadingIndicator extends StatelessWidget {
             SizedBox(height: 16),
             Text(
               message!,
-              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+              style: TextStyle(color: AppColorPalette.grey600, fontSize: 16),
             ),
           ],
         ],
@@ -53,12 +54,12 @@ class EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: iconColor ?? Colors.grey[400]),
+          Icon(icon, size: 64, color: iconColor ?? AppColorPalette.grey400),
           SizedBox(height: 16),
           Text(
             title,
             style: TextStyle(
-              color: Colors.grey[600],
+              color: AppColorPalette.grey600,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -68,7 +69,7 @@ class EmptyState extends StatelessWidget {
             Text(
               subtitle!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              style: TextStyle(color: AppColorPalette.grey500, fontSize: 14),
             ),
           ],
           if (action != null) ...[SizedBox(height: 16), action!],
@@ -99,12 +100,12 @@ class ErrorState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+          Icon(Icons.error_outline, size: 64, color: AppColorPalette.error.withOpacity(0.7)),
           SizedBox(height: 16),
           Text(
             title,
             style: TextStyle(
-              color: Colors.red[600],
+              color: AppColorPalette.error,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -114,7 +115,7 @@ class ErrorState extends StatelessWidget {
             Text(
               message!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              style: TextStyle(color: AppColorPalette.grey500, fontSize: 14),
             ),
           ],
           if (onRetry != null) ...[

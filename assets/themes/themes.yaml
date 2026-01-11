@@ -1,0 +1,234 @@
+# App Themes Configuration
+# Edit this file to customize colors, fonts, and sizes across the entire app
+# Changes will apply after restarting the app
+
+# =============================================================================
+# DEFAULT THEME - The main theme used by the app
+# =============================================================================
+default:
+  name: "Default"
+
+  # 5 Core Colors (must provide exactly 5)
+  colors:
+    color1: "#9C27B0"  # Purple - Primary/Accent
+    color2: "#2196F3"  # Blue - Info
+    color3: "#4CAF50"  # Green - Success
+    color4: "#FF9800"  # Orange - Warning
+    color5: "#F44336"  # Red - Error
+
+  # Background Colors
+  backgrounds:
+    primary: "#FFFFFF"    # Main background (light mode)
+    secondary: "#F5F5F5"  # Secondary background
+    surface: "#FFFFFF"    # Card/surface background
+    dark: "#121212"       # Main background (dark mode)
+    darkSecondary: "#1E1E1E"  # Secondary background (dark)
+    darkSurface: "#2C2C2C"    # Card/surface (dark)
+
+  # 3 Font Families
+  fonts:
+    primary: "Roboto"      # Main text font
+    secondary: "Poppins"   # Headings/titles
+    monospace: "Courier"   # Code/monospace text
+
+  # 3 Font Sizes (base sizes - will be scaled appropriately)
+  fontSizes:
+    small: 12.0   # Small text (captions, hints)
+    medium: 16.0  # Body text
+    large: 24.0   # Headings
+
+# =============================================================================
+# ALTERNATIVE THEMES
+# =============================================================================
+
+warm:
+  name: "Warm Sunset"
+  colors:
+    color1: "#E91E63"  # Pink
+    color2: "#FF5722"  # Deep Orange
+    color3: "#FFEB3B"  # Yellow
+    color4: "#FF9800"  # Orange
+    color5: "#F44336"  # Red
+  backgrounds:
+    primary: "#FFF9F5"
+    secondary: "#FFE4D6"
+    surface: "#FFFFFF"
+    dark: "#1A1210"
+    darkSecondary: "#2A1F1A"
+    darkSurface: "#3A2A20"
+  fonts:
+    primary: "Lato"
+    secondary: "Playfair Display"
+    monospace: "Courier"
+  fontSizes:
+    small: 12.0
+    medium: 16.0
+    large: 26.0
+
+cool:
+  name: "Cool Ocean"
+  colors:
+    color1: "#3F51B5"  # Indigo
+    color2: "#2196F3"  # Blue
+    color3: "#00BCD4"  # Cyan
+    color4: "#009688"  # Teal
+    color5: "#4CAF50"  # Green
+  backgrounds:
+    primary: "#F0F8FF"
+    secondary: "#E3F2FD"
+    surface: "#FFFFFF"
+    dark: "#0A1929"
+    darkSecondary: "#1A2942"
+    darkSurface: "#203A5C"
+  fonts:
+    primary: "Open Sans"
+    secondary: "Montserrat"
+    monospace: "Courier"
+  fontSizes:
+    small: 11.0
+    medium: 15.0
+    large: 23.0
+
+earth:
+  name: "Earth Tones"
+  colors:
+    color1: "#795548"  # Brown
+    color2: "#8D6E63"  # Light Brown
+    color3: "#689F38"  # Olive Green
+    color4: "#FF9800"  # Orange
+    color5: "#D32F2F"  # Dark Red
+  backgrounds:
+    primary: "#FAF8F5"
+    secondary: "#EDE7DD"
+    surface: "#FFFFFF"
+    dark: "#1C1410"
+    darkSecondary: "#2C241C"
+    darkSurface: "#3C342A"
+  fonts:
+    primary: "Merriweather"
+    secondary: "Georgia"
+    monospace: "Courier"
+  fontSizes:
+    small: 12.0
+    medium: 16.0
+    large: 25.0
+
+pastel:
+  name: "Soft Pastels"
+  colors:
+    color1: "#CE93D8"  # Light Purple
+    color2: "#90CAF9"  # Light Blue
+    color3: "#A5D6A7"  # Light Green
+    color4: "#FFCC80"  # Light Orange
+    color5: "#EF9A9A"  # Light Red
+  backgrounds:
+    primary: "#FAFAFA"
+    secondary: "#F5F5F5"
+    surface: "#FFFFFF"
+    dark: "#1A1A1A"
+    darkSecondary: "#2A2A2A"
+    darkSurface: "#353535"
+  fonts:
+    primary: "Nunito"
+    secondary: "Quicksand"
+    monospace: "Courier"
+  fontSizes:
+    small: 13.0
+    medium: 17.0
+    large: 26.0
+
+vibrant:
+  name: "High Energy"
+  colors:
+    color1: "#9C27B0"  # Purple
+    color2: "#00BCD4"  # Cyan
+    color3: "#8BC34A"  # Light Green
+    color4: "#FFEB3B"  # Yellow
+    color5: "#FF5722"  # Deep Orange
+  backgrounds:
+    primary: "#FFFFFF"
+    secondary: "#FAFAFA"
+    surface: "#FFFFFF"
+    dark: "#000000"
+    darkSecondary: "#121212"
+    darkSurface: "#1E1E1E"
+  fonts:
+    primary: "Ubuntu"
+    secondary: "Raleway"
+    monospace: "Courier"
+  fontSizes:
+    small: 12.0
+    medium: 16.0
+    large: 28.0
+
+minimal:
+  name: "Minimal Black"
+  colors:
+    color1: "#212121"  # Dark Grey
+    color2: "#424242"  # Grey
+    color3: "#757575"  # Medium Grey
+    color4: "#9E9E9E"  # Light Grey
+    color5: "#000000"  # Black
+  backgrounds:
+    primary: "#FFFFFF"
+    secondary: "#FAFAFA"
+    surface: "#FFFFFF"
+    dark: "#000000"
+    darkSecondary: "#0A0A0A"
+    darkSurface: "#141414"
+  fonts:
+    primary: "Helvetica"
+    secondary: "Arial"
+    monospace: "Courier"
+  fontSizes:
+    small: 11.0
+    medium: 14.0
+    large: 22.0
+
+nature:
+  name: "Forest Green"
+  colors:
+    color1: "#2E7D32"  # Forest Green
+    color2: "#388E3C"  # Green
+    color3: "#66BB6A"  # Light Green
+    color4: "#FFA726"  # Amber
+    color5: "#8D6E63"  # Brown
+  backgrounds:
+    primary: "#F1F8E9"
+    secondary: "#DCEDC8"
+    surface: "#FFFFFF"
+    dark: "#0D1F0D"
+    darkSecondary: "#1A2E1A"
+    darkSurface: "#2A3E2A"
+  fonts:
+    primary: "Verdana"
+    secondary: "Trebuchet MS"
+    monospace: "Courier"
+  fontSizes:
+    small: 12.0
+    medium: 16.0
+    large: 24.0
+
+neon:
+  name: "Neon Nights"
+  colors:
+    color1: "#E91E63"  # Neon Pink
+    color2: "#00BCD4"  # Neon Cyan
+    color3: "#76FF03"  # Neon Green
+    color4: "#FFEB3B"  # Neon Yellow
+    color5: "#FF1744"  # Neon Red
+  backgrounds:
+    primary: "#121212"
+    secondary: "#1E1E1E"
+    surface: "#242424"
+    dark: "#000000"
+    darkSecondary: "#0A0A0A"
+    darkSurface: "#141414"
+  fonts:
+    primary: "Orbitron"
+    secondary: "Exo"
+    monospace: "Courier"
+  fontSizes:
+    small: 12.0
+    medium: 16.0
+    large: 26.0

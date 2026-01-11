@@ -1457,3 +1457,372 @@ if (cards.isEmpty) {
 - Test overlay text rendering
 
 This pattern demonstrates building a complete feature module with image handling, persistent storage, service layer architecture, and seamless navigation integration - all following Flutter best practices for maintainable, scalable code.
+
+## YAML-Based Theme System Architecture
+
+### Centralized Theme Management with Asset Configuration
+
+When building apps with multiple visual themes, managing colors, fonts, and sizes across numerous files becomes unmaintainable. A YAML-based theme system provides a single source of truth for all visual styling.
+
+#### 1. **YAML Theme Configuration Structure**
+```yaml
+default:
+  name: "Default"
+  colors:
+    color1: "#9C27B0"  # 5 core colors
+    color2: "#2196F3"
+    color3: "#4CAF50"
+    color4: "#FF9800"
+    color5: "#F44336"
+  backgrounds:
+    primary: "#FFFFFF"    # 6 background variants
+    secondary: "#F5F5F5"
+    surface: "#FFFFFF"
+    dark: "#121212"       # Dark mode equivalents
+    darkSecondary: "#1E1E1E"
+    darkSurface: "#2C2C2C"
+  fonts:
+    primary: "Roboto"     # 3 font families
+    secondary: "Poppins"
+    monospace: "Courier"
+  fontSizes:
+    small: 12.0           # 3 base font sizes
+    medium: 16.0
+    large: 24.0
+```
+
+**Design Rationale:**
+- **5 Colors**: Provides enough variety without overwhelming
+- **6 Backgrounds**: Covers light/dark mode with variations
+- **3 Fonts**: Primary text, headings, and code/monospace
+- **3 Sizes**: Small, medium, large with derived sizes
+
+#### 2. **Theme Model Architecture**
+```dart
+class AppTheme {
+  final String name;
+  final ThemeColors colors;          // 5 colors
+  final ThemeBackgrounds backgrounds; // 6 backgrounds
+  final ThemeFonts fonts;            // 3 fonts
+  final ThemeFontSizes fontSizes;    // 3 base sizes
+
+  factory AppTheme.fromMap(Map<dynamic, dynamic> map) {
+    // Parse YAML into typed models
+  }
+}
+
+class ThemeFontSizes {
+  final double small, medium, large;
+
+  // Derived sizes calculated from base sizes
+  double get xSmall => small * 0.9;
+  double get xLarge => large * 1.2;
+  double get caption => small;
+  double get body => medium;
+  double get heading => large;
+}
+```
+
+**Type Safety Benefits:**
+- Compile-time checking for theme properties
+- Auto-complete in IDE
+- Clear documentation through types
+- Derived values calculated consistently
+
+#### 3. **YAML Loader with Caching**
+```dart
+class ThemeLoader {
+  static Map<String, AppTheme>? _cachedThemes;
+  static const String _themesPath = 'assets/themes/themes.yaml';
+
+  static Future<Map<String, AppTheme>> loadThemes() async {
+    if (_cachedThemes != null) return _cachedThemes!;
+
+    final yamlString = await rootBundle.loadString(_themesPath);
+    final yamlMap = loadYaml(yamlString);
+
+    final themes = <String, AppTheme>{};
+    yamlMap.forEach((key, value) {
+      themes[key.toString()] = AppTheme.fromMap(value);
+    });
+
+    _cachedThemes = themes;
+    return themes;
+  }
+}
+```
+
+**Performance Optimizations:**
+- Load YAML once and cache in memory
+- Async loading prevents UI blocking
+- Fallback to default theme if loading fails
+- Clear cache method for development hot reload
+
+#### 4. **Theme Manager Service**
+```dart
+class ThemeManager {
+  static AppTheme? _currentTheme;
+  static String _currentThemeKey = 'default';
+
+  static Future<void> initialize({String themeKey = 'default'}) async {
+    final theme = await ThemeLoader.loadTheme(themeKey);
+    await setTheme(theme, themeKey);
+  }
+
+  static Future<bool> switchTheme(String themeKey) async {
+    final theme = await ThemeLoader.loadTheme(themeKey);
+    await setTheme(theme, themeKey);
+    return true;
+  }
+
+  static Future<List<String>> getAvailableThemes() async {
+    return await ThemeLoader.getThemeKeys();
+  }
+}
+```
+
+**Manager Responsibilities:**
+- Initialize theme system at app startup
+- Switch themes at runtime
+- Query available themes
+- Handle theme loading errors gracefully
+
+#### 5. **Integration with Color Palette**
+```dart
+class AppColorPalette {
+  // Static colors (backwards compatible)
+  static const Color color1 = Color(0xFF9C27B0);
+  static const Color color2 = Color(0xFF2196F3);
+
+  // Dynamic theme system
+  static AppTheme? _activeTheme;
+
+  static void setActiveTheme(AppTheme theme) {
+    _activeTheme = theme;
+  }
+
+  // Theme-aware getters
+  static Color get themeColor1 => _activeTheme?.colors.color1 ?? color1;
+  static Color get themeColor2 => _activeTheme?.colors.color2 ?? color2;
+
+  // Theme backgrounds
+  static Color get backgroundPrimary =>
+      _activeTheme?.backgrounds.primary ?? white;
+
+  // Theme fonts
+  static String get fontPrimary =>
+      _activeTheme?.fonts.primary ?? 'Roboto';
+
+  // Theme sizes
+  static double get fontSizeMedium =>
+      _activeTheme?.fontSizes.medium ?? 16.0;
+}
+```
+
+**Backwards Compatibility:**
+- Static colors still work (don't change with themes)
+- Theme-aware getters use active theme or fallback
+- Gradual migration path from static to dynamic
+- No breaking changes to existing code
+
+#### 6. **Usage Patterns**
+
+**Initialization:**
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ThemeManager.initialize(themeKey: 'default');
+  runApp(MyApp());
+}
+```
+
+**Runtime Theme Switching:**
+```dart
+DropdownButton<String>(
+  value: currentTheme,
+  items: ['default', 'warm', 'cool']
+      .map((key) => DropdownMenuItem(value: key, child: Text(key)))
+      .toList(),
+  onChanged: (value) async {
+    if (value != null) {
+      await ThemeManager.switchTheme(value);
+      setState(() {});  // Rebuild with new theme
+    }
+  },
+)
+```
+
+**Using Theme Values:**
+```dart
+// Colors
+Container(color: AppColorPalette.themeColor1);
+
+// Backgrounds
+Scaffold(backgroundColor: AppColorPalette.backgroundPrimary);
+
+// Fonts and sizes
+Text('Hello', style: TextStyle(
+  fontFamily: AppColorPalette.fontPrimary,
+  fontSize: AppColorPalette.fontSizeMedium,
+));
+```
+
+### Benefits of YAML-Based Themes
+
+#### 1. **Non-Developer Friendly**
+- Designers can edit themes without touching code
+- Quick experimentation with color schemes
+- No compilation needed to preview changes
+- Easy A/B testing of different themes
+
+#### 2. **Centralized Configuration**
+- Single file contains all theme variants
+- Easy to version control
+- Clear documentation of available themes
+- Prevents color/font inconsistencies
+
+#### 3. **Runtime Flexibility**
+- Switch themes without app restart
+- Load custom themes from server
+- User-created themes possible
+- Theme marketplace potential
+
+#### 4. **Maintenance Benefits**
+- Update entire app's look from one file
+- No need to search/replace across codebase
+- Theme changes isolated from business logic
+- Easy to add new themes
+
+### Common Patterns and Best Practices
+
+#### 1. **Theme File Organization**
+```
+assets/
+  themes/
+    themes.yaml        # All themes in one file
+    custom/           # Optional user themes
+      user_theme_1.yaml
+```
+
+#### 2. **Pubspec.yaml Configuration**
+```yaml
+dependencies:
+  yaml: ^3.1.2  # YAML parsing
+
+flutter:
+  assets:
+    - assets/themes/
+```
+
+#### 3. **Error Handling**
+```dart
+try {
+  await ThemeManager.initialize(themeKey: userPreference);
+} catch (e) {
+  print('Theme loading failed: $e');
+  // App continues with default static colors
+}
+```
+
+#### 4. **Development Workflow**
+```dart
+// Hot reload support
+if (kDebugMode) {
+  FloatingActionButton(
+    onPressed: () async {
+      await ThemeManager.reloadThemes();
+      setState(() {});
+    },
+    child: Icon(Icons.refresh),
+  );
+}
+```
+
+### Testing Strategies
+
+#### 1. **Theme Loading Tests**
+```dart
+test('Should load all themes from YAML', () async {
+  final themes = await ThemeLoader.loadThemes();
+  expect(themes.containsKey('default'), isTrue);
+  expect(themes.containsKey('warm'), isTrue);
+});
+```
+
+#### 2. **Color Parsing Tests**
+```dart
+test('Should parse hex colors correctly', () {
+  final color = ThemeColors.parseColor('#FF0000', Colors.black);
+  expect(color, equals(Color(0xFFFF0000)));
+});
+```
+
+#### 3. **Fallback Tests**
+```dart
+test('Should fallback to static colors when no theme', () {
+  AppColorPalette.setActiveTheme(null);
+  expect(AppColorPalette.themeColor1, equals(AppColorPalette.color1));
+});
+```
+
+### Performance Considerations
+
+#### 1. **Caching Strategy**
+- Load YAML once at startup
+- Cache parsed theme objects in memory
+- Clear cache only when needed (development)
+- Minimal memory footprint (themes are small)
+
+#### 2. **Build Performance**
+- No code generation needed
+- No build_runner overhead
+- Fast hot reload
+- Instant theme switching
+
+#### 3. **Runtime Performance**
+- Theme getters are simple property accesses
+- No expensive calculations
+- Derived font sizes cached in model
+- Negligible performance impact
+
+### Migration Path from Static Colors
+
+#### Step 1: Add Theme System (No Breaking Changes)
+```dart
+// Old code still works
+Container(color: AppColorPalette.color1);
+```
+
+#### Step 2: Gradually Update to Theme-Aware
+```dart
+// Update to use theme colors
+Container(color: AppColorPalette.themeColor1);
+```
+
+#### Step 3: Remove Static Colors (Optional)
+```dart
+// Eventually deprecate static colors
+@deprecated
+static const Color color1 = Color(0xFF9C27B0);
+```
+
+### Advanced Features
+
+#### 1. **Multiple Theme Files**
+- Split themes into categories
+- Load themes dynamically from server
+- User-created theme support
+- Theme marketplace/sharing
+
+#### 2. **Theme Interpolation**
+- Smooth color transitions between themes
+- Animated theme switching
+- Time-based theme changes
+
+#### 3. **Conditional Theming**
+- Different themes for different user types
+- Feature-flag based theming
+- A/B testing with themes
+- Personalized color schemes
+
+This YAML-based theme system demonstrates how to build a flexible, maintainable, and designer-friendly styling system that scales from small apps to large applications with complex theming requirements.

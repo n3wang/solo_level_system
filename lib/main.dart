@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'constants/color_palette.dart';
 import 'screens/main_navigation_screen.dart';
 import 'models/pomodoro_model.dart';
 import 'models/user_settings_model.dart';
@@ -282,16 +283,16 @@ class _MyAppState extends State<MyApp> {
   MaterialColor _getPrimaryMaterialColor(String colorName) {
     switch (colorName) {
       case 'blue':
-        return Colors.blue;
+        return AppColorPalette.materialColor2; // Blue
       case 'green':
-        return Colors.green;
+        return AppColorPalette.materialColor3; // Green
       case 'purple':
-        return Colors.purple;
+        return AppColorPalette.materialColor1; // Purple
       case 'orange':
-        return Colors.orange;
+        return AppColorPalette.materialColor4; // Orange
       case 'red':
       default:
-        return Colors.red;
+        return AppColorPalette.materialColor5; // Red
     }
   }
 
@@ -321,7 +322,7 @@ class _MyAppState extends State<MyApp> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error, size: 64, color: Colors.red),
+                  Icon(Icons.error, size: 64, color: AppColorPalette.error),
                   SizedBox(height: 16),
                   Text(
                     'Failed to initialize database',

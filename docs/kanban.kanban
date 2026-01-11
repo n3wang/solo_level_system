@@ -97,6 +97,11 @@
             {
               "id": "b31fd23e-d1fd-4ff4-b5c8-dfa4b15fbb91",
               "title": "Make general workout screen with only 3 tabs screen for workout",
+              "checked": true
+            },
+            {
+              "id": "15da03d0-0e3a-4037-a266-319f2bc81408",
+              "title": "Refactor to simplify the exercise creation screen",
               "checked": false
             },
             {
@@ -108,14 +113,14 @@
               "id": "dd12a13a-4af2-44e5-a02b-85f31dba3cfc",
               "title": "Create a sample list 1 and list 2",
               "checked": false
-            },
-            {
-              "id": "15da03d0-0e3a-4037-a266-319f2bc81408",
-              "title": "Refactor to simplify the exercise",
-              "checked": false
             }
           ],
-          "comments": []
+          "comments": [
+            {
+              "id": "501d9c2f-aaac-4237-83ad-d87daab50e67",
+              "comment": "Creat the icons for the following workouts\n\nSquat (back squat / front squat)\nDeadlift (conventional / Romanian)\nBench press\nOverhead press (shoulder press)\nPull-ups / Chin-ups\nBarbell row\nLat pulldown\nLeg press\nDumbbell bench press\n\nDumbbell shoulder press\nBicep curls (barbell or dumbbell)\nTricep pushdowns\nChest fly (machine or dumbbell)\nLeg curl (hamstrings)\nLeg extension (quadriceps)\nPlank\nHanging leg raises\nRussian twists\nTreadmill running or walking\nStationary bike / spin bike\n"
+            }
+          ]
         },
         {
           "id": "91dd0a36-c431-4123-bf4c-9e09c9d007de",

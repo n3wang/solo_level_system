@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
@@ -39,20 +40,12 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   Future<void> _initializeData() async {
     await _ensureBoxIsOpen<WorkoutSetCategoryModel>('workoutSetCategories');
     await _ensureBoxIsOpen<ExerciseModel>('exercises');
-    
+
     // Create 5 default sets if they don't exist
     final box = Hive.box<WorkoutSetCategoryModel>('workoutSetCategories');
     final activeSets = box.values.where((set) => set.isActive).toList();
-    
+
     if (activeSets.isEmpty) {
-      final colors = [
-        Colors.purple,
-        Colors.blue,
-        Colors.green,
-        Colors.orange,
-        Colors.red,
-      ];
-      
       for (int i = 0; i < MAX_SETS; i++) {
         final newSet = WorkoutSetCategoryModel(
           id: '${DateTime.now().millisecondsSinceEpoch}_$i',
@@ -60,13 +53,13 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           position: i,
           description: '',
           exerciseIds: [],
-          color: colors[i].value.toString(),
+          color: AppColorPalette.getColorByIndex(i).value.toString(),
           createdAt: DateTime.now(),
         );
         await box.add(newSet);
       }
     }
-    
+
     setState(() {
       _isLoading = false;
     });
@@ -92,12 +85,12 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       appBar: AppBar(
         title: Text('Workout'),
         backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColorPalette.white,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          indicatorColor: AppColorPalette.white,
+          labelColor: AppColorPalette.white,
+          unselectedLabelColor: AppColorPalette.white.withOpacity(0.7),
           tabs: [
             Tab(text: 'Sets'),
             Tab(text: 'Motivation'),
@@ -150,8 +143,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+        color: AppColorPalette.white,
+        border: Border(bottom: BorderSide(color: AppColorPalette.grey300)),
       ),
       child: Row(
         children: [
@@ -161,7 +154,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
               child: Row(
                 children: [
                   _buildSetFilterChip(
-                    label: 'Auto',
+                    label: 'A',
                     isSelected: _selectedSetId == null,
                     onTap: () {
                       setState(() {
@@ -222,26 +215,26 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     required VoidCallback onTap,
     VoidCallback? onLongPress,
   }) {
-    final chipColor = color ?? Colors.grey;
+    final chipColor = color ?? AppColorPalette.grey;
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? chipColor : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? chipColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? chipColor : Colors.grey.shade400,
+            color: isSelected ? chipColor : AppColorPalette.grey400,
             width: 2,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey.shade800,
+            color: isSelected ? AppColorPalette.white : AppColorPalette.grey800,
             fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: 14,
           ),
         ),
       ),
@@ -340,7 +333,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                         child: Text(
                           exercise.description,
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: AppColorPalette.grey600,
                             fontSize: 14,
                           ),
                         ),
@@ -351,7 +344,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: AppColorPalette.grey100,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -367,7 +360,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       '45kg',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: AppColorPalette.grey700,
                       ),
                     ),
                   ],
@@ -410,7 +403,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     padding: EdgeInsets.only(left: 4),
                     child: Text(
                       '+${containingSets.length - 3}',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                      style: TextStyle(fontSize: 11, color: AppColorPalette.grey),
                     ),
                   ),
                 Spacer(),
@@ -419,7 +412,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                 '[Last Performance data]',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.grey,
+                  color: AppColorPalette.grey,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -474,14 +467,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       }
     }
 
-    final colors = [
-      Colors.purple,
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.red,
-    ];
-    return colors[setCategory.position % colors.length];
+    return AppColorPalette.getColorByIndex(setCategory.position);
   }
 
   Widget _buildTimedTab() {
@@ -502,7 +488,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Maximum of $MAX_SETS workout sets allowed'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppColorPalette.warning,
         ),
       );
       return;

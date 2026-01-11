@@ -1,5 +1,6 @@
 // lib/widgets/common/card_components.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 
 /// A reusable card component with consistent styling and layout
 class BaseCard extends StatelessWidget {
@@ -72,7 +73,7 @@ class CardHeader extends StatelessWidget {
                 SizedBox(height: 4),
                 Text(
                   description!,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  style: TextStyle(color: AppColorPalette.grey600, fontSize: 14),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -180,17 +181,17 @@ class StatChip extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color?.withOpacity(0.1) ?? Colors.grey[100],
+        color: color?.withOpacity(0.1) ?? AppColorPalette.grey100,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color ?? Colors.grey[600]),
+          Icon(icon, size: 14, color: color ?? AppColorPalette.grey600),
           SizedBox(width: 4),
           Text(
             '$label: $value',
-            style: TextStyle(fontSize: 12, color: color ?? Colors.grey[700]),
+            style: TextStyle(fontSize: 12, color: color ?? AppColorPalette.grey700),
           ),
         ],
       ),
@@ -229,15 +230,15 @@ class PriorityChip extends StatelessWidget {
   Color _getPriorityColor(int priority) {
     switch (priority) {
       case 1:
-        return Colors.green;
+        return AppColorPalette.priorityHigh; // Green
       case 2:
-        return Colors.orange;
+        return AppColorPalette.priorityMedium; // Orange
       case 3:
-        return Colors.red;
+        return AppColorPalette.priorityUrgent; // Red
       case 4:
-        return Colors.purple;
+        return AppColorPalette.priorityLow; // Purple
       default:
-        return Colors.grey;
+        return AppColorPalette.grey;
     }
   }
 

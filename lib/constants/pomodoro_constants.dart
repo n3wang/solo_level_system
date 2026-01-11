@@ -43,12 +43,14 @@ class PomodoroConstants {
   static const double musicWidgetFontSize = 12.0;
   static const double musicInstructionFontSize = 8.0;
 
-  // Colors (using Material colors to avoid context dependency)
-  static const int greenPrimary = 0xFF4CAF50;
-  static const int redPrimary = 0xFFF44336;
-  static const int greyPrimary = 0xFF9E9E9E;
-  static const int orangePrimary = 0xFFFF9800;
-  static const int bluePrimary = 0xFF2196F3;
+  // Colors - Now using centralized color palette
+  // Import 'package:solo_level_system/constants/color_palette.dart' to access AppColorPalette
+  // These constants map to the palette for backwards compatibility
+  static const int greenPrimary = 0xFF4CAF50;  // AppColorPalette.color3 (green)
+  static const int redPrimary = 0xFFF44336;    // AppColorPalette.color5 (red)
+  static const int greyPrimary = 0xFF9E9E9E;   // AppColorPalette.grey
+  static const int orangePrimary = 0xFFFF9800; // AppColorPalette.color4 (orange)
+  static const int bluePrimary = 0xFF2196F3;   // AppColorPalette.color2 (blue)
 
   // Opacity values
   static const double backgroundOpacity = 0.3;

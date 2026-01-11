@@ -1,5 +1,6 @@
 // lib/widgets/common/dialog_components.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 
 /// A reusable form dialog component
 class FormDialog extends StatelessWidget {
@@ -64,9 +65,9 @@ class ConfirmationDialog extends StatelessWidget {
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: isDestructive
-                ? Colors.red
+                ? AppColorPalette.error
                 : (confirmColor ?? Theme.of(context).primaryColor),
-            foregroundColor: Colors.white,
+            foregroundColor: AppColorPalette.white,
           ),
           onPressed: () {
             Navigator.of(context).pop();
@@ -151,11 +152,11 @@ class OptionsBottomSheet extends StatelessWidget {
           (option) => ListTile(
             leading: Icon(
               option.icon,
-              color: option.isDestructive ? Colors.red : null,
+              color: option.isDestructive ? AppColorPalette.error : null,
             ),
             title: Text(
               option.title,
-              style: TextStyle(color: option.isDestructive ? Colors.red : null),
+              style: TextStyle(color: option.isDestructive ? AppColorPalette.error : null),
             ),
             onTap: () {
               Navigator.pop(context);
