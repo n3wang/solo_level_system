@@ -208,7 +208,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                         label: Text(tag),
                         backgroundColor: Theme.of(
                           context,
-                        ).primaryColor.withOpacity(0.1),
+                        ).primaryColor.withValues(alpha: 0.1),
                         labelStyle: TextStyle(
                           color: Theme.of(context).primaryColor,
                         ),
@@ -435,7 +435,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                           FilterChip(
                             label: Text(_getDayName(day)),
                             selected: selectedActiveDays.contains(day),
-                            selectedColor: Colors.green.withOpacity(0.6),
+                            selectedColor: Colors.green.withValues(alpha: 0.6),
                             checkmarkColor: Theme.of(context).primaryColor,
                             onSelected: (selected) {
                               setState(() {
@@ -762,21 +762,6 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
     }
   }
 
-  Color _getPriorityColor(int priority) {
-    switch (priority) {
-      case 1:
-        return Colors.green;
-      case 2:
-        return Colors.orange;
-      case 3:
-        return Colors.red;
-      case 4:
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
-  }
-
   String _getPriorityText(int priority) {
     switch (priority) {
       case 1:
@@ -794,37 +779,6 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
-  }
-
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'work':
-        return Icons.work;
-      case 'school':
-        return Icons.school;
-      case 'fitness_center':
-        return Icons.fitness_center;
-      case 'palette':
-        return Icons.palette;
-      case 'code':
-        return Icons.code;
-      case 'music_note':
-        return Icons.music_note;
-      case 'home':
-        return Icons.home;
-      case 'business':
-        return Icons.business;
-      case 'psychology':
-        return Icons.psychology;
-      case 'science':
-        return Icons.science;
-      case 'book':
-        return Icons.book;
-      case 'camera':
-        return Icons.camera_alt;
-      default:
-        return Icons.folder;
-    }
   }
 
   String _getDayName(int day) {

@@ -269,7 +269,7 @@ class _RewardsScreenState extends State<RewardsScreen>
         Icon(
           icon,
           size: 20,
-          color: Theme.of(context).primaryColor.withOpacity(0.7),
+          color: Theme.of(context).primaryColor.withValues(alpha:0.7),
         ),
         SizedBox(width: 12),
         Expanded(

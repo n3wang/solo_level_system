@@ -425,8 +425,8 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                       'Set ${setIndex + 1}: ${set.reps} × ${set.weight}kg',
                       style: TextStyle(fontSize: 12),
                     ),
-                    backgroundColor: Colors.blue.withOpacity(0.1),
-                    side: BorderSide(color: Colors.blue.withOpacity(0.3)),
+                    backgroundColor: Colors.blue.withValues(alpha:0.1),
+                    side: BorderSide(color: Colors.blue.withValues(alpha:0.3)),
                   );
                 }).toList(),
               ),
@@ -493,8 +493,8 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                     .map(
                       (tag) => Chip(
                         label: Text(tag),
-                        backgroundColor: Colors.green.withOpacity(0.1),
-                        side: BorderSide(color: Colors.green.withOpacity(0.3)),
+                        backgroundColor: Colors.green.withValues(alpha:0.1),
+                        side: BorderSide(color: Colors.green.withValues(alpha:0.3)),
                       ),
                     )
                     .toList(),

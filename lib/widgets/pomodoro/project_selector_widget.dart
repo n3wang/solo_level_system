@@ -130,7 +130,7 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
         duration: Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withOpacity(0.1),
+          color: isSelected ? color : color.withValues(alpha: 0.1),
           border: Border.all(color: color, width: isSelected ? 2 : 1),
           borderRadius: BorderRadius.circular(16),
         ),
@@ -290,7 +290,7 @@ class CompactProjectSelectorWidget extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: isSelected ? color : color.withOpacity(0.1),
+                  color: isSelected ? color : color.withValues(alpha: 0.1),
                   border: Border.all(color: color, width: isSelected ? 2 : 1),
                   borderRadius: BorderRadius.circular(8),
                 ),

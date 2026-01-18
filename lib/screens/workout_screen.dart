@@ -91,7 +91,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           controller: _tabController,
           indicatorColor: AppColorPalette.white,
           labelColor: AppColorPalette.white,
-          unselectedLabelColor: AppColorPalette.white.withOpacity(0.7),
+          unselectedLabelColor: AppColorPalette.white.withValues(alpha: 0.7),
           tabs: [
             Tab(text: 'Sets'),
             Tab(text: 'Motivation'),
@@ -383,7 +383,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       width: 30,
                       height: 30,
                       decoration: BoxDecoration(
-                        color: _getSetColor(set).withOpacity(0.2),
+                        color: _getSetColor(set).withValues(alpha: 0.2),
                         border: Border.all(color: _getSetColor(set), width: 2),
                         borderRadius: BorderRadius.circular(6),
                       ),
@@ -405,7 +405,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     padding: EdgeInsets.only(left: 4),
                     child: Text(
                       '+${containingSets.length - 3}',
-                      style: TextStyle(fontSize: 11, color: AppColorPalette.grey),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColorPalette.grey,
+                      ),
                     ),
                   ),
                 Spacer(),
@@ -478,29 +481,6 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         icon: Icons.timer,
         title: 'Timed Workouts',
         subtitle: 'Coming soon - Track time-based exercises',
-      ),
-    );
-  }
-
-  void _createNewSet() {
-    final box = Hive.box<WorkoutSetCategoryModel>('workoutSetCategories');
-    final activeSetsCount = box.values.where((set) => set.isActive).length;
-
-    if (activeSetsCount >= MAX_SETS) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Maximum of $MAX_SETS workout sets allowed'),
-          backgroundColor: AppColorPalette.warning,
-        ),
-      );
-      return;
-    }
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            AddEditWorkoutSetScreen(position: activeSetsCount),
       ),
     );
   }

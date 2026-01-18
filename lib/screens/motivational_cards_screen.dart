@@ -174,7 +174,7 @@ class _MotivationalCardsScreenState extends State<MotivationalCardsScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Theme.of(context).primaryColor.withOpacity(0.7),
+                      Theme.of(context).primaryColor.withValues(alpha:0.7),
                       Theme.of(context).primaryColor,
                     ],
                   ),
@@ -187,7 +187,7 @@ class _MotivationalCardsScreenState extends State<MotivationalCardsScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                  colors: [Colors.transparent, Colors.black.withValues(alpha:0.7)],
                 ),
               ),
             ),

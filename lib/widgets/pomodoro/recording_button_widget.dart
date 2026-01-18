@@ -173,10 +173,10 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
               height: 80,
               decoration: BoxDecoration(
                 color: _isRecording
-                    ? Colors.red.withOpacity(0.1)
+                    ? Colors.red.withValues(alpha: 0.1)
                     : widget.hasRecording
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.blue.withOpacity(0.1),
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _isRecording
@@ -250,7 +250,7 @@ class _AudioLevelsPainter extends CustomPainter {
     if (levels.isEmpty) return;
 
     final paint = Paint()
-      ..color = Colors.red.withOpacity(0.3)
+      ..color = Colors.red.withValues(alpha: 0.3)
       ..strokeWidth = 2;
 
     final centerY = size.height / 2;

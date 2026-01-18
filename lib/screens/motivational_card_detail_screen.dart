@@ -33,9 +33,9 @@ class MotivationalCardDetailScreen extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Theme.of(context).primaryColor.withOpacity(0.7),
+                      Theme.of(context).primaryColor.withValues(alpha:0.7),
                       Theme.of(context).primaryColor,
-                      Theme.of(context).primaryColor.withOpacity(0.8),
+                      Theme.of(context).primaryColor.withValues(alpha:0.8),
                     ],
                   ),
                 ),
@@ -48,8 +48,8 @@ class MotivationalCardDetailScreen extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.3),
-                    Colors.black.withOpacity(0.5),
+                    Colors.black.withValues(alpha:0.3),
+                    Colors.black.withValues(alpha:0.5),
                   ],
                 ),
               ),
@@ -84,7 +84,7 @@ class MotivationalCardDetailScreen extends StatelessWidget {
                       Text(
                         'Created ${_formatDate(card.createdAt)}',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha:0.8),
                           fontSize: 14,
                           shadows: const [
                             Shadow(
@@ -119,7 +119,7 @@ class MotivationalCardDetailScreen extends StatelessWidget {
                   child: Text(
                     'Tap anywhere to close',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha:0.9),
                       fontSize: 12,
                     ),
                   ),

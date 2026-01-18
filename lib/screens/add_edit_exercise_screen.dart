@@ -162,7 +162,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
               width: 60,
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColorPalette.success.withOpacity(0.2),
+                color: AppColorPalette.success.withValues(alpha:0.2),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: AppColorPalette.success),
               ),

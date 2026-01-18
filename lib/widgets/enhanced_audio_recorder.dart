@@ -624,7 +624,7 @@ class RealtimeWaveformPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withOpacity(isRecording ? 0.8 : 0.3)
+      ..color = color.withValues(alpha: isRecording ? 0.8 : 0.3)
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round;
 
@@ -637,7 +637,7 @@ class RealtimeWaveformPainter extends CustomPainter {
       canvas.drawLine(
         Offset(0, centerY),
         Offset(width, centerY),
-        paint..color = color.withOpacity(0.1),
+        paint..color = color.withValues(alpha: 0.1),
       );
       return;
     }

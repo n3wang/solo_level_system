@@ -92,7 +92,7 @@ class AppColorPalette {
 
   /// Convert color to hex string (for storage)
   static String colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).padLeft(8, '0').substring(2)}';
+    return '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
   }
 
   /// Parse hex string to color (from storage)
@@ -107,7 +107,7 @@ class AppColorPalette {
 
   /// Get a palette color with opacity
   static Color withOpacity(Color color, double opacity) {
-    return color.withOpacity(opacity);
+    return color.withValues(alpha: opacity);
   }
 
   /// Get a palette color with alpha value
@@ -120,7 +120,9 @@ class AppColorPalette {
   static MaterialColor toMaterialColor(Color color) {
     List strengths = <double>[.05];
     Map<int, Color> swatch = {};
-    final int r = color.red, g = color.green, b = color.blue;
+    final int r = (color.r * 255).round().clamp(0, 255);
+    final int g = (color.g * 255).round().clamp(0, 255);
+    final int b = (color.b * 255).round().clamp(0, 255);
 
     for (int i = 1; i < 10; i++) {
       strengths.add(0.1 * i);
@@ -134,7 +136,7 @@ class AppColorPalette {
         1,
       );
     }
-    return MaterialColor(color.value, swatch);
+    return MaterialColor(color.toARGB32(), swatch);
   }
 
   /// Get MaterialColor variants of palette colors

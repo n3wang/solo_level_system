@@ -103,20 +103,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!_timerController.onBreak &&
         !(userSettings?.playAudioDuringWork ?? true)) {
       // Don't play music during work sessions if disabled
-      print('[MUSIC] Not playing - work session and playAudioDuringWork is disabled');
+      print(
+        '[MUSIC] Not playing - work session and playAudioDuringWork is disabled',
+      );
       return;
     }
     if (_timerController.onBreak &&
         !(userSettings?.playAudioDuringBreaks ?? false)) {
       // Don't play music during break sessions if disabled
-      print('[MUSIC] Not playing - break session and playAudioDuringBreaks is disabled');
+      print(
+        '[MUSIC] Not playing - break session and playAudioDuringBreaks is disabled',
+      );
       return;
     }
 
     try {
       // Set looping based on config
       _backgroundMusicService.setLooping(config?.playAudioOnRepeat ?? false);
-      print('[MUSIC] Playing random track, looping: ${config?.playAudioOnRepeat ?? false}');
+      print(
+        '[MUSIC] Playing random track, looping: ${config?.playAudioOnRepeat ?? false}',
+      );
 
       await _backgroundMusicService.playRandomTrack();
 
@@ -137,24 +143,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _pauseLofi() async {
     print('[MUSIC] Pausing music...');
-    print('[MUSIC] Current track: ${_backgroundMusicService.currentTrack?.title}');
+    print(
+      '[MUSIC] Current track: ${_backgroundMusicService.currentTrack?.title}',
+    );
     print('[MUSIC] Is playing: ${_backgroundMusicService.isPlaying}');
     await _backgroundMusicService.pause();
     print('[MUSIC] Pause complete');
   }
 
-  Future<void> _stopLofi() async {
-    print('[MUSIC] Stopping music...');
-    await _backgroundMusicService.stop();
-    setState(() {
-      currentlyPlayingTrack = null;
-    });
-    print('[MUSIC] Stop complete');
-  }
-
   Future<void> _resumeLofi() async {
     print('[MUSIC] Resume called...');
-    print('[MUSIC] Current track: ${_backgroundMusicService.currentTrack?.title}');
+    print(
+      '[MUSIC] Current track: ${_backgroundMusicService.currentTrack?.title}',
+    );
     print('[MUSIC] Is playing: ${_backgroundMusicService.isPlaying}');
 
     if (_backgroundMusicService.currentTrack != null &&
@@ -166,20 +167,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       print('[MUSIC] No track loaded or already playing, playing new track...');
       // If no track is loaded, play a random one
       await _playLofi();
-    }
-  }
-
-  void _handleAudioSettingsChange() async {
-    // Check if music should be stopped due to settings change
-    if (_backgroundMusicService.isPlaying) {
-      final shouldPlayDuringWork = userSettings?.playAudioDuringWork ?? true;
-      final shouldPlayDuringBreaks =
-          userSettings?.playAudioDuringBreaks ?? false;
-
-      if ((!_timerController.onBreak && !shouldPlayDuringWork) ||
-          (_timerController.onBreak && !shouldPlayDuringBreaks)) {
-        _stopLofi();
-      }
     }
   }
 
@@ -538,7 +525,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return GestureDetector(
       onTap: () {
         print('[HOME] Timer tapped!');
-        print('[HOME] isRunning: ${_timerController.isRunning}, canSubmitLog: $canSubmitLog');
+        print(
+          '[HOME] isRunning: ${_timerController.isRunning}, canSubmitLog: $canSubmitLog',
+        );
         // Click timer to start/stop/submit log
         if (_timerController.isRunning) {
           print('[HOME] Calling pauseTimer()');
@@ -608,8 +597,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         ?.albumImagePath ==
                                     null
                                 ? (isRunning
-                                      ? Colors.red.withOpacity(0.1)
-                                      : Colors.green.withOpacity(0.1))
+                                      ? Colors.red.withValues(alpha: 0.1)
+                                      : Colors.green.withValues(alpha: 0.1))
                                 : null,
                           ),
                         ),
@@ -619,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           height: PomodoroSizing.getAlbumContainerSize(context),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -686,14 +675,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         currentlyPlayingTrack: currentlyPlayingTrack,
                         onToggleMusic: () {
                           print('[TOGGLE] Music toggle tapped');
-                          print('[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning');
+                          print(
+                            '[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning',
+                          );
                           setState(() {
                             if (allowMusic) {
-                              print('[TOGGLE] Pausing music and setting allowMusic to false');
+                              print(
+                                '[TOGGLE] Pausing music and setting allowMusic to false',
+                              );
                               _pauseLofi();
                               allowMusic = false;
                             } else {
-                              print('[TOGGLE] Setting allowMusic to true and resuming');
+                              print(
+                                '[TOGGLE] Setting allowMusic to true and resuming',
+                              );
                               allowMusic = true;
                               _resumeLofi();
                             }
@@ -749,8 +744,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         ?.albumImagePath ==
                                     null
                                 ? (isRunning
-                                      ? Colors.red.withOpacity(0.1)
-                                      : Colors.green.withOpacity(0.1))
+                                      ? Colors.red.withValues(alpha: 0.1)
+                                      : Colors.green.withValues(alpha: 0.1))
                                 : null,
                           ),
                         ),
@@ -760,7 +755,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           height: PomodoroSizing.getAlbumContainerSize(context),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -828,14 +823,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         currentlyPlayingTrack: currentlyPlayingTrack,
                         onToggleMusic: () {
                           print('[TOGGLE] Music toggle tapped');
-                          print('[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning');
+                          print(
+                            '[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning',
+                          );
                           setState(() {
                             if (allowMusic) {
-                              print('[TOGGLE] Pausing music and setting allowMusic to false');
+                              print(
+                                '[TOGGLE] Pausing music and setting allowMusic to false',
+                              );
                               _pauseLofi();
                               allowMusic = false;
                             } else {
-                              print('[TOGGLE] Setting allowMusic to true and resuming');
+                              print(
+                                '[TOGGLE] Setting allowMusic to true and resuming',
+                              );
                               allowMusic = true;
                               _resumeLofi();
                             }
@@ -893,7 +894,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         height: PomodoroSizing.getAlbumContainerSize(context),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -967,14 +968,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         currentlyPlayingTrack: currentlyPlayingTrack,
                         onToggleMusic: () {
                           print('[TOGGLE] Music toggle tapped');
-                          print('[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning');
+                          print(
+                            '[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning',
+                          );
                           setState(() {
                             if (allowMusic) {
-                              print('[TOGGLE] Pausing music and setting allowMusic to false');
+                              print(
+                                '[TOGGLE] Pausing music and setting allowMusic to false',
+                              );
                               _pauseLofi();
                               allowMusic = false;
                             } else {
-                              print('[TOGGLE] Setting allowMusic to true and resuming');
+                              print(
+                                '[TOGGLE] Setting allowMusic to true and resuming',
+                              );
                               allowMusic = true;
                               _resumeLofi();
                             }
@@ -1028,7 +1035,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         height: PomodoroSizing.getAlbumContainerSize(context),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -1108,14 +1115,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     currentlyPlayingTrack: currentlyPlayingTrack,
                     onToggleMusic: () {
                       print('[TOGGLE] Music toggle tapped');
-                      print('[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning');
+                      print(
+                        '[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning',
+                      );
                       setState(() {
                         if (allowMusic) {
-                          print('[TOGGLE] Pausing music and setting allowMusic to false');
+                          print(
+                            '[TOGGLE] Pausing music and setting allowMusic to false',
+                          );
                           _pauseLofi();
                           allowMusic = false;
                         } else {
-                          print('[TOGGLE] Setting allowMusic to true and resuming');
+                          print(
+                            '[TOGGLE] Setting allowMusic to true and resuming',
+                          );
                           allowMusic = true;
                           _resumeLofi();
                         }
@@ -1141,8 +1154,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         height: 80,
         decoration: BoxDecoration(
           color: (imagePath != null)
-              ? Colors.green.withOpacity(0.1)
-              : Colors.orange.withOpacity(0.1),
+              ? Colors.green.withValues(alpha: 0.1)
+              : Colors.orange.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: (imagePath != null) ? Colors.green : Colors.orange,
@@ -1359,10 +1372,10 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
               height: 80,
               decoration: BoxDecoration(
                 color: _isRecording
-                    ? Colors.red.withOpacity(0.1)
+                    ? Colors.red.withValues(alpha: 0.1)
                     : widget.hasRecording
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.blue.withOpacity(0.1),
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _isRecording
@@ -1436,7 +1449,7 @@ class _AudioLevelsPainter extends CustomPainter {
     if (levels.isEmpty) return;
 
     final paint = Paint()
-      ..color = Colors.red.withOpacity(0.3)
+      ..color = Colors.red.withValues(alpha: 0.3)
       ..strokeWidth = 2;
 
     final centerY = size.height / 2;

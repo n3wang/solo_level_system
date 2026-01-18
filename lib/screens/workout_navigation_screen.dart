@@ -123,7 +123,7 @@ class _WorkoutNavigationScreenState extends State<WorkoutNavigationScreen> {
         decoration: BoxDecoration(
           color: Theme.of(context).scaffoldBackgroundColor,
           border: Border(
-            bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 0.5),
+            bottom: BorderSide(color: Colors.grey.withValues(alpha:0.2), width: 0.5),
           ),
         ),
         child: Row(
@@ -155,13 +155,13 @@ class _WorkoutNavigationScreenState extends State<WorkoutNavigationScreen> {
             margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
             decoration: BoxDecoration(
               color: isSelected
-                  ? Theme.of(context).primaryColor.withOpacity(0.1)
+                  ? Theme.of(context).primaryColor.withValues(alpha:0.1)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: isSelected
                     ? Theme.of(context).primaryColor
-                    : Colors.grey.withOpacity(0.3),
+                    : Colors.grey.withValues(alpha:0.3),
                 width: isSelected ? 2 : 1,
               ),
             ),

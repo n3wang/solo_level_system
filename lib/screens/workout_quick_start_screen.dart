@@ -167,7 +167,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
         duration: Duration(milliseconds: 200),
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.grey[100],
+          color: isSelected ? color.withValues(alpha:0.1) : Colors.grey[100],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? color : Colors.grey[300]!,
@@ -224,7 +224,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: template.color.withOpacity(0.1),
+              color: template.color.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(template.icon, color: template.color, size: 28),

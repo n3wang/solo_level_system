@@ -103,9 +103,9 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: _getSetColor().withOpacity(0.1),
+        color: _getSetColor().withValues(alpha:0.1),
         border: Border(
-          bottom: BorderSide(color: _getSetColor().withOpacity(0.3), width: 2),
+          bottom: BorderSide(color: _getSetColor().withValues(alpha:0.3), width: 2),
         ),
       ),
       child: Row(
@@ -231,7 +231,7 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.2))),
+        border: Border(bottom: BorderSide(color: Colors.grey.withValues(alpha:0.2))),
       ),
       child: Column(
         children: [

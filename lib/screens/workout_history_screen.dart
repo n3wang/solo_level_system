@@ -58,7 +58,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.2))),
+        border: Border(bottom: BorderSide(color: Colors.grey.withValues(alpha:0.2))),
       ),
       child: Row(
         children: [
@@ -158,7 +158,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: _getSessionTypeColor(session).withOpacity(0.1),
+                  color: _getSessionTypeColor(session).withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -194,8 +194,8 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: isCompleted
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.orange.withOpacity(0.1),
+                          ? Colors.green.withValues(alpha:0.1)
+                          : Colors.orange.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
