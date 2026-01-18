@@ -9,6 +9,7 @@ import 'package:solo_level_system/screens/exercise_details_screen.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
 import 'package:solo_level_system/screens/active_workout_session_screen.dart';
+import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 
 class WorkoutModeScreen extends StatefulWidget {
   const WorkoutModeScreen({super.key});
@@ -298,10 +299,17 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                       color: _getMuscleGroupColor(exercise.muscleGroup),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(
-                      _getMuscleGroupIcon(exercise.muscleGroup),
-                      color: Colors.white,
-                      size: 32,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: WorkoutIconWidget(
+                        imageUrl: exercise.imageUrl,
+                        size: 60,
+                        placeholder: Icon(
+                          _getMuscleGroupIcon(exercise.muscleGroup),
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
                     ),
                   ),
                   SizedBox(width: 16),

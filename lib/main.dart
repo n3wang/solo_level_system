@@ -17,6 +17,7 @@ import 'models/project_model.dart';
 import 'models/user_progress_model.dart';
 import 'models/reward_model.dart';
 import 'models/motivational_card_model.dart';
+import 'utils/default_workouts_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -230,6 +231,14 @@ void main() async {
     }
 
     print('All Hive boxes opened successfully');
+
+    // Initialize default workouts on first install
+    try {
+      await DefaultWorkoutsService.initializeDefaultWorkouts();
+    } catch (e) {
+      print('⚠️ Error initializing default workouts: $e');
+      // Continue app startup even if default workouts fail
+    }
 
     runApp(MyApp());
   } catch (e, stackTrace) {

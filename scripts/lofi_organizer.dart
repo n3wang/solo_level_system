@@ -86,7 +86,7 @@ class LofiOrganizer {
           'site': metadata['site'],
           'duration': estimatedDuration,
           'fileSize': fileSizeKB.round(),
-          'albumImage': _getAlbumImage(metadata['title'], counter),
+          'albumImage': _getAlbumImage(metadata['title']!, counter),
         });
 
         // Rename file

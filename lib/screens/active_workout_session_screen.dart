@@ -309,32 +309,76 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
   }
 
   Widget _buildExerciseHeader(ExerciseModel exercise) {
+    final isCompleted = _allSetsCompleted(exercise);
+    
     return Card(
+      color: isCompleted ? Colors.green.shade50 : null, // Light green background when completed
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isCompleted 
+            ? BorderSide(color: Colors.green.shade300, width: 2) 
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Row(
           children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: _getMuscleGroupColor(exercise.muscleGroup),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                _getMuscleGroupIcon(exercise.muscleGroup),
-                color: Colors.white,
-                size: 30,
-              ),
+            Stack(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: _getMuscleGroupColor(exercise.muscleGroup),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    _getMuscleGroupIcon(exercise.muscleGroup),
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                if (isCompleted)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    exercise.name,
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          exercise.name,
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      if (isCompleted)
+                        Icon(
+                          Icons.check_circle,
+                          color: Colors.green.shade700,
+                          size: 24,
+                        ),
+                    ],
                   ),
                   Text(
                     '${exercise.muscleGroup} • ${exercise.equipment}',

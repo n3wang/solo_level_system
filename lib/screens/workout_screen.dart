@@ -6,6 +6,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
+import 'package:solo_level_system/screens/exercise_details_screen.dart';
 import 'package:solo_level_system/screens/add_edit_workout_set_screen.dart';
 import 'package:solo_level_system/screens/motivational_cards_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
@@ -311,6 +312,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
     return BaseCard(
       margin: EdgeInsets.only(bottom: 12),
+      onTap: () => _viewExerciseDetails(exercise),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -516,6 +518,15 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => AddEditExerciseScreen()),
+    );
+  }
+
+  void _viewExerciseDetails(ExerciseModel exercise) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExerciseDetailsScreen(exercise: exercise),
+      ),
     );
   }
 }

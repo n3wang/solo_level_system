@@ -88,6 +88,46 @@
       "title": "Doing",
       "cards": [
         {
+          "id": "ac5b784b-6bcf-4275-b83d-eb95da82b7ba",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Large refactor of workout",
+          "description": "Refactor the workout screen so that only has threee tabs\n\nThe Sets tab\nHas the lists of workoutrows, and 6 sub tabs auto recomending automatically then 5 sets that work like tags to filter that sets workout tile.\n\n",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "c4313efd-592b-4275-b1d1-fc2022904b05",
+              "title": "Redesign Sets",
+              "checked": true
+            },
+            {
+              "id": "b3056a10-f492-4895-8f15-0733261b0ee7",
+              "title": "Redesign  Motivation",
+              "checked": false
+            },
+            {
+              "id": "e56ccda5-03f3-478e-ba5f-e4744dae6cdf",
+              "title": " Redesign  Timed",
+              "checked": false
+            },
+            {
+              "id": "7890ae4b-f7c4-4746-8ca7-6e5bf98aa35e",
+              "title": "Add both the default workout sessions and icons",
+              "checked": false
+            },
+            {
+              "id": "d1b32351-8c69-4af4-9e25-037263e2ad98",
+              "title": "Use the provided icons for the workout icons that can select aside of from acamera",
+              "checked": false
+            },
+            {
+              "id": "81df03b0-0404-4e0f-b312-350ded900f9c",
+              "title": "Have a previous days workout screen",
+              "checked": false
+            }
+          ],
+          "comments": []
+        },
+        {
           "id": "af9a53fb-1333-4af0-bdda-5867061a3208",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
           "title": "Project Screen refactor and habits and model schemas",
@@ -197,31 +237,6 @@
             {
               "id": "d69d2d19-f594-4eb5-a2e2-93e73a7c1a37",
               "title": "Creating icons for common excercises",
-              "checked": false
-            }
-          ],
-          "comments": []
-        },
-        {
-          "id": "ac5b784b-6bcf-4275-b83d-eb95da82b7ba",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Large refactor of workout",
-          "description": "Refactor the workout screen so that only has threee tabs\n\nThe Sets tab\nHas the lists of workoutrows, and 6 sub tabs auto recomending automatically then 5 sets that work like tags to filter that sets workout tile.\n\n",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "c4313efd-592b-4275-b1d1-fc2022904b05",
-              "title": "Redesign Sets",
-              "checked": false
-            },
-            {
-              "id": "b3056a10-f492-4895-8f15-0733261b0ee7",
-              "title": "Redesign  Motivation",
-              "checked": false
-            },
-            {
-              "id": "e56ccda5-03f3-478e-ba5f-e4744dae6cdf",
-              "title": " Redesign  Timed",
               "checked": false
             }
           ],

@@ -1,7 +1,9 @@
 // lib/screens/add_edit_exercise_screen.dart
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
+import 'package:solo_level_system/models/workout_set_category_model.dart';
 
 class AddEditExerciseScreen extends StatefulWidget {
   final ExerciseModel? exercise; // null for adding, non-null for editing
@@ -12,83 +14,28 @@ class AddEditExerciseScreen extends StatefulWidget {
   _AddEditExerciseScreenState createState() => _AddEditExerciseScreenState();
 }
 
-class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
+class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _instructionsController = TextEditingController();
   final _tagsController = TextEditingController();
+  final _descriptionController = TextEditingController();
 
-  String _selectedCategory = 'strength';
-  String _selectedMuscleGroup = 'chest';
-  String _selectedEquipment = 'bodyweight';
-  String _selectedDifficulty = 'beginner';
-
-  List<String> _instructions = [];
+  late TabController _tabController;
+  
+  // Default workout data
+  int _defaultSets = 3;
+  double _defaultWeight = 10.0;
+  Set<String> _selectedSetIds = {};
+  
   List<String> _tags = [];
-
   bool _isLoading = false;
-
-  final List<String> _categories = [
-    'strength',
-    'cardio',
-    'flexibility',
-    'sports',
-    'functional',
-    'powerlifting',
-    'bodybuilding',
-    'crossfit',
-    'yoga',
-    'pilates',
-    'martial_arts',
-    'dance',
-    'rehabilitation',
-    'warm_up',
-    'cool_down',
-    'other',
-  ];
-
-  final List<String> _muscleGroups = [
-    'chest',
-    'back',
-    'legs',
-    'arms',
-    'shoulders',
-    'core',
-    'glutes',
-    'calves',
-    'forearms',
-    'traps',
-    'lats',
-    'quads',
-    'hamstrings',
-    'biceps',
-    'triceps',
-    'delts',
-    'full_body',
-    'other',
-  ];
-
-  final List<String> _equipmentOptions = [
-    'bodyweight',
-    'dumbbells',
-    'barbell',
-    'machine',
-    'cables',
-    'resistance_bands',
-    'kettlebell',
-    'other',
-  ];
-
-  final List<String> _difficultyLevels = [
-    'beginner',
-    'intermediate',
-    'advanced',
-  ];
+  bool _showOptionalFields = false;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     if (widget.exercise != null) {
       _populateFields();
     }
@@ -98,22 +45,16 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
     final exercise = widget.exercise!;
     _nameController.text = exercise.name;
     _descriptionController.text = exercise.description;
-    _selectedCategory = exercise.category;
-    _selectedMuscleGroup = exercise.muscleGroup;
-    _selectedEquipment = exercise.equipment;
-    _selectedDifficulty = exercise.difficulty;
-    _instructions = List.from(exercise.instructions);
     _tags = List.from(exercise.tags);
-    _instructionsController.text = _instructions.join('\n');
     _tagsController.text = _tags.join(', ');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
-    _instructionsController.dispose();
     _tagsController.dispose();
+    _descriptionController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -123,18 +64,28 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Exercise' : 'Add Exercise'),
+        title: Text(isEditing ? 'Edit Exercise' : 'Create Exercise'),
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: AppColorPalette.white,
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _saveExercise,
-            child: Text(
-              'SAVE',
-              style: TextStyle(
-                color: _isLoading ? Colors.grey : Colors.blue,
-                fontWeight: FontWeight.bold,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColorPalette.info,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Save',
+                style: TextStyle(
+                  color: AppColorPalette.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
+          SizedBox(width: 16),
         ],
       ),
       body: _isLoading
@@ -146,16 +97,38 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildBasicInfoSection(),
+                    // Exercise Name
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Exercise Name',
+                        hintText: 'e.g., Pushups, Bench Press',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Exercise name is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 16),
+
+                    // Default Workout Sets Section
+                    _buildDefaultWorkoutSection(),
+                    SizedBox(height: 16),
+
+                    // Sets Selection
+                    _buildSetsSelectionSection(),
                     SizedBox(height: 24),
-                    _buildCategorySection(),
-                    SizedBox(height: 24),
-                    _buildDetailsSection(),
-                    SizedBox(height: 24),
-                    _buildInstructionsSection(),
-                    SizedBox(height: 24),
-                    _buildTagsSection(),
-                    SizedBox(height: 32),
+
+                    // Optional Section Toggle
+                    _buildOptionalSectionToggle(),
+                    
+                    if (_showOptionalFields) ...[
+                      SizedBox(height: 16),
+                      _buildOptionalFields(),
+                    ],
                   ],
                 ),
               ),
@@ -163,300 +136,323 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
     );
   }
 
-  Widget _buildBasicInfoSection() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Basic Information',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            TextFormField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Exercise Name *',
-                hintText: 'e.g., Push-ups, Bench Press',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Exercise name is required';
-                }
-                return null;
-              },
-            ),
-            SizedBox(height: 16),
-            TextFormField(
-              controller: _descriptionController,
-              decoration: InputDecoration(
-                labelText: 'Description',
-                hintText: 'Brief description of the exercise',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategorySection() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Category & Target',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            _buildDropdownField(
-              'Category',
-              _selectedCategory,
-              _categories,
-              (value) => setState(() => _selectedCategory = value!),
-              Icons.category,
-            ),
-            SizedBox(height: 16),
-            _buildDropdownField(
-              'Muscle Group',
-              _selectedMuscleGroup,
-              _muscleGroups,
-              (value) => setState(() => _selectedMuscleGroup = value!),
-              Icons.accessibility,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailsSection() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Exercise Details',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            _buildDropdownField(
-              'Equipment',
-              _selectedEquipment,
-              _equipmentOptions,
-              (value) => setState(() => _selectedEquipment = value!),
-              Icons.fitness_center,
-            ),
-            SizedBox(height: 16),
-            _buildDropdownField(
-              'Difficulty',
-              _selectedDifficulty,
-              _difficultyLevels,
-              (value) => setState(() => _selectedDifficulty = value!),
-              Icons.trending_up,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInstructionsSection() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.list_alt, color: Colors.blue),
-                SizedBox(width: 8),
-                Text(
-                  'Instructions',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Enter each step on a new line',
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
-            ),
-            SizedBox(height: 16),
-            TextFormField(
-              controller: _instructionsController,
-              decoration: InputDecoration(
-                hintText:
-                    'Step 1: Position yourself...\nStep 2: Lower your body...\nStep 3: Push back up...',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-              maxLines: 8,
-              onChanged: (value) {
-                _instructions = value
-                    .split('\n')
-                    .where((line) => line.trim().isNotEmpty)
-                    .toList();
-              },
-            ),
-            if (_instructions.isNotEmpty) ...[
-              SizedBox(height: 16),
-              Text(
-                'Preview:',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[700],
-                ),
-              ),
-              SizedBox(height: 8),
-              ..._instructions.asMap().entries.map(
-                (entry) => Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${entry.key + 1}',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          entry.value,
-                          style: TextStyle(fontSize: 14),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTagsSection() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.tag, color: Colors.green),
-                SizedBox(width: 8),
-                Text(
-                  'Tags',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Separate tags with commas (e.g., compound, upper body, beginner)',
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
-            ),
-            SizedBox(height: 16),
-            TextFormField(
-              controller: _tagsController,
-              decoration: InputDecoration(
-                hintText: 'compound, upper body, beginner',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                _tags = value
-                    .split(',')
-                    .map((tag) => tag.trim())
-                    .where((tag) => tag.isNotEmpty)
-                    .toList();
-              },
-            ),
-            if (_tags.isNotEmpty) ...[
-              SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _tags
-                    .map(
-                      (tag) => Chip(
-                        label: Text(tag),
-                        backgroundColor: Colors.green.withOpacity(0.1),
-                        side: BorderSide(color: Colors.green.withOpacity(0.3)),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDropdownField(
-    String label,
-    String value,
-    List<String> options,
-    ValueChanged<String?> onChanged,
-    IconData icon,
-  ) {
-    return Row(
+  Widget _buildDefaultWorkoutSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: Colors.grey[600], size: 20),
-        SizedBox(width: 12),
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            initialValue: value,
-            decoration: InputDecoration(
-              labelText: label,
-              border: OutlineInputBorder(),
+        Row(
+          children: [
+            Icon(Icons.bookmark, size: 20, color: AppColorPalette.grey600),
+            SizedBox(width: 8),
+            Text(
+              'Default workout sets and weight',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColorPalette.grey700,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            items: options.map((option) {
-              return DropdownMenuItem(
-                value: option,
-                child: Text(_formatOptionName(option)),
-              );
-            }).toList(),
-            onChanged: onChanged,
-          ),
+          ],
+        ),
+        SizedBox(height: 12),
+        Row(
+          children: [
+            // Sets input
+            Container(
+              width: 60,
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColorPalette.success.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColorPalette.success),
+              ),
+              child: TextField(
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                  border: InputBorder.none,
+                ),
+                controller: TextEditingController(text: _defaultSets.toString()),
+                onChanged: (value) {
+                  final parsed = int.tryParse(value);
+                  if (parsed != null) {
+                    setState(() => _defaultSets = parsed);
+                  }
+                },
+              ),
+            ),
+            SizedBox(width: 12),
+            // x separator
+            Text('x', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(width: 12),
+            // Weight input
+            Container(
+              width: 80,
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColorPalette.grey400),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                      ),
+                      controller: TextEditingController(text: _defaultWeight.toString()),
+                      onChanged: (value) {
+                        final parsed = double.tryParse(value);
+                        if (parsed != null) {
+                          setState(() => _defaultWeight = parsed);
+                        }
+                      },
+                    ),
+                  ),
+                  Text('kg', style: TextStyle(fontSize: 12, color: AppColorPalette.grey)),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  String _formatOptionName(String option) {
-    return option
-        .split('_')
-        .map((word) => word[0].toUpperCase() + word.substring(1))
-        .join(' ');
+  Widget _buildSetsSelectionSection() {
+    final box = Hive.box<WorkoutSetCategoryModel>('workoutSetCategories');
+    final sets = box.values.where((s) => s.isActive).toList();
+    sets.sort((a, b) => a.position.compareTo(b.position));
+
+    return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.grid_view, size: 20, color: AppColorPalette.grey600),
+                SizedBox(width: 8),
+                Text(
+                  'Sets',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColorPalette.grey700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Tap on the sets to make it available on that set',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColorPalette.grey500,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: sets.asMap().entries.map((entry) {
+                final index = entry.key;
+                final set = entry.value;
+                final isSelected = _selectedSetIds.contains(set.id);
+
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedSetIds.remove(set.id);
+                      } else {
+                        _selectedSetIds.add(set.id);
+                      }
+                    });
+                  },
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColorPalette.grey800 : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected ? AppColorPalette.grey800 : AppColorPalette.grey400,
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${index + 1}',
+                        style: TextStyle(
+                          color: isSelected ? AppColorPalette.white : AppColorPalette.grey800,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            if (_selectedSetIds.isNotEmpty) ...[
+              SizedBox(height: 8),
+              Text(
+                'Toggled on set names: ${_getSelectedSetNames(sets)}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColorPalette.grey600,
+                ),
+              ),
+            ],
+          ],
+        );
+  }
+
+  String _getSelectedSetNames(List<WorkoutSetCategoryModel> sets) {
+    return _selectedSetIds
+        .map((id) {
+          final set = sets.firstWhere((s) => s.id == id);
+          return set.name;
+        })
+        .join(', ');
+  }
+
+  Widget _buildOptionalSectionToggle() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _showOptionalFields = !_showOptionalFields;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColorPalette.grey300),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Text(
+              'Optional',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColorPalette.grey700,
+              ),
+            ),
+            Spacer(),
+            Icon(
+              _showOptionalFields ? Icons.expand_less : Icons.expand_more,
+              color: AppColorPalette.grey600,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionalFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Image placeholder
+        Container(
+          height: 100,
+          decoration: BoxDecoration(
+            color: AppColorPalette.grey100,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColorPalette.grey300),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.image, size: 32, color: AppColorPalette.grey400),
+                SizedBox(height: 4),
+                Text(
+                  'Image',
+                  style: TextStyle(color: AppColorPalette.grey600, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: 16),
+
+        // Tags (Category, Muscle Group, and Tags combined)
+        TextFormField(
+          controller: _tagsController,
+          decoration: InputDecoration(
+            labelText: 'Category, Muscle Group, and Tags',
+            hintText: 'e.g., strength, chest, compound, beginner',
+            border: OutlineInputBorder(),
+            helperText: 'Separate with commas',
+          ),
+          onChanged: (value) {
+            _tags = value
+                .split(',')
+                .map((tag) => tag.trim())
+                .where((tag) => tag.isNotEmpty)
+                .toList();
+          },
+        ),
+        SizedBox(height: 16),
+
+        // Description / Instructions Tabs
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColorPalette.grey300),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              TabBar(
+                controller: _tabController,
+                labelColor: AppColorPalette.info,
+                unselectedLabelColor: AppColorPalette.grey,
+                indicatorColor: AppColorPalette.info,
+                tabs: [
+                  Tab(text: 'Description'),
+                  Tab(text: 'Instructions'),
+                ],
+              ),
+              Container(
+                height: 200,
+                padding: EdgeInsets.all(12),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    TextField(
+                      controller: _descriptionController,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Enter exercise description...',
+                      ),
+                      maxLines: null,
+                    ),
+                    TextField(
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Enter step-by-step instructions...',
+                      ),
+                      maxLines: null,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   void _saveExercise() async {
@@ -468,18 +464,17 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
 
     try {
       final exercisesBox = await Hive.openBox<ExerciseModel>('exercises');
+      final setsBox = await Hive.openBox<WorkoutSetCategoryModel>('workoutSetCategories');
 
       final exerciseData = ExerciseModel(
-        id:
-            widget.exercise?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
+        id: widget.exercise?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
-        category: _selectedCategory,
-        muscleGroup: _selectedMuscleGroup,
-        equipment: _selectedEquipment,
-        difficulty: _selectedDifficulty,
-        instructions: _instructions,
+        category: _tags.isNotEmpty ? _tags.first : 'other',
+        muscleGroup: _tags.length > 1 ? _tags[1] : 'other',
+        equipment: 'other',
+        difficulty: 'intermediate',
+        instructions: [],
         isCustom: true,
         createdAt: widget.exercise?.createdAt ?? DateTime.now(),
         modifiedAt: widget.exercise != null ? DateTime.now() : null,
@@ -487,6 +482,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
         isArchived: widget.exercise?.isArchived ?? false,
       );
 
+      String exerciseId;
       if (widget.exercise != null) {
         // Update existing exercise
         final index = exercisesBox.values.toList().indexWhere(
@@ -494,20 +490,32 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
         );
         if (index != -1) {
           await exercisesBox.putAt(index, exerciseData);
+          exerciseId = widget.exercise!.id;
+        } else {
+          exerciseId = exerciseData.id;
         }
       } else {
         // Add new exercise
         await exercisesBox.add(exerciseData);
+        exerciseId = exerciseData.id;
       }
 
-      Navigator.pop(context, true); // Return true to indicate success
+      // Add exercise to selected sets
+      for (var setId in _selectedSetIds) {
+        final set = setsBox.values.firstWhere((s) => s.id == setId);
+        if (!set.exerciseIds.contains(exerciseId)) {
+          set.addExercise(exerciseId);
+        }
+      }
+
+      Navigator.pop(context, true);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             widget.exercise != null
                 ? 'Exercise updated successfully'
-                : 'Exercise added successfully',
+                : 'Exercise created successfully',
           ),
         ),
       );
@@ -515,7 +523,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error saving exercise: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColorPalette.error,
         ),
       );
     } finally {

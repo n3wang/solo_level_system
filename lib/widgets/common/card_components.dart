@@ -43,6 +43,7 @@ class CardHeader extends StatelessWidget {
   final Color color;
   final IconData? icon;
   final String? iconName;
+  final Widget? customIcon; // For custom widgets like sprite icons
   final Widget? trailing;
 
   const CardHeader({
@@ -52,6 +53,7 @@ class CardHeader extends StatelessWidget {
     required this.color,
     this.icon,
     this.iconName,
+    this.customIcon,
     this.trailing,
   });
 
@@ -87,7 +89,20 @@ class CardHeader extends StatelessWidget {
   }
 
   Widget _buildIcon() {
-    if (icon != null) {
+    if (customIcon != null) {
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: customIcon!,
+        ),
+      );
+    } else if (icon != null) {
       return Container(
         width: 40,
         height: 40,

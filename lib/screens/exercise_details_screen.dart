@@ -5,6 +5,7 @@ import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/screens/active_workout_session_screen.dart';
+import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 
 class ExerciseDetailsScreen extends StatefulWidget {
   final ExerciseModel exercise;
@@ -103,6 +104,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
 
   Widget _buildExerciseHeader() {
     return Card(
+      color: Colors.white, // White background
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -117,10 +119,17 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                     color: _getMuscleGroupColor(widget.exercise.muscleGroup),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    _getMuscleGroupIcon(widget.exercise.muscleGroup),
-                    color: Colors.white,
-                    size: 40,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: WorkoutIconWidget(
+                      imageUrl: widget.exercise.imageUrl,
+                      size: 80,
+                      placeholder: Icon(
+                        _getMuscleGroupIcon(widget.exercise.muscleGroup),
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                    ),
                   ),
                 ),
                 SizedBox(width: 16),
@@ -145,31 +154,13 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                         ),
                       ),
                       SizedBox(height: 8),
-                      Row(
-                        children: [
-                          ...List.generate(
-                            5,
-                            (index) => Icon(
-                              index <
-                                      _getDifficultyLevel(
-                                        widget.exercise.difficulty,
-                                      )
-                                  ? Icons.star
-                                  : Icons.star_border,
-                              size: 16,
-                              color: Colors.orange,
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            widget.exercise.difficulty.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        widget.exercise.difficulty.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -542,18 +533,6 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
     }
   }
 
-  int _getDifficultyLevel(String difficulty) {
-    switch (difficulty.toLowerCase()) {
-      case 'beginner':
-        return 2;
-      case 'intermediate':
-        return 3;
-      case 'advanced':
-        return 5;
-      default:
-        return 1;
-    }
-  }
 
   double _calculateTotalVolume() {
     // Calculate total volume from workout history

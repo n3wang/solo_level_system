@@ -7,6 +7,7 @@ import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/screens/exercise_details_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
+import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 
 class WorkoutExercisesScreen extends StatefulWidget {
   final String? filterSetId;
@@ -343,7 +344,15 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
             title: exercise.name,
             description: exercise.description,
             color: _getCategoryColor(exercise.category),
-            icon: _getCategoryIcon(exercise.category),
+            customIcon: WorkoutIconWidget(
+              imageUrl: exercise.imageUrl,
+              size: 40,
+              placeholder: Icon(
+                _getCategoryIcon(exercise.category),
+                color: _getCategoryColor(exercise.category),
+                size: 20,
+              ),
+            ),
           ),
           SizedBox(height: 12),
           Row(

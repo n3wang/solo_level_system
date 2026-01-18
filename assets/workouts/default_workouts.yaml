@@ -1,0 +1,600 @@
+# Default Workouts Configuration
+# Contains all default exercises and routines with their metadata
+
+exercises:
+  - name: "back squat"
+    muscle_group: "legs"
+    equipment: "barbell"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 0
+    description: "Compound lower body exercise targeting quadriceps, glutes, and core"
+    instructions:
+      - "Stand with feet shoulder-width apart"
+      - "Place barbell on upper back"
+      - "Lower down by bending knees and hips"
+      - "Keep chest up and core engaged"
+      - "Drive through heels to return to standing"
+    default_sets: [1, 2, 3]
+    default_reps: 8
+    tags: ["gym"]
+    
+  - name: "front squat"
+    muscle_group: "legs"
+    equipment: "barbell"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 1
+    description: "Quadriceps-focused squat variation with front-loaded weight"
+    instructions:
+      - "Stand with feet shoulder-width apart"
+      - "Hold barbell in front of shoulders"
+      - "Lower down by bending knees"
+      - "Keep torso upright"
+      - "Drive through heels to stand"
+    default_sets: [1, 2, 3]
+    default_reps: 8
+    tags: ["gym"]
+    
+  - name: "Deadlift conventional"
+    muscle_group: "back"
+    equipment: "barbell"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 2
+    description: "Full-body compound movement targeting posterior chain"
+    instructions:
+      - "Stand with feet hip-width apart"
+      - "Bend down and grip barbell"
+      - "Keep back straight and core tight"
+      - "Drive through heels to lift"
+      - "Stand tall at the top"
+    default_sets: [1, 2, 3]
+    default_reps: 5
+    tags: ["gym"]
+    
+  - name: "Deadlift Romanian"
+    muscle_group: "back"
+    equipment: "barbell"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 3
+    description: "Hamstring and glute focused deadlift variation"
+    instructions:
+      - "Hold barbell at hip level"
+      - "Hinge at hips, keeping legs straight"
+      - "Lower barbell along legs"
+      - "Feel stretch in hamstrings"
+      - "Return to standing position"
+    default_sets: [1, 2, 3]
+    default_reps: 8
+    tags: ["gym"]
+    
+  - name: "Bench press"
+    muscle_group: "chest"
+    equipment: "barbell"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 4
+    description: "Upper body compound exercise primarily targeting chest"
+    instructions:
+      - "Lie on bench with feet flat"
+      - "Grip barbell slightly wider than shoulders"
+      - "Lower to chest with control"
+      - "Press up explosively"
+      - "Keep core engaged throughout"
+    default_sets: [1, 2, 3]
+    default_reps: 8
+    tags: ["gym"]
+    
+  - name: "Overhead press"
+    muscle_group: "shoulders"
+    equipment: "barbell"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 5
+    description: "Shoulder and tricep focused pressing movement"
+    instructions:
+      - "Stand with feet shoulder-width apart"
+      - "Hold barbell at shoulder level"
+      - "Press overhead until arms are straight"
+      - "Lower with control"
+      - "Keep core tight"
+    default_sets: [1, 2, 3]
+    default_reps: 8
+    tags: ["gym"]
+    
+  - name: "Pull-ups"
+    muscle_group: "back"
+    equipment: "bodyweight"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 6
+    description: "Upper body pulling exercise targeting lats and biceps"
+    instructions:
+      - "Hang from pull-up bar"
+      - "Pull body up until chin over bar"
+      - "Lower with control"
+      - "Keep core engaged"
+      - "Full range of motion"
+    default_sets: [1, 2, 3]
+    default_reps: 8
+    tags: ["gym"]
+    
+  - name: "Chin-ups"
+    muscle_group: "back"
+    equipment: "bodyweight"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 7
+    description: "Pull-up variation with underhand grip emphasizing biceps"
+    instructions:
+      - "Hang from bar with underhand grip"
+      - "Pull up until chin over bar"
+      - "Lower with control"
+      - "Focus on bicep contraction"
+    default_sets: [1, 2, 3]
+    default_reps: 8
+    tags: ["gym"]
+    
+  - name: "Barbell row"
+    muscle_group: "back"
+    equipment: "barbell"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 8
+    description: "Back and bicep focused rowing movement"
+    instructions:
+      - "Bend over with slight knee bend"
+      - "Pull barbell to lower chest"
+      - "Squeeze shoulder blades together"
+      - "Lower with control"
+    default_sets: [1, 2, 3]
+    default_reps: 8
+    tags: ["gym"]
+    
+  - name: "Lat pulldown"
+    muscle_group: "back"
+    equipment: "machine"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 9
+    description: "Machine-based lat and upper back exercise"
+    instructions:
+      - "Sit at lat pulldown machine"
+      - "Grip bar wider than shoulders"
+      - "Pull bar to upper chest"
+      - "Control the weight up"
+    default_sets: [1, 2, 3]
+    default_reps: 12
+    tags: ["gym"]
+    
+  - name: "Leg press"
+    muscle_group: "legs"
+    equipment: "machine"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 10
+    description: "Machine-based leg exercise targeting quadriceps and glutes"
+    instructions:
+      - "Sit in leg press machine"
+      - "Place feet shoulder-width on platform"
+      - "Lower weight by bending knees"
+      - "Press through heels to extend"
+    default_sets: [1, 2, 3]
+    default_reps: 12
+    tags: ["gym"]
+    
+  - name: "Dumbbell bench press"
+    muscle_group: "chest"
+    equipment: "dumbbells"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 11
+    description: "Chest exercise with dumbbells allowing greater range of motion"
+    instructions:
+      - "Lie on bench with dumbbells"
+      - "Press dumbbells up and together"
+      - "Lower with control"
+      - "Feel stretch in chest"
+    default_sets: [1, 2, 3]
+    default_reps: 12
+    tags: ["gym"]
+    
+  - name: "Dumbbell shoulder press"
+    muscle_group: "shoulders"
+    equipment: "dumbbells"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 12
+    description: "Shoulder pressing movement with dumbbells"
+    instructions:
+      - "Sit or stand with dumbbells at shoulders"
+      - "Press overhead until arms straight"
+      - "Lower with control"
+      - "Keep core engaged"
+    default_sets: [1, 2, 3]
+    default_reps: 12
+    tags: ["gym"]
+    
+  - name: "Bicep curls"
+    muscle_group: "arms"
+    equipment: "dumbbells"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 13
+    description: "Isolation exercise targeting biceps"
+    instructions:
+      - "Stand with dumbbells at sides"
+      - "Curl weights up to shoulders"
+      - "Squeeze biceps at top"
+      - "Lower with control"
+    default_sets: [1, 2, 3]
+    default_reps: 12
+    tags: ["gym"]
+    
+  - name: "Tricep pushdowns"
+    muscle_group: "arms"
+    equipment: "cables"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 14
+    description: "Isolation exercise targeting triceps"
+    instructions:
+      - "Stand at cable machine"
+      - "Grip bar with palms down"
+      - "Push down until arms straight"
+      - "Control the weight up"
+    default_sets: [1, 2, 3]
+    default_reps: 12
+    tags: ["gym"]
+    
+  - name: "Chest fly"
+    muscle_group: "chest"
+    equipment: "dumbbells"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 15
+    description: "Chest isolation exercise emphasizing pectoral stretch"
+    instructions:
+      - "Lie on bench with dumbbells"
+      - "Start with arms extended"
+      - "Lower dumbbells in arc motion"
+      - "Feel stretch in chest"
+      - "Bring back together"
+    default_sets: [1, 2, 3]
+    default_reps: 12
+    tags: ["gym"]
+    
+  - name: "Leg curl"
+    muscle_group: "legs"
+    equipment: "machine"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 16
+    description: "Hamstring isolation exercise"
+    instructions:
+      - "Lie face down on leg curl machine"
+      - "Curl heels toward glutes"
+      - "Squeeze hamstrings"
+      - "Lower with control"
+    default_sets: [1, 2, 3]
+    default_reps: 12
+    tags: ["gym"]
+    
+  - name: "Leg extension"
+    muscle_group: "legs"
+    equipment: "machine"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 17
+    description: "Quadriceps isolation exercise"
+    instructions:
+      - "Sit in leg extension machine"
+      - "Extend legs until straight"
+      - "Squeeze quadriceps"
+      - "Lower with control"
+    default_sets: [1, 2, 3]
+    default_reps: 12
+    tags: ["gym"]
+    
+  - name: "Plank"
+    muscle_group: "core"
+    equipment: "bodyweight"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 18
+    description: "Core stability exercise targeting entire abdominal region"
+    instructions:
+      - "Start in push-up position"
+      - "Hold body straight"
+      - "Engage core muscles"
+      - "Breathe normally"
+      - "Hold for time"
+    default_sets: [4, 5]
+    default_reps: 0  # Duration-based
+    default_duration: 60  # seconds
+    tags: ["home"]
+    
+  - name: "Hanging leg raises"
+    muscle_group: "core"
+    equipment: "bodyweight"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 19
+    description: "Advanced core exercise targeting lower abs"
+    instructions:
+      - "Hang from pull-up bar"
+      - "Raise legs up"
+      - "Keep core engaged"
+      - "Lower with control"
+    default_sets: [1, 2, 3]
+    default_reps: 10
+    tags: ["gym"]
+    
+  - name: "Treadmill running or walking"
+    muscle_group: "full_body"
+    equipment: "machine"
+    category: "cardio"
+    difficulty: "beginner"
+    sprite_index: 20
+    description: "Cardiovascular exercise for endurance"
+    instructions:
+      - "Start at comfortable pace"
+      - "Maintain steady rhythm"
+      - "Adjust speed as needed"
+      - "Focus on breathing"
+    default_sets: [1, 2, 3]
+    default_reps: 0  # Duration-based
+    default_duration: 600  # 10 minutes
+    tags: ["gym"]
+    
+  - name: "Stationary bike / spin bike"
+    muscle_group: "full_body"
+    equipment: "machine"
+    category: "cardio"
+    difficulty: "beginner"
+    sprite_index: 21
+    description: "Low-impact cardiovascular exercise"
+    instructions:
+      - "Adjust seat height"
+      - "Start pedaling"
+      - "Maintain steady pace"
+      - "Adjust resistance as needed"
+    default_sets: [1, 2, 3]
+    default_reps: 0  # Duration-based
+    default_duration: 600  # 10 minutes
+    tags: ["gym"]
+    
+  - name: "Bodyweight Squats"
+    muscle_group: "legs"
+    equipment: "bodyweight"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 22
+    description: "Bodyweight leg exercise targeting quadriceps and glutes"
+    instructions:
+      - "Stand with feet shoulder-width apart"
+      - "Lower down by bending knees"
+      - "Keep chest up"
+      - "Drive through heels to stand"
+    default_sets: [4, 5]
+    default_reps: 15
+    tags: ["home"]
+    
+  - name: "Lunges"
+    muscle_group: "legs"
+    equipment: "bodyweight"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 23
+    description: "Unilateral leg exercise targeting quadriceps, glutes, and core"
+    instructions:
+      - "Step forward into lunge"
+      - "Lower back knee toward ground"
+      - "Keep front knee over ankle"
+      - "Push back to start"
+      - "Alternate legs"
+    default_sets: [4, 5]
+    default_reps: 12
+    tags: ["home"]
+    
+  - name: "Wall Sit"
+    muscle_group: "legs"
+    equipment: "bodyweight"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 24
+    description: "Isometric leg exercise targeting quadriceps"
+    instructions:
+      - "Lean against wall"
+      - "Slide down until knees at 90 degrees"
+      - "Hold position"
+      - "Keep back flat against wall"
+    default_sets: [4, 5]
+    default_reps: 0  # Duration-based
+    default_duration: 45  # seconds
+    tags: ["home"]
+    
+  - name: "Glute Bridges"
+    muscle_group: "glutes"
+    equipment: "bodyweight"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 25
+    description: "Glute and hamstring focused exercise"
+    instructions:
+      - "Lie on back with knees bent"
+      - "Lift hips up"
+      - "Squeeze glutes at top"
+      - "Lower with control"
+    default_sets: [4, 5]
+    default_reps: 15
+    tags: ["home"]
+    
+  - name: "Push-ups"
+    muscle_group: "chest"
+    equipment: "bodyweight"
+    category: "strength"
+    difficulty: "beginner"
+    sprite_index: 26
+    description: "Upper body pushing exercise targeting chest, shoulders, and triceps"
+    instructions:
+      - "Start in plank position"
+      - "Lower body until chest near ground"
+      - "Push up explosively"
+      - "Keep body straight"
+    default_sets: [4, 5]
+    default_reps: 12
+    tags: ["home"]
+    
+  - name: "Triceps Dips"
+    muscle_group: "arms"
+    equipment: "bodyweight"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 27
+    description: "Tricep and shoulder focused bodyweight exercise"
+    instructions:
+      - "Sit on edge of bench"
+      - "Place hands behind you"
+      - "Lower body by bending arms"
+      - "Push back up"
+    default_sets: [4, 5]
+    default_reps: 10
+    tags: ["home"]
+    
+  - name: "Side Plank"
+    muscle_group: "core"
+    equipment: "bodyweight"
+    category: "strength"
+    difficulty: "intermediate"
+    sprite_index: 28
+    description: "Core exercise targeting obliques and lateral stability"
+    instructions:
+      - "Lie on side"
+      - "Prop up on elbow"
+      - "Lift hips off ground"
+      - "Hold body straight"
+      - "Hold for time"
+    default_sets: [4, 5]
+    default_reps: 0  # Duration-based
+    default_duration: 45  # seconds
+    tags: ["home"]
+    
+  - name: "Jumping Jacks"
+    muscle_group: "full_body"
+    equipment: "bodyweight"
+    category: "cardio"
+    difficulty: "beginner"
+    sprite_index: 29
+    description: "Full-body cardiovascular exercise"
+    instructions:
+      - "Stand with feet together"
+      - "Jump and spread legs"
+      - "Raise arms overhead"
+      - "Return to start"
+      - "Repeat rhythmically"
+    default_sets: [4, 5]
+    default_reps: 20
+    tags: ["home"]
+    
+  - name: "Burpees"
+    muscle_group: "full_body"
+    equipment: "bodyweight"
+    category: "cardio"
+    difficulty: "advanced"
+    sprite_index: 30
+    description: "High-intensity full-body exercise combining squat, push-up, and jump"
+    instructions:
+      - "Start standing"
+      - "Squat down and place hands on ground"
+      - "Jump feet back to plank"
+      - "Do a push-up"
+      - "Jump feet forward"
+      - "Jump up with arms overhead"
+    default_sets: [4, 5]
+    default_reps: 10
+    tags: ["home"]
+
+routines:
+  - name: "Chest Day (Gym)"
+    muscle_group: "chest"
+    exercise_names:
+      - "Bench press"
+      - "Dumbbell bench press"
+      - "Chest fly"
+    tags: ["gym"]
+    set_numbers: [1, 2, 3]
+    
+  - name: "Back Day (Gym)"
+    muscle_group: "back"
+    exercise_names:
+      - "Pull-ups"
+      - "Barbell row"
+      - "Lat pulldown"
+    tags: ["gym"]
+    set_numbers: [1, 2, 3]
+    
+  - name: "Leg Day (Gym)"
+    muscle_group: "legs"
+    exercise_names:
+      - "back squat"
+      - "Leg press"
+      - "Leg extension"
+    tags: ["gym"]
+    set_numbers: [1, 2, 3]
+    
+  - name: "Arms Day (Gym)"
+    muscle_group: "arms"
+    exercise_names:
+      - "Bicep curls"
+      - "Tricep pushdowns"
+      - "Chin-ups"
+    tags: ["gym"]
+    set_numbers: [1, 2, 3]
+    
+  - name: "Shoulders Day (Gym)"
+    muscle_group: "shoulders"
+    exercise_names:
+      - "Overhead press"
+      - "Dumbbell shoulder press"
+      - "Pull-ups"
+    tags: ["gym"]
+    set_numbers: [1, 2, 3]
+    
+  - name: "Core Day (Gym)"
+    muscle_group: "core"
+    exercise_names:
+      - "Hanging leg raises"
+      - "Plank"
+      - "Side Plank"
+    tags: ["gym"]
+    set_numbers: [1, 2, 3]
+    
+  - name: "Full Body Home"
+    muscle_group: "full_body"
+    exercise_names:
+      - "Push-ups"
+      - "Burpees"
+      - "Jumping Jacks"
+    tags: ["home"]
+    set_numbers: [4, 5]
+    
+  - name: "Legs Home"
+    muscle_group: "legs"
+    exercise_names:
+      - "Bodyweight Squats"
+      - "Lunges"
+      - "Wall Sit"
+    tags: ["home"]
+    set_numbers: [4, 5]
+    
+  - name: "Core Home"
+    muscle_group: "core"
+    exercise_names:
+      - "Plank"
+      - "Side Plank"
+      - "Glute Bridges"
+    tags: ["home"]
+    set_numbers: [4, 5]
