@@ -6,6 +6,8 @@ import 'package:solo_level_system/models/config_model.dart';
 import 'package:solo_level_system/models/audio_settings_model.dart';
 import 'package:solo_level_system/utils/notification_service.dart';
 import 'package:solo_level_system/utils/timer_controller.dart';
+import 'package:solo_level_system/widgets/palette_selector_widget.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -44,6 +46,19 @@ class _SettingsScreenState extends State<SettingsScreen>
       if (userBox.get('settings') == null) {
         await userBox.put('settings', userSettings);
       }
+      
+      // Migrate old palette names
+      if (userSettings.colorPalette == 'original' || userSettings.colorPalette == 'default') {
+        userSettings.colorPalette = 'creative';
+        await _saveUserSettings();
+      } else if (!['grayscale', 'creative', 'pastel'].contains(userSettings.colorPalette)) {
+        // If palette doesn't exist, default to creative
+        userSettings.colorPalette = 'creative';
+        await _saveUserSettings();
+      }
+      
+      // Apply saved palette
+      AppColorPalette.setActivePalette(userSettings.colorPalette);
 
       // Load Config Settings
       Box<ConfigModel> configBox;
@@ -203,6 +218,31 @@ class _SettingsScreenState extends State<SettingsScreen>
                 userSettings.primaryColor = value!;
               });
               await _saveUserSettings();
+            },
+          ),
+        ),
+        SizedBox(height: 16),
+        Divider(),
+        SizedBox(height: 8),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: PaletteSelectorWidget(
+            selectedPalette: userSettings.colorPalette,
+            onPaletteSelected: (paletteName) async {
+              setState(() {
+                userSettings.colorPalette = paletteName;
+              });
+              AppColorPalette.setActivePalette(paletteName);
+              await _saveUserSettings();
+              // Show feedback
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Color palette changed to ${PaletteSelectorWidget.paletteNames[paletteName]}'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              }
             },
           ),
         ),

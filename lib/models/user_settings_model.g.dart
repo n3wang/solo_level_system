@@ -19,6 +19,7 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
     return UserSettingsModel(
       theme: fields[0] as String,
       primaryColor: fields[1] as String,
+      colorPalette: fields[21] as String,
       defaultWorkMinutes: fields[2] as int,
       defaultBreakMinutes: fields[3] as int,
       autoStartBreaks: fields[4] as bool,
@@ -44,11 +45,13 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
   @override
   void write(BinaryWriter writer, UserSettingsModel obj) {
     writer
-      ..writeByte(21)
+      ..writeByte(22)
       ..writeByte(0)
       ..write(obj.theme)
       ..writeByte(1)
       ..write(obj.primaryColor)
+      ..writeByte(21)
+      ..write(obj.colorPalette)
       ..writeByte(2)
       ..write(obj.defaultWorkMinutes)
       ..writeByte(3)

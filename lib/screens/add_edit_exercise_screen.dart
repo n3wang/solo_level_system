@@ -31,6 +31,9 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
   List<String> _tags = [];
   bool _isLoading = false;
   bool _showOptionalFields = false;
+  String _measurementUnit = 'kg'; // 'kg', 'lbs', 'seconds', 'none'
+
+  final List<String> _measurementUnits = ['kg', 'lbs', 'seconds', 'none'];
 
   @override
   void initState() {
@@ -47,6 +50,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
     _descriptionController.text = exercise.description;
     _tags = List.from(exercise.tags);
     _tagsController.text = _tags.join(', ');
+    _measurementUnit = exercise.measurementUnit;
   }
 
   @override
@@ -114,7 +118,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
                     ),
                     SizedBox(height: 16),
 
-                    // Default Workout Sets Section
+                    // Default Workout Sets Section (includes measurement unit selector)
                     _buildDefaultWorkoutSection(),
                     SizedBox(height: 16),
 
@@ -136,6 +140,38 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
     );
   }
 
+  void _cycleMeasurementUnit() {
+    setState(() {
+      final currentIndex = _measurementUnits.indexOf(_measurementUnit);
+      final nextIndex = (currentIndex + 1) % _measurementUnits.length;
+      _measurementUnit = _measurementUnits[nextIndex];
+
+      // Reset default weight/duration based on unit
+      if (_measurementUnit == 'seconds') {
+        _defaultWeight = 30.0; // Default 30 seconds
+      } else if (_measurementUnit == 'none') {
+        _defaultWeight = 0.0; // No weight for bodyweight
+      } else {
+        _defaultWeight = 10.0; // Default 10kg or 10lbs
+      }
+    });
+  }
+
+  String _getMeasurementUnitDisplayText() {
+    switch (_measurementUnit) {
+      case 'kg':
+        return 'kg';
+      case 'lbs':
+        return 'lbs';
+      case 'seconds':
+        return 'time';
+      case 'none':
+        return 'bodyweight';
+      default:
+        return _measurementUnit;
+    }
+  }
+
   Widget _buildDefaultWorkoutSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,7 +181,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
             Icon(Icons.bookmark, size: 20, color: AppColorPalette.grey600),
             SizedBox(width: 8),
             Text(
-              'Default workout sets and weight',
+              'Default workout',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColorPalette.grey700,
@@ -157,80 +193,137 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
         SizedBox(height: 12),
         Row(
           children: [
-            // Sets input
-            Container(
-              width: 60,
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColorPalette.success.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColorPalette.success),
-              ),
-              child: TextField(
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                  border: InputBorder.none,
+            // Measurement unit selector (tap to change)
+            GestureDetector(
+              onTap: _cycleMeasurementUnit,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColorPalette.info.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColorPalette.info, width: 1.5),
                 ),
-                controller: TextEditingController(
-                  text: _defaultSets.toString(),
+                child: Text(
+                  _getMeasurementUnitDisplayText(),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColorPalette.info,
+                  ),
                 ),
-                onChanged: (value) {
-                  final parsed = int.tryParse(value);
-                  if (parsed != null) {
-                    setState(() => _defaultSets = parsed);
-                  }
-                },
               ),
             ),
             SizedBox(width: 12),
-            // x separator
-            Text(
-              'x',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(width: 12),
-            // Weight input
-            Container(
-              width: 80,
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColorPalette.grey400),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      keyboardType: TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                        border: InputBorder.none,
-                      ),
-                      controller: TextEditingController(
-                        text: _defaultWeight.toString(),
-                      ),
-                      onChanged: (value) {
-                        final parsed = double.tryParse(value);
-                        if (parsed != null) {
-                          setState(() => _defaultWeight = parsed);
-                        }
-                      },
-                    ),
+            // Sets input (only show if not bodyweight-only)
+            if (_measurementUnit != 'none') ...[
+              Container(
+                width: 50,
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColorPalette.success.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColorPalette.success),
+                ),
+                child: TextField(
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
                   ),
-                  Text(
-                    'kg',
-                    style: TextStyle(fontSize: 12, color: AppColorPalette.grey),
+                  controller: TextEditingController(
+                    text: _defaultSets.toString(),
                   ),
-                ],
+                  onChanged: (value) {
+                    final parsed = int.tryParse(value);
+                    if (parsed != null) {
+                      setState(() => _defaultSets = parsed);
+                    }
+                  },
+                ),
               ),
-            ),
+              SizedBox(width: 8),
+              // x separator
+              Text(
+                'x',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(width: 8),
+              // Weight/Duration input
+              Container(
+                width: 60,
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColorPalette.grey400),
+                ),
+                child: TextField(
+                  keyboardType: TextInputType.numberWithOptions(
+                    decimal: _measurementUnit != 'seconds',
+                  ),
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
+                  ),
+                  controller: TextEditingController(
+                    text: _measurementUnit == 'seconds'
+                        ? _defaultWeight.toInt().toString()
+                        : _defaultWeight.toString(),
+                  ),
+                  onChanged: (value) {
+                    final parsed = _measurementUnit == 'seconds'
+                        ? int.tryParse(value)?.toDouble()
+                        : double.tryParse(value);
+                    if (parsed != null) {
+                      setState(() => _defaultWeight = parsed);
+                    }
+                  },
+                ),
+              ),
+              SizedBox(width: 4),
+              // Unit label
+              Text(
+                _measurementUnit == 'seconds' ? 's' : _measurementUnit,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColorPalette.grey600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ] else ...[
+              // For bodyweight, just show sets
+              Container(
+                width: 50,
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColorPalette.success.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColorPalette.success),
+                ),
+                child: TextField(
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
+                    hintText: 'Sets',
+                  ),
+                  controller: TextEditingController(
+                    text: _defaultSets.toString(),
+                  ),
+                  onChanged: (value) {
+                    final parsed = int.tryParse(value);
+                    if (parsed != null) {
+                      setState(() => _defaultSets = parsed);
+                    }
+                  },
+                ),
+              ),
+            ],
           ],
         ),
       ],
@@ -258,16 +351,6 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
               ),
             ),
             SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Tap on the sets to make it available on that set',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColorPalette.grey500,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
           ],
         ),
         SizedBox(height: 12),
@@ -502,6 +585,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
         modifiedAt: widget.exercise != null ? DateTime.now() : null,
         tags: _tags,
         isArchived: widget.exercise?.isArchived ?? false,
+        measurementUnit: _measurementUnit,
       );
 
       String exerciseId;

@@ -133,6 +133,16 @@
               "id": "9fc82ea8-c6fe-4cf2-aef8-de039875e8e5",
               "title": "Workout screen list refinement",
               "checked": true
+            },
+            {
+              "id": "5611ab2a-2f7e-4e68-8e7c-f6b9d3570721",
+              "title": "have different measure types",
+              "checked": true
+            },
+            {
+              "id": "acf10b78-6e1d-4b61-a43d-9e95cf813ccc",
+              "title": "change the default color palette into different grey colors, store the current palette as another palette",
+              "checked": false
             }
           ],
           "comments": [

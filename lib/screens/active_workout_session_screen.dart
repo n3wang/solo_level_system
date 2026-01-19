@@ -640,7 +640,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         Padding(
           padding: EdgeInsets.all(4),
           child: TextFormField(
-            initialValue: set.duration?.toString() ?? (set.measurementType == 'seconds' ? '30' : '0'),
+            initialValue:
+                set.duration?.toString() ??
+                (set.measurementType == 'seconds' ? '30' : '0'),
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             decoration: InputDecoration(
@@ -669,7 +671,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         Padding(
           padding: EdgeInsets.all(4),
           child: TextFormField(
-            initialValue: set.value?.toString() ?? (set.measurementType == 'none' ? '' : '0'),
+            initialValue:
+                set.value?.toString() ??
+                (set.measurementType == 'none' ? '' : '0'),
             keyboardType: TextInputType.numberWithOptions(decimal: true),
             textAlign: TextAlign.center,
             decoration: InputDecoration(

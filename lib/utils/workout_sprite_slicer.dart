@@ -4,38 +4,64 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 
-/// Utility class for slicing workout icon sprite sheets
-/// The sprite sheet is 128x128px icons arranged horizontally
+/// Utility class for loading pre-sliced workout icon images
+/// Sprites are pre-sliced at build time using scripts/slice_workout_sprites.dart
+/// This prevents runtime slicing issues on mobile devices
 class WorkoutSpriteSlicer {
   static const int spriteSize = 128;
   static const String spriteSheetPath = 'assets/icon/workout_icons_128px.png';
+  static const String slicedSpritePath = 'assets/icon/workout_icons_sliced/workout_icon_';
 
   // Cache for loaded sprites to prevent reloading
   static final Map<int, ui.Image> _spriteCache = {};
-  static ui.Image? _spriteSheetCache;
 
-  /// Get a specific sprite from the sprite sheet by index
+  /// Get a specific sprite from pre-sliced images by index
   /// Index 0 = first icon, Index 1 = second icon, etc.
   /// Uses caching to prevent reloading
+  /// Falls back to runtime slicing if pre-sliced image not found
   static Future<ui.Image?> getSpriteAtIndex(int index) async {
     // Return cached sprite if available
     if (_spriteCache.containsKey(index)) {
       return _spriteCache[index];
     }
+    
     try {
-      // Load or use cached sprite sheet
-      ui.Image fullImage;
-      if (_spriteSheetCache != null) {
-        fullImage = _spriteSheetCache!;
-      } else {
-        final ByteData data = await rootBundle.load(spriteSheetPath);
+      // Try to load pre-sliced image first
+      final String slicedPath = '$slicedSpritePath$index.png';
+      
+      try {
+        final ByteData data = await rootBundle.load(slicedPath);
         final ui.Codec codec = await ui.instantiateImageCodec(
           data.buffer.asUint8List(),
         );
         final ui.FrameInfo frameInfo = await codec.getNextFrame();
-        fullImage = frameInfo.image;
-        _spriteSheetCache = fullImage; // Cache the full sprite sheet
+        final ui.Image spriteImage = frameInfo.image;
+        
+        // Cache the sprite for future use
+        _spriteCache[index] = spriteImage;
+        return spriteImage;
+      } catch (e) {
+        // Pre-sliced image not found, fall back to runtime slicing
+        print('Pre-sliced image not found for index $index, falling back to runtime slicing');
+        return await _getSpriteAtIndexRuntime(index);
       }
+    } catch (e) {
+      print('Error loading sprite at index $index: $e');
+      return null;
+    }
+  }
+
+  /// Fallback: Get sprite by runtime slicing (for backward compatibility)
+  /// This should only be used if pre-sliced images are not available
+  static Future<ui.Image?> _getSpriteAtIndexRuntime(int index) async {
+    try {
+      // Load sprite sheet
+      final ByteData data = await rootBundle.load(spriteSheetPath);
+      final ui.Codec codec = await ui.instantiateImageCodec(
+        data.buffer.asUint8List(),
+      );
+      final ui.FrameInfo frameInfo = await codec.getNextFrame();
+      final ui.Image fullImage = frameInfo.image;
 
       // Calculate the x position of the sprite
       final int x = index * spriteSize;
@@ -67,7 +93,7 @@ class WorkoutSpriteSlicer {
 
       return spriteImage;
     } catch (e) {
-      print('Error loading sprite at index $index: $e');
+      print('Error runtime slicing sprite at index $index: $e');
       return null;
     }
   }
@@ -138,9 +164,28 @@ class WorkoutSpriteSlicer {
     }
   }
 
-  /// Get the number of sprites in the sheet (based on image width)
+  /// Get the number of sprites available
+  /// Tries to count pre-sliced images first, falls back to sprite sheet width
   static Future<int> getSpriteCount() async {
     try {
+      // Try to count pre-sliced images
+      int count = 0;
+      while (true) {
+        try {
+          final String path = '$slicedSpritePath$count.png';
+          await rootBundle.load(path);
+          count++;
+        } catch (e) {
+          // No more pre-sliced images found
+          break;
+        }
+      }
+      
+      if (count > 0) {
+        return count;
+      }
+      
+      // Fallback: count from sprite sheet width
       final ui.Image? image = await getSpriteSheet();
       if (image == null) return 0;
       return (image.width / spriteSize).floor();

@@ -273,9 +273,23 @@ class _MyAppState extends State<MyApp> {
     try {
       final box = Hive.box<UserSettingsModel>('userSettings');
       userSettings = box.get('settings') ?? UserSettingsModel();
+      
+      // Migrate old palette names
+      if (userSettings.colorPalette == 'original' || userSettings.colorPalette == 'default') {
+        userSettings.colorPalette = 'creative';
+        await box.put('settings', userSettings);
+      } else if (!['grayscale', 'creative', 'pastel'].contains(userSettings.colorPalette)) {
+        // If palette doesn't exist, default to creative
+        userSettings.colorPalette = 'creative';
+        await box.put('settings', userSettings);
+      }
+      
+      // Apply saved palette
+      AppColorPalette.setActivePalette(userSettings.colorPalette);
     } catch (e) {
       print('Error loading user settings in main: $e');
       userSettings = UserSettingsModel();
+      AppColorPalette.setActivePalette('default');
     } finally {
       if (mounted) {
         setState(() {

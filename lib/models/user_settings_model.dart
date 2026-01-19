@@ -11,6 +11,9 @@ class UserSettingsModel extends HiveObject {
   @HiveField(1)
   String primaryColor; // 'red', 'blue', 'green', etc.
 
+  @HiveField(21)
+  String colorPalette; // 'default', 'original', 'warm', 'cool', 'earth', 'pastel', 'vibrant'
+
   // Session Settings
   @HiveField(2)
   int defaultWorkMinutes;
@@ -77,6 +80,7 @@ class UserSettingsModel extends HiveObject {
   UserSettingsModel({
     this.theme = 'system',
     this.primaryColor = 'green',
+    this.colorPalette = 'creative',
     this.defaultWorkMinutes = 25,
     this.defaultBreakMinutes = 5,
     this.autoStartBreaks = false,

@@ -214,29 +214,19 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(Icons.emoji_events, color: Colors.orange),
-                SizedBox(width: 8),
-                Text(
-                  'Personal Records',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
+            SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: _buildRecordCard(
                     'Best Weight',
                     widget.exercise.personalRecord?.toString() ?? '-',
-                    'kg',
+                    widget.exercise.personalRecordUnit ?? 'kg',
                     Icons.fitness_center,
                     Colors.red,
                   ),
                 ),
-                SizedBox(width: 16),
+                SizedBox(width: 8),
                 Expanded(
                   child: _buildRecordCard(
                     'Times Used',
@@ -246,11 +236,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                     Colors.blue,
                   ),
                 ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Row(
-              children: [
+                SizedBox(width: 8),
                 Expanded(
                   child: _buildRecordCard(
                     'Last Used',
@@ -260,16 +246,6 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                     '',
                     Icons.access_time,
                     Colors.green,
-                  ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: _buildRecordCard(
-                    'Total Volume',
-                    _calculateTotalVolume().toString(),
-                    'kg',
-                    Icons.trending_up,
-                    Colors.purple,
                   ),
                 ),
               ],
@@ -288,31 +264,43 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
     Color color,
   ) {
     return Container(
-      padding: EdgeInsets.all(12),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 24),
-          SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          if (unit.isNotEmpty)
-            Text(unit, style: TextStyle(fontSize: 12, color: color)),
+          Icon(icon, color: color, size: 18),
           SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              if (unit.isNotEmpty) ...[
+                SizedBox(width: 2),
+                Text(unit, style: TextStyle(fontSize: 10, color: color)),
+              ],
+            ],
+          ),
+          SizedBox(height: 2),
           Text(
             title,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -531,13 +519,6 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
       default:
         return Icons.fitness_center;
     }
-  }
-
-
-  double _calculateTotalVolume() {
-    // Calculate total volume from workout history
-    // This would need to be calculated from the workout sets data
-    return 0.0; // Placeholder
   }
 
   String _formatDate(DateTime date) {
