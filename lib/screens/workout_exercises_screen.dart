@@ -1,6 +1,5 @@
 // lib/screens/workout_exercises_screen.dart
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
@@ -103,9 +102,12 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: _getSetColor().withValues(alpha:0.1),
+        color: _getSetColor().withValues(alpha: 0.1),
         border: Border(
-          bottom: BorderSide(color: _getSetColor().withValues(alpha:0.3), width: 2),
+          bottom: BorderSide(
+            color: _getSetColor().withValues(alpha: 0.3),
+            width: 2,
+          ),
         ),
       ),
       child: Row(
@@ -231,7 +233,9 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(bottom: BorderSide(color: Colors.grey.withValues(alpha:0.2))),
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+        ),
       ),
       child: Column(
         children: [

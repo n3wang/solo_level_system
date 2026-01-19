@@ -123,9 +123,19 @@
               "id": "81df03b0-0404-4e0f-b312-350ded900f9c",
               "title": "Have a previous days workout screen",
               "checked": false
+            },
+            {
+              "id": "4ec828cd-1221-40f2-8153-f44acc03ef9a",
+              "title": "Save the completed workout onfiguratins",
+              "checked": true
             }
           ],
-          "comments": []
+          "comments": [
+            {
+              "id": "d0efe1cc-9291-4a75-9bc0-2c78f345cc01",
+              "comment": "Redesigning motivation screen. Think about which are the options ansd usage as well as online insspirations as wella s in wchih is the hok that should be used. "
+            }
+          ]
         },
         {
           "id": "af9a53fb-1333-4af0-bdda-5867061a3208",

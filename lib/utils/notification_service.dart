@@ -18,10 +18,6 @@ class NotificationService {
   int _remainingSeconds = 0;
   bool _isBreak = false;
   bool _isRunning = false;
-  VoidCallback? _onPlay;
-  VoidCallback? _onPause;
-  VoidCallback? _onReset;
-  VoidCallback? _onMute;
 
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -105,10 +101,6 @@ class NotificationService {
     _remainingSeconds = remainingSeconds;
     _isBreak = isBreak;
     _isRunning = isRunning;
-    _onPlay = onPlay;
-    _onPause = onPause;
-    _onReset = onReset;
-    _onMute = onMute;
 
     final String timeText = formatTime(remainingSeconds);
     final String status = isBreak ? 'Break' : 'Focus';

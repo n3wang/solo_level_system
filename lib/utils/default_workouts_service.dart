@@ -264,7 +264,7 @@ class DefaultWorkoutsService {
             id: 'default_routine_${i + 1}',
             name: routineName,
             description:
-                'Default ${muscleGroup} workout routine with ${exerciseIds.length} exercises',
+                'Default $muscleGroup workout routine with ${exerciseIds.length} exercises',
             exerciseIds: exerciseIds,
             exerciseSets: exerciseSets,
             category: 'strength',

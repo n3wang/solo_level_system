@@ -61,6 +61,15 @@ class ExerciseModel extends HiveObject {
   @HiveField(18)
   DateTime? personalRecordDate;
 
+  @HiveField(19)
+  List<int>? lastWorkoutReps; // Reps from last completed workout
+
+  @HiveField(20)
+  List<double?>? lastWorkoutWeights; // Weights from last completed workout
+
+  @HiveField(21)
+  DateTime? lastWorkoutDate; // Date of last completed workout
+
   ExerciseModel({
     required this.id,
     required this.name,
@@ -81,6 +90,9 @@ class ExerciseModel extends HiveObject {
     this.personalRecord,
     this.personalRecordUnit,
     this.personalRecordDate,
+    this.lastWorkoutReps,
+    this.lastWorkoutWeights,
+    this.lastWorkoutDate,
   });
 
   // Convenience getters
@@ -125,6 +137,15 @@ class ExerciseModel extends HiveObject {
 
   void unarchive() {
     isArchived = false;
+    save();
+  }
+
+  /// Update last workout data
+  void updateLastWorkoutData(List<int> reps, List<double?> weights) {
+    lastWorkoutReps = List<int>.from(reps);
+    lastWorkoutWeights = List<double?>.from(weights);
+    lastWorkoutDate = DateTime.now();
+    modifiedAt = DateTime.now();
     save();
   }
 }

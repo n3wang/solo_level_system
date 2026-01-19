@@ -181,7 +181,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                         onLongPress: () => _editSet(set),
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),
@@ -399,7 +399,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       ),
                     ),
                   );
-                }).toList(),
+                }),
                 if (containingSets.length > 3)
                   Padding(
                     padding: EdgeInsets.only(left: 4),

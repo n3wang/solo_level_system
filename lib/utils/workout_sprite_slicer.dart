@@ -10,16 +10,32 @@ class WorkoutSpriteSlicer {
   static const int spriteSize = 128;
   static const String spriteSheetPath = 'assets/icon/workout_icons_128px.png';
 
+  // Cache for loaded sprites to prevent reloading
+  static final Map<int, ui.Image> _spriteCache = {};
+  static ui.Image? _spriteSheetCache;
+
   /// Get a specific sprite from the sprite sheet by index
   /// Index 0 = first icon, Index 1 = second icon, etc.
+  /// Uses caching to prevent reloading
   static Future<ui.Image?> getSpriteAtIndex(int index) async {
+    // Return cached sprite if available
+    if (_spriteCache.containsKey(index)) {
+      return _spriteCache[index];
+    }
     try {
-      final ByteData data = await rootBundle.load(spriteSheetPath);
-      final ui.Codec codec = await ui.instantiateImageCodec(
-        data.buffer.asUint8List(),
-      );
-      final ui.FrameInfo frameInfo = await codec.getNextFrame();
-      final ui.Image fullImage = frameInfo.image;
+      // Load or use cached sprite sheet
+      ui.Image fullImage;
+      if (_spriteSheetCache != null) {
+        fullImage = _spriteSheetCache!;
+      } else {
+        final ByteData data = await rootBundle.load(spriteSheetPath);
+        final ui.Codec codec = await ui.instantiateImageCodec(
+          data.buffer.asUint8List(),
+        );
+        final ui.FrameInfo frameInfo = await codec.getNextFrame();
+        fullImage = frameInfo.image;
+        _spriteSheetCache = fullImage; // Cache the full sprite sheet
+      }
 
       // Calculate the x position of the sprite
       final int x = index * spriteSize;
@@ -27,17 +43,28 @@ class WorkoutSpriteSlicer {
       // Create a new image with just this sprite
       final ui.PictureRecorder recorder = ui.PictureRecorder();
       final Canvas canvas = Canvas(recorder);
-      
+
       canvas.drawImageRect(
         fullImage,
-        Rect.fromLTWH(x.toDouble(), 0, spriteSize.toDouble(), spriteSize.toDouble()),
+        Rect.fromLTWH(
+          x.toDouble(),
+          0,
+          spriteSize.toDouble(),
+          spriteSize.toDouble(),
+        ),
         Rect.fromLTWH(0, 0, spriteSize.toDouble(), spriteSize.toDouble()),
         Paint(),
       );
 
       final ui.Picture picture = recorder.endRecording();
-      final ui.Image spriteImage = await picture.toImage(spriteSize, spriteSize);
-      
+      final ui.Image spriteImage = await picture.toImage(
+        spriteSize,
+        spriteSize,
+      );
+
+      // Cache the sprite for future use
+      _spriteCache[index] = spriteImage;
+
       return spriteImage;
     } catch (e) {
       print('Error loading sprite at index $index: $e');
@@ -46,10 +73,17 @@ class WorkoutSpriteSlicer {
   }
 
   /// Get a widget that displays a specific sprite by index
-  static Widget getSpriteWidget(int index, {double? size, Color? backgroundColor}) {
+  /// Uses caching to prevent reloading
+  static Widget getSpriteWidget(
+    int index, {
+    double? size,
+    Color? backgroundColor,
+  }) {
     final bgColor = backgroundColor ?? Colors.white; // Default white background
-    
+
+    // Use a key based on index to maintain widget identity and prevent rebuilds
     return FutureBuilder<ui.Image?>(
+      key: ValueKey('sprite_$index'),
       future: getSpriteAtIndex(index),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -60,13 +94,16 @@ class WorkoutSpriteSlicer {
             child: Center(child: CircularProgressIndicator()),
           );
         }
-        
+
         if (snapshot.hasError || !snapshot.hasData) {
           return Container(
             width: size ?? spriteSize.toDouble(),
             height: size ?? spriteSize.toDouble(),
             color: bgColor,
-            child: Icon(Icons.fitness_center, size: size ?? spriteSize.toDouble()),
+            child: Icon(
+              Icons.fitness_center,
+              size: size ?? spriteSize.toDouble(),
+            ),
           );
         }
 
@@ -75,7 +112,10 @@ class WorkoutSpriteSlicer {
           height: size ?? spriteSize.toDouble(),
           color: bgColor, // White background
           child: CustomPaint(
-            size: Size(size ?? spriteSize.toDouble(), size ?? spriteSize.toDouble()),
+            size: Size(
+              size ?? spriteSize.toDouble(),
+              size ?? spriteSize.toDouble(),
+            ),
             painter: SpritePainter(snapshot.data!),
           ),
         );
@@ -137,22 +177,25 @@ class SpritePainter extends CustomPainter {
 }
 
 /// Custom ImageProvider for workout sprites
-class WorkoutSpriteImageProvider extends ImageProvider<WorkoutSpriteImageProvider> {
+class WorkoutSpriteImageProvider
+    extends ImageProvider<WorkoutSpriteImageProvider> {
   final int index;
 
   WorkoutSpriteImageProvider(this.index);
 
   @override
-  Future<WorkoutSpriteImageProvider> obtainKey(ImageConfiguration configuration) {
+  Future<WorkoutSpriteImageProvider> obtainKey(
+    ImageConfiguration configuration,
+  ) {
     return SynchronousFuture(this);
   }
 
   @override
-  ImageStreamCompleter loadImage(WorkoutSpriteImageProvider key, ImageDecoderCallback decode) {
-    return MultiFrameImageStreamCompleter(
-      codec: _loadAsync(key),
-      scale: 1.0,
-    );
+  ImageStreamCompleter loadImage(
+    WorkoutSpriteImageProvider key,
+    ImageDecoderCallback decode,
+  ) {
+    return MultiFrameImageStreamCompleter(codec: _loadAsync(key), scale: 1.0);
   }
 
   Future<ui.Codec> _loadAsync(WorkoutSpriteImageProvider key) async {
@@ -160,12 +203,14 @@ class WorkoutSpriteImageProvider extends ImageProvider<WorkoutSpriteImageProvide
     if (sprite == null) {
       throw Exception('Failed to load sprite at index ${key.index}');
     }
-    
-    final ByteData? data = await sprite.toByteData(format: ui.ImageByteFormat.png);
+
+    final ByteData? data = await sprite.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     if (data == null) {
       throw Exception('Failed to convert sprite to bytes');
     }
-    
+
     return await ui.instantiateImageCodec(data.buffer.asUint8List());
   }
 

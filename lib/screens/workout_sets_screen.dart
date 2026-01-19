@@ -1,6 +1,5 @@
 // lib/screens/workout_sets_screen.dart
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
@@ -115,9 +114,11 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
                 child: Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha:0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withValues(alpha:0.3)),
+                    border: Border.all(
+                      color: Colors.blue.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -190,7 +191,7 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _getSetColor(setCategory).withValues(alpha:0.2),
+                  color: _getSetColor(setCategory).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(

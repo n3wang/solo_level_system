@@ -7,6 +7,8 @@ import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/workout_set_model.dart';
 import 'package:solo_level_system/models/workout_routine_model.dart';
 import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
+import 'package:solo_level_system/widgets/workout_icon_widget.dart';
+import 'package:solo_level_system/utils/workout_service.dart';
 
 class ActiveWorkoutSessionScreen extends StatefulWidget {
   final WorkoutSessionModel session;
@@ -53,10 +55,28 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     _startTimer();
   }
 
-  void _initializeWorkout() {
+  Future<void> _initializeWorkout() async {
+    // Ensure exercises box is open and refresh exercises to get latest last workout data
+    if (!Hive.isBoxOpen('exercises')) {
+      await Hive.openBox<ExerciseModel>('exercises');
+    }
+    final exercisesBox = Hive.box<ExerciseModel>('exercises');
+
     // Initialize sets for each exercise
     for (final exercise in widget.exercises) {
-      if (widget.routine != null &&
+      // Refresh exercise from Hive to ensure we have the latest last workout data
+      final refreshedExercise = exercisesBox.get(exercise.id) ?? exercise;
+
+      // Priority: 1. Last workout data, 2. Routine sets, 3. Defaults
+      final lastWorkout = WorkoutService.getLastWorkoutData(refreshedExercise);
+
+      if (lastWorkout != null) {
+        // Use last workout data if available (takes priority over routine)
+        _exerciseSets[exercise.id] = WorkoutService.createSetsFromLastWorkout(
+          exercise: refreshedExercise,
+          exerciseId: exercise.id,
+        );
+      } else if (widget.routine != null &&
           widget.routine!.exerciseSets.containsKey(exercise.id)) {
         // Use routine's predefined sets but reset completion status for new session
         final routineSets = widget.routine!.exerciseSets[exercise.id]!;
@@ -75,33 +95,11 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             )
             .toList();
       } else {
-        // Create default sets
-        _exerciseSets[exercise.id] = [
-          WorkoutSetModel(
-            id: '${exercise.id}_set_1',
-            exerciseId: exercise.id,
-            reps: 10,
-            weight: 0,
-            restTimeSeconds: 60,
-            isCompleted: false,
-          ),
-          WorkoutSetModel(
-            id: '${exercise.id}_set_2',
-            exerciseId: exercise.id,
-            reps: 10,
-            weight: 0,
-            restTimeSeconds: 60,
-            isCompleted: false,
-          ),
-          WorkoutSetModel(
-            id: '${exercise.id}_set_3',
-            exerciseId: exercise.id,
-            reps: 10,
-            weight: 0,
-            restTimeSeconds: 60,
-            isCompleted: false,
-          ),
-        ];
+        // Create default sets if no last workout data and no routine
+        _exerciseSets[exercise.id] = WorkoutService.createSetsFromLastWorkout(
+          exercise: refreshedExercise,
+          exerciseId: exercise.id,
+        );
       }
       _completedSets[exercise.id] = 0;
     }
@@ -310,13 +308,15 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
 
   Widget _buildExerciseHeader(ExerciseModel exercise) {
     final isCompleted = _allSetsCompleted(exercise);
-    
+
     return Card(
-      color: isCompleted ? Colors.green.shade50 : null, // Light green background when completed
+      color: isCompleted
+          ? Colors.green.shade50
+          : null, // Light green background when completed
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: isCompleted 
-            ? BorderSide(color: Colors.green.shade300, width: 2) 
+        side: isCompleted
+            ? BorderSide(color: Colors.green.shade300, width: 2)
             : BorderSide.none,
       ),
       child: Padding(
@@ -329,13 +329,26 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: _getMuscleGroupColor(exercise.muscleGroup),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    _getMuscleGroupIcon(exercise.muscleGroup),
-                    color: Colors.white,
-                    size: 30,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: RepaintBoundary(
+                      child: WorkoutIconWidget(
+                        key: ValueKey(
+                          'exercise_icon_${exercise.id}_${exercise.imageUrl}',
+                        ),
+                        imageUrl: exercise.imageUrl,
+                        size: 60,
+                        backgroundColor: Colors.white,
+                        placeholder: Icon(
+                          _getMuscleGroupIcon(exercise.muscleGroup),
+                          color: _getMuscleGroupColor(exercise.muscleGroup),
+                          size: 30,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 if (isCompleted)
@@ -350,11 +363,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
-                      child: Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 12,
-                      ),
+                      child: Icon(Icons.check, color: Colors.white, size: 12),
                     ),
                   ),
               ],
@@ -369,7 +378,10 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                       Expanded(
                         child: Text(
                           exercise.name,
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       if (isCompleted)
@@ -1029,7 +1041,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
 
     if (result == true) {
       // Save workout and navigate to summary screen
-      _endWorkout(false, shouldNavigate: true);
+      _endWorkout(shouldNavigate: true);
       return false; // Don't pop, let _endWorkout handle navigation
     }
 
@@ -1041,7 +1053,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: Text('End Workout'),
-        content: Text('How would you like to end this workout?'),
+        content: Text(
+          'Are you sure you want to end this workout? Your progress will be saved.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1050,37 +1064,34 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _endWorkout(false);
+              _endWorkout();
             },
             child: Text('Save & Exit'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _endWorkout(true);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.green),
-            child: Text('Mark Complete'),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _endWorkout(
-    bool markComplete, {
-    bool shouldNavigate = true,
-  }) async {
+  Future<void> _endWorkout({bool shouldNavigate = true}) async {
     if (mounted) {
       setState(() => _isLoading = true);
     }
 
     try {
+      // Determine if workout is fully completed based on all sets being done
+      final allExercisesCompleted = widget.exercises.every(
+        (ex) => _allSetsCompleted(ex),
+      );
+
       // Update session with current sets data
+      // Always save the workout, whether fully completed or not
       widget.session.endTime = DateTime.now();
       widget.session.durationMinutes = _workoutDuration.inMinutes;
-      widget.session.isCompleted = markComplete;
-      widget.session.status = markComplete ? 'completed' : 'cancelled';
+      widget.session.isCompleted = allExercisesCompleted;
+      // Mark all saved workouts as 'completed' (whether fully or partially done)
+      // This ensures all workouts are saved and tracked
+      widget.session.status = 'completed';
       widget.session.totalSetsCompleted = _getTotalCompletedSets();
       widget.session.completedExerciseIds = widget.exercises
           .where((ex) => _allSetsCompleted(ex))
@@ -1108,23 +1119,23 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       widget.session.additionalData = Map.from(widget.session.additionalData)
         ..['exerciseSets'] = setsData;
 
+      // Always process workout completion: evaluate PRs, save last workout data, update statistics
+      final newPersonalRecords = await WorkoutService.processWorkoutCompletion(
+        session: widget.session,
+        exerciseSets: _exerciseSets,
+        exercises: widget.exercises,
+      );
+
       // Save session
       final sessionsBox = await Hive.openBox<WorkoutSessionModel>(
         'workoutSessions',
       );
 
-      // Find existing session and update it, or create new entry
-      final existingIndex = sessionsBox.values.toList().indexWhere(
-        (s) => s.id == widget.session.id,
-      );
-      if (existingIndex != -1) {
-        await sessionsBox.putAt(existingIndex, widget.session);
-      } else {
-        await sessionsBox.add(widget.session);
-      }
+      // Save or update session using its ID as the key
+      await sessionsBox.put(widget.session.id, widget.session);
 
-      // Update routine completion count if applicable
-      if (markComplete && widget.routine != null) {
+      // Update routine completion count if all exercises are completed
+      if (allExercisesCompleted && widget.routine != null) {
         final routinesBox = await Hive.openBox<WorkoutRoutineModel>(
           'workoutRoutines',
         );
@@ -1139,6 +1150,21 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         }
       }
 
+      // Show feedback for new personal records
+      if (newPersonalRecords.isNotEmpty && mounted) {
+        final exerciseNames = widget.exercises
+            .where((ex) => newPersonalRecords.contains(ex.id))
+            .map((ex) => ex.name)
+            .join(', ');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🎉 New Personal Records: $exerciseNames'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+
       // Clear loading state before navigation
       if (mounted) {
         setState(() => _isLoading = false);
@@ -1151,6 +1177,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           'exercises': widget.exercises,
           'totalSetsCompleted': _getTotalCompletedSets(),
           'totalSets': _getTotalSets(),
+          'newPersonalRecords': newPersonalRecords,
         });
       }
     } catch (e) {
