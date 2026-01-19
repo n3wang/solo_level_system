@@ -7,6 +7,7 @@ import 'package:solo_level_system/models/audio_settings_model.dart';
 import 'package:solo_level_system/utils/notification_service.dart';
 import 'package:solo_level_system/utils/timer_controller.dart';
 import 'package:solo_level_system/widgets/palette_selector_widget.dart';
+import 'package:solo_level_system/widgets/theme_mode_selector_widget.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/utils/palette_notifier.dart';
 
@@ -182,45 +183,14 @@ class _SettingsScreenState extends State<SettingsScreen>
       padding: EdgeInsets.all(16),
       children: [
         _buildSectionHeader('Theme'),
-        ListTile(
-          title: Text('Theme Mode'),
-          subtitle: Text('Choose your preferred theme'),
-          trailing: DropdownButton<String>(
-            key: Key('theme_dropdown'),
-            value: userSettings.theme,
-            items: [
-              DropdownMenuItem(value: 'system', child: Text('System')),
-              DropdownMenuItem(value: 'light', child: Text('Light')),
-              DropdownMenuItem(value: 'dark', child: Text('Dark')),
-            ],
-            onChanged: (value) async {
-              setState(() {
-                userSettings.theme = value!;
-              });
-              await _saveUserSettings();
-            },
-          ),
-        ),
-        ListTile(
-          title: Text('Primary Color'),
-          subtitle: Text('Choose your accent color'),
-          trailing: DropdownButton<String>(
-            key: Key('color_dropdown'),
-            value: userSettings.primaryColor,
-            items: [
-              DropdownMenuItem(value: 'red', child: Text('Red')),
-              DropdownMenuItem(value: 'blue', child: Text('Blue')),
-              DropdownMenuItem(value: 'green', child: Text('Green')),
-              DropdownMenuItem(value: 'purple', child: Text('Purple')),
-              DropdownMenuItem(value: 'orange', child: Text('Orange')),
-            ],
-            onChanged: (value) async {
-              setState(() {
-                userSettings.primaryColor = value!;
-              });
-              await _saveUserSettings();
-            },
-          ),
+        ThemeModeSelectorWidget(
+          selectedTheme: userSettings.theme,
+          onThemeSelected: (themeMode) async {
+            setState(() {
+              userSettings.theme = themeMode;
+            });
+            await _saveUserSettings();
+          },
         ),
         SizedBox(height: 16),
         Divider(),

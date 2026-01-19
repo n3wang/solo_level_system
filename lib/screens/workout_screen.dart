@@ -314,8 +314,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isDark
-            ? AppColorPalette.backgroundDarkSurface
-            : AppColorPalette.backgroundSurface,
+            ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
+            : AppColorPalette.backgroundSurface.withValues(alpha: 0.8),
         border: Border(bottom: BorderSide(color: AppColorPalette.grey300)),
       ),
       child: Row(
@@ -489,8 +489,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isDark
-            ? AppColorPalette.backgroundDarkSurface
-            : AppColorPalette.grey100,
+            ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
+            : AppColorPalette.grey100.withValues(alpha: 0.8),
         border: Border(bottom: BorderSide(color: AppColorPalette.grey300)),
       ),
       child: Row(
@@ -564,8 +564,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final chipBgColor = isDark 
-            ? AppColorPalette.backgroundDarkSurface 
-            : AppColorPalette.grey100;
+            ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
+            : AppColorPalette.grey100.withValues(alpha: 0.8);
         final chipTextColor = isDark 
             ? AppColorPalette.grey300 
             : AppColorPalette.grey700;
@@ -1120,8 +1120,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final containerBgColor = isDark 
-        ? AppColorPalette.backgroundDarkSurface 
-        : AppColorPalette.grey100;
+        ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
+        : AppColorPalette.grey100.withValues(alpha: 0.8);
     final textColor = isDark 
         ? AppColorPalette.white 
         : AppColorPalette.grey700;

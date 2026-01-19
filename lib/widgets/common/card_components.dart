@@ -23,9 +23,14 @@ class BaseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final defaultBgColor = backgroundColor ?? (isDark 
+        ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
+        : AppColorPalette.white.withValues(alpha: 0.8));
+    
     return Card(
       margin: margin ?? EdgeInsets.only(bottom: 12),
-      color: backgroundColor,
+      color: defaultBgColor,
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
