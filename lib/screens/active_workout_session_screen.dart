@@ -107,6 +107,10 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
 
   void _startTimer() {
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       if (!_isPaused) {
         setState(() {
           _workoutDuration = _workoutDuration + Duration(seconds: 1);
@@ -127,7 +131,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final shouldPop = await _onWillPop();
         if (shouldPop && mounted) {
@@ -710,6 +714,10 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     });
 
     _restTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       setState(() {
         if (_restDuration.inSeconds > 0) {
           _restDuration = _restDuration - Duration(seconds: 1);
@@ -746,7 +754,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           id: '${exercise.id}_set_${sets.length + 1}',
           exerciseId: exercise.id,
           reps: sets.isNotEmpty ? sets.last.reps : 10,
-          weight: sets.isNotEmpty ? sets.last.weight : 0,
+          weight: sets.isNotEmpty ? sets.last.weight : 10,
           restTimeSeconds: 60,
           isCompleted: false,
         ),
@@ -766,7 +774,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         content: Text(
           hasRoutine
               ? 'This will reset all reps and weights for this exercise to the routine\'s original values. Completion status will be preserved. Are you sure?'
-              : 'This will reset all reps and weights for this exercise to default values (10 reps, 0kg). Completion status will be preserved. Are you sure?',
+              : 'This will reset all reps and weights for this exercise to default values (10 reps, 10kg). Completion status will be preserved. Are you sure?',
         ),
         actions: [
           TextButton(
@@ -815,7 +823,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             final completedAt = currentSets[i].completedAt;
 
             currentSets[i].reps = 10;
-            currentSets[i].weight = 0;
+            currentSets[i].weight = 10;
             currentSets[i].restTimeSeconds = 60;
 
             // Preserve completion status
@@ -830,7 +838,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           final completedAt = set.completedAt;
 
           set.reps = 10;
-          set.weight = 0;
+          set.weight = 10;
           set.restTimeSeconds = 60;
 
           // Preserve completion status
@@ -884,6 +892,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       final routinesBox = await Hive.openBox<WorkoutRoutineModel>(
         'workoutRoutines',
       );
+      if (!mounted) return;
+
       final updatedRoutine = routinesBox.values.firstWhere(
         (r) => r.id == widget.routine!.id,
         orElse: () => widget.routine!,
@@ -928,13 +938,15 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         // Trigger UI update
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Routine updated! New sets have been added if any.'),
           backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error updating routine: $e'),
@@ -1019,48 +1031,74 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
   }
 
   Future<bool> _onWillPop() async {
-    final result = await showDialog<bool>(
+    // Check if all sets are completed
+    final allCompleted = widget.exercises.every((ex) => _allSetsCompleted(ex));
+
+    final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('End Workout?'),
-        content: Text(
-          'Are you sure you want to end this workout? Your progress will be saved.',
-        ),
+        content: Text('What would you like to do with this workout?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context, 'cancel'),
             child: Text('Continue'),
           ),
+          if (!allCompleted)
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'discard'),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: Text('Discard'),
+            ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(context, 'save'),
             child: Text('Save & Exit'),
           ),
         ],
       ),
     );
 
-    if (result == true) {
+    if (result == 'save') {
       // Save workout and navigate to summary screen
       _endWorkout(shouldNavigate: true);
       return false; // Don't pop, let _endWorkout handle navigation
+    } else if (result == 'discard') {
+      // Discard workout without saving
+      if (mounted) {
+        Navigator.pop(context);
+      }
+      return true; // Allow pop
     }
 
     return false; // Don't pop
   }
 
   void _showEndWorkoutDialog() {
+    // Check if all sets are completed
+    final allCompleted = widget.exercises.every((ex) => _allSetsCompleted(ex));
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('End Workout'),
-        content: Text(
-          'Are you sure you want to end this workout? Your progress will be saved.',
-        ),
+        content: Text('What would you like to do with this workout?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel'),
           ),
+          if (!allCompleted)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // Discard without saving
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: Text('Discard'),
+            ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);

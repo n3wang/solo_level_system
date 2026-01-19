@@ -10,6 +10,7 @@ import 'package:solo_level_system/screens/exercise_details_screen.dart';
 import 'package:solo_level_system/screens/add_edit_workout_set_screen.dart';
 import 'package:solo_level_system/screens/motivational_cards_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
+import 'package:solo_level_system/utils/workout_service.dart';
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -343,31 +344,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                   ],
                 ),
               ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColorPalette.grey100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      '3x ',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      '45kg',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColorPalette.grey700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildLastWorkoutInfo(exercise),
             ],
           ),
           SizedBox(height: 12),
@@ -506,6 +483,63 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       context,
       MaterialPageRoute(
         builder: (context) => ExerciseDetailsScreen(exercise: exercise),
+      ),
+    );
+  }
+
+  Widget _buildLastWorkoutInfo(ExerciseModel exercise) {
+    // Get last workout data
+    final lastWorkout = WorkoutService.getLastWorkoutData(exercise);
+    
+    String setsText;
+    String weightText;
+    
+    if (lastWorkout != null && lastWorkout.reps.isNotEmpty) {
+      // Use last workout data
+      final numSets = lastWorkout.reps.length;
+      // Get average weight or first non-null weight
+      final validWeights = lastWorkout.weights
+          .whereType<double>()
+          .where((w) => w > 0)
+          .toList();
+      if (validWeights.isNotEmpty) {
+        final avgWeight = validWeights.reduce((a, b) => a + b) / validWeights.length;
+        setsText = '${numSets}x ';
+        weightText = '${avgWeight.toStringAsFixed(0)}kg';
+      } else {
+        // No valid weights, use default
+        setsText = '${numSets}x ';
+        weightText = '10kg';
+      }
+    } else {
+      // Use default values
+      setsText = '3x ';
+      weightText = '10kg';
+    }
+    
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColorPalette.grey100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Text(
+            setsText,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+          Text(
+            weightText,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColorPalette.grey700,
+            ),
+          ),
+        ],
       ),
     );
   }

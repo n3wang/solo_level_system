@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:solo_level_system/utils/background_music_service.dart';
 import 'package:solo_level_system/utils/sound_effects_service.dart';
@@ -86,7 +87,7 @@ class TimerController {
     }
 
     // Enable wakelock to keep screen on during pomodoro
-    await WakelockPlus.enable();
+    if (!kIsWeb) await WakelockPlus.enable();
 
     _isRunning = true;
     if (!_onBreak) {
@@ -129,7 +130,7 @@ class TimerController {
     _isRunning = false;
 
     // Disable wakelock when timer is paused
-    await WakelockPlus.disable();
+    if (!kIsWeb) await WakelockPlus.disable();
 
     print('[TIMER_CONTROLLER] After pause - isRunning: $_isRunning');
     _notifyListeners();
@@ -173,7 +174,7 @@ class TimerController {
     _timer?.cancel();
 
     // Disable wakelock when session completes
-    await WakelockPlus.disable();
+    if (!kIsWeb) await WakelockPlus.disable();
 
     if (!_onBreak) {
       // Work session finished
@@ -230,7 +231,7 @@ class TimerController {
   // Dispose
   void dispose() async {
     _timer?.cancel();
-    await WakelockPlus.disable();
+    if (!kIsWeb) await WakelockPlus.disable();
     _backgroundMusicService.dispose();
     _soundEffectsService.dispose();
     _notificationService.dispose();

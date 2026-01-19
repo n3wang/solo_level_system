@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -13,6 +14,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
+  bool get _isSupported => !kIsWeb;
   bool _hasActiveTimer = false;
   Timer? _updateTimer;
   int _remainingSeconds = 0;
@@ -20,7 +22,7 @@ class NotificationService {
   bool _isRunning = false;
 
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (_isInitialized || !_isSupported) return;
 
     // Request notification permission on Android 13+
     await _requestNotificationPermission();
@@ -96,6 +98,7 @@ class NotificationService {
     VoidCallback? onReset,
     VoidCallback? onMute,
   }) async {
+    if (!_isSupported) return;
     if (!_isInitialized) await initialize();
 
     _remainingSeconds = remainingSeconds;
@@ -188,6 +191,8 @@ class NotificationService {
   }
 
   void _updateNotificationTime() {
+    if (!_isSupported) return;
+
     final String timeText = formatTime(_remainingSeconds);
     final String status = _isBreak ? 'Break' : 'Focus';
     final String title = '$status Time - $timeText';
@@ -216,6 +221,7 @@ class NotificationService {
 
   Future<void> hideTimerNotification() async {
     _stopUpdateTimer();
+    if (!_isSupported) return;
     await _notifications.cancel(1);
   }
 
