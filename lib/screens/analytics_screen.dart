@@ -42,43 +42,60 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (period) {
-              setState(() => _selectedPeriod = period);
-            },
-            itemBuilder: (context) => _periods
-                .map(
-                  (period) => PopupMenuItem(value: period, child: Text(period)),
-                )
-                .toList(),
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [Text(_selectedPeriod), Icon(Icons.arrow_drop_down)],
-              ),
-            ),
-          ),
-        ],
+        title: SizedBox.shrink(),
+        toolbarHeight: 0,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
           tabs: [
-            Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
-            Tab(icon: Icon(Icons.timer), text: 'Focus'),
-            Tab(icon: Icon(Icons.fitness_center), text: 'Workouts'),
-            Tab(icon: Icon(Icons.lock_open), text: 'Features'),
+            Tab(text: 'Overview'),
+            Tab(text: 'Focus'),
+            Tab(text: 'Workouts'),
+            Tab(text: 'Features'),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildOverviewTab(),
-          _buildFocusTab(),
-          _buildWorkoutsTab(),
-          _buildFeaturesTab(),
+          // Time period selector below tabs
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            alignment: Alignment.centerRight,
+            child: PopupMenuButton<String>(
+              onSelected: (period) {
+                setState(() => _selectedPeriod = period);
+              },
+              itemBuilder: (context) => _periods
+                  .map(
+                    (period) =>
+                        PopupMenuItem(value: period, child: Text(period)),
+                  )
+                  .toList(),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_selectedPeriod),
+                    SizedBox(width: 4),
+                    Icon(Icons.arrow_drop_down),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Tab content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildOverviewTab(),
+                _buildFocusTab(),
+                _buildWorkoutsTab(),
+                _buildFeaturesTab(),
+              ],
+            ),
+          ),
         ],
       ),
     );

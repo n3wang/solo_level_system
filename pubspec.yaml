@@ -79,7 +79,6 @@ flutter:
     - assets/lofi/
     - assets/audio/
     - assets/album/
-    - assets/themes/
     - assets/icon/workout_icons_128px.png
     - assets/icon/workout_icons_sliced/
     - assets/workouts/

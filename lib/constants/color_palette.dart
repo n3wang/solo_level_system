@@ -590,14 +590,14 @@ class CreativePalette {
 /// Soft, muted colors for a gentle look
 class PastelPalette {
   // Primary colors
-  static const Color color1 = Color(0xFFCE93D8); // Light Purple
+  static const Color color1 = Color(0xFFEF9A9A); // Light Red // Light Purple
   static const Color color2 = Color(0xFF90CAF9); // Light Blue
   static const Color color3 = Color(0xFFA5D6A7); // Light Green
   static const Color color4 = Color(0xFFFFCC80); // Light Orange
-  static const Color color5 = Color(0xFFEF9A9A); // Light Red
+  static const Color color5 = Color(0xFFCE93D8);
 
   // Semantic colors
-  static const Color primary = Color(0xFFCE93D8); // Light Purple as primary
+  static const Color primary = Color(0xFFEF9A9A); // Light Purple as primary
   static const Color accent = Color(0xFF90CAF9); // Light Blue as accent
   static const Color background = Color(
     0xFFFFFBFE,

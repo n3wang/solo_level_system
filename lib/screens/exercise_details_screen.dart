@@ -107,8 +107,13 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   }
 
   Widget _buildExerciseHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBgColor = isDark
+        ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
+        : AppColorPalette.white.withValues(alpha: 0.8);
+
     return Card(
-      color: AppColorPalette.white, // White background
+      color: cardBgColor,
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -146,13 +151,18 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? AppColorPalette.white
+                              : AppColorPalette.grey900,
                         ),
                       ),
                       SizedBox(height: 4),
                       Text(
                         widget.exercise.muscleGroup.toUpperCase(),
                         style: TextStyle(
-                          color: AppColorPalette.grey600,
+                          color: isDark
+                              ? AppColorPalette.grey400
+                              : AppColorPalette.grey600,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -162,7 +172,9 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                         widget.exercise.difficulty.toUpperCase(),
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColorPalette.grey600,
+                          color: isDark
+                              ? AppColorPalette.grey400
+                              : AppColorPalette.grey600,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -212,7 +224,13 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   }
 
   Widget _buildPersonalRecords() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBgColor = isDark
+        ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
+        : AppColorPalette.white.withValues(alpha: 0.8);
+
     return Card(
+      color: cardBgColor,
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -322,9 +340,21 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               children: [
                 Icon(Icons.list_alt, color: AppColorPalette.info),
                 SizedBox(width: 8),
-                Text(
-                  'Instructions',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Builder(
+                  builder: (context) {
+                    final isDark =
+                        Theme.of(context).brightness == Brightness.dark;
+                    return Text(
+                      'Instructions',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppColorPalette.white
+                            : AppColorPalette.grey900,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -364,9 +394,20 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                       ),
                       SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          entry.value,
-                          style: TextStyle(fontSize: 16),
+                        child: Builder(
+                          builder: (context) {
+                            final isDark =
+                                Theme.of(context).brightness == Brightness.dark;
+                            return Text(
+                              entry.value,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: isDark
+                                    ? AppColorPalette.grey300
+                                    : AppColorPalette.grey800,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -380,7 +421,13 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   }
 
   Widget _buildExerciseHistory() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBgColor = isDark
+        ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
+        : AppColorPalette.white.withValues(alpha: 0.8);
+
     return Card(
+      color: cardBgColor,
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -392,18 +439,32 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                 SizedBox(width: 8),
                 Text(
                   'Recent History',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppColorPalette.white
+                        : AppColorPalette.grey900,
+                  ),
                 ),
               ],
             ),
             SizedBox(height: 16),
             if (_exerciseHistory.isEmpty)
-              Text(
-                'No workout history for this exercise.',
-                style: TextStyle(
-                  color: AppColorPalette.grey600,
-                  fontStyle: FontStyle.italic,
-                ),
+              Builder(
+                builder: (context) {
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
+                  return Text(
+                    'No workout history for this exercise.',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColorPalette.grey400
+                          : AppColorPalette.grey600,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  );
+                },
               )
             else
               ...(_exerciseHistory
@@ -421,13 +482,21 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   }
 
   Widget _buildHistoryItem(WorkoutSessionModel session) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final itemBgColor = isDark
+        ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.4)
+        : AppColorPalette.grey50;
+    final borderColor = isDark
+        ? AppColorPalette.grey700
+        : AppColorPalette.grey200;
+
     return Container(
       margin: EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColorPalette.grey50,
+        color: itemBgColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColorPalette.grey200),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         children: [
@@ -457,9 +526,19 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               ],
             ),
           ),
-          Text(
-            '${session.durationMinutes} min',
-            style: TextStyle(color: AppColorPalette.grey600, fontSize: 12),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Text(
+                '${session.durationMinutes} min',
+                style: TextStyle(
+                  color: isDark
+                      ? AppColorPalette.grey400
+                      : AppColorPalette.grey600,
+                  fontSize: 12,
+                ),
+              );
+            },
           ),
         ],
       ),

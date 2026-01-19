@@ -249,7 +249,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Workout'),
+        title: SizedBox.shrink(),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: AppColorPalette.white,
         bottom: TabBar(
@@ -314,7 +314,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isDark
-            ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
+            ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.5)
             : AppColorPalette.backgroundSurface.withValues(alpha: 0.8),
         border: Border(bottom: BorderSide(color: AppColorPalette.grey300)),
       ),
@@ -538,7 +538,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
             controller: _searchController,
             focusNode: _searchFocusNode,
             labelText: 'Search exercises',
-            hintText: isTagSearch ? 'Enter tag name...' : 'Enter exercise name...',
+            hintText: isTagSearch
+                ? 'Enter tag name...'
+                : 'Enter exercise name...',
             onChanged: (value) {
               setState(() {
                 _searchQuery = value;
@@ -557,17 +559,17 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       builder: (context, Box<ExerciseModel> box, _) {
         final allExercises = box.values.toList();
         final commonTags = _getMostCommonTags(allExercises, limit: 15);
-        
+
         if (commonTags.isEmpty) {
           return SizedBox.shrink();
         }
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        final chipBgColor = isDark 
+        final chipBgColor = isDark
             ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
             : AppColorPalette.grey100.withValues(alpha: 0.8);
-        final chipTextColor = isDark 
-            ? AppColorPalette.grey300 
+        final chipTextColor = isDark
+            ? AppColorPalette.grey300
             : AppColorPalette.grey700;
 
         return Padding(
@@ -581,31 +583,36 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                   child: GestureDetector(
                     onTap: () {
                       final currentText = _searchController.text;
-                      final tagQuery = currentText.startsWith('t: ') 
+                      final tagQuery = currentText.startsWith('t: ')
                           ? currentText.substring(3).trim()
                           : '';
-                      
+
                       // If tag is already in query, remove it; otherwise add it
-                      final tags = tagQuery.isEmpty 
+                      final tags = tagQuery.isEmpty
                           ? <String>[]
-                          : tagQuery.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
-                      
+                          : tagQuery
+                                .split(',')
+                                .map((t) => t.trim())
+                                .where((t) => t.isNotEmpty)
+                                .toList();
+
                       if (tags.contains(tag)) {
                         tags.remove(tag);
                       } else {
                         tags.add(tag);
                       }
-                      
-                      final newQuery = tags.isEmpty 
-                          ? 't: ' 
+
+                      final newQuery = tags.isEmpty
+                          ? 't: '
                           : 't: ${tags.join(', ')}';
-                      
+
                       setState(() {
                         _searchQuery = newQuery;
                         _searchController.text = newQuery;
-                        _searchController.selection = TextSelection.fromPosition(
-                          TextPosition(offset: newQuery.length),
-                        );
+                        _searchController.selection =
+                            TextSelection.fromPosition(
+                              TextPosition(offset: newQuery.length),
+                            );
                       });
                     },
                     child: Container(
@@ -637,9 +644,12 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     );
   }
 
-  List<String> _getMostCommonTags(List<ExerciseModel> exercises, {int limit = 15}) {
+  List<String> _getMostCommonTags(
+    List<ExerciseModel> exercises, {
+    int limit = 15,
+  }) {
     final tagCounts = <String, int>{};
-    
+
     for (final exercise in exercises) {
       for (final tag in exercise.tags) {
         final normalizedTag = tag.trim().toLowerCase();
@@ -648,11 +658,11 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         }
       }
     }
-    
+
     // Sort by count (descending) and return top tags
     final sortedTags = tagCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    
+
     // Return original tag names (preserving case from first occurrence)
     final tagNameMap = <String, String>{};
     for (final exercise in exercises) {
@@ -663,7 +673,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         }
       }
     }
-    
+
     return sortedTags
         .take(limit)
         .map((entry) => tagNameMap[entry.key] ?? entry.key)
@@ -775,12 +785,13 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                         padding: EdgeInsets.only(top: 4),
                         child: Builder(
                           builder: (context) {
-                            final isDark = Theme.of(context).brightness == Brightness.dark;
+                            final isDark =
+                                Theme.of(context).brightness == Brightness.dark;
                             return Text(
                               exercise.description,
                               style: TextStyle(
-                                color: isDark 
-                                    ? AppColorPalette.grey400 
+                                color: isDark
+                                    ? AppColorPalette.grey400
                                     : AppColorPalette.grey600,
                                 fontSize: 14,
                               ),
@@ -793,12 +804,13 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                         padding: EdgeInsets.only(top: 4),
                         child: Builder(
                           builder: (context) {
-                            final isDark = Theme.of(context).brightness == Brightness.dark;
+                            final isDark =
+                                Theme.of(context).brightness == Brightness.dark;
                             return Text(
-                              exercise.tags.join(', '),
+                              "t:${exercise.tags.join(', ')}",
                               style: TextStyle(
-                                color: isDark 
-                                    ? AppColorPalette.grey400 
+                                color: isDark
+                                    ? AppColorPalette.grey400
                                     : AppColorPalette.grey600,
                                 fontSize: 14,
                               ),
@@ -902,18 +914,19 @@ class _WorkoutScreenState extends State<WorkoutScreen>
             return true;
           }
           // Handle multiple tags separated by commas
-          final searchTags = tagQuery.split(',')
+          final searchTags = tagQuery
+              .split(',')
               .map((t) => t.trim().toLowerCase())
               .where((t) => t.isNotEmpty)
               .toList();
-          
+
           // Exercise must have at least one matching tag
           final hasMatchingTag = searchTags.any((searchTag) {
             return exercise.tags.any(
               (tag) => tag.toLowerCase().contains(searchTag),
             );
           });
-          
+
           if (!hasMatchingTag) {
             return false;
           }
@@ -1119,13 +1132,11 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final containerBgColor = isDark 
+    final containerBgColor = isDark
         ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
         : AppColorPalette.grey100.withValues(alpha: 0.8);
-    final textColor = isDark 
-        ? AppColorPalette.white 
-        : AppColorPalette.grey700;
-    
+    final textColor = isDark ? AppColorPalette.white : AppColorPalette.grey700;
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -1144,10 +1155,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
             ),
           ),
           if (valueText != null)
-            Text(
-              valueText,
-              style: TextStyle(fontSize: 14, color: textColor),
-            ),
+            Text(valueText, style: TextStyle(fontSize: 14, color: textColor)),
         ],
       ),
     );
