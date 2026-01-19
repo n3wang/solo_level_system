@@ -70,6 +70,9 @@ class ExerciseModel extends HiveObject {
   @HiveField(21)
   DateTime? lastWorkoutDate; // Date of last completed workout
 
+  @HiveField(22)
+  String measurementUnit; // 'kg', 'lbs', 'seconds', 'none' - determines how this exercise is measured
+
   ExerciseModel({
     required this.id,
     required this.name,
@@ -93,6 +96,7 @@ class ExerciseModel extends HiveObject {
     this.lastWorkoutReps,
     this.lastWorkoutWeights,
     this.lastWorkoutDate,
+    this.measurementUnit = 'kg', // Default to kg for backward compatibility
   });
 
   // Convenience getters

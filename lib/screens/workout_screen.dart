@@ -11,6 +11,8 @@ import 'package:solo_level_system/screens/add_edit_workout_set_screen.dart';
 import 'package:solo_level_system/screens/motivational_cards_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
 import 'package:solo_level_system/utils/workout_service.dart';
+import 'package:solo_level_system/widgets/workout_icon_widget.dart';
+import 'package:solo_level_system/utils/default_workouts_service.dart';
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -43,22 +45,184 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     await _ensureBoxIsOpen<WorkoutSetCategoryModel>('workoutSetCategories');
     await _ensureBoxIsOpen<ExerciseModel>('exercises');
 
+    // Ensure default workouts/exercises are initialized first
+    try {
+      await DefaultWorkoutsService.initializeDefaultWorkouts();
+    } catch (e) {
+      print('Note: Default workouts may already be initialized: $e');
+    }
+
     // Create 5 default sets if they don't exist
     final box = Hive.box<WorkoutSetCategoryModel>('workoutSetCategories');
     final activeSets = box.values.where((set) => set.isActive).toList();
 
+    // Default set names and exercises
+    final defaultSetNames = [
+      'Upper Body Gym',
+      'Lower Body Gym',
+      'Core Back Body Gym',
+      'Home Workout',
+      'Outdoor Running',
+    ];
+
+    // Default exercises for each set (by name)
+    final defaultExercisesBySet = [
+      // Set 1: Upper Body Gym
+      [
+        'Bench press',
+        'Pull-ups',
+        'Dumbbell bench press',
+        'Bicep curls',
+        'Overhead press',
+      ],
+      // Set 2: Lower Body Gym
+      ['back squat', 'front squat', 'Leg press', 'Deadlift conventional'],
+      // Set 3: Core Back Body Gym
+      ['Deadlift conventional', 'Lat pulldown', 'Plank', 'Hanging leg raises'],
+      // Set 4: Home Workout
+      ['Push-ups', 'Burpees', 'Bodyweight Squats', 'Plank', 'Jumping Jacks'],
+      // Set 5: Outdoor Running
+      ['Running', 'Treadmill running or walking'],
+    ];
+
+    final exercisesBox = Hive.box<ExerciseModel>('exercises');
+    final allExercises = exercisesBox.values.toList();
+
+    // Create "Running" exercise if it doesn't exist (for outdoor running)
+    final runningExists = allExercises.any(
+      (e) =>
+          e.name.toLowerCase().contains('running') &&
+          !e.name.toLowerCase().contains('treadmill'),
+    );
+
+    if (!runningExists) {
+      final runningExercise = ExerciseModel(
+        id: 'default_exercise_running_${DateTime.now().millisecondsSinceEpoch}',
+        name: 'Running',
+        description: 'Outdoor running for cardiovascular fitness and endurance',
+        category: 'cardio',
+        muscleGroup: 'full_body',
+        equipment: 'none',
+        difficulty: 'beginner',
+        instructions: [
+          'Start with a warm-up walk',
+          'Gradually increase pace to running speed',
+          'Maintain steady breathing rhythm',
+          'Land on midfoot, not heel',
+          'Keep posture upright',
+          'Cool down with walking at the end',
+        ],
+        imageUrl: null,
+        isCustom: false,
+        createdAt: DateTime.now(),
+        tags: ['outdoor', 'cardio'],
+      );
+      await exercisesBox.put(runningExercise.id, runningExercise);
+      allExercises.add(runningExercise);
+    }
+
+    // Helper function to find exercises by name
+    List<String> _findExerciseIds(
+      List<String> exerciseNames,
+      List<ExerciseModel> exercises,
+    ) {
+      final exerciseIds = <String>[];
+
+      for (final exerciseName in exerciseNames) {
+        ExerciseModel? exercise;
+
+        // Try exact match first
+        try {
+          exercise = exercises.firstWhere(
+            (e) =>
+                e.name.toLowerCase().trim() ==
+                exerciseName.toLowerCase().trim(),
+          );
+        } catch (e) {
+          // Try partial match
+          try {
+            exercise = exercises.firstWhere(
+              (e) =>
+                  e.name.toLowerCase().contains(exerciseName.toLowerCase()) ||
+                  exerciseName.toLowerCase().contains(e.name.toLowerCase()),
+            );
+          } catch (e2) {
+            // Exercise not found, skip it
+            exercise = null;
+          }
+        }
+
+        // Only add if exercise was found
+        if (exercise != null &&
+            exercise.id.isNotEmpty &&
+            !exerciseIds.contains(exercise.id)) {
+          exerciseIds.add(exercise.id);
+        }
+      }
+
+      return exerciseIds;
+    }
+
+    // Create sets if they don't exist, or populate empty sets
     if (activeSets.isEmpty) {
+      // Create all 5 sets
       for (int i = 0; i < MAX_SETS; i++) {
+        final exerciseIds = _findExerciseIds(
+          defaultExercisesBySet[i],
+          allExercises,
+        );
+
         final newSet = WorkoutSetCategoryModel(
           id: '${DateTime.now().millisecondsSinceEpoch}_$i',
-          name: 'Set ${i + 1}',
+          name: defaultSetNames[i],
           position: i,
           description: '',
-          exerciseIds: [],
+          exerciseIds: exerciseIds,
           color: AppColorPalette.getColorByIndex(i).value.toString(),
           createdAt: DateTime.now(),
         );
         await box.add(newSet);
+      }
+    } else {
+      // Update existing sets that are empty or have wrong names
+      for (int i = 0; i < MAX_SETS; i++) {
+        WorkoutSetCategoryModel? existingSet;
+        try {
+          existingSet = activeSets.firstWhere((set) => set.position == i);
+        } catch (e) {
+          existingSet = null;
+        }
+
+        if (existingSet == null) {
+          // Create missing set
+          final exerciseIds = _findExerciseIds(
+            defaultExercisesBySet[i],
+            allExercises,
+          );
+          final newSet = WorkoutSetCategoryModel(
+            id: '${DateTime.now().millisecondsSinceEpoch}_$i',
+            name: defaultSetNames[i],
+            position: i,
+            description: '',
+            exerciseIds: exerciseIds,
+            color: AppColorPalette.getColorByIndex(i).value.toString(),
+            createdAt: DateTime.now(),
+          );
+          await box.add(newSet);
+        } else if (existingSet.exerciseIds.isEmpty ||
+            existingSet.name != defaultSetNames[i]) {
+          // Populate empty set or update name
+          final exerciseIds = _findExerciseIds(
+            defaultExercisesBySet[i],
+            allExercises,
+          );
+          existingSet.exerciseIds = exerciseIds;
+          if (existingSet.name != defaultSetNames[i]) {
+            existingSet.updateName(defaultSetNames[i]);
+          } else {
+            existingSet.save();
+          }
+        }
       }
     }
 
@@ -133,6 +297,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         return Column(
           children: [
             _buildSetFilters(activeSets),
+            _buildWorkoutHeader(activeSets),
             if (_isSearchVisible) _buildSearchBar(),
             Expanded(child: _buildExercisesList(activeSets)),
           ],
@@ -218,27 +383,112 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     VoidCallback? onLongPress,
   }) {
     final chipColor = color ?? AppColorPalette.grey;
+    // Calculate dimensions: height based on vertical padding, width = 0.5 * height
+    // With vertical padding of 8, approximate height is ~36px (8*2 + text height ~20)
+    // So width should be around 18px
+    const double verticalPadding = 8;
+    const double approximateHeight = 36; // verticalPadding * 2 + text height
+    const double targetWidth = approximateHeight * .8; // ~18px
+
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        width: targetWidth,
+        padding: EdgeInsets.symmetric(horizontal: 4, vertical: verticalPadding),
         decoration: BoxDecoration(
           color: isSelected ? chipColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: isSelected ? chipColor : AppColorPalette.grey400,
             width: 2,
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? AppColorPalette.white : AppColorPalette.grey800,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected
+                  ? AppColorPalette.white
+                  : AppColorPalette.grey800,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildWorkoutHeader(List<WorkoutSetCategoryModel> sets) {
+    // Get the selected set or default to "All"
+    WorkoutSetCategoryModel? selectedSet;
+    if (_selectedSetId != null && sets.isNotEmpty) {
+      try {
+        selectedSet = sets.firstWhere((set) => set.id == _selectedSetId);
+      } catch (e) {
+        selectedSet = null;
+      }
+    }
+
+    final workoutName = selectedSet != null ? selectedSet.name : 'Any Workout';
+    final lastPerformanceDate = selectedSet?.lastPerformanceDate;
+
+    String dateText = 'Never performed';
+    if (lastPerformanceDate != null) {
+      final now = DateTime.now();
+      final difference = now.difference(lastPerformanceDate);
+
+      if (difference.inDays == 0) {
+        dateText = 'Today';
+      } else if (difference.inDays == 1) {
+        dateText = 'Yesterday';
+      } else if (difference.inDays < 7) {
+        dateText = '${difference.inDays} days ago';
+      } else if (difference.inDays < 30) {
+        final weeks = (difference.inDays / 7).floor();
+        dateText = weeks == 1 ? '1 week ago' : '$weeks weeks ago';
+      } else if (difference.inDays < 365) {
+        final months = (difference.inDays / 30).floor();
+        dateText = months == 1 ? '1 month ago' : '$months months ago';
+      } else {
+        final years = (difference.inDays / 365).floor();
+        dateText = years == 1 ? '1 year ago' : '$years years ago';
+      }
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColorPalette.grey100,
+        border: Border(bottom: BorderSide(color: AppColorPalette.grey300)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  workoutName,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColorPalette.grey800,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Last performed: $dateText',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColorPalette.grey600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -306,11 +556,6 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     ExerciseModel exercise,
     List<WorkoutSetCategoryModel> sets,
   ) {
-    // Find which sets contain this exercise
-    final containingSets = sets
-        .where((set) => set.exerciseIds.contains(exercise.id))
-        .toList();
-
     return BaseCard(
       margin: EdgeInsets.only(bottom: 12),
       onTap: () => _viewExerciseDetails(exercise),
@@ -319,6 +564,32 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         children: [
           Row(
             children: [
+              // Exercise image/icon on the left
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: WorkoutIconWidget(
+                    key: ValueKey(
+                      'workout_list_icon_${exercise.id}_${exercise.imageUrl}',
+                    ),
+                    imageUrl: exercise.imageUrl,
+                    size: 50,
+                    backgroundColor: Colors.white,
+                    placeholder: Icon(
+                      _getCategoryIcon(exercise.category),
+                      color: _getCategoryColor(exercise.category),
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -350,54 +621,52 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           SizedBox(height: 12),
           Row(
             children: [
-              // Show set indicators
-              if (containingSets.isNotEmpty) ...[
-                ...containingSets.take(3).map((set) {
-                  final index = sets.indexOf(set);
-                  return Padding(
-                    padding: EdgeInsets.only(right: 4),
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: _getSetColor(set).withValues(alpha: 0.2),
-                        border: Border.all(color: _getSetColor(set), width: 2),
-                        borderRadius: BorderRadius.circular(6),
+              // Show 5 set rectangles
+              ...List.generate(5, (index) {
+                final set = sets.length > index ? sets[index] : null;
+                final belongsToSet =
+                    set != null && set.exerciseIds.contains(exercise.id);
+                final setColor = set != null
+                    ? _getSetColor(set)
+                    : AppColorPalette.grey300;
+
+                return Padding(
+                  padding: EdgeInsets.only(right: 3),
+                  child: Container(
+                    width: 18,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: belongsToSet ? setColor : Colors.transparent,
+                      border: Border.all(
+                        color: belongsToSet
+                            ? setColor
+                            : AppColorPalette.grey300,
+                        width: 1.2,
                       ),
-                      child: Center(
-                        child: Text(
-                          '${index + 1}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: _getSetColor(set),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-                if (containingSets.length > 3)
-                  Padding(
-                    padding: EdgeInsets.only(left: 4),
-                    child: Text(
-                      '+${containingSets.length - 3}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColorPalette.grey,
-                      ),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                Spacer(),
-              ],
-              Text(
-                '[Last Performance data]',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColorPalette.grey,
-                  fontStyle: FontStyle.italic,
+                );
+              }),
+              Spacer(),
+              if (exercise.lastWorkoutDate != null)
+                Text(
+                  _formatLastPerformanceDate(exercise.lastWorkoutDate!),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColorPalette.grey600,
+                    fontStyle: FontStyle.italic,
+                  ),
+                )
+              else
+                Text(
+                  'Never performed',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColorPalette.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
-              ),
             ],
           ),
         ],
@@ -452,6 +721,58 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     return AppColorPalette.getColorByIndex(setCategory.position);
   }
 
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case 'strength':
+        return Colors.red;
+      case 'cardio':
+        return Colors.orange;
+      case 'flexibility':
+        return Colors.green;
+      case 'sports':
+        return Colors.blue;
+      default:
+        return Colors.purple;
+    }
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'strength':
+        return Icons.fitness_center;
+      case 'cardio':
+        return Icons.directions_run;
+      case 'flexibility':
+        return Icons.self_improvement;
+      case 'sports':
+        return Icons.sports;
+      default:
+        return Icons.accessibility;
+    }
+  }
+
+  String _formatLastPerformanceDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      return 'Today';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return weeks == 1 ? '1 week ago' : '$weeks weeks ago';
+    } else if (difference.inDays < 365) {
+      final months = (difference.inDays / 30).floor();
+      return months == 1 ? '1 month ago' : '$months months ago';
+    } else {
+      final years = (difference.inDays / 365).floor();
+      return years == 1 ? '1 year ago' : '$years years ago';
+    }
+  }
+
   Widget _buildTimedTab() {
     return Center(
       child: EmptyState(
@@ -490,33 +811,92 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   Widget _buildLastWorkoutInfo(ExerciseModel exercise) {
     // Get last workout data
     final lastWorkout = WorkoutService.getLastWorkoutData(exercise);
-    
+    final unit = exercise.measurementUnit;
+
     String setsText;
-    String weightText;
-    
+    String? valueText; // Can be null for 'none' type
+
     if (lastWorkout != null && lastWorkout.reps.isNotEmpty) {
       // Use last workout data
       final numSets = lastWorkout.reps.length;
-      // Get average weight or first non-null weight
-      final validWeights = lastWorkout.weights
+      setsText = '${numSets}x ';
+
+      // Get values based on measurement type
+      final validValues = lastWorkout.weights
           .whereType<double>()
           .where((w) => w > 0)
           .toList();
-      if (validWeights.isNotEmpty) {
-        final avgWeight = validWeights.reduce((a, b) => a + b) / validWeights.length;
-        setsText = '${numSets}x ';
-        weightText = '${avgWeight.toStringAsFixed(0)}kg';
+
+      if (validValues.isNotEmpty) {
+        switch (unit) {
+          case 'seconds':
+            // Time-based: show average duration
+            final avgDuration =
+                validValues.reduce((a, b) => a + b) / validValues.length;
+            final minutes = (avgDuration / 60).floor();
+            final seconds = (avgDuration % 60).round();
+            if (minutes > 0) {
+              valueText = '${minutes}m ${seconds}s';
+            } else {
+              valueText = '${seconds}s';
+            }
+            break;
+          case 'none':
+            // Bodyweight: no value displayed
+            valueText = null;
+            break;
+          case 'lbs':
+            // Weight in pounds
+            final avgWeight =
+                validValues.reduce((a, b) => a + b) / validValues.length;
+            valueText = '${avgWeight.toStringAsFixed(0)}lbs';
+            break;
+          case 'kg':
+          default:
+            // Weight in kilograms
+            final avgWeight =
+                validValues.reduce((a, b) => a + b) / validValues.length;
+            valueText = '${avgWeight.toStringAsFixed(0)}kg';
+            break;
+        }
       } else {
-        // No valid weights, use default
-        setsText = '${numSets}x ';
-        weightText = '10kg';
+        // No valid values, use defaults based on type
+        switch (unit) {
+          case 'seconds':
+            valueText = '30s';
+            break;
+          case 'none':
+            valueText = null;
+            break;
+          case 'lbs':
+            valueText = '10lbs';
+            break;
+          case 'kg':
+          default:
+            valueText = '10kg';
+            break;
+        }
       }
     } else {
-      // Use default values
+      // Use default values based on measurement type
       setsText = '3x ';
-      weightText = '10kg';
+      switch (unit) {
+        case 'seconds':
+          valueText = '30s';
+          break;
+        case 'none':
+          valueText = null;
+          break;
+        case 'lbs':
+          valueText = '10lbs';
+          break;
+        case 'kg':
+        default:
+          valueText = '10kg';
+          break;
+      }
     }
-    
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -524,21 +904,17 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             setsText,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
-          Text(
-            weightText,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColorPalette.grey700,
+          if (valueText != null)
+            Text(
+              valueText,
+              style: TextStyle(fontSize: 14, color: AppColorPalette.grey700),
             ),
-          ),
         ],
       ),
     );

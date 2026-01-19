@@ -422,7 +422,7 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                   final set = entry.value;
                   return Chip(
                     label: Text(
-                      'Set ${setIndex + 1}: ${set.reps} × ${set.weight}kg',
+                      'Set ${setIndex + 1}: ${set.reps} × ${set.value ?? 0}${set.measurementType == 'seconds' ? 's' : set.measurementType == 'none' ? '' : set.measurementType}',
                       style: TextStyle(fontSize: 12),
                     ),
                     backgroundColor: Colors.blue.withValues(alpha:0.1),
@@ -691,9 +691,8 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
           id: '${exercise.id}_set_1',
           exerciseId: exercise.id,
           reps: 10,
-          weight: 0,
-          duration: 0,
-          distance: 0,
+          measurementType: exercise.measurementUnit,
+          value: exercise.measurementUnit == 'none' ? null : 0.0,
           restTimeSeconds: 60,
           isCompleted: false,
         ),
@@ -783,15 +782,14 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                                   SizedBox(width: 8),
                                   Expanded(
                                     child: TextFormField(
-                                      initialValue: set.weight.toString(),
+                                      initialValue: set.value?.toString() ?? '0',
                                       decoration: InputDecoration(
-                                        labelText: 'Weight (kg)',
+                                        labelText: 'Weight (${set.measurementType})',
                                         border: OutlineInputBorder(),
                                       ),
-                                      keyboardType: TextInputType.number,
+                                      keyboardType: TextInputType.numberWithOptions(decimal: true),
                                       onChanged: (value) {
-                                        set.weight =
-                                            double.tryParse(value) ?? 0;
+                                        set.updateValue(double.tryParse(value), set.measurementType);
                                       },
                                     ),
                                   ),
@@ -824,7 +822,8 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                               id: '${exercise.id}_set_${sets.length + 1}',
                               exerciseId: exercise.id,
                               reps: 10,
-                              weight: 0,
+                              measurementType: exercise.measurementUnit,
+                              value: exercise.measurementUnit == 'none' ? null : 0.0,
                               restTimeSeconds: 60,
                               isCompleted: false,
                             ),

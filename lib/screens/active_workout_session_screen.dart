@@ -86,7 +86,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                 id: set.id,
                 exerciseId: set.exerciseId,
                 reps: set.reps,
-                weight: set.weight,
+                measurementType: set.measurementType,
+                value: set.value,
                 restTimeSeconds: set.restTimeSeconds,
                 isCompleted: false, // Always start with unchecked boxes
                 completedAt: null, // Clear completion time
@@ -485,21 +486,11 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             ),
             SizedBox(height: 16),
             Table(
-              columnWidths: {
-                0: FlexColumnWidth(1),
-                1: FlexColumnWidth(2),
-                2: FlexColumnWidth(2),
-                3: FlexColumnWidth(1),
-              },
+              columnWidths: _getTableColumnWidths(exercise),
               children: [
                 TableRow(
                   decoration: BoxDecoration(color: Colors.grey[100]),
-                  children: [
-                    _buildTableHeader('Set'),
-                    _buildTableHeader('Reps'),
-                    _buildTableHeader('Weight (kg)'),
-                    _buildTableHeader('✓'),
-                  ],
+                  children: _buildTableHeaders(exercise),
                 ),
                 ...sets.asMap().entries.map(
                   (entry) => _buildSetRow(exercise, entry.key, entry.value),
@@ -559,64 +550,156 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     );
   }
 
+  Map<int, TableColumnWidth> _getTableColumnWidths(ExerciseModel exercise) {
+    final unit = exercise.measurementUnit;
+    if (unit == 'none') {
+      // Bodyweight only - no weight/duration column
+      return {
+        0: FlexColumnWidth(1),
+        1: FlexColumnWidth(3),
+        2: FlexColumnWidth(1),
+      };
+    } else if (unit == 'seconds') {
+      // Time-based - show duration instead of weight
+      return {
+        0: FlexColumnWidth(1),
+        1: FlexColumnWidth(2),
+        2: FlexColumnWidth(2),
+        3: FlexColumnWidth(1),
+      };
+    } else {
+      // Weight-based (kg or lbs)
+      return {
+        0: FlexColumnWidth(1),
+        1: FlexColumnWidth(2),
+        2: FlexColumnWidth(2),
+        3: FlexColumnWidth(1),
+      };
+    }
+  }
+
+  List<Widget> _buildTableHeaders(ExerciseModel exercise) {
+    final unit = exercise.measurementUnit;
+    final headers = <Widget>[
+      _buildTableHeader('Set'),
+      _buildTableHeader('Reps'),
+    ];
+
+    if (unit == 'seconds') {
+      headers.add(_buildTableHeader('Duration'));
+    } else if (unit == 'none') {
+      // No additional column for bodyweight exercises
+    } else {
+      // Weight-based (kg or lbs)
+      final unitLabel = unit == 'lbs' ? 'Weight (lbs)' : 'Weight (kg)';
+      headers.add(_buildTableHeader(unitLabel));
+    }
+
+    headers.add(_buildTableHeader('✓'));
+    return headers;
+  }
+
   TableRow _buildSetRow(
     ExerciseModel exercise,
     int index,
     WorkoutSetModel set,
   ) {
-    return TableRow(
-      children: [
-        Padding(
-          padding: EdgeInsets.all(8),
-          child: Text(
-            '${index + 1}',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
+    final unit = exercise.measurementUnit;
+    final cells = <Widget>[
+      Padding(
+        padding: EdgeInsets.all(8),
+        child: Text(
+          '${index + 1}',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.w500),
         ),
+      ),
+      Padding(
+        padding: EdgeInsets.all(4),
+        child: TextFormField(
+          initialValue: set.reps.toString(),
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+          onChanged: (value) {
+            setState(() {
+              set.reps = int.tryParse(value) ?? 0;
+            });
+          },
+        ),
+      ),
+    ];
+
+    // Add measurement column based on unit type
+    if (unit == 'seconds') {
+      // Time-based exercise - show duration input
+      cells.add(
         Padding(
           padding: EdgeInsets.all(4),
           child: TextFormField(
-            initialValue: set.reps.toString(),
+            initialValue: set.duration?.toString() ?? (set.measurementType == 'seconds' ? '30' : '0'),
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             decoration: InputDecoration(
               border: OutlineInputBorder(),
               isDense: true,
+              hintText: 'sec',
             ),
             onChanged: (value) {
               setState(() {
-                set.reps = int.tryParse(value) ?? 0;
+                final durationValue = int.tryParse(value);
+                if (durationValue != null) {
+                  set.updateDuration(durationValue);
+                } else {
+                  set.value = null;
+                }
               });
             },
           ),
         ),
+      );
+    } else if (unit == 'none') {
+      // Bodyweight only - no measurement column
+    } else {
+      // Weight-based (kg or lbs)
+      cells.add(
         Padding(
           padding: EdgeInsets.all(4),
           child: TextFormField(
-            initialValue: set.weight?.toString() ?? '0',
-            keyboardType: TextInputType.number,
+            initialValue: set.value?.toString() ?? (set.measurementType == 'none' ? '' : '0'),
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
             textAlign: TextAlign.center,
             decoration: InputDecoration(
               border: OutlineInputBorder(),
               isDense: true,
+              hintText: unit,
             ),
             onChanged: (value) {
               setState(() {
-                set.weight = double.tryParse(value) ?? 0;
+                final weightValue = double.tryParse(value);
+                set.updateValue(weightValue, unit);
               });
             },
           ),
         ),
-        Padding(
-          padding: EdgeInsets.all(8),
-          child: Checkbox(
-            value: set.isCompleted,
-            onChanged: (value) => _toggleSetCompletion(exercise, index),
-          ),
+      );
+    }
+
+    // Add completion checkbox
+    cells.add(
+      Padding(
+        padding: EdgeInsets.all(8),
+        child: Checkbox(
+          value: set.isCompleted,
+          onChanged: (value) => _toggleSetCompletion(exercise, index),
         ),
-      ],
+      ),
     );
+
+    return TableRow(children: cells);
   }
 
   Widget _buildBottomControls() {
@@ -749,12 +832,29 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
   void _addSet(ExerciseModel exercise) {
     setState(() {
       final sets = _exerciseSets[exercise.id]!;
+      final unit = exercise.measurementUnit;
+
+      // Determine default values based on unit type
+      double? defaultValue;
+
+      if (unit == 'seconds') {
+        // Time-based: use duration, default to 30 seconds
+        defaultValue = sets.isNotEmpty ? sets.last.value : 30.0;
+      } else if (unit == 'none') {
+        // Bodyweight: no weight or duration
+        defaultValue = null;
+      } else {
+        // Weight-based: default to 10 (kg or lbs)
+        defaultValue = sets.isNotEmpty ? sets.last.value : 10.0;
+      }
+
       sets.add(
         WorkoutSetModel(
           id: '${exercise.id}_set_${sets.length + 1}',
           exerciseId: exercise.id,
           reps: sets.isNotEmpty ? sets.last.reps : 10,
-          weight: sets.isNotEmpty ? sets.last.weight : 10,
+          measurementType: unit,
+          value: defaultValue,
           restTimeSeconds: 60,
           isCompleted: false,
         ),
@@ -773,8 +873,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         title: Text('Reset Sets'),
         content: Text(
           hasRoutine
-              ? 'This will reset all reps and weights for this exercise to the routine\'s original values. Completion status will be preserved. Are you sure?'
-              : 'This will reset all reps and weights for this exercise to default values (10 reps, 10kg). Completion status will be preserved. Are you sure?',
+              ? 'This will reset all values for this exercise to the routine\'s original values. Completion status will be preserved. Are you sure?'
+              : _getResetMessage(exercise),
         ),
         actions: [
           TextButton(
@@ -794,9 +894,24 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     );
   }
 
+  String _getResetMessage(ExerciseModel exercise) {
+    final unit = exercise.measurementUnit;
+    switch (unit) {
+      case 'seconds':
+        return 'This will reset all values for this exercise to default values (10 reps, 30 seconds). Completion status will be preserved. Are you sure?';
+      case 'none':
+        return 'This will reset all reps for this exercise to default values (10 reps). Completion status will be preserved. Are you sure?';
+      case 'lbs':
+        return 'This will reset all values for this exercise to default values (10 reps, 10lbs). Completion status will be preserved. Are you sure?';
+      default:
+        return 'This will reset all values for this exercise to default values (10 reps, 10kg). Completion status will be preserved. Are you sure?';
+    }
+  }
+
   void _performSetReset(ExerciseModel exercise) {
     setState(() {
       final currentSets = _exerciseSets[exercise.id]!;
+      final unit = exercise.measurementUnit;
 
       if (widget.routine != null &&
           widget.routine!.exerciseSets.containsKey(exercise.id)) {
@@ -810,7 +925,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             final completedAt = currentSets[i].completedAt;
 
             currentSets[i].reps = routineSets[i].reps;
-            currentSets[i].weight = routineSets[i].weight;
+            currentSets[i].measurementType = routineSets[i].measurementType;
+            currentSets[i].value = routineSets[i].value;
             currentSets[i].restTimeSeconds = routineSets[i].restTimeSeconds;
             currentSets[i].notes = routineSets[i].notes;
 
@@ -823,7 +939,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             final completedAt = currentSets[i].completedAt;
 
             currentSets[i].reps = 10;
-            currentSets[i].weight = 10;
+            _setDefaultMeasurement(currentSets[i], unit);
             currentSets[i].restTimeSeconds = 60;
 
             // Preserve completion status
@@ -838,7 +954,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           final completedAt = set.completedAt;
 
           set.reps = 10;
-          set.weight = 10;
+          _setDefaultMeasurement(set, unit);
           set.restTimeSeconds = 60;
 
           // Preserve completion status
@@ -854,6 +970,20 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         backgroundColor: Colors.orange,
       ),
     );
+  }
+
+  void _setDefaultMeasurement(WorkoutSetModel set, String unit) {
+    switch (unit) {
+      case 'seconds':
+        set.updateValue(30.0, 'seconds');
+        break;
+      case 'none':
+        set.updateValue(null, 'none');
+        break;
+      default:
+        set.updateValue(10.0, unit);
+        break;
+    }
   }
 
   void _editRoutine() async {
@@ -923,7 +1053,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                   id: routineSets[i].id,
                   exerciseId: routineSets[i].exerciseId,
                   reps: routineSets[i].reps,
-                  weight: routineSets[i].weight,
+                  measurementType: routineSets[i].measurementType,
+                  value: routineSets[i].value,
                   restTimeSeconds: routineSets[i].restTimeSeconds,
                   isCompleted: false,
                   notes: routineSets[i].notes,
@@ -1145,7 +1276,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                 'id': set.id,
                 'exerciseId': set.exerciseId,
                 'reps': set.reps,
-                'weight': set.weight,
+                'measurementType': set.measurementType,
+                'value': set.value,
                 'restTimeSeconds': set.restTimeSeconds,
                 'isCompleted': set.isCompleted,
                 'completedAt': set.completedAt?.toIso8601String(),

@@ -31,6 +31,9 @@ class WorkoutSetCategoryModel extends HiveObject {
   @HiveField(8)
   DateTime? modifiedAt;
 
+  @HiveField(9)
+  DateTime? lastPerformanceDate; // Last time this set was performed
+
   WorkoutSetCategoryModel({
     required this.id,
     required this.name,
@@ -41,6 +44,7 @@ class WorkoutSetCategoryModel extends HiveObject {
     this.isActive = true,
     required this.createdAt,
     this.modifiedAt,
+    this.lastPerformanceDate,
   });
 
   // Convenience methods
@@ -88,6 +92,7 @@ class WorkoutSetCategoryModel extends HiveObject {
     bool? isActive,
     DateTime? createdAt,
     DateTime? modifiedAt,
+    DateTime? lastPerformanceDate,
   }) {
     return WorkoutSetCategoryModel(
       id: id ?? this.id,
@@ -99,6 +104,7 @@ class WorkoutSetCategoryModel extends HiveObject {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       modifiedAt: modifiedAt ?? this.modifiedAt,
+      lastPerformanceDate: lastPerformanceDate ?? this.lastPerformanceDate,
     );
   }
 
@@ -113,6 +119,7 @@ class WorkoutSetCategoryModel extends HiveObject {
       'isActive': isActive,
       'createdAt': createdAt.toIso8601String(),
       'modifiedAt': modifiedAt?.toIso8601String(),
+      'lastPerformanceDate': lastPerformanceDate?.toIso8601String(),
     };
   }
 
@@ -129,6 +136,15 @@ class WorkoutSetCategoryModel extends HiveObject {
       modifiedAt: json['modifiedAt'] != null
           ? DateTime.parse(json['modifiedAt'] as String)
           : null,
+      lastPerformanceDate: json['lastPerformanceDate'] != null
+          ? DateTime.parse(json['lastPerformanceDate'] as String)
+          : null,
     );
+  }
+
+  void updateLastPerformanceDate(DateTime date) {
+    lastPerformanceDate = date;
+    modifiedAt = DateTime.now();
+    save();
   }
 }

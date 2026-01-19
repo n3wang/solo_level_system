@@ -27,13 +27,14 @@ class WorkoutSetCategoryModelAdapter
       isActive: fields[6] as bool,
       createdAt: fields[7] as DateTime,
       modifiedAt: fields[8] as DateTime?,
+      lastPerformanceDate: fields[9] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, WorkoutSetCategoryModel obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -51,7 +52,9 @@ class WorkoutSetCategoryModelAdapter
       ..writeByte(7)
       ..write(obj.createdAt)
       ..writeByte(8)
-      ..write(obj.modifiedAt);
+      ..write(obj.modifiedAt)
+      ..writeByte(9)
+      ..write(obj.lastPerformanceDate);
   }
 
   @override

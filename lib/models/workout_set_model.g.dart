@@ -20,24 +20,22 @@ class WorkoutSetModelAdapter extends TypeAdapter<WorkoutSetModel> {
       id: fields[0] as String,
       exerciseId: fields[1] as String,
       reps: fields[2] as int,
-      weight: fields[3] as double?,
-      duration: fields[4] as int?,
-      distance: fields[5] as double?,
-      restTimeSeconds: fields[6] as int,
+      measurementType: fields[3] as String,
+      value: fields[4] as double?,
+      restTimeSeconds: fields[5] as int,
       isCompleted: fields[7] as bool,
       completedAt: fields[8] as DateTime?,
       notes: fields[9] as String?,
       targetReps: fields[10] as int?,
-      targetWeight: fields[11] as double?,
-      targetDuration: fields[12] as int?,
-      targetDistance: fields[13] as double?,
+      targetMeasurementType: fields[11] as String?,
+      targetValue: fields[12] as double?,
     );
   }
 
   @override
   void write(BinaryWriter writer, WorkoutSetModel obj) {
     writer
-      ..writeByte(14)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -45,12 +43,10 @@ class WorkoutSetModelAdapter extends TypeAdapter<WorkoutSetModel> {
       ..writeByte(2)
       ..write(obj.reps)
       ..writeByte(3)
-      ..write(obj.weight)
+      ..write(obj.measurementType)
       ..writeByte(4)
-      ..write(obj.duration)
+      ..write(obj.value)
       ..writeByte(5)
-      ..write(obj.distance)
-      ..writeByte(6)
       ..write(obj.restTimeSeconds)
       ..writeByte(7)
       ..write(obj.isCompleted)
@@ -61,11 +57,9 @@ class WorkoutSetModelAdapter extends TypeAdapter<WorkoutSetModel> {
       ..writeByte(10)
       ..write(obj.targetReps)
       ..writeByte(11)
-      ..write(obj.targetWeight)
+      ..write(obj.targetMeasurementType)
       ..writeByte(12)
-      ..write(obj.targetDuration)
-      ..writeByte(13)
-      ..write(obj.targetDistance);
+      ..write(obj.targetValue);
   }
 
   @override

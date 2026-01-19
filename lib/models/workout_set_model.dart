@@ -11,18 +11,15 @@ class WorkoutSetModel extends HiveObject {
   String exerciseId;
 
   @HiveField(2)
-  int reps;
+  int reps; // Number of sets/reps
 
   @HiveField(3)
-  double? weight; // In kg or lbs
+  String measurementType; // 'kg', 'lbs', 'seconds', 'none'
 
   @HiveField(4)
-  int? duration; // In seconds for time-based exercises
+  double? value; // The actual value: weight (kg/lbs), duration (seconds), or null for 'none'
 
   @HiveField(5)
-  double? distance; // In km or miles for cardio
-
-  @HiveField(6)
   int restTimeSeconds;
 
   @HiveField(7)
@@ -38,45 +35,77 @@ class WorkoutSetModel extends HiveObject {
   int? targetReps; // Planned vs actual
 
   @HiveField(11)
-  double? targetWeight;
+  String? targetMeasurementType; // Target measurement type
 
   @HiveField(12)
-  int? targetDuration;
-
-  @HiveField(13)
-  double? targetDistance;
+  double? targetValue; // Target value
 
   WorkoutSetModel({
     required this.id,
     required this.exerciseId,
     required this.reps,
-    this.weight,
-    this.duration,
-    this.distance,
+    this.measurementType = 'kg', // Default to kg for backward compatibility
+    this.value,
     this.restTimeSeconds = 60,
     this.isCompleted = false,
     this.completedAt,
     this.notes,
     this.targetReps,
-    this.targetWeight,
-    this.targetDuration,
-    this.targetDistance,
+    this.targetMeasurementType,
+    this.targetValue,
   });
 
   // Convenience getters
   String get displayText {
-    if (weight != null) {
-      return '$reps reps @ ${weight}kg';
-    } else if (duration != null) {
-      return _formatDuration(duration!);
-    } else if (distance != null) {
-      return '${distance}km';
-    } else {
-      return '$reps reps';
+    return displayTextWithUnit(measurementType);
+  }
+
+  /// Get display text with proper unit based on measurement type
+  String displayTextWithUnit(String? unitOverride) {
+    final unit = unitOverride ?? measurementType;
+    
+    switch (unit) {
+      case 'seconds':
+        // Time-based exercise (e.g., plank)
+        if (value != null) {
+          return _formatDuration(value!.toInt());
+        }
+        return '$reps sets';
+      case 'none':
+        // Bodyweight exercise with no weight/duration tracking
+        return '$reps reps';
+      case 'lbs':
+        // Weight in pounds
+        if (value != null) {
+          return '$reps reps @ ${value}lbs';
+        }
+        return '$reps reps';
+      case 'kg':
+      default:
+        // Weight in kilograms (default)
+        if (value != null) {
+          return '$reps reps @ ${value}kg';
+        }
+        return '$reps reps';
     }
   }
 
-  bool get isPersonalRecord => weight != null; // Simplified for now
+  /// Check if this set uses weight
+  bool get usesWeight => (measurementType == 'kg' || measurementType == 'lbs') && value != null;
+
+  /// Check if this set uses duration
+  bool get usesDuration => measurementType == 'seconds' && value != null;
+
+  /// Check if this set is bodyweight only
+  bool get isBodyweightOnly => measurementType == 'none' || value == null;
+
+  bool get isPersonalRecord => value != null; // Simplified for now
+
+  /// Get weight value (if type is kg or lbs)
+  double? get weight => (measurementType == 'kg' || measurementType == 'lbs') ? value : null;
+
+  /// Get duration value in seconds (if type is seconds)
+  int? get duration => measurementType == 'seconds' && value != null ? value!.toInt() : null;
 
   String get restTimeFormatted => _formatDuration(restTimeSeconds);
 
@@ -87,8 +116,23 @@ class WorkoutSetModel extends HiveObject {
     save();
   }
 
+  void updateValue(double? newValue, String type) {
+    value = newValue;
+    measurementType = type;
+    save();
+  }
+
   void updateWeight(double newWeight) {
-    weight = newWeight;
+    value = newWeight;
+    if (measurementType != 'kg' && measurementType != 'lbs') {
+      measurementType = 'kg'; // Default to kg if not already set
+    }
+    save();
+  }
+
+  void updateDuration(int newDuration) {
+    value = newDuration.toDouble();
+    measurementType = 'seconds';
     save();
   }
 

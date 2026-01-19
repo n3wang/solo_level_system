@@ -30,9 +30,11 @@ class WorkoutService {
       if (sets == null || sets.isEmpty) continue;
 
       // Save ALL sets (completed and uncompleted) for next workout
-      // Extract reps and weights from ALL sets
+      // Extract reps and values from ALL sets
       final reps = sets.map((set) => set.reps).toList();
-      final weights = sets.map((set) => set.weight).toList();
+      final weights = sets
+          .map((set) => set.value)
+          .toList(); // value can be weight or duration
 
       // Update last workout data with ALL sets
       exercise.updateLastWorkoutData(reps, weights);
@@ -72,19 +74,25 @@ class WorkoutService {
   }) {
     bool hasNewPR = false;
 
-    // Filter sets with weight (for strength exercises)
+    // Filter sets with value (for strength exercises with weight)
+    final unit = exercise.measurementUnit;
     final weightedSets = completedSets
-        .where((set) => set.weight != null && set.weight! > 0)
+        .where(
+          (set) =>
+              (set.measurementType == 'kg' || set.measurementType == 'lbs') &&
+              set.value != null &&
+              set.value! > 0,
+        )
         .toList();
 
     if (weightedSets.isNotEmpty) {
       // 1. Max Weight PR (single rep max or heaviest set)
       final maxWeight = weightedSets
-          .map((set) => set.weight!)
+          .map((set) => set.value!)
           .reduce((a, b) => a > b ? a : b);
       if (exercise.personalRecord == null ||
           maxWeight > exercise.personalRecord!) {
-        exercise.updatePersonalRecord(maxWeight, 'kg');
+        exercise.updatePersonalRecord(maxWeight, unit);
         hasNewPR = true;
       }
 
@@ -136,12 +144,24 @@ class WorkoutService {
 
     if (lastWorkout == null) {
       // Return default sets if no last workout data
+      final unit = exercise.measurementUnit;
+      double? defaultValue;
+
+      if (unit == 'seconds') {
+        defaultValue = 30.0;
+      } else if (unit == 'none') {
+        defaultValue = null;
+      } else {
+        defaultValue = 10.0;
+      }
+
       return [
         WorkoutSetModel(
           id: '${exerciseId}_set_1',
           exerciseId: exerciseId,
           reps: 10,
-          weight: 10,
+          measurementType: unit,
+          value: defaultValue,
           restTimeSeconds: 60,
           isCompleted: false,
         ),
@@ -149,7 +169,8 @@ class WorkoutService {
           id: '${exerciseId}_set_2',
           exerciseId: exerciseId,
           reps: 10,
-          weight: 10,
+          measurementType: unit,
+          value: defaultValue,
           restTimeSeconds: 60,
           isCompleted: false,
         ),
@@ -157,7 +178,8 @@ class WorkoutService {
           id: '${exerciseId}_set_3',
           exerciseId: exerciseId,
           reps: 10,
-          weight: 10,
+          measurementType: unit,
+          value: defaultValue,
           restTimeSeconds: 60,
           isCompleted: false,
         ),
@@ -171,7 +193,8 @@ class WorkoutService {
         id: '${exerciseId}_set_${index + 1}',
         exerciseId: exerciseId,
         reps: lastWorkout.reps[index],
-        weight: lastWorkout.weights[index],
+        measurementType: exercise.measurementUnit,
+        value: lastWorkout.weights[index],
         restTimeSeconds: 60,
         isCompleted: false,
       ),

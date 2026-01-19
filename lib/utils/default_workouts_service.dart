@@ -133,6 +133,29 @@ class DefaultWorkoutsService {
                 .toList() ??
             [];
 
+        // Determine measurement unit based on exercise characteristics
+        String measurementUnit = 'kg'; // Default to kg
+        final defaultDuration = exerciseData['default_duration'] as int?;
+        final equipmentLower = equipment.toLowerCase();
+        final nameLower = name.toLowerCase();
+
+        // Time-based exercises (plank, wall sit, etc.)
+        if (defaultDuration != null ||
+            nameLower.contains('plank') ||
+            nameLower.contains('hold') ||
+            nameLower.contains('wall sit')) {
+          measurementUnit = 'seconds';
+        }
+        // Bodyweight exercises with no weight tracking
+        else if (equipmentLower == 'bodyweight' &&
+            !nameLower.contains('weighted') &&
+            !nameLower.contains('dumbbell') &&
+            !nameLower.contains('barbell')) {
+          measurementUnit = 'none';
+        }
+        // Check if exercise should use lbs (could be added to YAML later)
+        // For now, default to kg for all weighted exercises
+
         final exercise = ExerciseModel(
           id: 'default_exercise_${i + 1}',
           name: name,
@@ -152,6 +175,7 @@ class DefaultWorkoutsService {
           isCustom: false,
           createdAt: now,
           tags: tags,
+          measurementUnit: measurementUnit,
         );
         exercises.add(exercise);
       }
@@ -242,13 +266,25 @@ class DefaultWorkoutsService {
             final sets = <WorkoutSetModel>[];
             for (final setNum in setNumbers) {
               if (defaultSets.contains(setNum)) {
+                // Determine measurement type and value
+                String measurementType = exercise.measurementUnit;
+                double? value;
+
+                if (measurementType == 'seconds') {
+                  value = defaultDuration?.toDouble();
+                } else if (measurementType == 'none') {
+                  value = null;
+                } else {
+                  value = exercise.equipment != 'bodyweight' ? 0.0 : null;
+                }
+
                 sets.add(
                   WorkoutSetModel(
                     id: '${exercise.id}_set_$setNum',
                     exerciseId: exercise.id,
                     reps: defaultReps,
-                    duration: defaultDuration,
-                    weight: exercise.equipment != 'bodyweight' ? 0.0 : null,
+                    measurementType: measurementType,
+                    value: value,
                     restTimeSeconds: 60,
                     isCompleted: false,
                   ),
