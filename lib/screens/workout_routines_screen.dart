@@ -63,6 +63,7 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
           ? LoadingIndicator(message: 'Loading routines...')
           : _buildRoutinesList(),
       floatingActionButton: CustomFloatingActionButton(
+        heroTag: "workout_routines_new_routine",
         label: 'New Routine',
         icon: Icons.add,
         onPressed: _createNewRoutine,

@@ -6,6 +6,7 @@ import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/screens/active_workout_session_screen.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 
 class ExerciseDetailsScreen extends StatefulWidget {
   final ExerciseModel exercise;
@@ -65,9 +66,12 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete, color: Colors.red),
+                    Icon(Icons.delete, color: AppColorPalette.error),
                     SizedBox(width: 8),
-                    Text('Delete', style: TextStyle(color: Colors.red)),
+                    Text(
+                      'Delete',
+                      style: TextStyle(color: AppColorPalette.error),
+                    ),
                   ],
                 ),
               ),
@@ -97,14 +101,14 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
         icon: Icon(Icons.play_arrow),
         label: Text('Quick Start'),
         backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColorPalette.white,
       ),
     );
   }
 
   Widget _buildExerciseHeader() {
     return Card(
-      color: Colors.white, // White background
+      color: AppColorPalette.white, // White background
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -126,7 +130,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                       size: 80,
                       placeholder: Icon(
                         _getMuscleGroupIcon(widget.exercise.muscleGroup),
-                        color: Colors.white,
+                        color: AppColorPalette.white,
                         size: 40,
                       ),
                     ),
@@ -148,7 +152,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                       Text(
                         widget.exercise.muscleGroup.toUpperCase(),
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: AppColorPalette.grey600,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -158,7 +162,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                         widget.exercise.difficulty.toUpperCase(),
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: AppColorPalette.grey600,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -171,7 +175,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               SizedBox(height: 16),
               Text(
                 widget.exercise.description,
-                style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                style: TextStyle(fontSize: 16, color: AppColorPalette.grey700),
               ),
             ],
             SizedBox(height: 16),
@@ -182,21 +186,21 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                 _buildInfoChip(
                   widget.exercise.category.toUpperCase(),
                   Icons.category,
-                  Colors.blue,
+                  AppColorPalette.info,
                 ),
                 _buildInfoChip(
                   widget.exercise.equipment == 'bodyweight'
                       ? 'BODYWEIGHT'
                       : widget.exercise.equipment.toUpperCase(),
                   Icons.fitness_center,
-                  Colors.purple,
+                  AppColorPalette.primary,
                 ),
                 if (widget.exercise.tags.isNotEmpty)
                   ...widget.exercise.tags.map(
                     (tag) => _buildInfoChip(
                       tag.toUpperCase(),
                       Icons.tag,
-                      Colors.green,
+                      AppColorPalette.success,
                     ),
                   ),
               ],
@@ -223,7 +227,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                     widget.exercise.personalRecord?.toString() ?? '-',
                     widget.exercise.personalRecordUnit ?? 'kg',
                     Icons.fitness_center,
-                    Colors.red,
+                    AppColorPalette.error,
                   ),
                 ),
                 SizedBox(width: 8),
@@ -233,7 +237,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                     _exerciseHistory.length.toString(),
                     'sessions',
                     Icons.history,
-                    Colors.blue,
+                    AppColorPalette.info,
                   ),
                 ),
                 SizedBox(width: 8),
@@ -245,7 +249,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                         : 'Never',
                     '',
                     Icons.access_time,
-                    Colors.green,
+                    AppColorPalette.success,
                   ),
                 ),
               ],
@@ -297,7 +301,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
           SizedBox(height: 2),
           Text(
             title,
-            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 10, color: AppColorPalette.grey600),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -316,7 +320,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.list_alt, color: Colors.blue),
+                Icon(Icons.list_alt, color: AppColorPalette.info),
                 SizedBox(width: 8),
                 Text(
                   'Instructions',
@@ -329,7 +333,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               Text(
                 'No instructions provided.',
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: AppColorPalette.grey600,
                   fontStyle: FontStyle.italic,
                 ),
               )
@@ -344,14 +348,14 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: Colors.blue,
+                          color: AppColorPalette.info,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Center(
                           child: Text(
                             '${entry.key + 1}',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: AppColorPalette.white,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -384,7 +388,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.history, color: Colors.green),
+                Icon(Icons.history, color: AppColorPalette.success),
                 SizedBox(width: 8),
                 Text(
                   'Recent History',
@@ -397,7 +401,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               Text(
                 'No workout history for this exercise.',
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: AppColorPalette.grey600,
                   fontStyle: FontStyle.italic,
                 ),
               )
@@ -421,15 +425,17 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
       margin: EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: AppColorPalette.grey50,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColorPalette.grey200),
       ),
       child: Row(
         children: [
           Icon(
             session.isCompleted ? Icons.check_circle : Icons.cancel,
-            color: session.isCompleted ? Colors.green : Colors.red,
+            color: session.isCompleted
+                ? AppColorPalette.success
+                : AppColorPalette.error,
             size: 20,
           ),
           SizedBox(width: 12),
@@ -443,14 +449,17 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                 ),
                 Text(
                   _formatDate(session.startTime),
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(
+                    color: AppColorPalette.grey600,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
           ),
           Text(
             '${session.durationMinutes} min',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            style: TextStyle(color: AppColorPalette.grey600, fontSize: 12),
           ),
         ],
       ),
@@ -486,19 +495,19 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   Color _getMuscleGroupColor(String muscleGroup) {
     switch (muscleGroup.toLowerCase()) {
       case 'chest':
-        return Colors.red;
+        return AppColorPalette.error;
       case 'back':
-        return Colors.blue;
+        return AppColorPalette.info;
       case 'legs':
-        return Colors.green;
+        return AppColorPalette.success;
       case 'arms':
-        return Colors.orange;
+        return AppColorPalette.warning;
       case 'shoulders':
-        return Colors.purple;
+        return AppColorPalette.primary;
       case 'core':
-        return Colors.teal;
+        return AppColorPalette.color3;
       default:
-        return Colors.grey;
+        return AppColorPalette.grey;
     }
   }
 
@@ -608,7 +617,10 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                 context,
               ).showSnackBar(SnackBar(content: Text('Exercise deleted')));
             },
-            child: Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: AppColorPalette.error),
+            ),
           ),
         ],
       ),

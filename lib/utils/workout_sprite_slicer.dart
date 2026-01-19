@@ -10,7 +10,8 @@ import 'package:flutter/foundation.dart';
 class WorkoutSpriteSlicer {
   static const int spriteSize = 128;
   static const String spriteSheetPath = 'assets/icon/workout_icons_128px.png';
-  static const String slicedSpritePath = 'assets/icon/workout_icons_sliced/workout_icon_';
+  static const String slicedSpritePath =
+      'assets/icon/workout_icons_sliced/workout_icon_';
 
   // Cache for loaded sprites to prevent reloading
   static final Map<int, ui.Image> _spriteCache = {};
@@ -24,11 +25,11 @@ class WorkoutSpriteSlicer {
     if (_spriteCache.containsKey(index)) {
       return _spriteCache[index];
     }
-    
+
     try {
       // Try to load pre-sliced image first
       final String slicedPath = '$slicedSpritePath$index.png';
-      
+
       try {
         final ByteData data = await rootBundle.load(slicedPath);
         final ui.Codec codec = await ui.instantiateImageCodec(
@@ -36,13 +37,15 @@ class WorkoutSpriteSlicer {
         );
         final ui.FrameInfo frameInfo = await codec.getNextFrame();
         final ui.Image spriteImage = frameInfo.image;
-        
+
         // Cache the sprite for future use
         _spriteCache[index] = spriteImage;
         return spriteImage;
       } catch (e) {
         // Pre-sliced image not found, fall back to runtime slicing
-        print('Pre-sliced image not found for index $index, falling back to runtime slicing');
+        print(
+          'Pre-sliced image not found for index $index, falling back to runtime slicing',
+        );
         return await _getSpriteAtIndexRuntime(index);
       }
     } catch (e) {
@@ -180,11 +183,11 @@ class WorkoutSpriteSlicer {
           break;
         }
       }
-      
+
       if (count > 0) {
         return count;
       }
-      
+
       // Fallback: count from sprite sheet width
       final ui.Image? image = await getSpriteSheet();
       if (image == null) return 0;

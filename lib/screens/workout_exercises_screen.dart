@@ -90,6 +90,7 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
               ],
             ),
       floatingActionButton: CustomFloatingActionButton(
+        heroTag: "workout_exercises_new_exercise",
         label: 'New Exercise',
         icon: Icons.add,
         onPressed: _createNewExercise,

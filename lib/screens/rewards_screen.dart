@@ -93,6 +93,7 @@ class _RewardsScreenState extends State<RewardsScreen>
       ),
       floatingActionButton: _tabController.index == 1
           ? FloatingActionButton(
+              heroTag: "rewards_add_reward",
               onPressed: _showAddRewardDialog,
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,

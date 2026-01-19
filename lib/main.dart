@@ -18,6 +18,7 @@ import 'models/user_progress_model.dart';
 import 'models/reward_model.dart';
 import 'models/motivational_card_model.dart';
 import 'utils/default_workouts_service.dart';
+import 'utils/palette_notifier.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -262,28 +263,51 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   UserSettingsModel userSettings = UserSettingsModel();
   bool _isLoading = true;
+  final _paletteNotifier = PaletteNotifier();
 
   @override
   void initState() {
     super.initState();
     _loadUserSettings();
+    // Listen to palette changes
+    _paletteNotifier.addListener(_onPaletteChanged);
+  }
+
+  @override
+  void dispose() {
+    _paletteNotifier.removeListener(_onPaletteChanged);
+    super.dispose();
+  }
+
+  void _onPaletteChanged() {
+    // Reload settings and rebuild when palette changes
+    if (mounted) {
+      setState(() {
+        // This will trigger a rebuild with new palette colors
+      });
+    }
   }
 
   Future<void> _loadUserSettings() async {
     try {
       final box = Hive.box<UserSettingsModel>('userSettings');
       userSettings = box.get('settings') ?? UserSettingsModel();
-      
+
       // Migrate old palette names
-      if (userSettings.colorPalette == 'original' || userSettings.colorPalette == 'default') {
+      if (userSettings.colorPalette == 'original' ||
+          userSettings.colorPalette == 'default') {
         userSettings.colorPalette = 'creative';
         await box.put('settings', userSettings);
-      } else if (!['grayscale', 'creative', 'pastel'].contains(userSettings.colorPalette)) {
+      } else if (![
+        'grayscale',
+        'creative',
+        'pastel',
+      ].contains(userSettings.colorPalette)) {
         // If palette doesn't exist, default to creative
         userSettings.colorPalette = 'creative';
         await box.put('settings', userSettings);
       }
-      
+
       // Apply saved palette
       AppColorPalette.setActivePalette(userSettings.colorPalette);
     } catch (e) {
@@ -303,21 +327,9 @@ class _MyAppState extends State<MyApp> {
     _loadUserSettings();
   }
 
-  MaterialColor _getPrimaryMaterialColor(String colorName) {
-    switch (colorName) {
-      case 'blue':
-        return AppColorPalette.materialColor2; // Blue
-      case 'green':
-        return AppColorPalette.materialColor3; // Green
-      case 'purple':
-        return AppColorPalette.materialColor1; // Purple
-      case 'orange':
-        return AppColorPalette.materialColor4; // Orange
-      case 'red':
-      default:
-        return AppColorPalette.materialColor5; // Red
-    }
-  }
+  // Note: Primary color is now determined by the active palette
+  // The userSettings.primaryColor is kept for backward compatibility
+  // but the actual theme uses AppColorPalette.primary from the active palette
 
   ThemeMode _getThemeMode(String theme) {
     switch (theme) {
@@ -382,17 +394,51 @@ class _MyAppState extends State<MyApp> {
       );
     }
 
-    final primaryColor = _getPrimaryMaterialColor(userSettings.primaryColor);
+    // Use palette colors for theme - all colors come from active palette
+    final primaryMaterialColor = AppColorPalette.toMaterialColor(
+      AppColorPalette.primary,
+    );
+    final accentColor = AppColorPalette.accent;
+    final backgroundColor = AppColorPalette.background;
+    final scaffoldBackgroundColor = AppColorPalette.scaffoldBackground;
 
     return MaterialApp(
       title: 'Solo Level System',
       theme: ThemeData(
-        primarySwatch: primaryColor,
+        primarySwatch: primaryMaterialColor,
+        primaryColor: AppColorPalette.primary,
+        colorScheme: ColorScheme.light(
+          primary: AppColorPalette.primary,
+          secondary: accentColor,
+          background: backgroundColor,
+          surface: AppColorPalette.backgroundSurface,
+          error: AppColorPalette.error,
+          onPrimary: AppColorPalette.white,
+          onSecondary: AppColorPalette.white,
+          onBackground: AppColorPalette.textColor,
+          onSurface: AppColorPalette.textColor,
+          onError: AppColorPalette.white,
+        ),
+        scaffoldBackgroundColor: scaffoldBackgroundColor,
         brightness: Brightness.light,
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
-        primarySwatch: primaryColor,
+        primarySwatch: primaryMaterialColor,
+        primaryColor: AppColorPalette.primary,
+        colorScheme: ColorScheme.dark(
+          primary: AppColorPalette.primary,
+          secondary: accentColor,
+          background: AppColorPalette.backgroundDark,
+          surface: AppColorPalette.backgroundDarkSurface,
+          error: AppColorPalette.error,
+          onPrimary: AppColorPalette.white,
+          onSecondary: AppColorPalette.white,
+          onBackground: AppColorPalette.white,
+          onSurface: AppColorPalette.white,
+          onError: AppColorPalette.white,
+        ),
+        scaffoldBackgroundColor: AppColorPalette.backgroundDark,
         brightness: Brightness.dark,
         useMaterial3: true,
       ),

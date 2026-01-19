@@ -8,6 +8,7 @@ import 'package:solo_level_system/utils/notification_service.dart';
 import 'package:solo_level_system/utils/timer_controller.dart';
 import 'package:solo_level_system/widgets/palette_selector_widget.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
+import 'package:solo_level_system/utils/palette_notifier.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -234,6 +235,10 @@ class _SettingsScreenState extends State<SettingsScreen>
               });
               AppColorPalette.setActivePalette(paletteName);
               await _saveUserSettings();
+              
+              // Notify palette change to trigger app-wide rebuild
+              PaletteNotifier().notifyPaletteChanged(paletteName);
+              
               // Show feedback
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(

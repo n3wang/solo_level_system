@@ -80,7 +80,7 @@ class UserSettingsModel extends HiveObject {
   UserSettingsModel({
     this.theme = 'system',
     this.primaryColor = 'green',
-    this.colorPalette = 'creative',
+    this.colorPalette = 'grayscale',
     this.defaultWorkMinutes = 25,
     this.defaultBreakMinutes = 5,
     this.autoStartBreaks = false,

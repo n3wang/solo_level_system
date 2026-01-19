@@ -89,6 +89,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
         children: [_buildActiveProjectsTab(), _buildArchivedProjectsTab()],
       ),
       floatingActionButton: CustomFloatingActionButton(
+        heroTag: "projects_new_project",
         label: 'New Project',
         icon: Icons.add,
         onPressed: _showCreateProjectDialog,

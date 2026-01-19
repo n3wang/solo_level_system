@@ -9,6 +9,7 @@ import 'package:solo_level_system/models/workout_routine_model.dart';
 import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/utils/workout_service.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 
 class ActiveWorkoutSessionScreen extends StatefulWidget {
   final WorkoutSessionModel session;
@@ -149,7 +150,10 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                   Text(widget.session.routineName),
                   Text(
                     _formatDuration(_workoutDuration),
-                    style: TextStyle(fontSize: 14, color: Colors.grey[300]),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColorPalette.grey300,
+                    ),
                   ),
                 ],
               ),
@@ -190,7 +194,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                           style: TextStyle(
                             fontSize: 10,
                             color: completedSets == totalSets
-                                ? Colors.green
+                                ? AppColorPalette.success
                                 : null,
                           ),
                         ),
@@ -217,19 +221,21 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           ),
           if (_isLoading)
             Container(
-              color: Colors.black54,
+              color: AppColorPalette.black.withValues(alpha: 0.54),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColorPalette.white,
+                      ),
                     ),
                     SizedBox(height: 16),
                     Text(
                       'Saving workout...',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColorPalette.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
@@ -247,7 +253,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(16),
-      color: Colors.blue.withValues(alpha: 0.1),
+      color: AppColorPalette.info.withValues(alpha: 0.1),
       child: Column(
         children: [
           Text(
@@ -255,7 +261,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.blue,
+              color: AppColorPalette.info,
             ),
           ),
           Text(
@@ -263,7 +269,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: Colors.blue,
+              color: AppColorPalette.info,
             ),
           ),
           Row(
@@ -316,12 +322,15 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
 
     return Card(
       color: isCompleted
-          ? Colors.green.shade50
-          : null, // Light green background when completed
+          ? AppColorPalette.success.withValues(alpha: 0.1)
+          : null, // Light success background when completed
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: isCompleted
-            ? BorderSide(color: Colors.green.shade300, width: 2)
+            ? BorderSide(
+                color: AppColorPalette.success.withValues(alpha: 0.5),
+                width: 2,
+              )
             : BorderSide.none,
       ),
       child: Padding(
@@ -334,7 +343,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColorPalette.white,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: ClipRRect(
@@ -346,7 +355,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                         ),
                         imageUrl: exercise.imageUrl,
                         size: 60,
-                        backgroundColor: Colors.white,
+                        backgroundColor: AppColorPalette.white,
                         placeholder: Icon(
                           _getMuscleGroupIcon(exercise.muscleGroup),
                           color: _getMuscleGroupColor(exercise.muscleGroup),
@@ -364,11 +373,18 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                       width: 20,
                       height: 20,
                       decoration: BoxDecoration(
-                        color: Colors.green,
+                        color: AppColorPalette.success,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(
+                          color: AppColorPalette.white,
+                          width: 2,
+                        ),
                       ),
-                      child: Icon(Icons.check, color: Colors.white, size: 12),
+                      child: Icon(
+                        Icons.check,
+                        color: AppColorPalette.white,
+                        size: 12,
+                      ),
                     ),
                   ),
               ],
@@ -392,21 +408,24 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                       if (isCompleted)
                         Icon(
                           Icons.check_circle,
-                          color: Colors.green.shade700,
+                          color: AppColorPalette.success,
                           size: 24,
                         ),
                     ],
                   ),
                   Text(
                     '${exercise.muscleGroup} • ${exercise.equipment}',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    style: TextStyle(
+                      color: AppColorPalette.grey600,
+                      fontSize: 14,
+                    ),
                   ),
                   if (exercise.personalRecord != null) ...[
                     SizedBox(height: 4),
                     Text(
                       'PR: ${exercise.personalRecord}kg',
                       style: TextStyle(
-                        color: Colors.orange,
+                        color: AppColorPalette.warning,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -426,7 +445,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
 
     return Card(
       child: ExpansionTile(
-        leading: Icon(Icons.info_outline, color: Colors.blue),
+        leading: Icon(Icons.info_outline, color: AppColorPalette.info),
         title: Text('Instructions'),
         children: [
           Padding(
@@ -445,14 +464,14 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                             width: 20,
                             height: 20,
                             decoration: BoxDecoration(
-                              color: Colors.blue,
+                              color: AppColorPalette.info,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Center(
                               child: Text(
                                 '${entry.key + 1}',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: AppColorPalette.white,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -489,7 +508,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
               columnWidths: _getTableColumnWidths(exercise),
               children: [
                 TableRow(
-                  decoration: BoxDecoration(color: Colors.grey[100]),
+                  decoration: BoxDecoration(color: AppColorPalette.grey100),
                   children: _buildTableHeaders(exercise),
                 ),
                 ...sets.asMap().entries.map(
@@ -511,8 +530,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                   child: ElevatedButton(
                     onPressed: () => _resetSetsToDefault(exercise),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColorPalette.warning,
+                      foregroundColor: AppColorPalette.white,
                     ),
                     child: Icon(Icons.refresh),
                   ),
@@ -525,7 +544,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                         : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _allSetsCompleted(exercise)
-                          ? Colors.green
+                          ? AppColorPalette.success
                           : null,
                     ),
                     child: Icon(Icons.arrow_forward),
@@ -710,10 +729,10 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColorPalette.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.3),
+            color: AppColorPalette.grey.withValues(alpha: 0.3),
             spreadRadius: 1,
             blurRadius: 3,
             offset: Offset(0, -1),
@@ -728,7 +747,10 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
               children: [
                 Text(
                   'Workout Time',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColorPalette.grey600,
+                  ),
                 ),
                 Text(
                   _formatDuration(_workoutDuration),
@@ -744,7 +766,10 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
               children: [
                 Text(
                   'Sets Completed',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColorPalette.grey600,
+                  ),
                 ),
                 Text(
                   '${_getTotalCompletedSets()}/${_getTotalSets()}',
@@ -758,8 +783,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             child: ElevatedButton(
               onPressed: _showEndWorkoutDialog,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
+                backgroundColor: AppColorPalette.error,
+                foregroundColor: AppColorPalette.white,
               ),
               child: Text('Finish'),
             ),
@@ -890,7 +915,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
               Navigator.pop(context);
               _performSetReset(exercise);
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.orange),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColorPalette.warning,
+            ),
             child: Text('Reset'),
           ),
         ],
@@ -971,7 +998,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Sets reset to default values'),
-        backgroundColor: Colors.orange,
+        backgroundColor: AppColorPalette.warning,
       ),
     );
   }
@@ -1075,9 +1102,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Routine updated! New sets have been added if any.'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColorPalette.success,
         ),
       );
     } catch (e) {
@@ -1085,7 +1112,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error updating routine: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColorPalette.error,
         ),
       );
     }
@@ -1130,19 +1157,19 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
   Color _getMuscleGroupColor(String muscleGroup) {
     switch (muscleGroup.toLowerCase()) {
       case 'chest':
-        return Colors.red;
+        return AppColorPalette.error;
       case 'back':
-        return Colors.blue;
+        return AppColorPalette.info;
       case 'legs':
-        return Colors.green;
+        return AppColorPalette.success;
       case 'arms':
-        return Colors.orange;
+        return AppColorPalette.warning;
       case 'shoulders':
-        return Colors.purple;
+        return AppColorPalette.primary;
       case 'core':
-        return Colors.teal;
+        return AppColorPalette.color3;
       default:
-        return Colors.grey;
+        return AppColorPalette.grey;
     }
   }
 
@@ -1182,7 +1209,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           if (!allCompleted)
             TextButton(
               onPressed: () => Navigator.pop(context, 'discard'),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColorPalette.error,
+              ),
               child: Text('Discard'),
             ),
           TextButton(
@@ -1231,7 +1260,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                   Navigator.pop(context);
                 }
               },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColorPalette.error,
+              ),
               child: Text('Discard'),
             ),
           TextButton(
@@ -1333,7 +1364,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('🎉 New Personal Records: $exerciseNames'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColorPalette.success,
             duration: Duration(seconds: 4),
           ),
         );

@@ -16,7 +16,7 @@ class AppColorPalette {
 
   // Current active theme (can be set dynamically)
   static AppTheme? _activeTheme;
-  
+
   // Current active palette name (defaults to creative)
   static String _activePaletteName = 'creative';
 
@@ -39,16 +39,16 @@ class AppColorPalette {
 
   /// Get color1 from active palette
   static Color get color1 => _getColorFromPalette(1);
-  
+
   /// Get color2 from active palette
   static Color get color2 => _getColorFromPalette(2);
-  
+
   /// Get color3 from active palette
   static Color get color3 => _getColorFromPalette(3);
-  
+
   /// Get color4 from active palette
   static Color get color4 => _getColorFromPalette(4);
-  
+
   /// Get color5 from active palette
   static Color get color5 => _getColorFromPalette(5);
 
@@ -57,78 +57,114 @@ class AppColorPalette {
     switch (_activePaletteName) {
       case 'grayscale':
         switch (index) {
-          case 1: return GrayscalePalette.color1;
-          case 2: return GrayscalePalette.color2;
-          case 3: return GrayscalePalette.color3;
-          case 4: return GrayscalePalette.color4;
-          case 5: return GrayscalePalette.color5;
+          case 1:
+            return GrayscalePalette.color1;
+          case 2:
+            return GrayscalePalette.color2;
+          case 3:
+            return GrayscalePalette.color3;
+          case 4:
+            return GrayscalePalette.color4;
+          case 5:
+            return GrayscalePalette.color5;
         }
         break;
       case 'creative':
         switch (index) {
-          case 1: return CreativePalette.color1;
-          case 2: return CreativePalette.color2;
-          case 3: return CreativePalette.color3;
-          case 4: return CreativePalette.color4;
-          case 5: return CreativePalette.color5;
+          case 1:
+            return CreativePalette.color1;
+          case 2:
+            return CreativePalette.color2;
+          case 3:
+            return CreativePalette.color3;
+          case 4:
+            return CreativePalette.color4;
+          case 5:
+            return CreativePalette.color5;
         }
         break;
       case 'pastel':
         switch (index) {
-          case 1: return PastelPalette.color1;
-          case 2: return PastelPalette.color2;
-          case 3: return PastelPalette.color3;
-          case 4: return PastelPalette.color4;
-          case 5: return PastelPalette.color5;
+          case 1:
+            return PastelPalette.color1;
+          case 2:
+            return PastelPalette.color2;
+          case 3:
+            return PastelPalette.color3;
+          case 4:
+            return PastelPalette.color4;
+          case 5:
+            return PastelPalette.color5;
         }
         break;
       default:
         // Default to creative palette
         switch (index) {
-          case 1: return CreativePalette.color1;
-          case 2: return CreativePalette.color2;
-          case 3: return CreativePalette.color3;
-          case 4: return CreativePalette.color4;
-          case 5: return CreativePalette.color5;
+          case 1:
+            return CreativePalette.color1;
+          case 2:
+            return CreativePalette.color2;
+          case 3:
+            return CreativePalette.color3;
+          case 4:
+            return CreativePalette.color4;
+          case 5:
+            return CreativePalette.color5;
         }
     }
     return CreativePalette.color1; // Fallback
   }
-  
+
   /// Get semantic color from active palette
   static Color _getSemanticColor(String semanticName) {
     switch (_activePaletteName) {
       case 'grayscale':
         switch (semanticName) {
-          case 'primary': return GrayscalePalette.primary;
-          case 'accent': return GrayscalePalette.accent;
-          case 'background': return GrayscalePalette.background;
-          case 'text': return GrayscalePalette.textColor;
+          case 'primary':
+            return GrayscalePalette.primary;
+          case 'accent':
+            return GrayscalePalette.accent;
+          case 'background':
+            return GrayscalePalette.background;
+          case 'text':
+            return GrayscalePalette.textColor;
         }
         break;
       case 'creative':
         switch (semanticName) {
-          case 'primary': return CreativePalette.primary;
-          case 'accent': return CreativePalette.accent;
-          case 'background': return CreativePalette.background;
-          case 'text': return CreativePalette.textColor;
+          case 'primary':
+            return CreativePalette.primary;
+          case 'accent':
+            return CreativePalette.accent;
+          case 'background':
+            return CreativePalette.background;
+          case 'text':
+            return CreativePalette.textColor;
         }
         break;
       case 'pastel':
         switch (semanticName) {
-          case 'primary': return PastelPalette.primary;
-          case 'accent': return PastelPalette.accent;
-          case 'background': return PastelPalette.background;
-          case 'text': return PastelPalette.textColor;
+          case 'primary':
+            return PastelPalette.primary;
+          case 'accent':
+            return PastelPalette.accent;
+          case 'background':
+            return PastelPalette.background;
+          case 'text':
+            return PastelPalette.textColor;
         }
         break;
       default:
         // Default to creative palette
         switch (semanticName) {
-          case 'primary': return CreativePalette.primary;
-          case 'accent': return CreativePalette.accent;
-          case 'background': return CreativePalette.background;
-          case 'text': return CreativePalette.textColor;
+          case 'primary':
+            return CreativePalette.primary;
+          case 'accent':
+            return CreativePalette.accent;
+          case 'background':
+            return CreativePalette.background;
+          case 'text':
+            return CreativePalette.textColor;
         }
     }
     return CreativePalette.primary; // Fallback
@@ -136,16 +172,16 @@ class AppColorPalette {
 
   /// Get all colors from active palette as a list
   static List<Color> get allActiveColors => [
-        color1,
-        color2,
-        color3,
-        color4,
-        color5,
-      ];
+    color1,
+    color2,
+    color3,
+    color4,
+    color5,
+  ];
 
   /// Get all palette colors as a list (indexed 0-4) - uses active palette
   static List<Color> get allColors => allActiveColors;
-  
+
   /// Get colors from a specific palette by name
   static List<Color> getColorsFromPalette(String paletteName) {
     switch (paletteName) {
@@ -196,13 +232,13 @@ class AppColorPalette {
 
   /// Primary color from active palette
   static Color get primary => _getSemanticColor('primary');
-  
+
   /// Accent color from active palette
   static Color get accent => _getSemanticColor('accent');
-  
+
   /// Background color from active palette
   static Color get background => _getSemanticColor('background');
-  
+
   /// Text color from active palette
   static Color get textColor => _getSemanticColor('text');
 
@@ -226,13 +262,13 @@ class AppColorPalette {
 
   /// White color (pure white, used for contrast)
   static const Color white = Color(0xFFFFFFFF);
-  
+
   /// Black color (pure black, used for contrast)
   static const Color black = Color(0xFF000000);
-  
+
   /// Base grey color from active palette
   static Color get grey => _getGreyFromPalette();
-  
+
   /// Get grey color from active palette
   static Color _getGreyFromPalette() {
     switch (_activePaletteName) {
@@ -258,66 +294,107 @@ class AppColorPalette {
   static Color get grey700 => _getGreyShade(700);
   static Color get grey800 => _getGreyShade(800);
   static Color get grey900 => _getGreyShade(900);
-  
+
   /// Get grey shade from active palette
   static Color _getGreyShade(int shade) {
     switch (_activePaletteName) {
       case 'grayscale':
         switch (shade) {
-          case 50: return GrayscalePalette.grey50;
-          case 100: return GrayscalePalette.grey100;
-          case 200: return GrayscalePalette.grey200;
-          case 300: return GrayscalePalette.grey300;
-          case 400: return GrayscalePalette.grey400;
-          case 500: return GrayscalePalette.grey500;
-          case 600: return GrayscalePalette.grey600;
-          case 700: return GrayscalePalette.grey700;
-          case 800: return GrayscalePalette.grey800;
-          case 900: return GrayscalePalette.grey900;
+          case 50:
+            return GrayscalePalette.grey50;
+          case 100:
+            return GrayscalePalette.grey100;
+          case 200:
+            return GrayscalePalette.grey200;
+          case 300:
+            return GrayscalePalette.grey300;
+          case 400:
+            return GrayscalePalette.grey400;
+          case 500:
+            return GrayscalePalette.grey500;
+          case 600:
+            return GrayscalePalette.grey600;
+          case 700:
+            return GrayscalePalette.grey700;
+          case 800:
+            return GrayscalePalette.grey800;
+          case 900:
+            return GrayscalePalette.grey900;
         }
         break;
       case 'creative':
         switch (shade) {
-          case 50: return CreativePalette.grey50;
-          case 100: return CreativePalette.grey100;
-          case 200: return CreativePalette.grey200;
-          case 300: return CreativePalette.grey300;
-          case 400: return CreativePalette.grey400;
-          case 500: return CreativePalette.grey500;
-          case 600: return CreativePalette.grey600;
-          case 700: return CreativePalette.grey700;
-          case 800: return CreativePalette.grey800;
-          case 900: return CreativePalette.grey900;
+          case 50:
+            return CreativePalette.grey50;
+          case 100:
+            return CreativePalette.grey100;
+          case 200:
+            return CreativePalette.grey200;
+          case 300:
+            return CreativePalette.grey300;
+          case 400:
+            return CreativePalette.grey400;
+          case 500:
+            return CreativePalette.grey500;
+          case 600:
+            return CreativePalette.grey600;
+          case 700:
+            return CreativePalette.grey700;
+          case 800:
+            return CreativePalette.grey800;
+          case 900:
+            return CreativePalette.grey900;
         }
         break;
       case 'pastel':
         switch (shade) {
-          case 50: return PastelPalette.grey50;
-          case 100: return PastelPalette.grey100;
-          case 200: return PastelPalette.grey200;
-          case 300: return PastelPalette.grey300;
-          case 400: return PastelPalette.grey400;
-          case 500: return PastelPalette.grey500;
-          case 600: return PastelPalette.grey600;
-          case 700: return PastelPalette.grey700;
-          case 800: return PastelPalette.grey800;
-          case 900: return PastelPalette.grey900;
+          case 50:
+            return PastelPalette.grey50;
+          case 100:
+            return PastelPalette.grey100;
+          case 200:
+            return PastelPalette.grey200;
+          case 300:
+            return PastelPalette.grey300;
+          case 400:
+            return PastelPalette.grey400;
+          case 500:
+            return PastelPalette.grey500;
+          case 600:
+            return PastelPalette.grey600;
+          case 700:
+            return PastelPalette.grey700;
+          case 800:
+            return PastelPalette.grey800;
+          case 900:
+            return PastelPalette.grey900;
         }
         break;
     }
     // Fallback to creative palette
     switch (shade) {
-      case 50: return CreativePalette.grey50;
-      case 100: return CreativePalette.grey100;
-      case 200: return CreativePalette.grey200;
-      case 300: return CreativePalette.grey300;
-      case 400: return CreativePalette.grey400;
-      case 500: return CreativePalette.grey500;
-      case 600: return CreativePalette.grey600;
-      case 700: return CreativePalette.grey700;
-      case 800: return CreativePalette.grey800;
-      case 900: return CreativePalette.grey900;
-      default: return CreativePalette.grey500;
+      case 50:
+        return CreativePalette.grey50;
+      case 100:
+        return CreativePalette.grey100;
+      case 200:
+        return CreativePalette.grey200;
+      case 300:
+        return CreativePalette.grey300;
+      case 400:
+        return CreativePalette.grey400;
+      case 500:
+        return CreativePalette.grey500;
+      case 600:
+        return CreativePalette.grey600;
+      case 700:
+        return CreativePalette.grey700;
+      case 800:
+        return CreativePalette.grey800;
+      case 900:
+        return CreativePalette.grey900;
+      default:
+        return CreativePalette.grey500;
     }
   }
 
@@ -416,6 +493,9 @@ class AppColorPalette {
   static Color get backgroundDarkSurface =>
       _activeTheme?.backgrounds.darkSurface ?? grey800;
 
+  // Convenience getter for scaffold background (uses palette background)
+  static Color get scaffoldBackground => background;
+
   // Theme fonts
   static String get fontPrimary => _activeTheme?.fonts.primary ?? 'Roboto';
   static String get fontSecondary => _activeTheme?.fonts.secondary ?? 'Poppins';
@@ -432,7 +512,8 @@ class AppColorPalette {
   static double get fontSizeXXLarge => _activeTheme?.fontSizes.xxLarge ?? 36.0;
   static double get fontSizeCaption => _activeTheme?.fontSizes.caption ?? 12.0;
   static double get fontSizeBody => _activeTheme?.fontSizes.body ?? 16.0;
-  static double get fontSizeSubtitle => _activeTheme?.fontSizes.subtitle ?? 18.0;
+  static double get fontSizeSubtitle =>
+      _activeTheme?.fontSizes.subtitle ?? 18.0;
   static double get fontSizeTitle => _activeTheme?.fontSizes.title ?? 21.0;
   static double get fontSizeHeading => _activeTheme?.fontSizes.heading ?? 24.0;
   static double get fontSizeDisplay => _activeTheme?.fontSizes.display ?? 36.0;
@@ -452,13 +533,15 @@ class GrayscalePalette {
   static const Color color3 = Color(0xFF757575); // Medium grey
   static const Color color4 = Color(0xFF9E9E9E); // Light-medium grey
   static const Color color5 = Color(0xFFBDBDBD); // Light grey
-  
+
   // Semantic colors
   static const Color primary = Color(0xFF212121); // Dark grey as primary
   static const Color accent = Color(0xFF424242); // Medium-dark grey as accent
-  static const Color background = Color(0xFFFAFAFA); // Very light grey background
+  static const Color background = Color(
+    0xFFFAFAFA,
+  ); // Very light grey background
   static const Color textColor = Color(0xFF212121); // Dark grey text
-  
+
   // Grey shades
   static const Color grey = Color(0xFF9E9E9E);
   static const Color grey50 = Color(0xFFFAFAFA);
@@ -482,13 +565,13 @@ class CreativePalette {
   static const Color color3 = Color(0xFF4CAF50); // Green
   static const Color color4 = Color(0xFFFF9800); // Orange
   static const Color color5 = Color(0xFFF44336); // Red
-  
+
   // Semantic colors
   static const Color primary = Color(0xFF9C27B0); // Purple as primary
   static const Color accent = Color(0xFF2196F3); // Blue as accent
   static const Color background = Color(0xFFFFFFFF); // White background
   static const Color textColor = Color(0xFF212121); // Dark grey text
-  
+
   // Grey shades - Updated to cooler, more neutral grey tones
   static const Color grey = Color(0xFF8E8E93);
   static const Color grey50 = Color(0xFFF8F9FA);
@@ -512,13 +595,17 @@ class PastelPalette {
   static const Color color3 = Color(0xFFA5D6A7); // Light Green
   static const Color color4 = Color(0xFFFFCC80); // Light Orange
   static const Color color5 = Color(0xFFEF9A9A); // Light Red
-  
+
   // Semantic colors
   static const Color primary = Color(0xFFCE93D8); // Light Purple as primary
   static const Color accent = Color(0xFF90CAF9); // Light Blue as accent
-  static const Color background = Color(0xFFFFFBFE); // Very light pink/white background
-  static const Color textColor = Color(0xFF4A4A4A); // Medium grey text for readability
-  
+  static const Color background = Color(
+    0xFFFFFBFE,
+  ); // Very light pink/white background
+  static const Color textColor = Color(
+    0xFF4A4A4A,
+  ); // Medium grey text for readability
+
   // Grey shades - Softer, warmer greys for pastel theme
   static const Color grey = Color(0xFFB0B0B0);
   static const Color grey50 = Color(0xFFFAFAFA);

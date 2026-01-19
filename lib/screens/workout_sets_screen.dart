@@ -67,6 +67,7 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
           : _buildSetsList(),
       floatingActionButton: _canAddMoreSets()
           ? CustomFloatingActionButton(
+              heroTag: "workout_sets_new_set",
               label: 'New Set',
               icon: Icons.add,
               onPressed: _createNewSet,

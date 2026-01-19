@@ -124,6 +124,7 @@ class CustomFloatingActionButton extends StatelessWidget {
   final Color? backgroundColor;
   final Color? foregroundColor;
   final bool extended;
+  final String? heroTag;
 
   const CustomFloatingActionButton({
     super.key,
@@ -133,12 +134,14 @@ class CustomFloatingActionButton extends StatelessWidget {
     this.backgroundColor,
     this.foregroundColor,
     this.extended = true,
+    this.heroTag,
   });
 
   @override
   Widget build(BuildContext context) {
     if (extended) {
       return FloatingActionButton.extended(
+        heroTag: heroTag,
         onPressed: onPressed,
         backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
         foregroundColor: foregroundColor ?? AppColorPalette.white,
@@ -148,6 +151,7 @@ class CustomFloatingActionButton extends StatelessWidget {
     }
 
     return FloatingActionButton(
+      heroTag: heroTag,
       onPressed: onPressed,
       backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
       foregroundColor: foregroundColor ?? AppColorPalette.white,

@@ -148,6 +148,7 @@ class _MotivationalCardsScreenState extends State<MotivationalCardsScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: "motivational_cards_add",
         onPressed: _navigateToAddCard,
         child: const Icon(Icons.add),
       ),
