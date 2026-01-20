@@ -17,7 +17,9 @@ import 'models/project_model.dart';
 import 'models/user_progress_model.dart';
 import 'models/reward_model.dart';
 import 'models/motivational_card_model.dart';
+import 'models/timed_workout_model.dart';
 import 'utils/default_workouts_service.dart';
+import 'utils/programs_service.dart';
 import 'utils/palette_notifier.dart';
 
 void main() async {
@@ -44,6 +46,8 @@ void main() async {
     Hive.registerAdapter(UserProgressModelAdapter());
     Hive.registerAdapter(RewardModelAdapter());
     Hive.registerAdapter(MotivationalCardModelAdapter());
+    Hive.registerAdapter(TimedWorkoutItemAdapter());
+    Hive.registerAdapter(TimedWorkoutModelAdapter());
 
     // Open all Hive boxes with detailed logging
     print('Opening Hive boxes...');
@@ -150,6 +154,22 @@ void main() async {
     }
 
     try {
+      await Hive.openBox<TimedWorkoutModel>('timedWorkouts');
+      print('✓ Opened timedWorkouts box');
+    } catch (e) {
+      print('⚠️ Error opening timedWorkouts box, clearing and recreating: $e');
+      try {
+        await Hive.deleteBoxFromDisk('timedWorkouts');
+      } catch (deleteError) {
+        print(
+          'Note: Could not delete timedWorkouts box (may not exist): $deleteError',
+        );
+      }
+      await Hive.openBox<TimedWorkoutModel>('timedWorkouts');
+      print('✓ Recreated timedWorkouts box');
+    }
+
+    try {
       await Hive.openBox<HabitTrackerModel>('habits');
       print('✓ Opened habits box');
     } catch (e) {
@@ -239,6 +259,14 @@ void main() async {
     } catch (e) {
       print('⚠️ Error initializing default workouts: $e');
       // Continue app startup even if default workouts fail
+    }
+
+    // Initialize programs (7-minute workouts) on first install
+    try {
+      await ProgramsService.initializePrograms();
+    } catch (e) {
+      print('⚠️ Error initializing programs: $e');
+      // Continue app startup even if programs fail
     }
 
     runApp(MyApp());

@@ -8,11 +8,12 @@ import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/screens/exercise_details_screen.dart';
 import 'package:solo_level_system/screens/add_edit_workout_set_screen.dart';
-import 'package:solo_level_system/screens/motivational_cards_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
 import 'package:solo_level_system/utils/workout_service.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/utils/default_workouts_service.dart';
+import 'package:solo_level_system/utils/programs_service.dart';
+import 'package:solo_level_system/screens/programs_screen.dart';
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -259,8 +260,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           unselectedLabelColor: AppColorPalette.white.withValues(alpha: 0.7),
           tabs: [
             Tab(text: 'Sets'),
-            Tab(text: 'Motivation'),
-            Tab(text: 'Timed'),
+            Tab(text: 'Programs'),
           ],
         ),
       ),
@@ -268,11 +268,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           ? LoadingIndicator(message: 'Loading...')
           : TabBarView(
               controller: _tabController,
-              children: [
-                _buildSetsTab(),
-                MotivationalCardsScreen(),
-                _buildTimedTab(),
-              ],
+              children: [_buildSetsTab(), _buildTimedTab()],
             ),
       floatingActionButton: _tabController.index == 0
           ? CustomFloatingActionButton(
@@ -821,7 +817,30 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                   ],
                 ),
               ),
-              _buildLastWorkoutInfo(exercise),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Bookmark icon (clickable)
+                  GestureDetector(
+                    onTap: () {
+                      exercise.toggleBookmark();
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Icon(
+                        exercise.isBookmarked
+                            ? Icons.bookmark
+                            : Icons.bookmark_border,
+                        size: 16,
+                        color: exercise.isBookmarked
+                            ? AppColorPalette.warning
+                            : AppColorPalette.grey400,
+                      ),
+                    ),
+                  ),
+                  _buildLastWorkoutInfo(exercise),
+                ],
+              ),
             ],
           ),
           SizedBox(height: 12),
@@ -940,7 +959,13 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       }
 
       return true;
-    }).toList();
+    }).toList()..sort((a, b) {
+      // Bookmarked exercises appear first
+      if (a.isBookmarked && !b.isBookmarked) return -1;
+      if (!a.isBookmarked && b.isBookmarked) return 1;
+      // Then sort alphabetically by name
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
   }
 
   Color _getSetColor(WorkoutSetCategoryModel setCategory) {
@@ -1008,13 +1033,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   }
 
   Widget _buildTimedTab() {
-    return Center(
-      child: EmptyState(
-        icon: Icons.timer,
-        title: 'Timed Workouts',
-        subtitle: 'Coming soon - Track time-based exercises',
-      ),
-    );
+    return ProgramsScreen();
   }
 
   void _editSet(WorkoutSetCategoryModel setCategory) {

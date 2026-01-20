@@ -101,12 +101,12 @@
             },
             {
               "id": "b3056a10-f492-4895-8f15-0733261b0ee7",
-              "title": "Redesign  Motivation",
+              "title": "Redesign  Motivation -> due in anothe rcard",
               "checked": false
             },
             {
               "id": "e56ccda5-03f3-478e-ba5f-e4744dae6cdf",
-              "title": " Redesign  Timed",
+              "title": " Redesign  Timed -> due in another card",
               "checked": false
             },
             {
@@ -142,7 +142,7 @@
             {
               "id": "acf10b78-6e1d-4b61-a43d-9e95cf813ccc",
               "title": "change the default color palette into different grey colors, store the current palette as another palette",
-              "checked": false
+              "checked": true
             }
           ],
           "comments": [

@@ -1,6 +1,7 @@
 // lib/screens/exercise_details_screen.dart
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
@@ -49,6 +50,26 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
       appBar: AppBar(
         title: Text(widget.exercise.name),
         actions: [
+          ValueListenableBuilder(
+            valueListenable: Hive.box<ExerciseModel>('exercises').listenable(),
+            builder: (context, Box<ExerciseModel> box, _) {
+              final exercise = box.get(widget.exercise.id) ?? widget.exercise;
+              return IconButton(
+                icon: Icon(
+                  exercise.isBookmarked
+                      ? Icons.bookmark
+                      : Icons.bookmark_border,
+                  color: exercise.isBookmarked ? AppColorPalette.warning : null,
+                ),
+                tooltip: exercise.isBookmarked
+                    ? 'Remove bookmark'
+                    : 'Bookmark exercise',
+                onPressed: () {
+                  exercise.toggleBookmark();
+                },
+              );
+            },
+          ),
           IconButton(icon: Icon(Icons.edit), onPressed: _editExercise),
           PopupMenuButton(
             itemBuilder: (context) => [

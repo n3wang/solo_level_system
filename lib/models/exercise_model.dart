@@ -73,6 +73,9 @@ class ExerciseModel extends HiveObject {
   @HiveField(22)
   String measurementUnit; // 'kg', 'lbs', 'seconds', 'none' - determines how this exercise is measured
 
+  @HiveField(23)
+  bool isBookmarked; // Bookmarked exercises appear first in listings
+
   ExerciseModel({
     required this.id,
     required this.name,
@@ -97,6 +100,7 @@ class ExerciseModel extends HiveObject {
     this.lastWorkoutWeights,
     this.lastWorkoutDate,
     this.measurementUnit = 'kg', // Default to kg for backward compatibility
+    this.isBookmarked = false,
   });
 
   // Convenience getters
@@ -141,6 +145,11 @@ class ExerciseModel extends HiveObject {
 
   void unarchive() {
     isArchived = false;
+    save();
+  }
+
+  void toggleBookmark() {
+    isBookmarked = !isBookmarked;
     save();
   }
 
