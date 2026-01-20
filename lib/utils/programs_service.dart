@@ -1,11 +1,14 @@
 // lib/utils/programs_service.dart
+import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
+import 'package:yaml/yaml.dart';
 import '../models/exercise_model.dart';
 import '../models/timed_workout_model.dart';
 
 /// Service for initializing 7-minute workout programs and exercises
 class ProgramsService {
   static const String _programsInitializedKey = 'programs_initialized';
+  static const String _yamlPath = 'assets/workouts/default_workouts.yaml';
 
   /// Check if programs have been initialized
   static Future<bool> areProgramsInitialized() async {
@@ -14,7 +17,8 @@ class ProgramsService {
         await Hive.openBox('config');
       }
       final configBox = Hive.box('config');
-      return configBox.get(_programsInitializedKey, defaultValue: false) as bool;
+      return configBox.get(_programsInitializedKey, defaultValue: false)
+          as bool;
     } catch (e) {
       print('Error checking programs status: $e');
       return false;
@@ -71,17 +75,44 @@ class ProgramsService {
       }
 
       // Create Break exercise if it doesn't exist
+      print('[ProgramsService] Checking for Break exercise...');
       ExerciseModel breakExercise;
       final existingBreak = _findOrCreateExercise('Break', {});
       if (existingBreak != null) {
+        print('[ProgramsService] Break exercise already exists');
+        print(
+          '[ProgramsService]   - Existing audioFile: "${existingBreak.audioFile}"',
+        );
         breakExercise = existingBreak;
+        // Ensure break exercise has audioFile set
+        if (breakExercise.audioFile == null ||
+            breakExercise.audioFile!.isEmpty) {
+          print(
+            '[ProgramsService]   ✗ Break exercise has no audioFile, setting to: "audio/break_time.mp3"',
+          );
+          breakExercise.audioFile = 'audio/break_time.mp3';
+          breakExercise.save();
+          print('[ProgramsService]   ✓ Updated break exercise audioFile');
+        } else {
+          print(
+            '[ProgramsService]   ✓ Break exercise already has audioFile: "${breakExercise.audioFile}"',
+          );
+        }
       } else {
+        print('[ProgramsService] Creating new Break exercise');
         breakExercise = _createBreakExercise(now);
+        print(
+          '[ProgramsService]   - New break exercise audioFile: "${breakExercise.audioFile}"',
+        );
         await exercisesBox.put(breakExercise.id, breakExercise);
+        print('[ProgramsService]   ✓ Saved new Break exercise to box');
       }
 
+      // Get audio files from YAML
+      final yamlAudioMap = await _getAudioFilesFromYaml();
+
       // Create all exercises from the 7-minute workout
-      final exercises = _create7MinuteWorkoutExercises(now);
+      final exercises = await _create7MinuteWorkoutExercises(now);
       final exerciseMap = <String, ExerciseModel>{};
 
       // First, map all existing exercises
@@ -92,12 +123,57 @@ class ProgramsService {
 
       // Then, create new exercises that don't exist
       for (final exercise in exercises) {
+        print('[ProgramsService] Processing exercise: "${exercise.name}"');
         final existing = _findOrCreateExercise(exercise.name, exerciseMap);
         if (existing == null) {
+          print('[ProgramsService] Creating NEW exercise: "${exercise.name}"');
+          // Use audio file from YAML if available
+          final yamlAudioFile = yamlAudioMap[exercise.name.toLowerCase()];
+          final audioFile = yamlAudioFile ?? exercise.audioFile;
+
+          print(
+            '[ProgramsService]   - audioFile from hardcoded data: "${exercise.audioFile}"',
+          );
+          print(
+            '[ProgramsService]   - audioFile from YAML: "${yamlAudioFile}"',
+          );
+          print('[ProgramsService]   - Final audioFile to use: "$audioFile"');
+
+          if (audioFile != null && audioFile != exercise.audioFile) {
+            exercise.audioFile = audioFile;
+            print(
+              '[ProgramsService]   ✓ Updated exercise audioFile to: "$audioFile"',
+            );
+          }
           await exercisesBox.put(exercise.id, exercise);
           exerciseMap[exercise.name.toLowerCase()] = exercise;
           exerciseMap[exercise.name] = exercise;
         } else {
+          print(
+            '[ProgramsService] Exercise ALREADY EXISTS: "${exercise.name}"',
+          );
+          print(
+            '[ProgramsService]   - Existing audioFile: "${existing.audioFile}"',
+          );
+          // Update existing exercise's audioFile from YAML if available
+          final yamlAudioFile = yamlAudioMap[exercise.name.toLowerCase()];
+          print('[ProgramsService]   - audioFile from YAML: "$yamlAudioFile"');
+
+          if (yamlAudioFile != null && existing.audioFile != yamlAudioFile) {
+            print(
+              '[ProgramsService]   ✓ Updating existing exercise audioFile from "${existing.audioFile}" to "$yamlAudioFile"',
+            );
+            existing.audioFile = yamlAudioFile;
+            existing.save();
+          } else if (yamlAudioFile == null) {
+            print(
+              '[ProgramsService]   ✗ No audioFile found in YAML for "${exercise.name}"',
+            );
+          } else {
+            print(
+              '[ProgramsService]   - audioFile already matches YAML, no update needed',
+            );
+          }
           exerciseMap[exercise.name.toLowerCase()] = existing;
           exerciseMap[exercise.name] = existing;
         }
@@ -130,13 +206,37 @@ class ProgramsService {
       // Mark as initialized
       await markProgramsInitialized();
 
+      final exercisesList = await exercises;
       print(
-        '✓ Programs initialized: ${exercises.length + 1} exercises, ${programs.length} programs',
+        '✓ Programs initialized: ${exercisesList.length + 1} exercises, ${programs.length} programs',
       );
     } catch (e) {
       print('Error initializing programs: $e');
       rethrow;
     }
+  }
+
+  /// Get audio files from default_workouts.yaml
+  static Future<Map<String, String>> _getAudioFilesFromYaml() async {
+    final audioMap = <String, String>{};
+    try {
+      final String yamlString = await rootBundle.loadString(_yamlPath);
+      final dynamic yamlMap = loadYaml(yamlString) as Map;
+      final exercisesList = yamlMap['exercises'];
+
+      if (exercisesList != null) {
+        for (final exerciseData in exercisesList) {
+          final name = (exerciseData as Map)['name']?.toString() ?? '';
+          final audioFile = exerciseData['audio_file']?.toString();
+          if (name.isNotEmpty && audioFile != null) {
+            audioMap[name.toLowerCase()] = audioFile;
+          }
+        }
+      }
+    } catch (e) {
+      print('Error loading audio files from YAML: $e');
+    }
+    return audioMap;
   }
 
   static ExerciseModel _createBreakExercise(DateTime now) {
@@ -158,11 +258,17 @@ class ProgramsService {
       createdAt: now,
       tags: ['rest', 'break'],
       measurementUnit: 'none',
+      audioFile: 'audio/break_time.mp3',
     );
   }
 
-  static List<ExerciseModel> _create7MinuteWorkoutExercises(DateTime now) {
+  static Future<List<ExerciseModel>> _create7MinuteWorkoutExercises(
+    DateTime now,
+  ) async {
     final exercises = <ExerciseModel>[];
+
+    // Get audio files from YAML
+    final yamlAudioMap = await ProgramsService._getAudioFilesFromYaml();
 
     final exerciseData = [
       {
@@ -180,6 +286,7 @@ class ProgramsService {
           'Repeat at a steady pace',
         ],
         'tags': ['cardio', 'full_body', 'warm_up'],
+        'audioFile': 'audio/workouts/jumping_jacks.mp3',
       },
       {
         'name': 'Wall Sit',
@@ -196,6 +303,7 @@ class ProgramsService {
           'Keep core engaged',
         ],
         'tags': ['legs', 'isometric', 'strength'],
+        'audioFile': 'audio/workouts/wall_sit.mp3',
       },
       {
         'name': 'Push-Ups',
@@ -212,6 +320,7 @@ class ProgramsService {
           'Modify on knees if needed',
         ],
         'tags': ['chest', 'arms', 'core'],
+        'audioFile': 'audio/workouts/Push-ups.mp3',
       },
       {
         'name': 'Abdominal Crunch',
@@ -228,6 +337,7 @@ class ProgramsService {
           'Lower with control',
         ],
         'tags': ['core', 'abs', 'strength'],
+        'audioFile': 'audio/workouts/abdominal_crunch.mp3',
       },
       {
         'name': 'Step-Ups',
@@ -244,6 +354,7 @@ class ProgramsService {
           'Alternate legs',
         ],
         'tags': ['legs', 'cardio', 'functional'],
+        'audioFile': 'audio/workouts/step_ups.mp3',
       },
       {
         'name': 'Squats',
@@ -260,6 +371,7 @@ class ProgramsService {
           'Push back up to standing',
         ],
         'tags': ['legs', 'full_body', 'strength'],
+        'audioFile': 'audio/workouts/bodyweight_squats.mp3',
       },
       {
         'name': 'Triceps Dips',
@@ -276,6 +388,7 @@ class ProgramsService {
           'Push back up to starting position',
         ],
         'tags': ['arms', 'triceps', 'strength'],
+        'audioFile': 'audio/workouts/triceps_dips.mp3',
       },
       {
         'name': 'Plank',
@@ -292,6 +405,7 @@ class ProgramsService {
           'Hold position',
         ],
         'tags': ['core', 'isometric', 'strength'],
+        'audioFile': 'audio/workouts/Plank.mp3',
       },
       {
         'name': 'High Knees',
@@ -308,6 +422,7 @@ class ProgramsService {
           'Land on balls of feet',
         ],
         'tags': ['cardio', 'legs', 'full_body'],
+        'audioFile': null, // No audio file available
       },
       {
         'name': 'Lunges',
@@ -324,6 +439,7 @@ class ProgramsService {
           'Alternate legs',
         ],
         'tags': ['legs', 'strength', 'functional'],
+        'audioFile': 'audio/workouts/lunges.mp3',
       },
       {
         'name': 'Push-Up + Rotation',
@@ -340,6 +456,7 @@ class ProgramsService {
           'Alternate sides',
         ],
         'tags': ['core', 'chest', 'strength'],
+        'audioFile': 'audio/workouts/push_up_rotation.mp3',
       },
       {
         'name': 'Side Plank',
@@ -356,14 +473,20 @@ class ProgramsService {
           'Switch sides halfway through',
         ],
         'tags': ['core', 'isometric', 'strength'],
+        'audioFile': 'audio/workouts/side_plank.mp3',
       },
     ];
 
     for (int i = 0; i < exerciseData.length; i++) {
       final data = exerciseData[i];
+      final exerciseName = data['name'] as String;
+      // Use audio file from YAML if available, otherwise use hardcoded value
+      final audioFile =
+          yamlAudioMap[exerciseName.toLowerCase()] ??
+          (data['audioFile'] as String?);
       final exercise = ExerciseModel(
         id: 'program_exercise_${i + 1}_${now.millisecondsSinceEpoch}',
-        name: data['name'] as String,
+        name: exerciseName,
         description: data['description'] as String,
         category: data['category'] as String,
         muscleGroup: data['muscleGroup'] as String,
@@ -375,6 +498,7 @@ class ProgramsService {
         createdAt: now,
         tags: List<String>.from(data['tags'] as List),
         measurementUnit: 'none',
+        audioFile: audioFile,
       );
       exercises.add(exercise);
     }
@@ -429,10 +553,14 @@ class ProgramsService {
           exercise = breakExercise;
         } else {
           // Try multiple variations of the name for matching
-          exercise = exerciseMap[exerciseName.toLowerCase()] ??
+          exercise =
+              exerciseMap[exerciseName.toLowerCase()] ??
               exerciseMap[exerciseName] ??
               exerciseMap[exerciseName.toLowerCase().replaceAll(' ', '-')] ??
-              exerciseMap[exerciseName.toLowerCase().replaceAll('+', ' ').trim()];
+              exerciseMap[exerciseName
+                  .toLowerCase()
+                  .replaceAll('+', ' ')
+                  .trim()];
         }
 
         if (exercise != null) {

@@ -6,6 +6,7 @@ import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
+import 'package:solo_level_system/screens/program_running_screen.dart';
 
 class ProgramsScreen extends StatefulWidget {
   const ProgramsScreen({super.key});
@@ -252,7 +253,7 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
                       final imageUrl = exerciseImages[index];
                       return Container(
                         decoration: BoxDecoration(
-                          color: AppColorPalette.backgroundDarkSurface,
+                          color: AppColorPalette.white,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: ClipRRect(
@@ -260,7 +261,7 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
                           child: WorkoutIconWidget(
                             imageUrl: imageUrl,
                             size: double.infinity,
-                            backgroundColor: AppColorPalette.backgroundDarkSurface,
+                            backgroundColor: AppColorPalette.white,
                             placeholder: Icon(
                               Icons.fitness_center,
                               color: AppColorPalette.grey400,
@@ -278,7 +279,13 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // TODO: Start program workout
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ProgramRunningScreen(program: program),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 16),

@@ -76,6 +76,9 @@ class ExerciseModel extends HiveObject {
   @HiveField(23)
   bool isBookmarked; // Bookmarked exercises appear first in listings
 
+  @HiveField(24)
+  String? audioFile; // Name of the audio file (e.g., "Jumping_Jacks.mp3" or "workouts/Jumping_Jacks.mp3")
+
   ExerciseModel({
     required this.id,
     required this.name,
@@ -101,6 +104,7 @@ class ExerciseModel extends HiveObject {
     this.lastWorkoutDate,
     this.measurementUnit = 'kg', // Default to kg for backward compatibility
     this.isBookmarked = false,
+    this.audioFile,
   });
 
   // Convenience getters

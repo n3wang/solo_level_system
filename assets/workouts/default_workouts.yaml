@@ -18,6 +18,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 8
     tags: ["gym"]
+    audio_file: "audio/workouts/back_squat.mp3"
     
   - name: "front squat"
     muscle_group: "legs"
@@ -35,6 +36,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 8
     tags: ["gym"]
+    audio_file: "audio/workouts/front_squat.mp3"
     
   - name: "Deadlift conventional"
     muscle_group: "back"
@@ -52,6 +54,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 5
     tags: ["gym"]
+    audio_file: "audio/workouts/deadlift_conventional.mp3"
     
   - name: "Deadlift Romanian"
     muscle_group: "back"
@@ -69,6 +72,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 8
     tags: ["gym"]
+    audio_file: "audio/workouts/deadlift_romanian.mp3"
     
   - name: "Bench press"
     muscle_group: "chest"
@@ -86,6 +90,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 8
     tags: ["gym"]
+    audio_file: "audio/workouts/bench_press.mp3"
     
   - name: "Overhead press"
     muscle_group: "shoulders"
@@ -103,6 +108,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 8
     tags: ["gym"]
+    audio_file: "audio/workouts/overhead_press.mp3"
     
   - name: "Pull-ups"
     muscle_group: "back"
@@ -136,6 +142,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 8
     tags: ["gym"]
+    audio_file: "audio/workouts/chin_ups.mp3"
     
   - name: "Barbell row"
     muscle_group: "back"
@@ -152,6 +159,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 8
     tags: ["gym"]
+    audio_file: "audio/workouts/barbell_row.mp3"
     
   - name: "Lat pulldown"
     muscle_group: "back"
@@ -168,6 +176,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 12
     tags: ["gym"]
+    audio_file: "audio/workouts/lat_pulldown.mp3"
     
   - name: "Leg press"
     muscle_group: "legs"
@@ -200,6 +209,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 12
     tags: ["gym"]
+    audio_file: "audio/workouts/dumbbell_bench_press.mp3"
     
   - name: "Dumbbell shoulder press"
     muscle_group: "shoulders"
@@ -216,6 +226,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 12
     tags: ["gym"]
+    audio_file: "audio/workouts/dumbbell_shoulder_press.mp3"
     
   - name: "Bicep curls"
     muscle_group: "arms"
@@ -232,6 +243,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 12
     tags: ["gym"]
+    audio_file: "audio/workouts/bicep_curls.mp3"
     
   - name: "Tricep pushdowns"
     muscle_group: "arms"
@@ -248,6 +260,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 12
     tags: ["gym"]
+    audio_file: "audio/workouts/tricep_pushdowns.mp3"
     
   - name: "Chest fly"
     muscle_group: "chest"
@@ -265,6 +278,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 12
     tags: ["gym"]
+    audio_file: "audio/workouts/chest_fly.mp3"
     
   - name: "Leg curl"
     muscle_group: "legs"
@@ -297,6 +311,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 12
     tags: ["gym"]
+    audio_file: "audio/workouts/leg_extension.mp3"
     
   - name: "Plank"
     muscle_group: "core"
@@ -315,6 +330,7 @@ exercises:
     default_reps: 0  # Duration-based
     default_duration: 60  # seconds
     tags: ["home"]
+    audio_file: "audio/workouts/plank.mp3"
     
   - name: "Hanging leg raises"
     muscle_group: "core"
@@ -331,6 +347,7 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 10
     tags: ["gym"]
+    audio_file: "audio/workouts/hanging_leg_raises.mp3"
     
   - name: "Treadmill running or walking"
     muscle_group: "full_body"
@@ -348,6 +365,7 @@ exercises:
     default_reps: 0  # Duration-based
     default_duration: 600  # 10 minutes
     tags: ["gym"]
+    audio_file: "audio/workouts/treadmill_running.mp3"
     
   - name: "Stationary bike / spin bike"
     muscle_group: "full_body"
@@ -381,6 +399,7 @@ exercises:
     default_sets: [4, 5]
     default_reps: 15
     tags: ["home"]
+    audio_file: "audio/workouts/bodyweight_squats.mp3"
     
   - name: "Lunges"
     muscle_group: "legs"
@@ -398,6 +417,7 @@ exercises:
     default_sets: [4, 5]
     default_reps: 12
     tags: ["home"]
+    audio_file: "audio/workouts/Lunges.mp3"
     
   - name: "Wall Sit"
     muscle_group: "legs"
@@ -415,6 +435,7 @@ exercises:
     default_reps: 0  # Duration-based
     default_duration: 45  # seconds
     tags: ["home"]
+    audio_file: "audio/workouts/wall_sit.mp3"
     
   - name: "Glute Bridges"
     muscle_group: "glutes"
@@ -447,6 +468,7 @@ exercises:
     default_sets: [4, 5]
     default_reps: 12
     tags: ["home"]
+    audio_file: "audio/workouts/push_ups.mp3"
     
   - name: "Triceps Dips"
     muscle_group: "arms"
@@ -463,6 +485,7 @@ exercises:
     default_sets: [4, 5]
     default_reps: 10
     tags: ["home"]
+    audio_file: "audio/workouts/Triceps_Dips.mp3"
     
   - name: "Side Plank"
     muscle_group: "core"
@@ -481,6 +504,7 @@ exercises:
     default_reps: 0  # Duration-based
     default_duration: 45  # seconds
     tags: ["home"]
+    audio_file: "audio/workouts/side_plank.mp3"
     
   - name: "Jumping Jacks"
     muscle_group: "full_body"
@@ -516,6 +540,7 @@ exercises:
     default_sets: [4, 5]
     default_reps: 10
     tags: ["home"]
+    audio_file: "audio/workouts/burpees.mp3"
 
 routines:
   - name: "Chest Day (Gym)"

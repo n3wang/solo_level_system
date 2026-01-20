@@ -1,57 +1,57 @@
 {
   "version": "1.0",
-  "generated": "2025-09-25T10:41:59.556245",
-  "total_tracks": 41,
+  "generated": "2026-01-20T01:20:22.063805",
+  "total_tracks": 42,
   "tracks": [
     {
       "id": 1,
       "filename": "lofi_001.mp3",
-      "originalName": "10-lady-of-the-80x27s-128379",
-      "title": "Lady Of The 80's",
+      "originalName": "lofi_001",
+      "title": "Lofi Track 001",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:37",
       "fileSize": 5743,
-      "albumImage": "album/al09-80s.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 2,
       "filename": "lofi_002.mp3",
-      "originalName": "11-neon-nights-348296",
-      "title": "Neon Nights",
+      "originalName": "lofi_002",
+      "title": "Lofi Track 002",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:51",
       "fileSize": 4964,
-      "albumImage": "album/al09-80s.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 3,
       "filename": "lofi_003.mp3",
-      "originalName": "12-sports-gym-fitness-synthwave-phonk-music-344934",
-      "title": "Sports Gym Fitness Synthwave Phonk Music",
+      "originalName": "lofi_003",
+      "title": "Lofi Track 003",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:12",
       "fileSize": 4303,
-      "albumImage": "album/al11-sports.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 4,
       "filename": "lofi_004.mp3",
-      "originalName": "13-high-rise-114783",
-      "title": "High Rise",
+      "originalName": "lofi_004",
+      "title": "Lofi Track 004",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:52",
       "fileSize": 6001,
-      "albumImage": "album/al13-commercial.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 5,
       "filename": "lofi_005.mp3",
-      "originalName": "15-lofi-study-calm-peaceful-chill-hop-musicno-copyright-346767",
-      "title": "Lofi Study Calm Peaceful Chill Hop Musicno Copyright",
+      "originalName": "lofi_005",
+      "title": "Lofi Track 005",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:24",
@@ -61,8 +61,8 @@
     {
       "id": 6,
       "filename": "lofi_006.mp3",
-      "originalName": "16-study-110111",
-      "title": "Study",
+      "originalName": "lofi_006",
+      "title": "Lofi Track 006",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:48",
@@ -72,387 +72,398 @@
     {
       "id": 7,
       "filename": "lofi_007.mp3",
-      "originalName": "17-lofi-study-calm-peaceful-chill-hop-112191",
-      "title": "Lofi Study Calm Peaceful Chill Hop",
+      "originalName": "lofi_007",
+      "title": "Lofi Track 007",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:30",
       "fileSize": 4601,
-      "albumImage": "album/al15-happyplace.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 8,
       "filename": "lofi_008.mp3",
-      "originalName": "18-relaxing-ambient-music-nostalgic-memories-310690",
-      "title": "Relaxing Ambient Music Nostalgic Memories",
+      "originalName": "lofi_008",
+      "title": "Lofi Track 008",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:37",
       "fileSize": 4730,
-      "albumImage": "album/al18-library-explorer.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 9,
       "filename": "lofi_009.mp3",
-      "originalName": "19-dark-academia-melancholy-262441",
-      "title": "Dark Academia Melancholy",
+      "originalName": "lofi_009",
+      "title": "Lofi Track 009",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "7:20",
       "fileSize": 7501,
-      "albumImage": "album/al18-ghotic-studying.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 10,
       "filename": "lofi_010.mp3",
-      "originalName": "20-cops-first-day-on-the-job-anasta-music-293360",
-      "title": "Cops First Day On The Job Anasta Music",
+      "originalName": "lofi_010",
+      "title": "Lofi Track 010",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "7:21",
       "fileSize": 7518,
-      "albumImage": "album/al13-commercial.png"
+      "albumImage": "album/al1-lofigirl.png"
     },
     {
       "id": 11,
       "filename": "lofi_011.mp3",
-      "originalName": "21-mezhdunami-voyager-141276",
-      "title": "Mezhdunami Voyager",
+      "originalName": "lofi_011",
+      "title": "Lofi Track 011",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:27",
       "fileSize": 5571,
-      "albumImage": "album/al05-spaceexploration.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 12,
       "filename": "lofi_012.mp3",
-      "originalName": "22-the-peoplex27s-land-336886",
-      "title": "The People's Land",
+      "originalName": "lofi_012",
+      "title": "Lofi Track 012",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:07",
       "fileSize": 4216,
-      "albumImage": "album/al15-happyplace.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 13,
       "filename": "lofi_013.mp3",
-      "originalName": "23-ghibli-style-1-229069",
-      "title": "Ghibli Style 1",
+      "originalName": "lofi_013",
+      "title": "Lofi Track 013",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "3:07",
       "fileSize": 3190,
-      "albumImage": "album/al16-wind.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 14,
       "filename": "lofi_014.mp3",
-      "originalName": "24-days-for-you-336889",
-      "title": "Days For You",
+      "originalName": "lofi_014",
+      "title": "Lofi Track 014",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:43",
       "fileSize": 5849,
-      "albumImage": "album/al15-happyplace.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 15,
       "filename": "lofi_015.mp3",
-      "originalName": "25-ghibli-style-2-229070",
-      "title": "Ghibli Style 2",
+      "originalName": "lofi_015",
+      "title": "Lofi Track 015",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "7:20",
       "fileSize": 7501,
-      "albumImage": "album/al16-wind.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 16,
       "filename": "lofi_016.mp3",
-      "originalName": "26-thought-336888",
-      "title": "Thought",
+      "originalName": "lofi_016",
+      "title": "Lofi Track 016",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:30",
       "fileSize": 5629,
-      "albumImage": "album/al1-lofigirl.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 17,
       "filename": "lofi_017.mp3",
-      "originalName": "27-the-best-detective-190125",
-      "title": "The Best Detective",
+      "originalName": "lofi_017",
+      "title": "Lofi Track 017",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "3:35",
       "fileSize": 2646,
-      "albumImage": "album/al06-haunted.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 18,
       "filename": "lofi_018.mp3",
-      "originalName": "29-singularity-abstract-electronica-281092",
-      "title": "Singularity Abstract Electronica",
+      "originalName": "lofi_018",
+      "title": "Lofi Track 018",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "3:23",
       "fileSize": 3468,
-      "albumImage": "album/al08-electronics.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 19,
       "filename": "lofi_019.mp3",
-      "originalName": "30-awake-the-science-technology-electronica-281089",
-      "title": "Awake The Science Technology Electronica",
+      "originalName": "lofi_019",
+      "title": "Lofi Track 019",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:53",
       "fileSize": 3971,
-      "albumImage": "album/a07-elecctronics.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 20,
       "filename": "lofi_020.mp3",
-      "originalName": "31-lo-fi-for-the-best-vlogs-266458",
-      "title": "Lo Fi For The Best Vlogs",
+      "originalName": "lofi_020",
+      "title": "Lofi Track 020",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "7:20",
       "fileSize": 7501,
-      "albumImage": "album/al14-vengeance.png"
+      "albumImage": "album/al02-lofistudybook.png"
     },
     {
       "id": 21,
       "filename": "lofi_021.mp3",
-      "originalName": "32-lofi-soul-268728",
-      "title": "Lofi Soul",
+      "originalName": "lofi_021",
+      "title": "Lofi Track 021",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:55",
       "fileSize": 4001,
-      "albumImage": "album/al1-lofigirl.png"
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 22,
       "filename": "lofi_022.mp3",
-      "originalName": "33-a-new-scientific-research-304924",
-      "title": "A New Scientific Research",
+      "originalName": "lofi_022",
+      "title": "Lofi Track 022",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:05",
       "fileSize": 4189,
-      "albumImage": "album/al04-spacecontrols.png"
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 23,
       "filename": "lofi_023.mp3",
-      "originalName": "34-london-fashion-week-304935",
-      "title": "London Fashion Week",
+      "originalName": "lofi_023",
+      "title": "Lofi Track 023",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:30",
       "fileSize": 5626,
-      "albumImage": "album/al18-library-explorer.png"
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 24,
       "filename": "lofi_024.mp3",
-      "originalName": "35-resurrection-327870",
-      "title": "Resurrection",
+      "originalName": "lofi_024",
+      "title": "Lofi Track 024",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "3:45",
       "fileSize": 2813,
-      "albumImage": "album/al05-paranormal.png"
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 25,
       "filename": "lofi_025.mp3",
-      "originalName": "36-the-world-of-science-285320",
-      "title": "The World Of Science",
+      "originalName": "lofi_025",
+      "title": "Lofi Track 025",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:23",
       "fileSize": 4481,
-      "albumImage": "album/al04-spacedesign.png"
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 26,
       "filename": "lofi_026.mp3",
-      "originalName": "37-secret-lab-194422",
-      "title": "Secret Lab",
+      "originalName": "lofi_026",
+      "title": "Lofi Track 026",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:26",
       "fileSize": 4532,
-      "albumImage": "album/al04-spacecontrols.png"
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 27,
       "filename": "lofi_027.mp3",
-      "originalName": "38-doctor-science-calm-electronica-283173",
-      "title": "Doctor Science Calm Electronica",
+      "originalName": "lofi_027",
+      "title": "Lofi Track 027",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:05",
       "fileSize": 4174,
-      "albumImage": "album/a07-elecctronics.png"
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 28,
       "filename": "lofi_028.mp3",
-      "originalName": "39-shattered-339166",
-      "title": "Shattered",
+      "originalName": "lofi_028",
+      "title": "Lofi Track 028",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "8:26",
       "fileSize": 8640,
-      "albumImage": "album/al16-chaos.png"
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 29,
       "filename": "lofi_029.mp3",
-      "originalName": "40-cqb-tense-80s-synthwave-instrumental-345187",
-      "title": "Cqb Tense 80s Synthwave Instrumental",
+      "originalName": "lofi_029",
+      "title": "Lofi Track 029",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:09",
       "fileSize": 5279,
-      "albumImage": "album/al09-80s.png"
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 30,
       "filename": "lofi_030.mp3",
-      "originalName": "41-a-hero-of-the-80s-126684",
-      "title": "A Hero Of The 80s",
+      "originalName": "lofi_030",
+      "title": "Lofi Track 030",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:56",
       "fileSize": 5053,
-      "albumImage": "album/al10-willsmith.png"
+      "albumImage": "album/al15-happyplace.png"
     },
     {
       "id": 31,
       "filename": "lofi_031.mp3",
-      "originalName": "42-balenciaga-trap-music-111733",
-      "title": "Balenciaga Trap Music",
+      "originalName": "lofi_031",
+      "title": "Lofi Track 031",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:16",
       "fileSize": 4374,
-      "albumImage": "album/al13-commercial.png"
+      "albumImage": "album/al14-album.png"
     },
     {
       "id": 32,
       "filename": "lofi_032.mp3",
-      "originalName": "43-neon-adventure-deep-fashion-house-273895",
-      "title": "Neon Adventure Deep Fashion House",
+      "originalName": "lofi_032",
+      "title": "Lofi Track 032",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "3:04",
       "fileSize": 3137,
-      "albumImage": "album/al09-80s.png"
+      "albumImage": "album/al14-album.png"
     },
     {
       "id": 33,
       "filename": "lofi_033.mp3",
-      "originalName": "5-smooth-80s-348788",
-      "title": "Smooth 80s",
+      "originalName": "lofi_033",
+      "title": "Lofi Track 033",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "8:33",
       "fileSize": 7727,
-      "albumImage": "album/al09-80s.png"
+      "albumImage": "album/al14-album.png"
     },
     {
       "id": 34,
       "filename": "lofi_034.mp3",
-      "originalName": "6-memories-retro-lofi-222985",
-      "title": "Memories Retro Lofi",
+      "originalName": "lofi_034",
+      "title": "Lofi Track 034",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:43",
       "fileSize": 4828,
-      "albumImage": "album/al1-lofigirl.png"
+      "albumImage": "album/al14-album.png"
     },
     {
       "id": 35,
       "filename": "lofi_035.mp3",
-      "originalName": "7-retro-dreams-retro-lofi-222986",
-      "title": "Retro Dreams Retro Lofi",
+      "originalName": "lofi_035",
+      "title": "Lofi Track 035",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:41",
       "fileSize": 5819,
-      "albumImage": "album/al1-lofigirl.png"
+      "albumImage": "album/al14-album.png"
     },
     {
       "id": 36,
       "filename": "lofi_036.mp3",
-      "originalName": "8-interstellar-life-135609",
-      "title": "Interstellar Life",
+      "originalName": "lofi_036",
+      "title": "Lofi Track 036",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:48",
       "fileSize": 5929,
-      "albumImage": "album/al16-spaceship.png"
+      "albumImage": "album/al14-album.png"
     },
     {
       "id": 37,
       "filename": "lofi_037.mp3",
-      "originalName": "9-stranger-things-124008",
-      "title": "Stranger Things",
+      "originalName": "lofi_037",
+      "title": "Lofi Track 037",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "5:46",
       "fileSize": 4885,
-      "albumImage": "album/al05-paranormal.png"
+      "albumImage": "album/al14-album.png"
     },
     {
       "id": 38,
       "filename": "lofi_038.mp3",
-      "originalName": "lofi-1",
-      "title": "Lofi",
+      "originalName": "lofi_038",
+      "title": "Lofi Track 038",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "4:30",
       "fileSize": 4598,
-      "albumImage": "album/al1-lofigirl.png"
+      "albumImage": "album/al14-album.png"
     },
     {
       "id": 39,
       "filename": "lofi_039.mp3",
-      "originalName": "lofi-2",
-      "title": "Lofi",
+      "originalName": "lofi_039",
+      "title": "Lofi Track 039",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:42",
       "fileSize": 5834,
-      "albumImage": "album/al1-lofigirl.png"
+      "albumImage": "album/al14-album.png"
     },
     {
       "id": 40,
       "filename": "lofi_040.mp3",
-      "originalName": "lofi-3",
-      "title": "Lofi",
+      "originalName": "lofi_040",
+      "title": "Lofi Track 040",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:42",
       "fileSize": 5834,
-      "albumImage": "album/al1-lofigirl.png"
+      "albumImage": "album/al14-album.png"
     },
     {
       "id": 41,
       "filename": "lofi_041.mp3",
-      "originalName": "lofi-4",
-      "title": "Lofi",
+      "originalName": "lofi_041",
+      "title": "Lofi Track 041",
       "author": "Unknown Artist",
       "site": "Freesound/Pixabay",
       "duration": "6:32",
       "fileSize": 5668,
-      "albumImage": "album/al1-lofigirl.png"
+      "albumImage": "album/al14-album.png"
+    },
+    {
+      "id": 42,
+      "filename": "lofi_042.mp3",
+      "originalName": "prometheusswing",
+      "title": "Prometheusswing",
+      "author": "Unknown Artist",
+      "site": "Freesound/Pixabay",
+      "duration": "3:47",
+      "fileSize": 2853,
+      "albumImage": "album/al14-album.png"
     }
   ]
 }

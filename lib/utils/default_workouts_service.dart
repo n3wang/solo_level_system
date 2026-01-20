@@ -156,6 +156,9 @@ class DefaultWorkoutsService {
         // Check if exercise should use lbs (could be added to YAML later)
         // For now, default to kg for all weighted exercises
 
+        // Try to get audio file from YAML, or generate it from name
+        final audioFile = exerciseData['audio_file']?.toString();
+
         final exercise = ExerciseModel(
           id: 'default_exercise_${i + 1}',
           name: name,
@@ -176,6 +179,7 @@ class DefaultWorkoutsService {
           createdAt: now,
           tags: tags,
           measurementUnit: measurementUnit,
+          audioFile: audioFile,
         );
         exercises.add(exercise);
       }

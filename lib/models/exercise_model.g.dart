@@ -41,13 +41,14 @@ class ExerciseModelAdapter extends TypeAdapter<ExerciseModel> {
       lastWorkoutDate: fields[21] as DateTime?,
       measurementUnit: fields[22] as String,
       isBookmarked: fields[23] as bool,
+      audioFile: fields[24] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ExerciseModel obj) {
     writer
-      ..writeByte(24)
+      ..writeByte(25)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -95,7 +96,9 @@ class ExerciseModelAdapter extends TypeAdapter<ExerciseModel> {
       ..writeByte(22)
       ..write(obj.measurementUnit)
       ..writeByte(23)
-      ..write(obj.isBookmarked);
+      ..write(obj.isBookmarked)
+      ..writeByte(24)
+      ..write(obj.audioFile);
   }
 
   @override

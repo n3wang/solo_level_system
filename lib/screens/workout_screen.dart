@@ -12,7 +12,6 @@ import 'package:solo_level_system/widgets/common/index.dart';
 import 'package:solo_level_system/utils/workout_service.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/utils/default_workouts_service.dart';
-import 'package:solo_level_system/utils/programs_service.dart';
 import 'package:solo_level_system/screens/programs_screen.dart';
 
 class WorkoutScreen extends StatefulWidget {
@@ -36,7 +35,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _searchController = TextEditingController();
     _searchFocusNode = FocusNode();
     _initializeData();
@@ -117,6 +116,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         isCustom: false,
         createdAt: DateTime.now(),
         tags: ['outdoor', 'cardio'],
+        audioFile: null, // No audio file for running
       );
       await exercisesBox.put(runningExercise.id, runningExercise);
       allExercises.add(runningExercise);

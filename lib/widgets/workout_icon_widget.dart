@@ -84,62 +84,149 @@ class _WorkoutIconWidgetState extends State<WorkoutIconWidget> {
   Widget build(BuildContext context) {
     final spriteIndex = _getSpriteIndex();
     final bgColor = widget.backgroundColor ?? Colors.white;
-    final size = widget.size ?? 128.0;
     
     if (spriteIndex == null) {
-      return widget.placeholder ?? 
-             SizedBox(
-               width: size,
-               height: size,
-               child: Icon(Icons.fitness_center, size: size),
-             );
+      if (widget.size != null) {
+        return widget.placeholder ?? 
+               SizedBox(
+                 width: widget.size,
+                 height: widget.size,
+                 child: Icon(Icons.fitness_center, size: widget.size),
+               );
+      } else {
+        return widget.placeholder ??
+               LayoutBuilder(
+                 builder: (context, constraints) {
+                   final size = constraints.biggest.shortestSide;
+                   return SizedBox(
+                     width: size,
+                     height: size,
+                     child: Icon(Icons.fitness_center, size: size * 0.6),
+                   );
+                 },
+               );
+      }
     }
 
     if (_isLoading || _cachedImage == null) {
-      return widget.placeholder ??
-          Container(
-            width: size,
-            height: size,
-            color: bgColor,
-            child: _isLoading 
-                ? Center(child: CircularProgressIndicator(strokeWidth: 2))
-                : Icon(Icons.fitness_center, size: size),
-          );
+      if (widget.size != null) {
+        return widget.placeholder ??
+            Container(
+              width: widget.size,
+              height: widget.size,
+              color: bgColor,
+              child: _isLoading 
+                  ? Center(child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(Icons.fitness_center, size: widget.size! * 0.6),
+            );
+      } else {
+        return widget.placeholder ??
+               LayoutBuilder(
+                 builder: (context, constraints) {
+                   final size = constraints.biggest.shortestSide;
+                   return Container(
+                     width: size,
+                     height: size,
+                     color: bgColor,
+                     child: _isLoading 
+                         ? Center(child: CircularProgressIndicator(strokeWidth: 2))
+                         : Icon(Icons.fitness_center, size: size * 0.6),
+                   );
+                 },
+               );
+      }
     }
 
     // Once image is loaded, use RepaintBoundary to prevent unnecessary repaints
-    return RepaintBoundary(
-      child: Container(
-        width: size,
-        height: size,
-        color: bgColor,
-        child: CustomPaint(
-          size: Size(size, size),
-          painter: _SpritePainter(_cachedImage!),
+    if (widget.size != null) {
+      return RepaintBoundary(
+        child: Container(
+          width: widget.size,
+          height: widget.size,
+          color: bgColor,
+          child: CustomPaint(
+            size: Size(widget.size!, widget.size!),
+            painter: _SpritePainter(_cachedImage!, fit: BoxFit.contain),
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      return RepaintBoundary(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final size = constraints.biggest.shortestSide;
+            return Container(
+              width: size,
+              height: size,
+              color: bgColor,
+              child: CustomPaint(
+                size: Size(size, size),
+                painter: _SpritePainter(_cachedImage!, fit: BoxFit.contain),
+              ),
+            );
+          },
+        ),
+      );
+    }
   }
 }
 
 /// Custom painter for drawing cached sprites
 class _SpritePainter extends CustomPainter {
   final ui.Image image;
+  final BoxFit fit;
 
-  _SpritePainter(this.image);
+  _SpritePainter(this.image, {this.fit = BoxFit.contain});
 
   @override
   void paint(Canvas canvas, Size size) {
+    final srcSize = Size(image.width.toDouble(), image.height.toDouble());
+    final dstSize = size;
+    
+    Rect srcRect, dstRect;
+    
+    if (fit == BoxFit.contain) {
+      // Calculate aspect ratios
+      final srcAspect = srcSize.width / srcSize.height;
+      final dstAspect = dstSize.width / dstSize.height;
+      
+      if (srcAspect > dstAspect) {
+        // Image is wider - fit to width
+        final scaledHeight = dstSize.width / srcAspect;
+        dstRect = Rect.fromLTWH(
+          0,
+          (dstSize.height - scaledHeight) / 2,
+          dstSize.width,
+          scaledHeight,
+        );
+      } else {
+        // Image is taller - fit to height
+        final scaledWidth = dstSize.height * srcAspect;
+        dstRect = Rect.fromLTWH(
+          (dstSize.width - scaledWidth) / 2,
+          0,
+          scaledWidth,
+          dstSize.height,
+        );
+      }
+      srcRect = Rect.fromLTWH(0, 0, srcSize.width, srcSize.height);
+    } else {
+      // Default: fill (for backward compatibility)
+      srcRect = Rect.fromLTWH(0, 0, srcSize.width, srcSize.height);
+      dstRect = Rect.fromLTWH(0, 0, dstSize.width, dstSize.height);
+    }
+    
     canvas.drawImageRect(
       image,
-      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-      Rect.fromLTWH(0, 0, size.width, size.height),
+      srcRect,
+      dstRect,
       Paint(),
     );
   }
 
   @override
-  bool shouldRepaint(_SpritePainter oldDelegate) => false;
+  bool shouldRepaint(_SpritePainter oldDelegate) => 
+      oldDelegate.image != image || oldDelegate.fit != fit;
 }
 
 /// Widget to display workout icon from sprite index directly

@@ -398,6 +398,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
         tags: _tags,
         isArchived: widget.exercise?.isArchived ?? false,
         measurementUnit: _measurementUnit,
+        audioFile: widget.exercise?.audioFile,
       );
 
       String exerciseId;
