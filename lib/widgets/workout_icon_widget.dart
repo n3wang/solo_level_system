@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import '../utils/workout_sprite_slicer.dart';
 
-/// Widget to display workout icons from the sprite sheet
-/// Extracts the sprite index from exercise.imageUrl (format: 'workout_sprite_INDEX')
-/// Uses StatefulWidget to cache the loaded image and prevent reloading
+/// Widget to display workout icons by slug name
+/// Uses the imageUrl field directly as the icon slug (e.g., "back_squat", "jumping_jacks")
+/// Loads from assets/icon/workout_icons_sliced/{slug}.png
 class WorkoutIconWidget extends StatefulWidget {
-  final String? imageUrl; // Format: 'workout_sprite_INDEX' or null
+  final String? imageUrl; // Icon slug (e.g., "back_squat", "jumping_jacks")
   final double? size;
   final Widget? placeholder;
-  final Color? backgroundColor; // Background color for the sprite
+  final Color? backgroundColor;
 
   const WorkoutIconWidget({
     super.key,
@@ -27,32 +27,40 @@ class WorkoutIconWidget extends StatefulWidget {
 class _WorkoutIconWidgetState extends State<WorkoutIconWidget> {
   ui.Image? _cachedImage;
   bool _isLoading = true;
-  int? _currentSpriteIndex;
+  String? _currentSlug;
 
-  /// Extract sprite index from imageUrl
-  int? _getSpriteIndex() {
-    if (widget.imageUrl == null) return null;
+  /// Get the icon slug from imageUrl
+  /// Handles both new format (slug) and legacy format (workout_sprite_INDEX)
+  String? _getIconSlug() {
+    if (widget.imageUrl == null || widget.imageUrl!.isEmpty) return null;
+
+    // Handle legacy format: workout_sprite_INDEX
     if (widget.imageUrl!.startsWith('workout_sprite_')) {
+      // Convert to index-based filename for backward compatibility
       final indexStr = widget.imageUrl!.replaceFirst('workout_sprite_', '');
-      return int.tryParse(indexStr);
+      final index = int.tryParse(indexStr);
+      if (index != null) {
+        return 'workout_icon_$index'; // Legacy fallback
+      }
     }
-    return null;
+
+    // New format: use imageUrl directly as slug
+    return widget.imageUrl;
   }
 
   @override
   void initState() {
     super.initState();
-    _currentSpriteIndex = _getSpriteIndex();
+    _currentSlug = _getIconSlug();
     _loadImage();
   }
 
   @override
   void didUpdateWidget(WorkoutIconWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Only reload if imageUrl actually changed
-    final newSpriteIndex = _getSpriteIndex();
-    if (_currentSpriteIndex != newSpriteIndex) {
-      _currentSpriteIndex = newSpriteIndex;
+    final newSlug = _getIconSlug();
+    if (_currentSlug != newSlug) {
+      _currentSlug = newSlug;
       _cachedImage = null;
       _isLoading = true;
       _loadImage();
@@ -60,8 +68,8 @@ class _WorkoutIconWidgetState extends State<WorkoutIconWidget> {
   }
 
   Future<void> _loadImage() async {
-    final spriteIndex = _currentSpriteIndex;
-    if (spriteIndex == null) {
+    final slug = _currentSlug;
+    if (slug == null) {
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -70,9 +78,9 @@ class _WorkoutIconWidgetState extends State<WorkoutIconWidget> {
       return;
     }
 
-    // Load image (will use cache internally)
-    final image = await WorkoutSpriteSlicer.getSpriteAtIndex(spriteIndex);
-    if (mounted && _currentSpriteIndex == spriteIndex) {
+    // Load image by slug name
+    final image = await WorkoutSpriteSlicer.getSpriteBySlug(slug);
+    if (mounted && _currentSlug == slug) {
       setState(() {
         _cachedImage = image;
         _isLoading = false;
@@ -82,59 +90,15 @@ class _WorkoutIconWidgetState extends State<WorkoutIconWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final spriteIndex = _getSpriteIndex();
+    final slug = _getIconSlug();
     final bgColor = widget.backgroundColor ?? Colors.white;
-    
-    if (spriteIndex == null) {
-      if (widget.size != null) {
-        return widget.placeholder ?? 
-               SizedBox(
-                 width: widget.size,
-                 height: widget.size,
-                 child: Icon(Icons.fitness_center, size: widget.size),
-               );
-      } else {
-        return widget.placeholder ??
-               LayoutBuilder(
-                 builder: (context, constraints) {
-                   final size = constraints.biggest.shortestSide;
-                   return SizedBox(
-                     width: size,
-                     height: size,
-                     child: Icon(Icons.fitness_center, size: size * 0.6),
-                   );
-                 },
-               );
-      }
+
+    if (slug == null) {
+      return _buildPlaceholder(bgColor);
     }
 
     if (_isLoading || _cachedImage == null) {
-      if (widget.size != null) {
-        return widget.placeholder ??
-            Container(
-              width: widget.size,
-              height: widget.size,
-              color: bgColor,
-              child: _isLoading 
-                  ? Center(child: CircularProgressIndicator(strokeWidth: 2))
-                  : Icon(Icons.fitness_center, size: widget.size! * 0.6),
-            );
-      } else {
-        return widget.placeholder ??
-               LayoutBuilder(
-                 builder: (context, constraints) {
-                   final size = constraints.biggest.shortestSide;
-                   return Container(
-                     width: size,
-                     height: size,
-                     color: bgColor,
-                     child: _isLoading 
-                         ? Center(child: CircularProgressIndicator(strokeWidth: 2))
-                         : Icon(Icons.fitness_center, size: size * 0.6),
-                   );
-                 },
-               );
-      }
+      return _buildLoading(bgColor);
     }
 
     // Once image is loaded, use RepaintBoundary to prevent unnecessary repaints
@@ -169,6 +133,58 @@ class _WorkoutIconWidgetState extends State<WorkoutIconWidget> {
       );
     }
   }
+
+  Widget _buildPlaceholder(Color bgColor) {
+    if (widget.size != null) {
+      return widget.placeholder ??
+          SizedBox(
+            width: widget.size,
+            height: widget.size,
+            child: Icon(Icons.fitness_center, size: widget.size),
+          );
+    } else {
+      return widget.placeholder ??
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final size = constraints.biggest.shortestSide;
+              return SizedBox(
+                width: size,
+                height: size,
+                child: Icon(Icons.fitness_center, size: size * 0.6),
+              );
+            },
+          );
+    }
+  }
+
+  Widget _buildLoading(Color bgColor) {
+    if (widget.size != null) {
+      return widget.placeholder ??
+          Container(
+            width: widget.size,
+            height: widget.size,
+            color: bgColor,
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator(strokeWidth: 2))
+                : Icon(Icons.fitness_center, size: widget.size! * 0.6),
+          );
+    } else {
+      return widget.placeholder ??
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final size = constraints.biggest.shortestSide;
+              return Container(
+                width: size,
+                height: size,
+                color: bgColor,
+                child: _isLoading
+                    ? Center(child: CircularProgressIndicator(strokeWidth: 2))
+                    : Icon(Icons.fitness_center, size: size * 0.6),
+              );
+            },
+          );
+    }
+  }
 }
 
 /// Custom painter for drawing cached sprites
@@ -182,16 +198,14 @@ class _SpritePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final srcSize = Size(image.width.toDouble(), image.height.toDouble());
     final dstSize = size;
-    
+
     Rect srcRect, dstRect;
-    
+
     if (fit == BoxFit.contain) {
-      // Calculate aspect ratios
       final srcAspect = srcSize.width / srcSize.height;
       final dstAspect = dstSize.width / dstSize.height;
-      
+
       if (srcAspect > dstAspect) {
-        // Image is wider - fit to width
         final scaledHeight = dstSize.width / srcAspect;
         dstRect = Rect.fromLTWH(
           0,
@@ -200,7 +214,6 @@ class _SpritePainter extends CustomPainter {
           scaledHeight,
         );
       } else {
-        // Image is taller - fit to height
         final scaledWidth = dstSize.height * srcAspect;
         dstRect = Rect.fromLTWH(
           (dstSize.width - scaledWidth) / 2,
@@ -211,11 +224,10 @@ class _SpritePainter extends CustomPainter {
       }
       srcRect = Rect.fromLTWH(0, 0, srcSize.width, srcSize.height);
     } else {
-      // Default: fill (for backward compatibility)
       srcRect = Rect.fromLTWH(0, 0, srcSize.width, srcSize.height);
       dstRect = Rect.fromLTWH(0, 0, dstSize.width, dstSize.height);
     }
-    
+
     canvas.drawImageRect(
       image,
       srcRect,
@@ -225,11 +237,35 @@ class _SpritePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SpritePainter oldDelegate) => 
+  bool shouldRepaint(_SpritePainter oldDelegate) =>
       oldDelegate.image != image || oldDelegate.fit != fit;
 }
 
-/// Widget to display workout icon from sprite index directly
+/// Widget to display workout icon by slug name directly
+class WorkoutIconBySlugWidget extends StatelessWidget {
+  final String slug;
+  final double? size;
+  final Color? backgroundColor;
+
+  const WorkoutIconBySlugWidget({
+    super.key,
+    required this.slug,
+    this.size,
+    this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return WorkoutIconWidget(
+      imageUrl: slug,
+      size: size,
+      backgroundColor: backgroundColor ?? Colors.white,
+    );
+  }
+}
+
+/// Legacy widget - kept for backward compatibility
+/// @deprecated Use WorkoutIconBySlugWidget instead
 class WorkoutIconByIndexWidget extends StatelessWidget {
   final int spriteIndex;
   final double? size;
@@ -244,10 +280,10 @@ class WorkoutIconByIndexWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WorkoutSpriteSlicer.getSpriteWidget(
-      spriteIndex,
+    return WorkoutIconWidget(
+      imageUrl: 'workout_icon_$spriteIndex',
       size: size,
-      backgroundColor: backgroundColor ?? Colors.white, // Default white background
+      backgroundColor: backgroundColor ?? Colors.white,
     );
   }
 }

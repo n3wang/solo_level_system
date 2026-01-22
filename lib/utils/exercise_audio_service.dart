@@ -1,5 +1,6 @@
 // lib/utils/exercise_audio_service.dart
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Service for finding and playing exercise audio files
@@ -75,19 +76,60 @@ class ExerciseAudioService {
 
     print('[AudioService] ✓ Resolved path: "$audioPath"');
     print('[AudioService] Attempting to play audio from: "$audioPath"');
+    print('[AudioService] Platform: ${kIsWeb ? "Web" : "Mobile/Desktop"}');
 
     try {
       // Stop any currently playing audio
       await _audioPlayer.stop();
       // Set volume to ensure audio plays
       await _audioPlayer.setVolume(1.0);
-      // Play the audio
-      await _audioPlayer.play(AssetSource(audioPath));
+      
+      // Verify file exists and is readable before playing
+      try {
+        final bytes = await rootBundle.load(audioPath);
+        print('[AudioService] ✓ File verified: ${bytes.lengthInBytes} bytes');
+        if (bytes.lengthInBytes == 0) {
+          print('[AudioService] ✗ File is empty (0 bytes) - cannot play');
+          return;
+        }
+      } catch (e) {
+        print('[AudioService] ✗ Cannot verify file before playing: $e');
+        return;
+      }
+      
+      // Play the audio - use different source types for web vs mobile
+      if (kIsWeb) {
+        // On web, use UrlSource with assets/ prefix for proper path resolution
+        final webPath = 'assets/$audioPath';
+        print('[AudioService] Web: Using UrlSource("$webPath")');
+        await _audioPlayer.play(UrlSource(webPath));
+      } else {
+        // On mobile/desktop, use AssetSource
+        print('[AudioService] Mobile: Using AssetSource("$audioPath")');
+        await _audioPlayer.play(AssetSource(audioPath));
+      }
       print('[AudioService] ✓ Successfully started playing audio: "$audioPath"');
     } catch (e) {
       print('[AudioService] ✗ Failed to play exercise audio at "$audioPath"');
       print('[AudioService] Error type: ${e.runtimeType}');
       print('[AudioService] Error details: $e');
+
+      // On web, provide helpful debugging info
+      if (kIsWeb) {
+        print('[AudioService] Web troubleshooting:');
+        print('[AudioService]   1. Check if file exists at: assets/$audioPath');
+        print('[AudioService]   2. Audio format must be web-compatible (MP3, OGG, WAV)');
+        print('[AudioService]   3. Try: flutter clean && flutter pub get');
+      }
+    }
+  }
+
+  /// Helper method to play audio with proper source for web/mobile
+  Future<void> _playAudioSource(String assetPath) async {
+    if (kIsWeb) {
+      await _audioPlayer.play(UrlSource('assets/$assetPath'));
+    } else {
+      await _audioPlayer.play(AssetSource(assetPath));
     }
   }
 
@@ -96,7 +138,7 @@ class ExerciseAudioService {
     try {
       await _audioPlayer.stop();
       await _audioPlayer.setVolume(1.0);
-      await _audioPlayer.play(AssetSource('audio/break_time.mp3'));
+      await _playAudioSource('audio/break_time.mp3');
       print('Playing break sound');
     } catch (e) {
       print('Failed to play break sound: $e');
@@ -113,7 +155,7 @@ class ExerciseAudioService {
     try {
       await _audioPlayer.stop();
       await _audioPlayer.setVolume(1.0);
-      await _audioPlayer.play(AssetSource('audio/$number.mp3'));
+      await _playAudioSource('audio/$number.mp3');
       print('Playing countdown: $number');
     } catch (e) {
       print('Failed to play countdown $number: $e');
@@ -125,7 +167,7 @@ class ExerciseAudioService {
     try {
       await _audioPlayer.stop();
       await _audioPlayer.setVolume(1.0);
-      await _audioPlayer.play(AssetSource('audio/5_seconds_left.mp3'));
+      await _playAudioSource('audio/5_seconds_left.mp3');
       print('Playing 5 seconds left warning');
     } catch (e) {
       print('Failed to play 5 seconds left sound: $e');
@@ -137,7 +179,7 @@ class ExerciseAudioService {
     try {
       await _audioPlayer.stop();
       await _audioPlayer.setVolume(1.0);
-      await _audioPlayer.play(AssetSource('audio/workout_complete.mp3'));
+      await _playAudioSource('audio/workout_complete.mp3');
       print('Playing workout complete sound');
     } catch (e) {
       print('Failed to play workout complete sound: $e');

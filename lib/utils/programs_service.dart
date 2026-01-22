@@ -9,15 +9,16 @@ import '../models/timed_workout_model.dart';
 class ProgramsService {
   static const String _programsInitializedKey = 'programs_initialized';
   static const String _yamlPath = 'assets/workouts/default_workouts.yaml';
+  static const String _appFlagsBoxName = 'app_init_flags';
 
   /// Check if programs have been initialized
   static Future<bool> areProgramsInitialized() async {
     try {
-      if (!Hive.isBoxOpen('config')) {
-        await Hive.openBox('config');
+      if (!Hive.isBoxOpen(_appFlagsBoxName)) {
+        await Hive.openBox(_appFlagsBoxName);
       }
-      final configBox = Hive.box('config');
-      return configBox.get(_programsInitializedKey, defaultValue: false)
+      final flagsBox = Hive.box(_appFlagsBoxName);
+      return flagsBox.get(_programsInitializedKey, defaultValue: false)
           as bool;
     } catch (e) {
       print('Error checking programs status: $e');
@@ -28,11 +29,11 @@ class ProgramsService {
   /// Mark programs as initialized
   static Future<void> markProgramsInitialized() async {
     try {
-      if (!Hive.isBoxOpen('config')) {
-        await Hive.openBox('config');
+      if (!Hive.isBoxOpen(_appFlagsBoxName)) {
+        await Hive.openBox(_appFlagsBoxName);
       }
-      final configBox = Hive.box('config');
-      await configBox.put(_programsInitializedKey, true);
+      final flagsBox = Hive.box(_appFlagsBoxName);
+      await flagsBox.put(_programsInitializedKey, true);
     } catch (e) {
       print('Error marking programs as initialized: $e');
     }

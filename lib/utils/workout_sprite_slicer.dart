@@ -6,17 +6,56 @@ import 'package:flutter/foundation.dart';
 
 /// Utility class for loading pre-sliced workout icon images
 /// Sprites are pre-sliced at build time using scripts/slice_workout_sprites.dart
-/// This prevents runtime slicing issues on mobile devices
+/// Icons are stored with slug names (e.g., back_squat.png, jumping_jacks.png)
 class WorkoutSpriteSlicer {
   static const int spriteSize = 128;
   static const String spriteSheetPath = 'assets/icon/workout_icons_128px.png';
-  static const String slicedSpritePath =
-      'assets/icon/workout_icons_sliced/workout_icon_';
+  static const String slicedSpriteDir = 'assets/icon/workout_icons_sliced';
 
-  // Cache for loaded sprites to prevent reloading
+  // Cache for loaded sprites by slug name
+  static final Map<String, ui.Image> _slugCache = {};
+
+  // Legacy cache for index-based loading
   static final Map<int, ui.Image> _spriteCache = {};
 
-  /// Get a specific sprite from pre-sliced images by index
+  /// Get a sprite by slug name (e.g., "back_squat", "jumping_jacks")
+  /// Loads from assets/icon/workout_icons_sliced/{slug}.png
+  static Future<ui.Image?> getSpriteBySlug(String slug) async {
+    // Return cached sprite if available
+    if (_slugCache.containsKey(slug)) {
+      return _slugCache[slug];
+    }
+
+    try {
+      final String path = '$slicedSpriteDir/$slug.png';
+
+      final ByteData data = await rootBundle.load(path);
+      final ui.Codec codec = await ui.instantiateImageCodec(
+        data.buffer.asUint8List(),
+      );
+      final ui.FrameInfo frameInfo = await codec.getNextFrame();
+      final ui.Image spriteImage = frameInfo.image;
+
+      // Cache the sprite for future use
+      _slugCache[slug] = spriteImage;
+      return spriteImage;
+    } catch (e) {
+      print('Error loading sprite "$slug": $e');
+
+      // Try legacy fallback if slug looks like workout_icon_INDEX
+      if (slug.startsWith('workout_icon_')) {
+        final indexStr = slug.replaceFirst('workout_icon_', '');
+        final index = int.tryParse(indexStr);
+        if (index != null) {
+          return await getSpriteAtIndex(index);
+        }
+      }
+
+      return null;
+    }
+  }
+
+  /// Get a specific sprite from pre-sliced images by index (legacy support)
   /// Index 0 = first icon, Index 1 = second icon, etc.
   /// Uses caching to prevent reloading
   /// Falls back to runtime slicing if pre-sliced image not found
@@ -27,8 +66,8 @@ class WorkoutSpriteSlicer {
     }
 
     try {
-      // Try to load pre-sliced image first
-      final String slicedPath = '$slicedSpritePath$index.png';
+      // Try to load pre-sliced image by index (legacy format)
+      final String slicedPath = '$slicedSpriteDir/workout_icon_$index.png';
 
       try {
         final ByteData data = await rootBundle.load(slicedPath);
@@ -101,16 +140,63 @@ class WorkoutSpriteSlicer {
     }
   }
 
-  /// Get a widget that displays a specific sprite by index
-  /// Uses caching to prevent reloading
+  /// Get a widget that displays a specific sprite by slug
+  static Widget getSpriteWidgetBySlug(
+    String slug, {
+    double? size,
+    Color? backgroundColor,
+  }) {
+    final bgColor = backgroundColor ?? Colors.white;
+
+    return FutureBuilder<ui.Image?>(
+      key: ValueKey('sprite_$slug'),
+      future: getSpriteBySlug(slug),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            width: size ?? spriteSize.toDouble(),
+            height: size ?? spriteSize.toDouble(),
+            color: bgColor,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError || !snapshot.hasData) {
+          return Container(
+            width: size ?? spriteSize.toDouble(),
+            height: size ?? spriteSize.toDouble(),
+            color: bgColor,
+            child: Icon(
+              Icons.fitness_center,
+              size: size ?? spriteSize.toDouble(),
+            ),
+          );
+        }
+
+        return Container(
+          width: size ?? spriteSize.toDouble(),
+          height: size ?? spriteSize.toDouble(),
+          color: bgColor,
+          child: CustomPaint(
+            size: Size(
+              size ?? spriteSize.toDouble(),
+              size ?? spriteSize.toDouble(),
+            ),
+            painter: SpritePainter(snapshot.data!),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Get a widget that displays a specific sprite by index (legacy support)
   static Widget getSpriteWidget(
     int index, {
     double? size,
     Color? backgroundColor,
   }) {
-    final bgColor = backgroundColor ?? Colors.white; // Default white background
+    final bgColor = backgroundColor ?? Colors.white;
 
-    // Use a key based on index to maintain widget identity and prevent rebuilds
     return FutureBuilder<ui.Image?>(
       key: ValueKey('sprite_$index'),
       future: getSpriteAtIndex(index),
@@ -139,7 +225,7 @@ class WorkoutSpriteSlicer {
         return Container(
           width: size ?? spriteSize.toDouble(),
           height: size ?? spriteSize.toDouble(),
-          color: bgColor, // White background
+          color: bgColor,
           child: CustomPaint(
             size: Size(
               size ?? spriteSize.toDouble(),
@@ -168,27 +254,9 @@ class WorkoutSpriteSlicer {
   }
 
   /// Get the number of sprites available
-  /// Tries to count pre-sliced images first, falls back to sprite sheet width
   static Future<int> getSpriteCount() async {
     try {
-      // Try to count pre-sliced images
-      int count = 0;
-      while (true) {
-        try {
-          final String path = '$slicedSpritePath$count.png';
-          await rootBundle.load(path);
-          count++;
-        } catch (e) {
-          // No more pre-sliced images found
-          break;
-        }
-      }
-
-      if (count > 0) {
-        return count;
-      }
-
-      // Fallback: count from sprite sheet width
+      // Count from sprite sheet width
       final ui.Image? image = await getSpriteSheet();
       if (image == null) return 0;
       return (image.width / spriteSize).floor();
@@ -198,7 +266,13 @@ class WorkoutSpriteSlicer {
     }
   }
 
-  /// Get sprite as ImageProvider for use in Image widgets
+  /// Clear all cached sprites (useful for memory management)
+  static void clearCache() {
+    _slugCache.clear();
+    _spriteCache.clear();
+  }
+
+  /// Get sprite as ImageProvider for use in Image widgets (legacy support)
   static ImageProvider getSpriteImageProvider(int index) {
     return WorkoutSpriteImageProvider(index);
   }
@@ -224,7 +298,7 @@ class SpritePainter extends CustomPainter {
   bool shouldRepaint(SpritePainter oldDelegate) => false;
 }
 
-/// Custom ImageProvider for workout sprites
+/// Custom ImageProvider for workout sprites (legacy support)
 class WorkoutSpriteImageProvider
     extends ImageProvider<WorkoutSpriteImageProvider> {
   final int index;

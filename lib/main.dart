@@ -82,6 +82,10 @@ void main() async {
       print('✓ Recreated config box');
     }
 
+    // App initialization flags box (untyped, for simple boolean flags)
+    await Hive.openBox('app_init_flags');
+    print('✓ Opened app_init_flags box');
+
     // Open workout-related boxes (with error recovery)
     try {
       await Hive.openBox<ExerciseModel>('exercises');
@@ -267,6 +271,13 @@ void main() async {
     } catch (e) {
       print('⚠️ Error initializing programs: $e');
       // Continue app startup even if programs fail
+    }
+
+    // Sync audio files from YAML to existing exercises
+    try {
+      await DefaultWorkoutsService.updateAudioFilesFromYaml();
+    } catch (e) {
+      print('⚠️ Error syncing audio files: $e');
     }
 
     runApp(MyApp());

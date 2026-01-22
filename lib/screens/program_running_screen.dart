@@ -281,7 +281,15 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
 
   int _get10SecondIntervalCount() {
     // Calculate how many 10-second intervals have passed
-    return ((_workoutItems[_currentIndex].time - _remainingSeconds) ~/ 10).clamp(0, 3);
+    final totalTime = _workoutItems[_currentIndex].time;
+    final maxIntervals = (totalTime / 10).ceil();
+    return ((_workoutItems[_currentIndex].time - _remainingSeconds) ~/ 10).clamp(0, maxIntervals);
+  }
+
+  int _getMaxIntervalCount() {
+    // Calculate maximum number of 10-second intervals for current exercise
+    final totalTime = _workoutItems[_currentIndex].time;
+    return (totalTime / 10).ceil();
   }
 
   @override
@@ -424,7 +432,7 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
                         // 10-second interval indicators
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(3, (index) {
+                          children: List.generate(_getMaxIntervalCount(), (index) {
                             final filledCount = _get10SecondIntervalCount();
                             final isFilled = index < filledCount;
                             return Container(

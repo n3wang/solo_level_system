@@ -10,15 +10,16 @@ import '../models/workout_set_model.dart';
 class DefaultWorkoutsService {
   static const String _defaultWorkoutsInitializedKey =
       'default_workouts_initialized';
+  static const String _appFlagsBoxName = 'app_init_flags';
 
   /// Check if default workouts have been initialized
   static Future<bool> areDefaultWorkoutsInitialized() async {
     try {
-      if (!Hive.isBoxOpen('config')) {
-        await Hive.openBox('config');
+      if (!Hive.isBoxOpen(_appFlagsBoxName)) {
+        await Hive.openBox(_appFlagsBoxName);
       }
-      final configBox = Hive.box('config');
-      return configBox.get(_defaultWorkoutsInitializedKey, defaultValue: false)
+      final flagsBox = Hive.box(_appFlagsBoxName);
+      return flagsBox.get(_defaultWorkoutsInitializedKey, defaultValue: false)
           as bool;
     } catch (e) {
       print('Error checking default workouts status: $e');
@@ -29,11 +30,11 @@ class DefaultWorkoutsService {
   /// Mark default workouts as initialized
   static Future<void> markDefaultWorkoutsInitialized() async {
     try {
-      if (!Hive.isBoxOpen('config')) {
-        await Hive.openBox('config');
+      if (!Hive.isBoxOpen(_appFlagsBoxName)) {
+        await Hive.openBox(_appFlagsBoxName);
       }
-      final configBox = Hive.box('config');
-      await configBox.put(_defaultWorkoutsInitializedKey, true);
+      final flagsBox = Hive.box(_appFlagsBoxName);
+      await flagsBox.put(_defaultWorkoutsInitializedKey, true);
     } catch (e) {
       print('Error marking default workouts as initialized: $e');
     }
@@ -120,7 +121,7 @@ class DefaultWorkoutsService {
         final equipment = exerciseData['equipment']?.toString() ?? '';
         final category = exerciseData['category']?.toString() ?? '';
         final difficulty = exerciseData['difficulty']?.toString() ?? '';
-        final spriteIndex = exerciseData['sprite_index'] as int? ?? 0;
+        final icon = exerciseData['icon']?.toString();
         final description = exerciseData['description']?.toString() ?? '';
         final instructions =
             (exerciseData['instructions'] as YamlList?)
@@ -174,7 +175,7 @@ class DefaultWorkoutsService {
                   'Control the movement throughout',
                   'Breathe properly during execution',
                 ],
-          imageUrl: 'workout_sprite_$spriteIndex',
+          imageUrl: icon,
           isCustom: false,
           createdAt: now,
           tags: tags,
@@ -261,7 +262,10 @@ class DefaultWorkoutsService {
             // Get default sets/reps from exercise YAML data
             final exerciseYamlData = await _getExerciseYamlData(exercise.name);
             final defaultSets =
-                exerciseYamlData['default_sets'] as List<int>? ?? setNumbers;
+                (exerciseYamlData['default_sets'] as YamlList?)
+                    ?.map((e) => e as int)
+                    .toList() ??
+                setNumbers;
             final defaultReps = exerciseYamlData['default_reps'] as int? ?? 10;
             final defaultDuration =
                 exerciseYamlData['default_duration'] as int?;
@@ -351,6 +355,83 @@ class DefaultWorkoutsService {
     return {};
   }
 
+  /// Update all existing exercises' audioFile from YAML
+  /// Call this to sync audio files without full re-initialization
+  static Future<int> updateAudioFilesFromYaml() async {
+    print('[AudioSync] Starting audio file sync from YAML...');
+    int updatedCount = 0;
+    try {
+      // Ensure exercises box is open
+      if (!Hive.isBoxOpen('exercises')) {
+        print('[AudioSync] Opening exercises box...');
+        await Hive.openBox<ExerciseModel>('exercises');
+      }
+      final exercisesBox = Hive.box<ExerciseModel>('exercises');
+      print('[AudioSync] Exercises box has ${exercisesBox.length} exercises');
+
+      // Load audio files from YAML
+      print('[AudioSync] Loading YAML from $_yamlPath');
+      final String yamlString = await rootBundle.loadString(_yamlPath);
+      final dynamic yamlMap = loadYaml(yamlString);
+      final exercisesList = yamlMap['exercises'] as YamlList?;
+
+      if (exercisesList == null) {
+        print('[AudioSync] ✗ No exercises list found in YAML');
+        return 0;
+      }
+      print('[AudioSync] Found ${exercisesList.length} exercises in YAML');
+
+      // Build a map of exercise name (lowercase) -> audio_file
+      final audioMap = <String, String>{};
+      for (final exerciseData in exercisesList) {
+        final name = (exerciseData as Map)['name']?.toString() ?? '';
+        final audioFile = exerciseData['audio_file']?.toString();
+        if (name.isNotEmpty && audioFile != null && audioFile.isNotEmpty) {
+          audioMap[name.toLowerCase().trim()] = audioFile;
+        }
+      }
+      print('[AudioSync] Built audio map with ${audioMap.length} entries');
+
+      // Debug: Check if Jumping Jacks is in the map
+      if (audioMap.containsKey('jumping jacks')) {
+        print('[AudioSync] ✓ "jumping jacks" found in audioMap: "${audioMap['jumping jacks']}"');
+      } else {
+        print('[AudioSync] ✗ "jumping jacks" NOT found in audioMap');
+        print('[AudioSync] Available keys: ${audioMap.keys.take(10).toList()}...');
+      }
+
+      // Update existing exercises
+      for (final exercise in exercisesBox.values) {
+        final normalizedName = exercise.name.toLowerCase().trim();
+        final yamlAudioFile = audioMap[normalizedName];
+
+        // Debug specific exercises
+        if (normalizedName == 'jumping jacks') {
+          print('[AudioSync] Found "Jumping Jacks" in Hive:');
+          print('[AudioSync]   - ID: ${exercise.id}');
+          print('[AudioSync]   - Current audioFile: "${exercise.audioFile}"');
+          print('[AudioSync]   - YAML audioFile: "$yamlAudioFile"');
+        }
+
+        if (yamlAudioFile != null && exercise.audioFile != yamlAudioFile) {
+          print(
+            '[AudioSync] Updating "${exercise.name}" audioFile: '
+            '"${exercise.audioFile}" -> "$yamlAudioFile"',
+          );
+          exercise.audioFile = yamlAudioFile;
+          await exercise.save();
+          updatedCount++;
+        }
+      }
+
+      print('[AudioSync] ✓ Sync complete. Updated $updatedCount exercises');
+    } catch (e, stack) {
+      print('[AudioSync] ✗ Error updating audio files from YAML: $e');
+      print('[AudioSync] Stack: $stack');
+    }
+    return updatedCount;
+  }
+
   /// Delete all default workouts (for reset/testing)
   static Future<void> deleteDefaultWorkouts() async {
     try {
@@ -379,11 +460,11 @@ class DefaultWorkoutsService {
       }
 
       // Reset initialization flag
-      if (!Hive.isBoxOpen('config')) {
-        await Hive.openBox('config');
+      if (!Hive.isBoxOpen(_appFlagsBoxName)) {
+        await Hive.openBox(_appFlagsBoxName);
       }
-      final configBox = Hive.box('config');
-      await configBox.put(_defaultWorkoutsInitializedKey, false);
+      final flagsBox = Hive.box(_appFlagsBoxName);
+      await flagsBox.put(_defaultWorkoutsInitializedKey, false);
 
       print('✓ Default workouts deleted');
     } catch (e) {
