@@ -199,6 +199,10 @@ This pattern makes the code easier to:
 
 ### Focus Mode Implementation
 
+## Flutter Asset Paths for Audio
+
+When you declare a folder in pubspec (for example, `assets/audio/`), the runtime asset key includes the full path with the `assets/` prefix. If your models store shorthand paths like `audio/workouts/jumping_jacks.mp3`, normalize them to `assets/audio/workouts/jumping_jacks.mp3` before calling `rootBundle.load(...)` or `AssetSource(...)`. This avoids “Unable to load asset” errors caused by missing the `assets/` prefix.
+
 Providing visual feedback when features are disabled enhances user understanding:
 
 ```dart

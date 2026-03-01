@@ -12,6 +12,32 @@ class ExerciseAudioService {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final String _audioBasePath = 'audio/workouts';
 
+  String _normalizeAssetPath(String audioFile) {
+    var path = audioFile.trim();
+
+    if (path.startsWith('assets/')) {
+      // Already an asset path
+    } else if (path.startsWith('audio/')) {
+      path = 'assets/$path';
+    } else {
+      path = 'assets/$_audioBasePath/$path';
+    }
+
+    if (!path.endsWith('.mp3')) {
+      path = '$path.mp3';
+    }
+
+    return path;
+  }
+
+  String _bundleLoadKey(String assetPath) {
+    if (kIsWeb && assetPath.startsWith('assets/')) {
+      return assetPath.substring('assets/'.length);
+    }
+
+    return assetPath;
+  }
+
   /// Get the audio file path from an exercise's audioFile field
   /// Returns the full path to the audio file if it exists
   Future<String?> getExerciseAudioPath(String? audioFile) async {
@@ -24,12 +50,16 @@ class ExerciseAudioService {
 
     print('[AudioService] Processing audioFile from model: "$audioFile"');
 
-    // If audioFile already includes the path, use it as is
-    if (audioFile.startsWith('audio/')) {
-      final audioPath = audioFile.endsWith('.mp3') ? audioFile : '$audioFile.mp3';
-      print('[AudioService] audioFile starts with "audio/", checking path: $audioPath');
+    // If audioFile already includes the path, normalize it
+    if (audioFile.startsWith('assets/') || audioFile.startsWith('audio/')) {
+      final audioPath = _normalizeAssetPath(audioFile);
+      final bundleKey = _bundleLoadKey(audioPath);
+      print('[AudioService] audioFile starts with "assets/" or "audio/", checking path: $audioPath');
+      if (bundleKey != audioPath) {
+        print('[AudioService] Web bundle key: $bundleKey');
+      }
       try {
-        await rootBundle.load(audioPath);
+        await rootBundle.load(bundleKey);
         print('[AudioService] ✓ Audio file FOUND at: $audioPath');
         return audioPath;
       } catch (e) {
@@ -40,12 +70,15 @@ class ExerciseAudioService {
     }
 
     // Otherwise, assume it's in the workouts folder
-    final audioPath = '$_audioBasePath/$audioFile';
-    final finalPath = audioPath.endsWith('.mp3') ? audioPath : '$audioPath.mp3';
+    final finalPath = _normalizeAssetPath(audioFile);
+    final bundleKey = _bundleLoadKey(finalPath);
     print('[AudioService] audioFile does not start with "audio/", constructing path: $finalPath');
+    if (bundleKey != finalPath) {
+      print('[AudioService] Web bundle key: $bundleKey');
+    }
     
     try {
-      await rootBundle.load(finalPath);
+      await rootBundle.load(bundleKey);
       print('[AudioService] ✓ Audio file FOUND at: $finalPath');
       return finalPath;
     } catch (e) {
@@ -86,7 +119,8 @@ class ExerciseAudioService {
       
       // Verify file exists and is readable before playing
       try {
-        final bytes = await rootBundle.load(audioPath);
+        final bundleKey = _bundleLoadKey(audioPath);
+        final bytes = await rootBundle.load(bundleKey);
         print('[AudioService] ✓ File verified: ${bytes.lengthInBytes} bytes');
         if (bytes.lengthInBytes == 0) {
           print('[AudioService] ✗ File is empty (0 bytes) - cannot play');
@@ -99,10 +133,9 @@ class ExerciseAudioService {
       
       // Play the audio - use different source types for web vs mobile
       if (kIsWeb) {
-        // On web, use UrlSource with assets/ prefix for proper path resolution
-        final webPath = 'assets/$audioPath';
-        print('[AudioService] Web: Using UrlSource("$webPath")');
-        await _audioPlayer.play(UrlSource(webPath));
+        // On web, use UrlSource with the asset path
+        print('[AudioService] Web: Using UrlSource("$audioPath")');
+        await _audioPlayer.play(UrlSource(audioPath));
       } else {
         // On mobile/desktop, use AssetSource
         print('[AudioService] Mobile: Using AssetSource("$audioPath")');
@@ -126,10 +159,11 @@ class ExerciseAudioService {
 
   /// Helper method to play audio with proper source for web/mobile
   Future<void> _playAudioSource(String assetPath) async {
+    final normalizedPath = _normalizeAssetPath(assetPath);
     if (kIsWeb) {
-      await _audioPlayer.play(UrlSource('assets/$assetPath'));
+      await _audioPlayer.play(UrlSource(normalizedPath));
     } else {
-      await _audioPlayer.play(AssetSource(assetPath));
+      await _audioPlayer.play(AssetSource(normalizedPath));
     }
   }
 
