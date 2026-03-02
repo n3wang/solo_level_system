@@ -17,12 +17,16 @@ class RoomManagementSeedService {
     'One module at a time.',
     'Small progress keeps the mission alive.',
     'Breathe, align, continue.',
+    'Lock in and drift through distractions.',
+    'Mission clock is running, keep moving.',
   ];
   static const List<String> _mansionPhrases = [
     'Quiet halls, sharp mind.',
     'Let the silence carry your focus.',
     'Slow steps, deep concentration.',
     'Finish this room, then the next.',
+    'Calm mind, candlelit consistency.',
+    'Stay with the page until it clicks.',
   ];
 
   static Future<void> ensureSampleRooms() async {

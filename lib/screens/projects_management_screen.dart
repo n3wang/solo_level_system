@@ -12,16 +12,26 @@ class ProjectsManagementScreen extends StatefulWidget {
       _ProjectsManagementScreenState();
 }
 
-class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
   List<ProjectModel> projects = [];
   bool isLoading = true;
+  bool _showArchived = false;
+  ProjectModel? _selectedProject;
+  int _dailyTarget = 1;
+  int _weeklyTarget = 2;
+  int _workDuration = 25;
+  int _breakDuration = 5;
+  final Map<int, int> _dayStates = {for (int day = 1; day <= 7; day++) day: 0};
+  TimeOfDay _morningStart = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _afternoonStart = const TimeOfDay(hour: 12, minute: 30);
+  TimeOfDay _eveningStart = const TimeOfDay(hour: 18, minute: 30);
+  bool _sendNotification = false;
+  bool _showOnlyWithinHour = false;
+  bool _dontScoreOutside = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _loadProjects();
   }
 
@@ -43,6 +53,15 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
       }
 
       setState(() {
+        final filtered = _filteredProjects;
+        if (_selectedProject != null &&
+            !filtered.any((p) => p.id == _selectedProject!.id)) {
+          _selectedProject = null;
+        }
+        if (_selectedProject == null && filtered.isNotEmpty) {
+          _selectedProject = filtered.first;
+        }
+        _syncEditorFromSelectedProject();
         isLoading = false;
       });
     } catch (e) {
@@ -55,7 +74,6 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
 
   @override
   void dispose() {
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -73,236 +91,539 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: [
-            Tab(icon: Icon(Icons.folder), text: 'Active'),
-            Tab(icon: Icon(Icons.archive), text: 'Archived'),
+        title: Row(
+          children: [
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _showArchived = !_showArchived;
+                });
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: Colors.white.withValues(alpha: 0.14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              ),
+              icon: Icon(_showArchived ? Icons.archive : Icons.folder_open),
+              label: Text(_showArchived ? 'Archived' : 'Active'),
+            ),
+            const SizedBox(width: 10),
+            Text(_showArchived ? 'Projects (Archived)' : 'Projects'),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [_buildActiveProjectsTab(), _buildArchivedProjectsTab()],
-      ),
-      floatingActionButton: CustomFloatingActionButton(
-        heroTag: "projects_new_project",
-        label: 'New Project',
-        icon: Icons.add,
-        onPressed: _showCreateProjectDialog,
-      ),
+      body: _buildEditorLayout(),
     );
   }
 
-  Widget _buildActiveProjectsTab() {
-    final activeProjects = projects.where((p) => p.isActive).toList();
-    return _buildProjectsList(activeProjects, true);
-  }
+  List<ProjectModel> get _filteredProjects => _showArchived
+      ? projects.where((p) => !p.isActive).toList()
+      : projects.where((p) => p.isActive).toList();
 
-  Widget _buildArchivedProjectsTab() {
-    final archivedProjects = projects.where((p) => !p.isActive).toList();
-    return _buildProjectsList(archivedProjects, false);
-  }
-
-  Widget _buildProjectsList(List<ProjectModel> projectList, bool isActive) {
-    if (projectList.isEmpty) {
-      return EmptyState(
-        icon: isActive ? Icons.folder_open : Icons.archive,
-        title: isActive ? 'No active projects' : 'No archived projects',
-        subtitle: isActive
-            ? 'Create your first project to organize your pomodoro sessions!'
-            : null,
-      );
+  void _syncEditorFromSelectedProject() {
+    final p = _selectedProject;
+    if (p == null) {
+      _dailyTarget = 1;
+      _weeklyTarget = 2;
+      _workDuration = 25;
+      _breakDuration = 5;
+      for (int day = 1; day <= 7; day++) {
+        _dayStates[day] = 0;
+      }
+      return;
     }
+    _dailyTarget = p.dailySessionTarget;
+    _weeklyTarget = p.weeklySessionTarget;
+    _workDuration = p.workDurationMinutes;
+    _breakDuration = p.breakDurationMinutes;
+    final preferred = p.preferredWorkHour ?? 9;
+    _morningStart = TimeOfDay(hour: preferred, minute: 0);
+    for (int day = 1; day <= 7; day++) {
+      _dayStates[day] = p.activeDays.contains(day) ? 0 : 1;
+    }
+  }
 
-    return ListView.builder(
-      padding: EdgeInsets.all(16),
-      itemCount: projectList.length,
-      itemBuilder: (context, index) {
-        final project = projectList[index];
-        return _buildProjectCard(project, isActive);
-      },
+  Future<void> _persistSelectedProject() async {
+    final p = _selectedProject;
+    if (p == null) return;
+    p.dailySessionTarget = _dailyTarget;
+    p.weeklySessionTarget = _weeklyTarget;
+    p.workDurationMinutes = _workDuration;
+    p.breakDurationMinutes = _breakDuration;
+    p.preferredWorkHour = _morningStart.hour;
+    p.activeDays = _dayStates.entries
+        .where((entry) => entry.value != 1)
+        .map((entry) => entry.key)
+        .toList()
+      ..sort();
+    await p.save();
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Widget _buildEditorLayout() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildProjectPreviewCard(),
+          const SizedBox(height: 14),
+          _buildProjectSettingsCard(),
+        ],
+      ),
     );
   }
 
-  Widget _buildProjectCard(ProjectModel project, bool isActive) {
-    final color = _parseColor(project.color);
+  Widget _buildProjectPreviewCard() {
+    final selected = _selectedProject;
+    final name = selected?.name ?? 'No Project';
+    final description = selected?.description ?? 'No description yet';
+    final isActiveList = !_showArchived;
 
-    return BaseCard(
-      onTap: () => _showProjectDetails(project),
-      onLongPress: () => _showProjectOptions(project, isActive),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.black26),
+                  ),
+                  child: TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _showArchived = !_showArchived;
+                        final filtered = _filteredProjects;
+                        if (_selectedProject != null &&
+                            !filtered.any((p) => p.id == _selectedProject!.id)) {
+                          _selectedProject = null;
+                        }
+                        if (_selectedProject == null && filtered.isNotEmpty) {
+                          _selectedProject = filtered.first;
+                        }
+                        _syncEditorFromSelectedProject();
+                      });
+                    },
+                    child: Text(_showArchived ? 'archived' : 'active'),
+                  ),
+                ),
+                const Spacer(),
+                _buildMiniActionButton(
+                  icon: isActiveList ? Icons.archive_outlined : Icons.unarchive_outlined,
+                  tooltip: isActiveList ? 'Archive selected project' : 'Restore selected project',
+                  onPressed: _selectedProject == null
+                      ? null
+                      : () async {
+                          if (isActiveList) {
+                            _selectedProject!.archive();
+                          } else {
+                            _selectedProject!.unarchive();
+                          }
+                          await _loadProjects();
+                        },
+                ),
+                const SizedBox(width: 6),
+                _buildMiniActionButton(
+                  icon: Icons.add,
+                  tooltip: 'Create project',
+                  onPressed: _showCreateProjectDialog,
+                ),
+                const SizedBox(width: 6),
+                _buildMiniActionButton(
+                  icon: Icons.casino_outlined,
+                  tooltip: 'Random project',
+                  onPressed: () {
+                    final filtered = _filteredProjects;
+                    if (filtered.isEmpty) return;
+                    filtered.shuffle();
+                    setState(() {
+                      _selectedProject = filtered.first;
+                      _syncEditorFromSelectedProject();
+                    });
+                  },
+                ),
+                const SizedBox(width: 6),
+                _buildMiniActionButton(
+                  icon: Icons.close,
+                  tooltip: 'No project',
+                  onPressed: () {
+                    setState(() {
+                      _selectedProject = null;
+                      _syncEditorFromSelectedProject();
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.black26),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 84,
+                    height: 84,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.black26),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 22,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(description, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    width: 44,
+                    height: 84,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.black26),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Text('Project'),
+                const SizedBox(width: 8),
+                Wrap(
+                  spacing: 5,
+                  children: [
+                    for (int i = 0; i <= _filteredProjects.length; i++)
+                      _buildProjectIndicator(i),
+                  ],
+                ),
+                const Spacer(),
+                const Text('Breakdown'),
+                const SizedBox(width: 8),
+                _buildBreakdownBars(),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniActionButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onPressed,
+  }) {
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        child: Icon(icon, size: 16),
+      ),
+    );
+  }
+
+  Widget _buildProjectIndicator(int index) {
+    final project = index == 0 ? null : _filteredProjects[index - 1];
+    final selected = (project == null && _selectedProject == null) ||
+        (project?.id == _selectedProject?.id);
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedProject = project;
+          _syncEditorFromSelectedProject();
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        width: 10,
+        height: 22,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(3),
+          border: Border.all(color: Colors.grey.shade600, width: 1.4),
+          color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBreakdownBars() {
+    return Wrap(
+      spacing: 3,
+      children: [
+        ...List.generate(
+          (_workDuration / 5).ceil(),
+          (_) => _buildBreakdownBar(Colors.red),
+        ),
+        ...List.generate(
+          (_breakDuration / 5).ceil(),
+          (_) => _buildBreakdownBar(Colors.green),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBreakdownBar(Color color) {
+    return Container(
+      width: 9,
+      height: 20,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: color.withValues(alpha: 0.6), width: 1.2),
+        color: color.withValues(alpha: 0.08),
+      ),
+    );
+  }
+
+  Widget _buildProjectSettingsCard() {
+    final bool enabled = _selectedProject != null;
+    return Opacity(
+      opacity: enabled ? 1 : 0.6,
+      child: IgnorePointer(
+        ignoring: !enabled,
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Session Targets',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildCounterField(
+                        label: 'Daily',
+                        value: _dailyTarget,
+                        min: 1,
+                        max: 20,
+                        onChanged: (v) async {
+                          setState(() => _dailyTarget = v);
+                          await _persistSelectedProject();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildCounterField(
+                        label: 'Weekly',
+                        value: _weeklyTarget,
+                        min: 1,
+                        max: 50,
+                        onChanged: (v) async {
+                          setState(() => _weeklyTarget = v);
+                          await _persistSelectedProject();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const Text('Active Days', style: TextStyle(fontSize: 22)),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (int day = 1; day <= 7; day++)
+                          GestureDetector(
+                            onTap: () async {
+                              setState(() {
+                                _dayStates[day] = _nextDayState(_dayStates[day] ?? 0);
+                              });
+                              await _persistSelectedProject();
+                            },
+                            child: _buildDayStateRect(_dayStates[day] ?? 0),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (int day = 1; day <= 7; day++)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                '${_getDayName(day)}, ${_dayStateLabel(_dayStates[day] ?? 0)}',
+                                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const Text('Work Hour (Optional)', style: TextStyle(fontSize: 22)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: _buildTimeField('Morning', _morningStart)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildTimeField('Afternoon', _afternoonStart)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildTimeField('Evening', _eveningStart)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                CheckboxListTile(
+                  value: _sendNotification,
+                  onChanged: (v) => setState(() => _sendNotification = v ?? false),
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text('Create Notification'),
+                ),
+                CheckboxListTile(
+                  value: _showOnlyWithinHour,
+                  onChanged: (v) => setState(() => _showOnlyWithinHour = v ?? false),
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text('Show only within 1 hour of target'),
+                ),
+                CheckboxListTile(
+                  value: _dontScoreOutside,
+                  onChanged: (v) => setState(() => _dontScoreOutside = v ?? false),
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text('Dont Score project if outside of hour range'),
+                ),
+                const SizedBox(height: 10),
+                const Text('Session Duration (minutes)', style: TextStyle(fontSize: 22)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildCounterField(
+                        label: 'Work Duration',
+                        value: _workDuration,
+                        min: 5,
+                        max: 180,
+                        step: 5,
+                        onChanged: (v) async {
+                          setState(() => _workDuration = v);
+                          await _persistSelectedProject();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildCounterField(
+                        label: 'Break',
+                        value: _breakDuration,
+                        min: 5,
+                        max: 60,
+                        step: 5,
+                        onChanged: (v) async {
+                          setState(() => _breakDuration = v);
+                          await _persistSelectedProject();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCounterField({
+    required String label,
+    required int value,
+    required int min,
+    required int max,
+    int step = 1,
+    required ValueChanged<int> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(label),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              onPressed: value > min ? () => onChanged(value - step) : null,
+              icon: const Icon(Icons.remove_circle_outline),
+            ),
+            Container(
+              width: 64,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.black26),
+              ),
+              child: Text(
+                value.toString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            IconButton(
+              onPressed: value < max ? () => onChanged(value + step) : null,
+              icon: const Icon(Icons.add_circle_outline),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeField(String label, TimeOfDay value) {
+    final text = '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.black26),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CardHeader(
-            title: project.name,
-            description: project.description,
-            color: color,
-            iconName: project.iconName,
-            trailing: !isActive
-                ? Icon(Icons.archive, color: Colors.grey[500])
-                : null,
-          ),
-          SizedBox(height: 12),
-          Row(
-            children: [
-              StatChip(
-                label: 'Sessions',
-                value: '${project.totalCompletedPomodoros}',
-                icon: Icons.timer,
-              ),
-              SizedBox(width: 8),
-              StatChip(
-                label: 'Progress',
-                value: project.progressText,
-                icon: Icons.trending_up,
-              ),
-              if (project.priority > 0) ...[
-                SizedBox(width: 8),
-                PriorityChip(priority: project.priority),
-              ],
-            ],
-          ),
+          Text(label, style: const TextStyle(fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
-      ),
-    );
-  }
-
-  void _showProjectDetails(ProjectModel project) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => CustomBottomSheet(
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CardHeader(
-              title: project.name,
-              description: project.description,
-              color: _parseColor(project.color),
-              iconName: project.iconName,
-            ),
-            SizedBox(height: 20),
-            _buildDetailRow(
-              'Total Sessions',
-              '${project.totalCompletedPomodoros}',
-            ),
-            _buildDetailRow('Progress', project.progressText),
-            _buildDetailRow('Created', _formatDate(project.createdAt)),
-            _buildDetailRow('Priority', _getPriorityText(project.priority)),
-            _buildDetailRow('Status', project.statusText),
-            if (project.tags.isNotEmpty) ...[
-              SizedBox(height: 16),
-              Text('Tags', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: project.tags
-                    .map(
-                      (tag) => Chip(
-                        label: Text(tag),
-                        backgroundColor: Theme.of(
-                          context,
-                        ).primaryColor.withValues(alpha: 0.1),
-                        labelStyle: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(value, style: TextStyle(fontWeight: FontWeight.w500)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showProjectOptions(ProjectModel project, bool isActive) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => OptionsBottomSheet(
-        options: [
-          BottomSheetOption(
-            title: 'Edit Project',
-            icon: Icons.edit,
-            onTap: () => _editProject(project),
-          ),
-          BottomSheetOption(
-            title: isActive ? 'Archive Project' : 'Restore Project',
-            icon: isActive ? Icons.archive : Icons.unarchive,
-            onTap: () {
-              if (isActive) {
-                project.archive();
-              } else {
-                project.unarchive();
-              }
-              setState(() {});
-            },
-          ),
-          BottomSheetOption(
-            title: 'Delete Project',
-            icon: Icons.delete,
-            onTap: () => _deleteProject(project),
-            isDestructive: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _editProject(ProjectModel project) {
-    _showProjectDialog(project: project);
-  }
-
-  void _deleteProject(ProjectModel project) {
-    showDialog(
-      context: context,
-      builder: (context) => ConfirmationDialog(
-        title: 'Delete Project',
-        message:
-            'Are you sure you want to delete "${project.name}"? This action cannot be undone.',
-        confirmText: 'Delete',
-        isDestructive: true,
-        onConfirm: () {
-          project.delete();
-          setState(() {
-            projects.remove(project);
-          });
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Project deleted')));
-        },
       ),
     );
   }
@@ -321,14 +642,21 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
     String selectedIcon = project?.iconName ?? 'folder';
     int selectedPriority = project?.priority ?? 1;
     String selectedTargetType = project?.targetType ?? 'daily';
-    int selectedDailyTarget = project?.dailySessionTarget ?? 2;
-    int selectedWeeklyTarget = project?.weeklySessionTarget ?? 10;
+    int selectedDailyTarget = project?.dailySessionTarget ?? 1;
+    int selectedWeeklyTarget = project?.weeklySessionTarget ?? 2;
     int? selectedWorkHour = project?.preferredWorkHour;
     List<int> selectedActiveDays = List.from(
       project?.activeDays ?? [1, 2, 3, 4, 5, 6, 7],
     );
+    final Map<int, int> selectedDayStates = {
+      for (int day = 1; day <= 7; day++)
+        day: selectedActiveDays.contains(day) ? 0 : 1,
+    };
     final dailyTargetController = TextEditingController(
       text: selectedDailyTarget.toString(),
+    );
+    final weeklyTargetController = TextEditingController(
+      text: selectedWeeklyTarget.toString(),
     );
     int selectedWorkDuration = project?.workDurationMinutes ?? 25;
     int selectedBreakDuration = project?.breakDurationMinutes ?? 5;
@@ -356,60 +684,140 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Daily Session Target',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              if (selectedDailyTarget > 1) {
-                                selectedDailyTarget--;
-                                dailyTargetController.text = selectedDailyTarget
-                                    .toString();
-                              }
-                            });
-                          },
-                          icon: Icon(Icons.remove_circle_outline),
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        SizedBox(
-                          width: 60,
-                          child: TextField(
-                            controller: dailyTargetController,
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(vertical: 8),
-                            ),
-                            onChanged: (value) {
-                              final parsed = int.tryParse(value);
-                              if (parsed != null && parsed > 0) {
-                                selectedDailyTarget = parsed;
-                              }
-                            },
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Daily',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        if (selectedDailyTarget > 1) {
+                                          selectedDailyTarget--;
+                                          dailyTargetController.text =
+                                              selectedDailyTarget.toString();
+                                        }
+                                      });
+                                    },
+                                    icon: Icon(Icons.remove_circle_outline),
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                  SizedBox(
+                                    width: 56,
+                                    child: TextField(
+                                      controller: dailyTargetController,
+                                      textAlign: TextAlign.center,
+                                      keyboardType: TextInputType.number,
+                                      decoration: InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                      onChanged: (value) {
+                                        final parsed = int.tryParse(value);
+                                        if (parsed != null && parsed > 0) {
+                                          selectedDailyTarget = parsed;
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        if (selectedDailyTarget < 20) {
+                                          selectedDailyTarget++;
+                                          dailyTargetController.text =
+                                              selectedDailyTarget.toString();
+                                        }
+                                      });
+                                    },
+                                    icon: Icon(Icons.add_circle_outline),
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              if (selectedDailyTarget < 20) {
-                                selectedDailyTarget++;
-                                dailyTargetController.text = selectedDailyTarget
-                                    .toString();
-                              }
-                            });
-                          },
-                          icon: Icon(Icons.add_circle_outline),
-                          color: Theme.of(context).primaryColor,
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Weekly',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        if (selectedWeeklyTarget > 1) {
+                                          selectedWeeklyTarget--;
+                                          weeklyTargetController.text =
+                                              selectedWeeklyTarget.toString();
+                                        }
+                                      });
+                                    },
+                                    icon: Icon(Icons.remove_circle_outline),
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                  SizedBox(
+                                    width: 56,
+                                    child: TextField(
+                                      controller: weeklyTargetController,
+                                      textAlign: TextAlign.center,
+                                      keyboardType: TextInputType.number,
+                                      decoration: InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                      onChanged: (value) {
+                                        final parsed = int.tryParse(value);
+                                        if (parsed != null && parsed > 0) {
+                                          selectedWeeklyTarget = parsed;
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        if (selectedWeeklyTarget < 50) {
+                                          selectedWeeklyTarget++;
+                                          weeklyTargetController.text =
+                                              selectedWeeklyTarget.toString();
+                                        }
+                                      });
+                                    },
+                                    icon: Icon(Icons.add_circle_outline),
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -417,7 +825,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                 ),
                 SizedBox(height: 20),
 
-                // Active Days - Third most important
+                // Active Days (cycle states)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -429,25 +837,47 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                       ),
                     ),
                     SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (int day = 1; day <= 7; day++)
-                          FilterChip(
-                            label: Text(_getDayName(day)),
-                            selected: selectedActiveDays.contains(day),
-                            selectedColor: Colors.green.withValues(alpha: 0.6),
-                            checkmarkColor: Theme.of(context).primaryColor,
-                            onSelected: (selected) {
-                              setState(() {
-                                if (selected) {
-                                  selectedActiveDays.add(day);
-                                } else {
-                                  selectedActiveDays.remove(day);
-                                }
-                              });
-                            },
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (int day = 1; day <= 7; day++)
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    selectedDayStates[day] = _nextDayState(
+                                      selectedDayStates[day] ?? 0,
+                                    );
+                                  });
+                                },
+                                child: _buildDayStateRect(
+                                  selectedDayStates[day] ?? 0,
+                                ),
+                              ),
+                          ],
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (int day = 1; day <= 7; day++)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    '${_getDayName(day)}: ${_dayStateLabel(selectedDayStates[day] ?? 0)}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
+                        ),
                       ],
                     ),
                   ],
@@ -592,8 +1022,8 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                         IconButton(
                           onPressed: () {
                             setState(() {
-                              if (selectedBreakDuration > 1) {
-                                selectedBreakDuration -= 1;
+                              if (selectedBreakDuration > 5) {
+                                selectedBreakDuration -= 5;
                               }
                             });
                           },
@@ -620,8 +1050,8 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                         IconButton(
                           onPressed: () {
                             setState(() {
-                              if (selectedBreakDuration < 30) {
-                                selectedBreakDuration += 1;
+                              if (selectedBreakDuration < 60) {
+                                selectedBreakDuration += 5;
                               }
                             });
                           },
@@ -629,6 +1059,45 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
                           color: Theme.of(context).primaryColor,
                         ),
                       ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Breakdown',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: [
+                    ...List.generate(
+                      (selectedWorkDuration / 5).ceil(),
+                      (_) => Container(
+                        width: 12,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.red.shade300),
+                          color: Colors.red.withValues(alpha: 0.15),
+                        ),
+                      ),
+                    ),
+                    ...List.generate(
+                      (selectedBreakDuration / 5).ceil(),
+                      (_) => Container(
+                        width: 12,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.green.shade300),
+                          color: Colors.green.withValues(alpha: 0.15),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -647,6 +1116,11 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
               ),
               onPressed: () {
                 if (nameController.text.isNotEmpty) {
+                  selectedActiveDays = selectedDayStates.entries
+                      .where((entry) => entry.value != 1)
+                      .map((entry) => entry.key)
+                      .toList()
+                    ..sort();
                   if (isEditing) {
                     project.name = nameController.text;
                     project.description = descriptionController.text;
@@ -755,33 +1229,6 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
     }
   }
 
-  Color _parseColor(String colorHex) {
-    try {
-      return Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
-    } catch (e) {
-      return Colors.blue;
-    }
-  }
-
-  String _getPriorityText(int priority) {
-    switch (priority) {
-      case 1:
-        return 'Low';
-      case 2:
-        return 'Medium';
-      case 3:
-        return 'High';
-      case 4:
-        return 'Urgent';
-      default:
-        return 'None';
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
   String _getDayName(int day) {
     switch (day) {
       case 1:
@@ -801,5 +1248,61 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen>
       default:
         return '';
     }
+  }
+
+  int _nextDayState(int current) => (current + 1) % 5;
+
+  String _dayStateLabel(int state) {
+    switch (state) {
+      case 0:
+        return 'Active';
+      case 1:
+        return 'Not active';
+      case 2:
+        return 'Morning only';
+      case 3:
+        return 'Afternoon only';
+      case 4:
+        return 'Evening only';
+      default:
+        return 'Active';
+    }
+  }
+
+  Widget _buildDayStateRect(int state) {
+    final borderColor = Colors.grey.shade600;
+    Widget fillFor(double top, double height) {
+      return Positioned(
+        top: top,
+        left: 0,
+        right: 0,
+        height: height,
+        child: Container(color: Theme.of(context).colorScheme.primary),
+      );
+    }
+
+    return SizedBox(
+      width: 20,
+      height: 36,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: borderColor, width: 1.4),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            if (state == 0) fillFor(0, 36),
+            if (state == 2) fillFor(0, 12),
+            if (state == 3) fillFor(12, 12),
+            if (state == 4) fillFor(24, 12),
+          ],
+        ),
+      ),
+    );
   }
 }

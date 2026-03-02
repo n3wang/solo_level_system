@@ -29,6 +29,7 @@ import 'package:solo_level_system/utils/pomodoro_sizing.dart';
 import 'package:solo_level_system/widgets/pomodoro/compact_music_widget.dart';
 import 'package:solo_level_system/widgets/pomodoro/session_squares_widget.dart';
 import 'package:solo_level_system/screens/room_management_screen.dart';
+import 'package:solo_level_system/screens/projects_management_screen.dart';
 import 'package:solo_level_system/utils/room_management_seed_service.dart';
 import 'package:solo_level_system/models/room_management_model.dart';
 
@@ -450,9 +451,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (!mounted || result == null) return;
 
-    RoomModel? selected;
-    if (result.selectedRoomId != null) {
-      for (final room in rooms) {
+    // Refresh rooms first so we can resolve the returned selection against
+    // the latest room list from storage.
+    await _loadRooms();
+    if (!mounted) return;
+
+    final latestRooms = List<RoomModel>.from(rooms);
+    RoomModel? selected = selectedRoom;
+    if (result.selectedRoomId == null) {
+      selected = null;
+    } else {
+      for (final room in latestRooms) {
         if (room.id == result.selectedRoomId) {
           selected = room;
           break;
@@ -464,6 +473,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       selectedRoom = selected;
     });
     await _loadSelectedRoomPhrases();
+  }
+
+  Future<void> _openProjectManagement() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ProjectsManagementScreen()));
+    if (!mounted) return;
+    await _loadProjects();
   }
 
   String formatTime(int seconds) {
@@ -663,15 +680,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: !_timerController.isRunning
-          ? FloatingActionButton.small(
-              heroTag: 'room-management-fab',
-              tooltip: 'Open room management',
-              elevation: 0,
-              hoverElevation: 0,
-              focusElevation: 0,
-              highlightElevation: 0,
-              onPressed: _openRoomManagement,
-              child: const Icon(Icons.home_work_outlined),
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'project-management-fab',
+                  tooltip: 'Open project management',
+                  elevation: 0,
+                  hoverElevation: 0,
+                  focusElevation: 0,
+                  highlightElevation: 0,
+                  onPressed: _openProjectManagement,
+                  child: const Icon(Icons.folder_open_outlined),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton.small(
+                  heroTag: 'room-management-fab',
+                  tooltip: 'Open room management',
+                  elevation: 0,
+                  hoverElevation: 0,
+                  focusElevation: 0,
+                  highlightElevation: 0,
+                  onPressed: _openRoomManagement,
+                  child: const Icon(Icons.home_work_outlined),
+                ),
+              ],
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,

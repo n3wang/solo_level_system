@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:solo_level_system/screens/home_screen.dart';
 import 'package:solo_level_system/screens/analytics_screen.dart';
-import 'package:solo_level_system/screens/projects_management_screen.dart';
 import 'package:solo_level_system/screens/rewards_management_screen.dart';
 import 'package:solo_level_system/screens/settings_screen.dart';
 import 'package:solo_level_system/screens/workout_screen.dart';
@@ -27,7 +26,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _screens = [
       HomeScreen(onSettingsChanged: () => _notifySettingsChanged()),
       AnalyticsScreen(),
-      ProjectsManagementScreen(),
       WorkoutScreen(),
       RewardsManagementScreen(),
       SettingsScreen(),
@@ -52,7 +50,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         showSelectedLabels: false,
         showUnselectedLabels: false,
         onTap: (index) {
-          final bool comingFromSettings = _currentIndex == 5;
+          final bool comingFromSettings = _currentIndex == 4;
           setState(() {
             _currentIndex = index;
           });
@@ -74,12 +72,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             activeIcon: Icon(Icons.analytics),
             label: '',
             tooltip: 'Progress & Statistics',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.folder_outlined),
-            activeIcon: Icon(Icons.folder),
-            label: '',
-            tooltip: 'Project Management',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.fitness_center_outlined),
