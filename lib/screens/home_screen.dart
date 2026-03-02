@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:io';
 import 'package:flutter/material.dart';
 
@@ -28,6 +29,7 @@ import 'package:solo_level_system/widgets/pomodoro/compact_music_widget.dart';
 import 'package:solo_level_system/widgets/pomodoro/session_squares_widget.dart';
 import 'package:solo_level_system/screens/room_management_screen.dart';
 import 'package:solo_level_system/utils/room_management_seed_service.dart';
+import 'package:solo_level_system/models/room_management_model.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsChanged;
@@ -65,6 +67,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Timer-related state
   Timer? timer;
   DateTime? sessionStartTime;
+  final Random _random = Random();
+  Timer? _roomPhraseTimer;
+  List<String> _roomPhrases = [];
+  String? _currentRoomPhrase;
 
   final _bgPlayer = ap.AudioPlayer();
   final _backgroundMusicService = BackgroundMusicService();
@@ -73,6 +79,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _timerController = TimerController();
 
   void _onTimerStateChanged() {
+    final wasRunning = isRunning;
     setState(() {
       // Update UI when timer state changes
       remainingSeconds = _timerController.remainingSeconds;
@@ -88,6 +95,103 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         logStateMessage = "State: Finished – Submit Log";
       }
     });
+
+    if (!wasRunning && _timerController.isRunning) {
+      _startRoomPhraseRotation();
+    } else if (wasRunning && !_timerController.isRunning) {
+      _stopRoomPhraseRotation(clearCurrent: false);
+    }
+  }
+
+  Future<void> _loadSelectedRoomPhrases() async {
+    final roomKey = selectedProject?.id ?? '__random__';
+    if (!Hive.isBoxOpen('roomManagement')) {
+      await Hive.openBox('roomManagement');
+    }
+
+    final box = Hive.box('roomManagement');
+    final raw = box.get(roomKey);
+
+    List<String> phrases = [];
+    if (raw is Map) {
+      phrases = RoomManagementModel.fromMap(raw).phrases;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _roomPhrases = phrases;
+      if (_roomPhrases.isEmpty) {
+        _currentRoomPhrase = null;
+      } else if (_currentRoomPhrase == null ||
+          !_roomPhrases.contains(_currentRoomPhrase)) {
+        _currentRoomPhrase = _roomPhrases[_random.nextInt(_roomPhrases.length)];
+      }
+    });
+
+    if (_timerController.isRunning) {
+      _startRoomPhraseRotation();
+    }
+  }
+
+  void _startRoomPhraseRotation() {
+    _roomPhraseTimer?.cancel();
+    if (_roomPhrases.isEmpty || !_timerController.isRunning) return;
+
+    if (_currentRoomPhrase == null) {
+      setState(() {
+        _currentRoomPhrase = _roomPhrases[_random.nextInt(_roomPhrases.length)];
+      });
+    }
+
+    _roomPhraseTimer = Timer.periodic(const Duration(seconds: 24), (_) {
+      if (!_timerController.isRunning || _roomPhrases.isEmpty || !mounted) {
+        return;
+      }
+
+      setState(() {
+        if (_roomPhrases.length == 1) {
+          _currentRoomPhrase = _roomPhrases.first;
+        } else {
+          String next = _currentRoomPhrase ?? _roomPhrases.first;
+          while (next == _currentRoomPhrase) {
+            next = _roomPhrases[_random.nextInt(_roomPhrases.length)];
+          }
+          _currentRoomPhrase = next;
+        }
+      });
+    });
+  }
+
+  void _stopRoomPhraseRotation({bool clearCurrent = true}) {
+    _roomPhraseTimer?.cancel();
+    _roomPhraseTimer = null;
+    if (clearCurrent && mounted) {
+      setState(() {
+        _currentRoomPhrase = null;
+      });
+    }
+  }
+
+  Widget _buildRoomPhraseText() {
+    if (!_timerController.isRunning || _currentRoomPhrase == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(
+        _currentRoomPhrase!,
+        style: const TextStyle(
+          fontSize: 12,
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          shadows: [
+            Shadow(blurRadius: 4, color: Colors.black, offset: Offset(1, 1)),
+          ],
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
   }
 
   Future<void> _playLofi() async {
@@ -334,6 +438,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() {
       selectedProject = selected;
     });
+    await _loadSelectedRoomPhrases();
   }
 
   String formatTime(int seconds) {
@@ -357,6 +462,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await _loadUserSettings();
       await RoomManagementSeedService.ensureSampleRooms();
       await _loadProjects();
+      await _loadSelectedRoomPhrases();
       await _loadUserProgress();
       await _backgroundMusicService.initialize();
       await _timerController.initialize();
@@ -552,6 +658,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   _timerController.updateDurations(workMinutes, breakMinutes);
                 }
               });
+              _loadSelectedRoomPhrases();
             },
             isCollapsed: false, // Always show full project info when visible
           ),
@@ -696,6 +803,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               SessionSquaresWidget(
                                 completedSessions: countCompletedToday,
                               ),
+                              _buildRoomPhraseText(),
                             ],
                           ),
                         ),
@@ -843,6 +951,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               SessionSquaresWidget(
                                 completedSessions: countCompletedToday,
                               ),
+                              _buildRoomPhraseText(),
                             ],
                           ),
                         ),
@@ -1243,6 +1352,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _backgroundMusicService.dispose();
     _soundEffectsService.dispose();
     _notificationService.dispose();
+    _stopRoomPhraseRotation(clearCurrent: false);
     super.dispose();
   }
 }

@@ -281,26 +281,31 @@
             },
             {
               "id": "7e4e58fa-ff37-498d-8c7e-be080891f775",
-              "title": "Allow for stopping audio by taping it again when doing the preview in Room management. (also make cap it inot 20 seconds on preview play",
+              "title": "Allow for stopping audio when doing the doemo. (also make cap it inot 20 seconds on preview play",
               "checked": true
             },
             {
               "id": "6d11b041-a52b-4b63-9770-fa0475c42d5c",
               "title": "Only have 3 setted up volume levels, which will be multiplying the base volume x1 x2 x3",
-              "checked": false
+              "checked": true
             },
             {
-              "id": "e2b89f10-3b43-4485-8ead-39ece2e8e685",
-              "title": "make the rooms snap when selecting the other, should be centered",
-              "checked": false
+              "id": "846c9e8b-69ef-4256-bd8c-7c1eb113b2a2",
+              "title": "when clicking on the modal opened for the room alow for having a pencil icon on the top right corner to edit the basic info of the room . Have title, description, and a list of potential phrases (this is a list of string) important as if available can every so often show the phrases on the pomodoro when it is running. ",
+              "checked": true
             },
             {
-              "id": "91de4aaf-d3b3-4387-be73-993237c7f132",
-              "title": "Do not open the Room modal unless its been selected and then selected again",
-              "checked": false
+              "id": "f7a058f5-b347-4ec8-8b77-a309fba89190",
+              "title": "Improve the cards organization to be more like in the image. There in the left have as a square since it will alawys have sqarish ratio the square thing and then on the right the title, and the different phrases. (remove the tap for room details)",
+              "checked": true
             }
           ],
-          "comments": []
+          "comments": [
+            {
+              "id": "e78ecf43-e664-44b4-97e7-e2b4a34d46a9",
+              "comment": "when clicking on the modal opened for the room alow for having a pencil icon on the top right corner to edit the basic info of the room . Have title, description, and a list of potential phrases (this is a list of string) important as if available can every so often show the phrases on the pomodoro when it is running. "
+            }
+          ]
         }
       ]
     },

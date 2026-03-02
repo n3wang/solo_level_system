@@ -34,11 +34,13 @@ class RoomManagementModel {
   final List<String> selectedTracks;
   final List<RoomVisualConfig> selectedVisuals;
   final double volume;
+  final List<String> phrases;
 
   const RoomManagementModel({
     this.selectedTracks = const [],
     this.selectedVisuals = const [],
     this.volume = 0.7,
+    this.phrases = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -46,6 +48,7 @@ class RoomManagementModel {
       'selectedTracks': selectedTracks,
       'selectedVisuals': selectedVisuals.map((item) => item.toMap()).toList(),
       'volume': volume,
+      'phrases': phrases,
     };
   }
 
@@ -60,6 +63,10 @@ class RoomManagementModel {
           .map(RoomVisualConfig.fromMap)
           .toList(),
       volume: (map['volume'] as num?)?.toDouble() ?? 0.7,
+      phrases: ((map['phrases'] as List?) ?? const [])
+          .map((item) => item.toString())
+          .where((phrase) => phrase.trim().isNotEmpty)
+          .toList(),
     );
   }
 }

@@ -21,7 +21,26 @@ This document describes the first implementation of the Pomodoro Room Management
   - If selected, no specific project is bound.
   - This matches the rule where random available audio can play when no room is specified.
 - Room selection does not change Pomodoro work/break durations.
+- Bottom room indicators are textless rectangular chips, one per room (including Random).
+  - selected chip is colored
+  - no checkmark/tick icon
+- A `Clear` button appears only when a specific room is selected.
 - Exit uses the top-right button and returns the selected room back to Pomodoro.
+
+## Room Info Editing
+
+- Room info modal includes a top-right pencil (`edit`) action.
+- Editable fields:
+  - title
+  - description
+  - phrases (list of strings, one per line)
+- Saving updates room title/description and stores phrase list in room configuration.
+
+## Phrase Runtime Behavior
+
+- If the selected room has phrases, Pomodoro can show them while running.
+- Phrases rotate periodically (about every 24 seconds).
+- If no phrases are configured, no phrase banner is shown.
 
 ## Tracks
 
@@ -57,7 +76,7 @@ This document describes the first implementation of the Pomodoro Room Management
 - Stored values:
   - selected tracks
   - selected visuals (with GIF flags and speeds)
-  - room volume
+  - room volume (3 fixed levels: base x1, x2, x3)
 
 ## Seeded Sample Rooms
 

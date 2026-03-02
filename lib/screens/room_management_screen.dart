@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
@@ -41,6 +42,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   static const String _spaceIconAsset = 'assets/album/al16-spaceship.png';
   static const String _mansionIconAsset =
       'assets/album/an02_model1_working_2.gif';
+  static const double _basePreviewVolume = 0.25;
   static const List<String> _supportedAudioExtensions = [
     'mp3',
     'wav',
@@ -59,9 +61,13 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
   final AudioPlayer _previewPlayer = AudioPlayer();
   final ImagePicker _imagePicker = ImagePicker();
+  late final PageController _roomPageController;
 
   ProjectModel? _selectedRoom;
   double _volume = 0.7;
+  int _volumeLevel = 3;
+  List<String> _roomPhrases = [];
+  final Map<String, List<String>> _roomPhrasesByKey = {};
   List<String> _selectedTracks = [];
   List<RoomVisualConfig> _selectedVisuals = [];
   List<LofiTrack> _builtinTracks = [];
@@ -69,17 +75,23 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   bool _isLoading = true;
   String? _currentlyPreviewingPath;
   Timer? _previewAutoStopTimer;
+  final Random _randomizer = Random();
 
   @override
   void initState() {
     super.initState();
     _selectedRoom = widget.selectedProject;
+    _roomPageController = PageController(
+      viewportFraction: 0.78,
+      initialPage: _currentPageForSelectedRoom(),
+    );
     _loadRoomContext();
   }
 
   @override
   void dispose() {
     _previewAutoStopTimer?.cancel();
+    _roomPageController.dispose();
     _previewPlayer.dispose();
     super.dispose();
   }
@@ -99,6 +111,21 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       _builtinTracks = await LofiService.getAllTracks();
       final audioBox = Hive.box<EnhancedAudioModel>('audioFiles');
       _libraryTracks = audioBox.values.toList();
+
+      final roomBox = await _openRoomBox();
+      final nextPhrasesByKey = <String, List<String>>{};
+      final roomConfigs = roomBox.toMap();
+      for (final entry in roomConfigs.entries) {
+        final value = entry.value;
+        if (value is Map) {
+          final model = RoomManagementModel.fromMap(value);
+          nextPhrasesByKey[entry.key.toString()] = model.phrases;
+        }
+      }
+      _roomPhrasesByKey
+        ..clear()
+        ..addAll(nextPhrasesByKey);
+
       await _loadRoomConfiguration();
     } catch (error) {
       if (mounted) {
@@ -124,7 +151,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       setState(() {
         _selectedTracks = model.selectedTracks;
         _selectedVisuals = model.selectedVisuals;
+        _roomPhrases = model.phrases;
+        _roomPhrasesByKey[_roomStorageKey] = model.phrases;
         _volume = model.volume.clamp(0.0, 1.0);
+        _volumeLevel = _volumeToLevel(_volume);
       });
       return;
     }
@@ -133,7 +163,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     setState(() {
       _selectedTracks = [];
       _selectedVisuals = [];
-      _volume = 0.7;
+      _roomPhrases = [];
+      _roomPhrasesByKey[_roomStorageKey] = const [];
+      _volumeLevel = 1;
+      _volume = _levelToVolume(_volumeLevel);
     });
   }
 
@@ -143,15 +176,39 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       selectedTracks: _selectedTracks,
       selectedVisuals: _selectedVisuals,
       volume: _volume,
+      phrases: _roomPhrases,
     );
     await box.put(_roomStorageKey, model.toMap());
+    _roomPhrasesByKey[_roomStorageKey] = List<String>.from(_roomPhrases);
   }
 
-  Future<void> _selectRoom(ProjectModel? room) async {
+  Future<void> _selectRoom(ProjectModel? room, {bool centerCard = true}) async {
     setState(() {
       _selectedRoom = room;
     });
+    if (centerCard) {
+      await _centerSelectedRoomCard(room);
+    }
     await _loadRoomConfiguration();
+  }
+
+  Future<void> _centerSelectedRoomCard(ProjectModel? room) async {
+    final targetPage = room == null
+        ? 0
+        : (widget.projects.indexWhere((project) => project.id == room.id) + 1);
+    if (!_roomPageController.hasClients || targetPage < 0) return;
+    await _roomPageController.animateToPage(
+      targetPage,
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _selectRandomSpecificRoom() async {
+    if (widget.projects.isEmpty) return;
+    final randomRoom =
+        widget.projects[_randomizer.nextInt(widget.projects.length)];
+    await _selectRoom(randomRoom);
   }
 
   Future<void> _handleExit() async {
@@ -569,6 +626,46 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     return FileImage(File(visual.path));
   }
 
+  String _roomKeyFor(ProjectModel? room) => room?.id ?? _randomRoomKey;
+
+  List<String> _phrasesForRoom(ProjectModel? room) {
+    return _roomPhrasesByKey[_roomKeyFor(room)] ?? const [];
+  }
+
+  Widget _buildRoomCardVisual(ProjectModel? room) {
+    String? imageAssetPath;
+    if (room?.id == _spaceRoomId) {
+      imageAssetPath = _spaceIconAsset;
+    } else if (room?.id == _mansionRoomId) {
+      imageAssetPath = _mansionIconAsset;
+    }
+
+    return Container(
+      width: 96,
+      height: 96,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade500, width: 1.5),
+        color: Colors.black.withValues(alpha: 0.03),
+      ),
+      child: imageAssetPath == null
+          ? Icon(Icons.meeting_room_outlined, color: Colors.grey.shade700)
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.asset(
+                imageAssetPath,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) {
+                  return Icon(
+                    Icons.broken_image_outlined,
+                    color: Colors.grey.shade700,
+                  );
+                },
+              ),
+            ),
+    );
+  }
+
   _RoomInfo _roomInfo(ProjectModel? room) {
     if (room == null) {
       return const _RoomInfo(
@@ -604,6 +701,35 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     );
   }
 
+  double _levelToVolume(int level) {
+    return (_basePreviewVolume * level).clamp(0.0, 1.0);
+  }
+
+  int _volumeToLevel(double volume) {
+    const levels = [1, 2, 3];
+    int best = 1;
+    double bestDistance = double.infinity;
+    for (final level in levels) {
+      final distance = (_levelToVolume(level) - volume).abs();
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = level;
+      }
+    }
+    return best;
+  }
+
+  Future<void> _setVolumeLevel(int level) async {
+    final newLevel = level.clamp(1, 3);
+    final newVolume = _levelToVolume(newLevel);
+    setState(() {
+      _volumeLevel = newLevel;
+      _volume = newVolume;
+    });
+    await _previewPlayer.setVolume(newVolume);
+    await _persistRoomConfiguration();
+  }
+
   Future<void> _showRoomInfoModal(ProjectModel? room) async {
     final info = _roomInfo(room);
     if (!mounted) return;
@@ -614,7 +740,20 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
         final dialogMaxWidth = MediaQuery.of(context).size.width * 0.7;
         final imageWidth = dialogMaxWidth.clamp(180.0, 280.0);
         return AlertDialog(
-          title: Text(info.title),
+          title: Row(
+            children: [
+              Expanded(child: Text(info.title)),
+              if (room != null)
+                IconButton(
+                  tooltip: 'Edit room info',
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await _showEditRoomInfoDialog(room);
+                  },
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+            ],
+          ),
           content: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: imageWidth),
             child: Column(
@@ -642,6 +781,20 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   const SizedBox(height: 10),
                 ],
                 Text(info.description),
+                if (_roomPhrases.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Phrases',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 6),
+                  ..._roomPhrases.map(
+                    (phrase) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text('• $phrase'),
+                    ),
+                  ),
+                ],
                 if (info.isGifIcon) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -656,6 +809,97 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showEditRoomInfoDialog(ProjectModel room) async {
+    final titleController = TextEditingController(text: room.name);
+    final descriptionController = TextEditingController(
+      text: room.description ?? '',
+    );
+    final phrasesController = TextEditingController(
+      text: _roomPhrases.join('\n'),
+    );
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Room Info'),
+          content: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: descriptionController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: phrasesController,
+                    maxLines: 6,
+                    decoration: const InputDecoration(
+                      labelText: 'Phrases (one per line)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final title = titleController.text.trim();
+                if (title.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Title cannot be empty')),
+                  );
+                  return;
+                }
+
+                final description = descriptionController.text.trim();
+                final phrases = phrasesController.text
+                    .split('\n')
+                    .map((item) => item.trim())
+                    .where((item) => item.isNotEmpty)
+                    .toList();
+
+                room.name = title;
+                room.description = description.isEmpty ? null : description;
+                await room.save();
+
+                setState(() {
+                  _roomPhrases = phrases;
+                });
+                await _persistRoomConfiguration();
+
+                if (!mounted) return;
+                Navigator.of(this.context).pop();
+              },
+              child: const Text('Save'),
             ),
           ],
         );
@@ -699,147 +943,288 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   Widget _buildRoomSelectionCard() {
-    final roomName = _selectedRoom?.name ?? 'Random Room';
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.meeting_room_outlined),
-                const SizedBox(width: 8),
-                Text(
-                  roomName,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Swipe to change room. Tap any room card to open that room info modal.',
-              style: TextStyle(color: Colors.grey[700]),
-            ),
-            const SizedBox(height: 12),
             SizedBox(
               height: 124,
-              child: PageView.builder(
-                itemCount: widget.projects.length + 1,
-                controller: PageController(
-                  viewportFraction: 0.78,
-                  initialPage: _currentPageForSelectedRoom(),
-                ),
-                onPageChanged: (index) async {
-                  final room = index == 0 ? null : widget.projects[index - 1];
-                  await _selectRoom(room);
-                },
-                itemBuilder: (context, index) {
-                  final room = index == 0 ? null : widget.projects[index - 1];
-                  final selected =
-                      room?.id == _selectedRoom?.id ||
-                      (room == null && _selectedRoom == null);
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () async {
-                        await _selectRoom(room);
-                        await _showRoomInfoModal(room);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
+              child: Stack(
+                children: [
+                  PageView.builder(
+                    itemCount: widget.projects.length + 1,
+                    controller: _roomPageController,
+                    onPageChanged: (index) async {
+                      final room = index == 0
+                          ? null
+                          : widget.projects[index - 1];
+                      await _selectRoom(room, centerCard: false);
+                    },
+                    itemBuilder: (context, index) {
+                      final room = index == 0
+                          ? null
+                          : widget.projects[index - 1];
+                      final selected =
+                          room?.id == _selectedRoom?.id ||
+                          (room == null && _selectedRoom == null);
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: InkWell(
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selected
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.grey.shade400,
-                            width: selected ? 2 : 1,
-                          ),
-                          color: selected
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.1)
-                              : null,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (room?.id == _spaceRoomId ||
-                                room?.id == _mansionRoomId) ...[
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.asset(
-                                  room?.id == _spaceRoomId
-                                      ? _spaceIconAsset
-                                      : _mansionIconAsset,
-                                  height: 42,
-                                  width: 56,
-                                  fit: BoxFit.cover,
+                          onTap: () async {
+                            final alreadySelected =
+                                (room?.id == _selectedRoom?.id) ||
+                                (room == null && _selectedRoom == null);
+                            if (alreadySelected) {
+                              await _centerSelectedRoomCard(room);
+                              await _showRoomInfoModal(room);
+                              return;
+                            }
+                            await _selectRoom(room);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: selected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.grey.shade400,
+                                width: selected ? 2 : 1,
+                              ),
+                              color: selected
+                                  ? Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withValues(alpha: 0.1)
+                                  : null,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                _buildRoomCardVisual(room),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Builder(
+                                    builder: (context) {
+                                      final phrases = _phrasesForRoom(room);
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            room?.name ?? 'Random',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          if (phrases.isNotEmpty) ...[
+                                            Text(
+                                              phrases.first,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: Colors.grey[800],
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            if (phrases.length > 1)
+                                              Text(
+                                                phrases[1],
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: Colors.grey[800],
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                          ] else
+                                            Text(
+                                              room == null
+                                                  ? 'Random audio fallback'
+                                                  : (room.description ??
+                                                        'No phrases yet'),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: Colors.grey[700],
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                        ],
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
-                            ],
-                            Text(
-                              room?.name ?? 'Random',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
+                              ],
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              room == null
-                                  ? 'Random audio fallback'
-                                  : 'Tap for room details',
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.grey[700],
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  Positioned(
+                    top: 0,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surface.withValues(alpha: 0.94),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.black.withValues(alpha: 0.08),
                         ),
                       ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: _selectRandomSpecificRoom,
+                              child: const Icon(
+                                Icons.casino_outlined,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: () async => _selectRoom(null),
+                              child: const Icon(
+                                Icons.meeting_room_outlined,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                ChoiceChip(
-                  label: const Text('Random'),
-                  selected: _selectedRoom == null,
-                  onSelected: (_) async => _selectRoom(null),
+                Expanded(
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Room',
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            children: List.generate(
+                              widget.projects.length + 1,
+                              (index) {
+                                final room = index == 0
+                                    ? null
+                                    : widget.projects[index - 1];
+                                final selected =
+                                    (room?.id == _selectedRoom?.id) ||
+                                    (room == null && _selectedRoom == null);
+                                return GestureDetector(
+                                  onTap: () async => _selectRoom(room),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 140),
+                                    width: 12,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(3),
+                                      border: Border.all(
+                                        color: Colors.grey.shade600,
+                                        width: 1.5,
+                                      ),
+                                      color: selected
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.primary
+                                          : Colors.transparent,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                ...widget.projects.map((project) {
-                  return ChoiceChip(
-                    label: Text(project.name),
-                    selected: _selectedRoom?.id == project.id,
-                    onSelected: (_) async => _selectRoom(project),
-                  );
-                }),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Volume',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(3, (index) {
+                        final level = index + 1;
+                        final selected = _volumeLevel >= level;
+                        return Padding(
+                          padding: EdgeInsets.only(right: index == 2 ? 0 : 6),
+                          child: GestureDetector(
+                            onTap: () async => _setVolumeLevel(level),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 140),
+                              width: 12,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(3),
+                                border: Border.all(
+                                  color: Colors.grey.shade600,
+                                  width: 1.5,
+                                ),
+                                color: selected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.transparent,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
               ],
-            ),
-            const SizedBox(height: 12),
-            Text('Volume', style: Theme.of(context).textTheme.labelLarge),
-            Slider(
-              value: _volume,
-              onChanged: (value) async {
-                setState(() => _volume = value);
-                await _previewPlayer.setVolume(value);
-                await _persistRoomConfiguration();
-              },
             ),
           ],
         ),
