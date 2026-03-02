@@ -1,33 +1,36 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:solo_level_system/models/lofi_track.dart';
-import 'package:solo_level_system/models/project_model.dart';
+import 'package:solo_level_system/models/room_model.dart';
 import 'package:solo_level_system/models/room_management_model.dart';
 import 'package:solo_level_system/utils/lofi_service.dart';
 
 class RoomManagementResult {
-  final String? selectedProjectId;
+  final String? selectedRoomId;
 
-  const RoomManagementResult({required this.selectedProjectId});
+  const RoomManagementResult({required this.selectedRoomId});
 }
 
 class RoomManagementScreen extends StatefulWidget {
-  final List<ProjectModel> projects;
-  final ProjectModel? selectedProject;
+  final List<RoomModel> rooms;
+  final RoomModel? selectedRoom;
 
   const RoomManagementScreen({
     super.key,
-    required this.projects,
-    required this.selectedProject,
+    required this.rooms,
+    required this.selectedRoom,
   });
 
   @override
@@ -35,6 +38,7 @@ class RoomManagementScreen extends StatefulWidget {
 }
 
 class _RoomManagementScreenState extends State<RoomManagementScreen> {
+  static const String _roomsBoxName = 'rooms';
   static const String _boxName = 'roomManagement';
   static const String _randomRoomKey = '__random__';
   static const String _spaceRoomId = 'sample-room-space-station-study';
@@ -62,9 +66,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   final AudioPlayer _previewPlayer = AudioPlayer();
   final ImagePicker _imagePicker = ImagePicker();
   late final PageController _roomPageController;
-  late final List<ProjectModel> _projects;
+  late final List<RoomModel> _rooms;
 
-  ProjectModel? _selectedRoom;
+  RoomModel? _selectedRoom;
   double _volume = 0.7;
   int _volumeLevel = 3;
   List<String> _roomPhrases = [];
@@ -83,8 +87,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   @override
   void initState() {
     super.initState();
-    _projects = List<ProjectModel>.from(widget.projects);
-    _selectedRoom = widget.selectedProject;
+    _rooms = List<RoomModel>.from(widget.rooms);
+    _selectedRoom = widget.selectedRoom;
     _roomPageController = PageController(
       viewportFraction: 0.78,
       initialPage: _currentPageForSelectedRoom(),
@@ -107,6 +111,18 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       return Hive.box(_boxName);
     }
     return Hive.openBox(_boxName);
+  }
+
+  Future<Box<dynamic>> _openRoomsBox() async {
+    if (Hive.isBoxOpen(_roomsBoxName)) {
+      return Hive.box(_roomsBoxName);
+    }
+    return Hive.openBox(_roomsBoxName);
+  }
+
+  Future<void> _upsertRoom(RoomModel room) async {
+    final box = await _openRoomsBox();
+    await box.put(room.id, room.toMap());
   }
 
   Future<void> _loadRoomContext() async {
@@ -186,7 +202,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     _roomPhrasesByKey[_roomStorageKey] = List<String>.from(_roomPhrases);
   }
 
-  Future<void> _selectRoom(ProjectModel? room, {bool centerCard = true}) async {
+  Future<void> _selectRoom(RoomModel? room, {bool centerCard = true}) async {
     setState(() {
       _selectedRoom = room;
     });
@@ -196,10 +212,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     await _loadRoomConfiguration();
   }
 
-  Future<void> _centerSelectedRoomCard(ProjectModel? room) async {
+  Future<void> _centerSelectedRoomCard(RoomModel? room) async {
     final targetPage = room == null
         ? 0
-        : (_projects.indexWhere((project) => project.id == room.id) + 1);
+        : (_rooms.indexWhere((item) => item.id == room.id) + 1);
     if (!_roomPageController.hasClients || targetPage < 0) return;
     await _roomPageController.animateToPage(
       targetPage,
@@ -209,8 +225,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   Future<void> _selectRandomSpecificRoom() async {
-    if (_projects.isEmpty) return;
-    final randomRoom = _projects[_randomizer.nextInt(_projects.length)];
+    if (_rooms.isEmpty) return;
+    final randomRoom = _rooms[_randomizer.nextInt(_rooms.length)];
     await _selectRoom(randomRoom);
   }
 
@@ -293,24 +309,16 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                     .where((item) => item.isNotEmpty)
                     .toList();
 
-                if (!Hive.isBoxOpen('projects')) {
-                  await Hive.openBox<ProjectModel>('projects');
-                }
-                final projectsBox = Hive.box<ProjectModel>('projects');
-                final room = ProjectModel(
+                final room = RoomModel(
                   id: 'room_${DateTime.now().millisecondsSinceEpoch}',
                   name: title,
                   description: description.isEmpty ? null : description,
-                  color: '#607D8B',
-                  iconName: 'meeting_room',
-                  createdAt: DateTime.now(),
-                  priority: 2,
                 );
-                await projectsBox.add(room);
+                await _upsertRoom(room);
 
                 if (!mounted) return;
                 setState(() {
-                  _projects.add(room);
+                  _rooms.add(room);
                 });
                 await _selectRoom(room);
 
@@ -337,7 +345,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     if (!mounted) return;
     Navigator.of(
       context,
-    ).pop(RoomManagementResult(selectedProjectId: _selectedRoom?.id));
+    ).pop(RoomManagementResult(selectedRoomId: _selectedRoom?.id));
   }
 
   Future<void> _stopPreview() async {
@@ -391,81 +399,119 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
   Future<void> _showAddTrackSheet() async {
     if (!mounted) return;
+    final pendingSelections = <String>{};
     await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.library_music_outlined),
-                title: const Text('Add from existing audios'),
-                subtitle: const Text('Only tracks not selected yet are shown'),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  await _showExistingTrackPicker();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.upload_file_outlined),
-                title: const Text('Upload from phone files'),
-                subtitle: Text(
-                  'Accepted: ${_supportedAudioExtensions.join(', ')}',
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final options = _buildTrackOptions()
+                .where((option) => !_selectedTracks.contains(option.path))
+                .toList();
+            return SafeArea(
+              child: FractionallySizedBox(
+                heightFactor: 0.84,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Track gallery (${options.length})',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              final toAdd = pendingSelections
+                                  .where(
+                                    (path) => !_selectedTracks.contains(path),
+                                  )
+                                  .toList();
+                              if (toAdd.isNotEmpty) {
+                                setState(() {
+                                  _selectedTracks.addAll(toAdd);
+                                });
+                                await _persistRoomConfiguration();
+                              }
+                              await _stopPreview();
+                              if (!context.mounted) return;
+                              Navigator.of(context).pop();
+                            },
+                            child: Text('Add (${pendingSelections.length})'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: GridView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: options.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 8,
+                              childAspectRatio: 3.9,
+                            ),
+                        itemBuilder: (context, index) {
+                          final option = options[index];
+                          final alreadySelected = _selectedTracks.contains(
+                            option.path,
+                          );
+                          final selected =
+                              alreadySelected ||
+                              pendingSelections.contains(option.path);
+                          final isPlaying =
+                              _currentlyPreviewingPath == option.path;
+                          return _TrackPreviewChip(
+                            title: option.title,
+                            durationLabel: _trackDurationLabel(option.path),
+                            isPlaying: isPlaying,
+                            selected: selected,
+                            onPreviewTap: () async {
+                              await _previewTrack(option.path);
+                              if (!context.mounted) return;
+                              setModalState(() {});
+                            },
+                            onTap: alreadySelected
+                                ? null
+                                : () {
+                                    setModalState(() {
+                                      if (pendingSelections.contains(
+                                        option.path,
+                                      )) {
+                                        pendingSelections.remove(option.path);
+                                      } else {
+                                        pendingSelections.add(option.path);
+                                      }
+                                    });
+                                  },
+                          );
+                        },
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.upload_file_outlined),
+                      title: const Text('Upload from phone files'),
+                      subtitle: Text(
+                        'Accepted: ${_supportedAudioExtensions.join(', ')}',
+                      ),
+                      onTap: () async {
+                        await _uploadTrackFromFiles();
+                        if (!context.mounted) return;
+                        setModalState(() {});
+                      },
+                    ),
+                  ],
                 ),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  await _uploadTrackFromFiles();
-                },
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showExistingTrackPicker() async {
-    final options = _buildTrackOptions()
-        .where((option) => !_selectedTracks.contains(option.path))
-        .toList();
-
-    if (options.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No remaining existing tracks to add')),
-      );
-      return;
-    }
-
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Select Track'),
-          content: SizedBox(
-            width: 500,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: options.length,
-              itemBuilder: (context, index) {
-                final option = options[index];
-                return ListTile(
-                  leading: Icon(
-                    option.isBuiltin ? Icons.music_note : Icons.mic,
-                    color: option.isBuiltin ? Colors.deepPurple : Colors.blue,
-                  ),
-                  title: Text(option.title),
-                  subtitle: Text(option.subtitle),
-                  trailing: const Icon(Icons.add),
-                  onTap: () async {
-                    Navigator.of(context).pop();
-                    setState(() => _selectedTracks.add(option.path));
-                    await _persistRoomConfiguration();
-                  },
-                );
-              },
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -619,33 +665,57 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image(
-                        image: _visualImageProvider(visual),
-                        height: 240,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const SizedBox(
-                            height: 140,
-                            child: Center(
-                              child: Text('Unable to preview image'),
+                      child: visual.isGif
+                          ? SizedBox(
+                              height: 240,
+                              child: _SpeedControlledGif(
+                                sourcePath: visual.path,
+                                isAssetReference: _isAssetReference(
+                                  visual.path,
+                                ),
+                                speed: selectedSpeed,
+                                fit: BoxFit.contain,
+                                errorChild: const SizedBox(
+                                  height: 140,
+                                  child: Center(
+                                    child: Text('Unable to preview image'),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Image(
+                              image: _visualImageProvider(visual),
+                              height: 240,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const SizedBox(
+                                  height: 140,
+                                  child: Center(
+                                    child: Text('Unable to preview image'),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       visual.isGif ? 'GIF playback speed' : '',
-                      style: TextStyle(color: Colors.grey[700]),
+                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
                     ),
                     if (visual.isGif) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Wrap(
-                        spacing: 8,
+                        spacing: 6,
                         children: _gifSpeedOptions.map((speed) {
                           return ChoiceChip(
-                            label: Text('x${_speedLabel(speed)}'),
+                            label: Text(
+                              'x${_speedLabel(speed)}',
+                              style: const TextStyle(fontSize: 11),
+                            ),
                             selected: speed == selectedSpeed,
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                             onSelected: (_) {
                               setDialogState(() => selectedSpeed = speed);
                             },
@@ -705,8 +775,24 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
         isBuiltin: false,
       );
     });
+    final options = [...builtin, ...library];
+    final knownPaths = options.map((item) => item.path).toSet();
+    for (final path in _selectedTracks) {
+      if (!path.startsWith('file:') || knownPaths.contains(path)) {
+        continue;
+      }
+      options.add(
+        _TrackOption(
+          title: _trackName(path),
+          subtitle: 'Uploaded • Local file',
+          path: path,
+          isBuiltin: false,
+        ),
+      );
+      knownPaths.add(path);
+    }
 
-    return [...builtin, ...library];
+    return options;
   }
 
   String _trackName(String trackPath) {
@@ -738,6 +824,18 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       }
     }
     return 0;
+  }
+
+  String _trackDurationLabel(String trackPath) {
+    final totalSeconds = _trackDurationSeconds(trackPath);
+    if (totalSeconds <= 0) return '--:--';
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    final seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   int _parseDurationToSeconds(String value) {
@@ -781,15 +879,17 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     return FileImage(File(visual.path));
   }
 
-  String _roomKeyFor(ProjectModel? room) => room?.id ?? _randomRoomKey;
+  String _roomKeyFor(RoomModel? room) => room?.id ?? _randomRoomKey;
 
-  List<String> _phrasesForRoom(ProjectModel? room) {
+  List<String> _phrasesForRoom(RoomModel? room) {
     return _roomPhrasesByKey[_roomKeyFor(room)] ?? const [];
   }
 
-  Widget _buildRoomCardVisual(ProjectModel? room) {
+  Widget _buildRoomCardVisual(RoomModel? room) {
     String? imageAssetPath;
-    if (room?.id == _spaceRoomId) {
+    if (room?.iconAssetPath != null && room!.iconAssetPath!.isNotEmpty) {
+      imageAssetPath = room.iconAssetPath;
+    } else if (room?.id == _spaceRoomId) {
       imageAssetPath = _spaceIconAsset;
     } else if (room?.id == _mansionRoomId) {
       imageAssetPath = _mansionIconAsset;
@@ -821,7 +921,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     );
   }
 
-  _RoomInfo _roomInfo(ProjectModel? room) {
+  _RoomInfo _roomInfo(RoomModel? room) {
     if (room == null) {
       return const _RoomInfo(
         title: 'Random Room',
@@ -853,6 +953,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     return _RoomInfo(
       title: room.name,
       description: room.description ?? 'Custom room configuration.',
+      assetIconPath: room.iconAssetPath,
+      isGifIcon: room.iconAssetPath?.toLowerCase().endsWith('.gif') == true,
     );
   }
 
@@ -885,7 +987,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     await _persistRoomConfiguration();
   }
 
-  Future<void> _showRoomInfoModal(ProjectModel? room) async {
+  Future<void> _showRoomInfoModal(RoomModel? room) async {
     final info = _roomInfo(room);
     if (!mounted) return;
 
@@ -981,7 +1083,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     );
   }
 
-  Future<void> _showEditRoomInfoDialog(ProjectModel room) async {
+  Future<void> _showEditRoomInfoDialog(RoomModel room) async {
     final titleController = TextEditingController(text: room.name);
     final descriptionController = TextEditingController(
       text: room.description ?? '',
@@ -1052,7 +1154,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
                 room.name = title;
                 room.description = description.isEmpty ? null : description;
-                await room.save();
+                await _upsertRoom(room);
 
                 setState(() {
                   _roomPhrases = phrases;
@@ -1123,14 +1225,14 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               child: Stack(
                 children: [
                   PageView.builder(
-                    itemCount: _projects.length + 1,
+                    itemCount: _rooms.length + 1,
                     controller: _roomPageController,
                     onPageChanged: (index) async {
-                      final room = index == 0 ? null : _projects[index - 1];
+                      final room = index == 0 ? null : _rooms[index - 1];
                       await _selectRoom(room, centerCard: false);
                     },
                     itemBuilder: (context, index) {
-                      final room = index == 0 ? null : _projects[index - 1];
+                      final room = index == 0 ? null : _rooms[index - 1];
                       final selected =
                           room?.id == _selectedRoom?.id ||
                           (room == null && _selectedRoom == null);
@@ -1328,12 +1430,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           const SizedBox(height: 6),
                           Wrap(
                             spacing: 6,
-                            children: List.generate(_projects.length + 1, (
-                              index,
-                            ) {
+                            children: List.generate(_rooms.length + 1, (index) {
                               final room = index == 0
                                   ? null
-                                  : _projects[index - 1];
+                                  : _rooms[index - 1];
                               final selected =
                                   (room?.id == _selectedRoom?.id) ||
                                   (room == null && _selectedRoom == null);
@@ -1480,51 +1580,18 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 itemBuilder: (context, index) {
                   final track = _selectedTracks[index];
                   final isPlaying = _currentlyPreviewingPath == track;
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(10),
+                  return _TrackPreviewChip(
+                    title: _trackName(track),
+                    durationLabel: _trackDurationLabel(track),
+                    isPlaying: isPlaying,
+                    onPreviewTap: () => _previewTrack(track),
                     onTap: () => _previewTrack(track),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: Colors.grey.withValues(alpha: 0.08),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isPlaying ? Icons.graphic_eq : Icons.play_arrow,
-                            size: 16,
-                            color: isPlaying ? Colors.green : null,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              _trackName(track),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: 'Remove track',
-                            constraints: const BoxConstraints.tightFor(
-                              width: 28,
-                              height: 28,
-                            ),
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () async {
-                              setState(() {
-                                _selectedTracks.removeAt(index);
-                              });
-                              await _persistRoomConfiguration();
-                            },
-                            icon: const Icon(Icons.delete_outline, size: 16),
-                          ),
-                        ],
-                      ),
-                    ),
+                    onRemoveTap: () async {
+                      setState(() {
+                        _selectedTracks.removeAt(index);
+                      });
+                      await _persistRoomConfiguration();
+                    },
                   );
                 },
               ),
@@ -1630,18 +1697,33 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                         Positioned.fill(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: Image(
-                              image: _visualImageProvider(visual),
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) {
-                                return Container(
-                                  color: Colors.grey.shade200,
-                                  child: const Icon(
-                                    Icons.broken_image_outlined,
+                            child: visual.isGif
+                                ? _SpeedControlledGif(
+                                    sourcePath: visual.path,
+                                    isAssetReference: _isAssetReference(
+                                      visual.path,
+                                    ),
+                                    speed: visual.gifSpeed,
+                                    fit: BoxFit.cover,
+                                    errorChild: Container(
+                                      color: Colors.grey.shade200,
+                                      child: const Icon(
+                                        Icons.broken_image_outlined,
+                                      ),
+                                    ),
+                                  )
+                                : Image(
+                                    image: _visualImageProvider(visual),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) {
+                                      return Container(
+                                        color: Colors.grey.shade200,
+                                        child: const Icon(
+                                          Icons.broken_image_outlined,
+                                        ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
-                            ),
                           ),
                         ),
                         if (visual.isGif)
@@ -1705,8 +1787,133 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
   int _currentPageForSelectedRoom() {
     if (_selectedRoom == null) return 0;
-    final index = _projects.indexWhere((p) => p.id == _selectedRoom?.id);
+    final index = _rooms.indexWhere((item) => item.id == _selectedRoom?.id);
     return index < 0 ? 0 : index + 1;
+  }
+}
+
+class _SpeedControlledGif extends StatefulWidget {
+  final String sourcePath;
+  final bool isAssetReference;
+  final double speed;
+  final BoxFit fit;
+  final Widget? errorChild;
+
+  const _SpeedControlledGif({
+    required this.sourcePath,
+    required this.isAssetReference,
+    required this.speed,
+    this.fit = BoxFit.contain,
+    this.errorChild,
+  });
+
+  @override
+  State<_SpeedControlledGif> createState() => _SpeedControlledGifState();
+}
+
+class _SpeedControlledGifState extends State<_SpeedControlledGif> {
+  List<ui.FrameInfo> _frames = const [];
+  int _frameIndex = 0;
+  Timer? _frameTimer;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFrames();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SpeedControlledGif oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final sourceChanged =
+        widget.sourcePath != oldWidget.sourcePath ||
+        widget.isAssetReference != oldWidget.isAssetReference;
+    if (sourceChanged) {
+      _frameTimer?.cancel();
+      _frames = const [];
+      _frameIndex = 0;
+      _failed = false;
+      _loadFrames();
+      return;
+    }
+    if (widget.speed != oldWidget.speed && _frames.isNotEmpty) {
+      _frameTimer?.cancel();
+      _scheduleNextFrame();
+    }
+  }
+
+  Future<void> _loadFrames() async {
+    try {
+      final bytes = await _loadBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frames = <ui.FrameInfo>[];
+      for (var i = 0; i < codec.frameCount; i++) {
+        frames.add(await codec.getNextFrame());
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _frames = frames;
+        _frameIndex = 0;
+        _failed = false;
+      });
+      _scheduleNextFrame();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _failed = true;
+      });
+    }
+  }
+
+  Future<Uint8List> _loadBytes() async {
+    if (widget.isAssetReference) {
+      final path = widget.sourcePath.startsWith('asset:')
+          ? widget.sourcePath.substring('asset:'.length)
+          : widget.sourcePath;
+      final data = await rootBundle.load(path);
+      return data.buffer.asUint8List();
+    }
+    final filePath = widget.sourcePath.startsWith('file:')
+        ? widget.sourcePath.substring('file:'.length)
+        : widget.sourcePath;
+    return File(filePath).readAsBytes();
+  }
+
+  void _scheduleNextFrame() {
+    _frameTimer?.cancel();
+    if (!mounted || _frames.length <= 1) return;
+    final current = _frames[_frameIndex];
+    final baseMs = current.duration.inMilliseconds <= 0
+        ? 100
+        : current.duration.inMilliseconds;
+    final speed = widget.speed <= 0 ? 1.0 : widget.speed;
+    final adjustedMs = max(16, (baseMs / speed).round());
+    _frameTimer = Timer(Duration(milliseconds: adjustedMs), () {
+      if (!mounted || _frames.isEmpty) return;
+      setState(() {
+        _frameIndex = (_frameIndex + 1) % _frames.length;
+      });
+      _scheduleNextFrame();
+    });
+  }
+
+  @override
+  void dispose() {
+    _frameTimer?.cancel();
+    for (final frame in _frames) {
+      frame.image.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_failed || _frames.isEmpty) {
+      return widget.errorChild ?? const SizedBox.shrink();
+    }
+    return RawImage(image: _frames[_frameIndex].image, fit: widget.fit);
   }
 }
 
@@ -1722,6 +1929,89 @@ class _TrackOption {
     required this.path,
     required this.isBuiltin,
   });
+}
+
+class _TrackPreviewChip extends StatelessWidget {
+  final String title;
+  final String durationLabel;
+  final bool isPlaying;
+  final bool selected;
+  final VoidCallback onPreviewTap;
+  final VoidCallback? onTap;
+  final Future<void> Function()? onRemoveTap;
+
+  const _TrackPreviewChip({
+    required this.title,
+    required this.durationLabel,
+    required this.isPlaying,
+    required this.onPreviewTap,
+    this.selected = false,
+    this.onTap,
+    this.onRemoveTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: Colors.grey.withValues(alpha: 0.08),
+          border: Border.all(
+            color: selected ? Colors.grey.shade900 : Colors.grey.shade300,
+            width: selected ? 1.6 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            IconButton(
+              tooltip: isPlaying ? 'Stop preview' : 'Preview (20s max)',
+              constraints: const BoxConstraints.tightFor(width: 26, height: 26),
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+              onPressed: onPreviewTap,
+              icon: Icon(
+                isPlaying ? Icons.graphic_eq : Icons.play_arrow,
+                size: 16,
+                color: isPlaying ? Colors.green : null,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              durationLabel,
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade700),
+            ),
+            if (onRemoveTap != null) ...[
+              const SizedBox(width: 2),
+              IconButton(
+                tooltip: 'Remove track',
+                constraints: const BoxConstraints.tightFor(
+                  width: 28,
+                  height: 28,
+                ),
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+                onPressed: () async => onRemoveTap!.call(),
+                icon: const Icon(Icons.delete_outline, size: 16),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _RoomInfo {

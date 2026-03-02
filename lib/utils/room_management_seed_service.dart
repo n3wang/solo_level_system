@@ -1,9 +1,10 @@
 import 'package:hive/hive.dart';
-import 'package:solo_level_system/models/project_model.dart';
+import 'package:solo_level_system/models/room_model.dart';
 import 'package:solo_level_system/models/room_management_model.dart';
 import 'package:solo_level_system/utils/lofi_service.dart';
 
 class RoomManagementSeedService {
+  static const String _roomsBoxName = 'rooms';
   static const String _roomManagementBoxName = 'roomManagement';
   static const String _spaceRoomId = 'sample-room-space-station-study';
   static const String _mansionRoomId = 'sample-room-abandoned-mansion-study';
@@ -11,42 +12,51 @@ class RoomManagementSeedService {
       'asset:assets/album/al16-spaceship.png';
   static const String _mansionVisualAsset =
       'asset:assets/album/an02_model1_working_2.gif';
+  static const List<String> _spacePhrases = [
+    'Steady orbit, steady focus.',
+    'One module at a time.',
+    'Small progress keeps the mission alive.',
+    'Breathe, align, continue.',
+  ];
+  static const List<String> _mansionPhrases = [
+    'Quiet halls, sharp mind.',
+    'Let the silence carry your focus.',
+    'Slow steps, deep concentration.',
+    'Finish this room, then the next.',
+  ];
 
   static Future<void> ensureSampleRooms() async {
-    if (!Hive.isBoxOpen('projects')) {
-      await Hive.openBox<ProjectModel>('projects');
+    if (!Hive.isBoxOpen(_roomsBoxName)) {
+      await Hive.openBox(_roomsBoxName);
     }
-    final projectsBox = Hive.box<ProjectModel>('projects');
+    final roomsBox = Hive.box(_roomsBoxName);
 
-    final allProjects = projectsBox.values.toList();
+    final allRooms = roomsBox.values
+        .whereType<Map>()
+        .map(RoomModel.fromMap)
+        .toList();
 
-    final hasSpaceRoom = allProjects.any((p) => p.id == _spaceRoomId);
-    final hasMansionRoom = allProjects.any((p) => p.id == _mansionRoomId);
+    final hasSpaceRoom = allRooms.any((room) => room.id == _spaceRoomId);
+    final hasMansionRoom = allRooms.any((room) => room.id == _mansionRoomId);
 
     if (!hasSpaceRoom) {
-      final spaceRoom = ProjectModel(
+      final spaceRoom = RoomModel(
         id: _spaceRoomId,
         name: 'Space Station Study',
         description: 'Quiet orbital room for deep, focused sessions.',
-        color: '#3F51B5',
-        iconName: 'rocket_launch',
-        createdAt: DateTime.now(),
-        priority: 2,
+        iconAssetPath: 'assets/album/al16-spaceship.png',
       );
-      await projectsBox.add(spaceRoom);
+      await roomsBox.put(spaceRoom.id, spaceRoom.toMap());
     }
 
     if (!hasMansionRoom) {
-      final mansionRoom = ProjectModel(
+      final mansionRoom = RoomModel(
         id: _mansionRoomId,
         name: 'Abandoned Mansion Study',
         description: 'Dusty, moody room for atmospheric study sessions.',
-        color: '#5D4037',
-        iconName: 'nightlight_round',
-        createdAt: DateTime.now(),
-        priority: 3,
+        iconAssetPath: 'assets/album/an02_model1_working_2.gif',
       );
-      await projectsBox.add(mansionRoom);
+      await roomsBox.put(mansionRoom.id, mansionRoom.toMap());
     }
 
     await _seedDefaultRoomTracksIfMissing();
@@ -81,6 +91,7 @@ class RoomManagementSeedService {
           ),
         ],
         volume: 0.70,
+        phrases: _spacePhrases,
       );
       await roomBox.put(_spaceRoomId, spaceModel.toMap());
     } else {
@@ -90,18 +101,21 @@ class RoomManagementSeedService {
         final hasSpaceVisual = model.selectedVisuals.any(
           (v) => v.path == _spaceVisualAsset,
         );
-        if (!hasSpaceVisual) {
+        final shouldSeedPhrases = model.phrases.isEmpty;
+        if (!hasSpaceVisual || shouldSeedPhrases) {
           final updated = RoomManagementModel(
             selectedTracks: model.selectedTracks,
             selectedVisuals: [
               ...model.selectedVisuals,
-              const RoomVisualConfig(
-                path: _spaceVisualAsset,
-                isGif: false,
-                gifSpeed: 1.0,
-              ),
+              if (!hasSpaceVisual)
+                const RoomVisualConfig(
+                  path: _spaceVisualAsset,
+                  isGif: false,
+                  gifSpeed: 1.0,
+                ),
             ],
             volume: model.volume,
+            phrases: shouldSeedPhrases ? _spacePhrases : model.phrases,
           );
           await roomBox.put(_spaceRoomId, updated.toMap());
         }
@@ -119,6 +133,7 @@ class RoomManagementSeedService {
           ),
         ],
         volume: 0.62,
+        phrases: _mansionPhrases,
       );
       await roomBox.put(_mansionRoomId, mansionModel.toMap());
     } else {
@@ -128,18 +143,21 @@ class RoomManagementSeedService {
         final hasMansionVisual = model.selectedVisuals.any(
           (v) => v.path == _mansionVisualAsset,
         );
-        if (!hasMansionVisual) {
+        final shouldSeedPhrases = model.phrases.isEmpty;
+        if (!hasMansionVisual || shouldSeedPhrases) {
           final updated = RoomManagementModel(
             selectedTracks: model.selectedTracks,
             selectedVisuals: [
               ...model.selectedVisuals,
-              const RoomVisualConfig(
-                path: _mansionVisualAsset,
-                isGif: true,
-                gifSpeed: 1.0,
-              ),
+              if (!hasMansionVisual)
+                const RoomVisualConfig(
+                  path: _mansionVisualAsset,
+                  isGif: true,
+                  gifSpeed: 1.0,
+                ),
             ],
             volume: model.volume,
+            phrases: shouldSeedPhrases ? _mansionPhrases : model.phrases,
           );
           await roomBox.put(_mansionRoomId, updated.toMap());
         }

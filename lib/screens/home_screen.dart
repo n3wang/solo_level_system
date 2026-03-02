@@ -22,6 +22,7 @@ import 'package:solo_level_system/utils/notification_service.dart';
 import 'package:solo_level_system/utils/timer_controller.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:solo_level_system/models/room_model.dart';
 
 // New imports for refactored widgets and constants
 import 'package:solo_level_system/utils/pomodoro_sizing.dart';
@@ -60,6 +61,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int lastTrackIndex = 0;
   List<ProjectModel> projects = [];
   ProjectModel? selectedProject;
+  List<RoomModel> rooms = [];
+  RoomModel? selectedRoom;
 
   // Progress system state
   UserProgressModel? userProgress;
@@ -104,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _loadSelectedRoomPhrases() async {
-    final roomKey = selectedProject?.id ?? '__random__';
+    final roomKey = selectedRoom?.id ?? '__random__';
     if (!Hive.isBoxOpen('roomManagement')) {
       await Hive.openBox('roomManagement');
     }
@@ -440,27 +443,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _openRoomManagement() async {
     final result = await Navigator.of(context).push<RoomManagementResult>(
       MaterialPageRoute(
-        builder: (_) => RoomManagementScreen(
-          projects: projects,
-          selectedProject: selectedProject,
-        ),
+        builder: (_) =>
+            RoomManagementScreen(rooms: rooms, selectedRoom: selectedRoom),
       ),
     );
 
     if (!mounted || result == null) return;
 
-    ProjectModel? selected;
-    if (result.selectedProjectId != null) {
-      for (final project in projects) {
-        if (project.id == result.selectedProjectId) {
-          selected = project;
+    RoomModel? selected;
+    if (result.selectedRoomId != null) {
+      for (final room in rooms) {
+        if (room.id == result.selectedRoomId) {
+          selected = room;
           break;
         }
       }
     }
 
     setState(() {
-      selectedProject = selected;
+      selectedRoom = selected;
     });
     await _loadSelectedRoomPhrases();
   }
@@ -485,6 +486,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await _loadConfig();
       await _loadUserSettings();
       await RoomManagementSeedService.ensureSampleRooms();
+      await _loadRooms();
       await _loadProjects();
       await _loadSelectedRoomPhrases();
       await _loadUserProgress();
@@ -586,6 +588,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _loadRooms() async {
+    try {
+      if (!Hive.isBoxOpen('rooms')) {
+        await Hive.openBox('rooms');
+      }
+      final box = Hive.box('rooms');
+      final loadedRooms = box.values
+          .whereType<Map>()
+          .map(RoomModel.fromMap)
+          .where((room) => room.isActive)
+          .toList();
+
+      setState(() {
+        rooms = loadedRooms;
+        if (selectedRoom != null &&
+            !loadedRooms.any((room) => room.id == selectedRoom!.id)) {
+          selectedRoom = null;
+        }
+      });
+    } catch (e) {
+      print('Error loading rooms: $e');
+      setState(() {
+        rooms = [];
+      });
+    }
+  }
+
   Future<void> _loadConfig() async {
     try {
       final box = Hive.box<ConfigModel>('config');
@@ -603,6 +632,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       // Refresh projects when app is resumed
+      _loadRooms();
       _loadProjects();
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
@@ -625,6 +655,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didUpdateWidget(HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Refresh projects when returning to home screen
+    _loadRooms();
     _loadProjects();
   }
 
@@ -805,8 +836,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 ),
                               ),
                               SizedBox(height: 8),
-                              Text(
-                                _buildTimerOverlayText(),
+                              _buildTimerOverlayText(),
                               SizedBox(height: 8),
                               SessionSquaresWidget(
                                 completedSessions: countCompletedToday,
@@ -932,8 +962,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 ),
                               ),
                               SizedBox(height: 8),
-                              Text(
-                                _buildTimerOverlayText(),
+                              _buildTimerOverlayText(),
                               SizedBox(height: 8),
                               SessionSquaresWidget(
                                 completedSessions: countCompletedToday,

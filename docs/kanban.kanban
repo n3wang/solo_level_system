@@ -301,7 +301,7 @@
             },
             {
               "id": "bdc5c423-4cc2-4020-8d61-a2409c1ea6d9",
-              "title": "In the visuals section have something similar to how it is done in Tracks. Collapsable and also show how many visuals are thereDo something similar to the visuals part have on the right side the amount of visuals count. and then also have an empty visual box jus so that works in a similar way to adding a visual (add button ) ",
+              "title": "Do something similar to the visuals part have on the right side the amount of visuals count. and then also have an empty visual box jus so that works in a similar way to adding a visual (add button ) ",
               "checked": false
             },
             {
@@ -318,26 +318,12 @@
               "id": "36e637ed-8699-475a-b3f4-ca928e14519c",
               "title": "Topped audio to 20 seconds",
               "checked": true
-            },
-            {
-              "id": "6a24784b-0c72-46b7-9290-a25bf63c1368",
-              "title": "Create new Room",
-              "checked": true
-            },
-            {
-              "id": "4802623c-266a-48cf-804c-1eadb1413bcf",
-              "title": "Remove the shadows in the room management",
-              "checked": false
             }
           ],
           "comments": [
             {
               "id": "e78ecf43-e664-44b4-97e7-e2b4a34d46a9",
               "comment": "when clicking on the modal opened for the room alow for having a pencil icon on the top right corner to edit the basic info of the room . Have title, description, and a list of potential phrases (this is a list of string) important as if available can every so often show the phrases on the pomodoro when it is running. "
-            },
-            {
-              "id": "e68acd1f-357c-4349-848e-4ca68a122c2a",
-              "comment": "Make the room setup actually work. the last selected room picked should be used form the room management whenpopping out. and the images on the pomodoro should rotaoe based on the selected room. Then have it cycle and select only tracks from that selected room of ours.e "
             }
           ]
         }
