@@ -49,6 +49,7 @@ dependencies:
   wakelock_plus: ^1.2.8
   yaml: ^3.1.2
   image: ^4.3.0
+  file_picker: ^10.3.10
 
 dev_dependencies:
   flutter_test:

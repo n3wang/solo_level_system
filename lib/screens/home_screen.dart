@@ -26,6 +26,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:solo_level_system/utils/pomodoro_sizing.dart';
 import 'package:solo_level_system/widgets/pomodoro/compact_music_widget.dart';
 import 'package:solo_level_system/widgets/pomodoro/session_squares_widget.dart';
+import 'package:solo_level_system/screens/room_management_screen.dart';
+import 'package:solo_level_system/utils/room_management_seed_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsChanged;
@@ -307,6 +309,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _timerController.setRemainingSeconds(1);
   }
 
+  Future<void> _openRoomManagement() async {
+    final result = await Navigator.of(context).push<RoomManagementResult>(
+      MaterialPageRoute(
+        builder: (_) => RoomManagementScreen(
+          projects: projects,
+          selectedProject: selectedProject,
+        ),
+      ),
+    );
+
+    if (!mounted || result == null) return;
+
+    ProjectModel? selected;
+    if (result.selectedProjectId != null) {
+      for (final project in projects) {
+        if (project.id == result.selectedProjectId) {
+          selected = project;
+          break;
+        }
+      }
+    }
+
+    setState(() {
+      selectedProject = selected;
+    });
+  }
+
   String formatTime(int seconds) {
     final minutes = seconds ~/ 60;
     final secs = seconds % 60;
@@ -326,6 +355,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       await _loadConfig();
       await _loadUserSettings();
+      await RoomManagementSeedService.ensureSampleRooms();
       await _loadProjects();
       await _loadUserProgress();
       await _backgroundMusicService.initialize();
@@ -471,6 +501,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: !_timerController.isRunning
+          ? FloatingActionButton.small(
+              heroTag: 'room-management-fab',
+              tooltip: 'Open room management',
+              onPressed: _openRoomManagement,
+              child: const Icon(Icons.home_work_outlined),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),

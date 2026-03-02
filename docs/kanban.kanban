@@ -10,6 +10,86 @@
       "title": "To Do",
       "cards": [
         {
+          "id": "91dd0a36-c431-4123-bf4c-9e09c9d007de",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Improve the musics",
+          "description": "Search for youtube and add more musics based on the schedule. of musics. Open for copyright",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "745a19a1-accf-468e-be9e-0705959ba355",
+              "title": "Having some animated gifs on them",
+              "checked": false
+            },
+            {
+              "id": "a547b98e-5556-4fdf-b07b-ff8f5f6d5d62",
+              "title": "Edit music tracks (from the downloads)",
+              "checked": false
+            },
+            {
+              "id": "11a6adf5-6df1-4720-a70f-a3c16fed726a",
+              "title": "Not changing on pause",
+              "checked": true
+            },
+            {
+              "id": "6cf93d47-cf8e-45c2-9886-32edc836228c",
+              "title": "Not looping music behaviour please",
+              "checked": true
+            },
+            {
+              "id": "0305ff9e-db03-46a0-9c9f-1e3376dd764a",
+              "title": "Collect or add 2 or more styles",
+              "checked": false
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "5d3e0edb-8d9d-4f59-a3c8-ba3a5bed089c",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Pressing in the routine, focusing and saving",
+          "description": "Pressing in the routine  workout button selection doesnt open the routine screen with the workouts. It should open that list  where can open the screen to continue the workout",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "46836d27-e487-444d-aeb5-5118c197a398",
+              "title": "Animate the 7 mins workout using the irasutoya style ",
+              "checked": false
+            },
+            {
+              "id": "d69d2d19-f594-4eb5-a2e2-93e73a7c1a37",
+              "title": "Creating icons for common excercises",
+              "checked": false
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "f1d9bc53-96d5-4f9b-9e86-536aeee5fb3f",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Motivational cards for workout",
+          "description": "On the One should be able to create motivational cards and ",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "3dd64d6f-9bfb-4fb7-a11a-b8de0e5db074",
+              "title": "Actually move the the side buttons from the right to the top",
+              "checked": true
+            },
+            {
+              "id": "c4ddb2d9-aa69-4d9d-9b47-8a079ee650c1",
+              "title": "Clean the top screen",
+              "checked": false
+            }
+          ],
+          "comments": [
+            {
+              "id": "15e93875-7684-4c21-9bef-31d6c0886729",
+              "comment": "The user should allow for creating images (uploading images, optional) and have motivational cards, when viewing the motivanal card, the text shoudl appear overalying the image and the image should be fitting the width, the users shoudl be able to have an access to view all his motivational cards. Create and migrate the models required for self storing thes on  Hive"
+            }
+          ]
+        },
+        {
           "id": "26b305e6-64e3-461c-805f-75c81987c4b4",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "Long hold on audio to have a selector of what song audio to play.",
@@ -188,80 +268,35 @@
           ]
         },
         {
-          "id": "91dd0a36-c431-4123-bf4c-9e09c9d007de",
+          "id": "2aeadd31-6b27-4cd5-8431-e77e3f7a8d38",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Improve the musics",
-          "description": "Search for youtube and add more musics based on the schedule. of musics. Open for copyright",
+          "title": "Create the Room Management Screen",
+          "description": "",
           "labels": [],
           "checkboxes": [
             {
-              "id": "745a19a1-accf-468e-be9e-0705959ba355",
-              "title": "Having some animated gifs on them",
-              "checked": false
-            },
-            {
-              "id": "a547b98e-5556-4fdf-b07b-ff8f5f6d5d62",
-              "title": "Edit music tracks (from the downloads)",
-              "checked": false
-            },
-            {
-              "id": "11a6adf5-6df1-4720-a70f-a3c16fed726a",
-              "title": "Not changing on pause",
+              "id": "7aaf1611-2616-4f2c-b1d2-86652146e12f",
+              "title": "Add more base visuals for each",
               "checked": true
             },
             {
-              "id": "6cf93d47-cf8e-45c2-9886-32edc836228c",
-              "title": "Not looping music behaviour please",
+              "id": "7e4e58fa-ff37-498d-8c7e-be080891f775",
+              "title": "Allow for stopping audio by taping it again when doing the preview in Room management. (also make cap it inot 20 seconds on preview play",
               "checked": true
             },
             {
-              "id": "0305ff9e-db03-46a0-9c9f-1e3376dd764a",
-              "title": "Collect or add 2 or more styles",
-              "checked": false
-            }
-          ],
-          "comments": []
-        },
-        {
-          "id": "f1d9bc53-96d5-4f9b-9e86-536aeee5fb3f",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Motivational cards for workout",
-          "description": "On the One should be able to create motivational cards and ",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "3dd64d6f-9bfb-4fb7-a11a-b8de0e5db074",
-              "title": "Actually move the the side buttons from the right to the top",
-              "checked": true
-            },
-            {
-              "id": "c4ddb2d9-aa69-4d9d-9b47-8a079ee650c1",
-              "title": "Clean the top screen",
-              "checked": false
-            }
-          ],
-          "comments": [
-            {
-              "id": "15e93875-7684-4c21-9bef-31d6c0886729",
-              "comment": "The user should allow for creating images (uploading images, optional) and have motivational cards, when viewing the motivanal card, the text shoudl appear overalying the image and the image should be fitting the width, the users shoudl be able to have an access to view all his motivational cards. Create and migrate the models required for self storing thes on  Hive"
-            }
-          ]
-        },
-        {
-          "id": "5d3e0edb-8d9d-4f59-a3c8-ba3a5bed089c",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Pressing in the routine, focusing and saving",
-          "description": "Pressing in the routine  workout button selection doesnt open the routine screen with the workouts. It should open that list  where can open the screen to continue the workout",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "46836d27-e487-444d-aeb5-5118c197a398",
-              "title": "Animate the 7 mins workout using the irasutoya style ",
+              "id": "6d11b041-a52b-4b63-9770-fa0475c42d5c",
+              "title": "Only have 3 setted up volume levels, which will be multiplying the base volume x1 x2 x3",
               "checked": false
             },
             {
-              "id": "d69d2d19-f594-4eb5-a2e2-93e73a7c1a37",
-              "title": "Creating icons for common excercises",
+              "id": "e2b89f10-3b43-4485-8ead-39ece2e8e685",
+              "title": "make the rooms snap when selecting the other, should be centered",
+              "checked": false
+            },
+            {
+              "id": "91de4aaf-d3b3-4387-be73-993237c7f132",
+              "title": "Do not open the Room modal unless its been selected and then selected again",
               "checked": false
             }
           ],
