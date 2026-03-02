@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'constants/color_palette.dart';
 import 'screens/main_navigation_screen.dart';
@@ -22,8 +23,49 @@ import 'utils/default_workouts_service.dart';
 import 'utils/programs_service.dart';
 import 'utils/palette_notifier.dart';
 
+const String _noisyWebWindowAssertPath =
+    'org-dartlang-sdk:///lib/_engine/engine/window.dart:99:12';
+const String _noisyWebWindowAssertPrefix =
+    'Another exception was thrown: Assertion failed:';
+
+bool _isNoisyWebEngineWindowAssertion(String text) {
+  return kIsWeb && text.contains(_noisyWebWindowAssertPath);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Suppress a known noisy Flutter web engine assertion spam in debug logs.
+  // Keep all other framework/runtime errors visible.
+  final defaultDebugPrint = debugPrint;
+  debugPrint = (String? message, {int? wrapWidth}) {
+    if (kIsWeb &&
+        message != null &&
+        (message.contains(_noisyWebWindowAssertPath) ||
+            message.trim() == _noisyWebWindowAssertPrefix)) {
+      return;
+    }
+    defaultDebugPrint(message, wrapWidth: wrapWidth);
+  };
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    final stackTraceText = details.stack?.toString() ?? '';
+    final exceptionText = details.exceptionAsString();
+    final libraryText = details.library ?? '';
+    if (_isNoisyWebEngineWindowAssertion(
+      '$stackTraceText\n$exceptionText\n$libraryText',
+    )) {
+      return;
+    }
+    FlutterError.presentError(details);
+  };
+
+  WidgetsBinding.instance.platformDispatcher.onError = (error, stack) {
+    if (_isNoisyWebEngineWindowAssertion('$error\n$stack')) {
+      return true;
+    }
+    return false;
+  };
 
   try {
     await Hive.initFlutter();

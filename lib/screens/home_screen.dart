@@ -172,25 +172,49 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Widget _buildRoomPhraseText() {
-    if (!_timerController.isRunning || _currentRoomPhrase == null) {
-      return const SizedBox.shrink();
-    }
+  bool get _hasCompletedSessionToday => countCompletedToday > 0;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Text(
-        _currentRoomPhrase!,
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-          shadows: [
-            Shadow(blurRadius: 4, color: Colors.black, offset: Offset(1, 1)),
-          ],
-        ),
-        textAlign: TextAlign.center,
+  String? _timerHelpText() {
+    if (_hasCompletedSessionToday) return null;
+    if (isRunning) {
+      return onBreak ? 'Break Time - Tap to Stop' : 'Focus Time - Tap to Stop';
+    }
+    if (canSubmitLog) return 'Session Complete - Tap to Submit!';
+    return 'Tap to Start • ↑ Finish • ↓ Reset';
+  }
+
+  String? _roomPhraseForOverlay() {
+    if (!_hasCompletedSessionToday) return null;
+    if (_currentRoomPhrase != null && _currentRoomPhrase!.trim().isNotEmpty) {
+      return _currentRoomPhrase!;
+    }
+    if (_roomPhrases.isNotEmpty) {
+      return _roomPhrases.first;
+    }
+    return null;
+  }
+
+  Widget _buildTimerOverlayText() {
+    final phraseText = _roomPhraseForOverlay();
+    final text = phraseText ?? _timerHelpText();
+    if (text == null || text.isEmpty) return const SizedBox.shrink();
+
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 10,
+        color: Colors.white,
+        fontStyle: phraseText == null ? FontStyle.italic : FontStyle.normal,
+        fontWeight: phraseText == null ? FontWeight.normal : FontWeight.w600,
+        shadows: const [
+          Shadow(
+            blurRadius: 5.0,
+            color: Colors.black,
+            offset: Offset(1.0, 1.0),
+          ),
+        ],
       ),
+      textAlign: TextAlign.center,
     );
   }
 
@@ -611,6 +635,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ? FloatingActionButton.small(
               heroTag: 'room-management-fab',
               tooltip: 'Open room management',
+              elevation: 0,
+              hoverElevation: 0,
+              focusElevation: 0,
+              highlightElevation: 0,
               onPressed: _openRoomManagement,
               child: const Icon(Icons.home_work_outlined),
             )
@@ -778,32 +806,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                isRunning
-                                    ? (onBreak
-                                          ? 'Break Time - Tap to Stop'
-                                          : 'Focus Time - Tap to Stop')
-                                    : canSubmitLog
-                                    ? 'Session Complete - Tap to Submit!'
-                                    : 'Tap to Start • ↑ Finish • ↓ Reset',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.white,
-                                  fontStyle: FontStyle.italic,
-                                  shadows: [
-                                    Shadow(
-                                      blurRadius: 5.0,
-                                      color: Colors.black,
-                                      offset: Offset(1.0, 1.0),
-                                    ),
-                                  ],
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
+                                _buildTimerOverlayText(),
                               SizedBox(height: 8),
                               SessionSquaresWidget(
                                 completedSessions: countCompletedToday,
                               ),
-                              _buildRoomPhraseText(),
                             ],
                           ),
                         ),
@@ -926,32 +933,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                isRunning
-                                    ? (onBreak
-                                          ? 'Break Time - Tap to Stop'
-                                          : 'Focus Time - Tap to Stop')
-                                    : canSubmitLog
-                                    ? 'Session Complete - Tap to Submit!'
-                                    : 'Tap to Start • ↑ Finish • ↓ Reset',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.white,
-                                  fontStyle: FontStyle.italic,
-                                  shadows: [
-                                    Shadow(
-                                      blurRadius: 5.0,
-                                      color: Colors.black,
-                                      offset: Offset(1.0, 1.0),
-                                    ),
-                                  ],
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
+                                _buildTimerOverlayText(),
                               SizedBox(height: 8),
                               SessionSquaresWidget(
                                 completedSessions: countCompletedToday,
                               ),
-                              _buildRoomPhraseText(),
                             ],
                           ),
                         ),
@@ -1065,22 +1051,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                             ),
                             SizedBox(height: 8),
-                            Text(
-                              'Session Complete - Tap to Submit!',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.white,
-                                fontStyle: FontStyle.italic,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 5.0,
-                                    color: Colors.black,
-                                    offset: Offset(1.0, 1.0),
-                                  ),
-                                ],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
+                            _buildTimerOverlayText(),
                             SizedBox(height: 8),
                             SessionSquaresWidget(
                               completedSessions: countCompletedToday,
@@ -1206,22 +1177,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                             ),
                             SizedBox(height: 8),
-                            Text(
-                              'Session Complete - Tap to Submit!',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.white,
-                                fontStyle: FontStyle.italic,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 5.0,
-                                    color: Colors.black,
-                                    offset: Offset(1.0, 1.1),
-                                  ),
-                                ],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
+                            _buildTimerOverlayText(),
                             SizedBox(height: 8),
                             SessionSquaresWidget(
                               completedSessions: countCompletedToday,

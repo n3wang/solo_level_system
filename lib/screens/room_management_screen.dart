@@ -62,6 +62,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   final AudioPlayer _previewPlayer = AudioPlayer();
   final ImagePicker _imagePicker = ImagePicker();
   late final PageController _roomPageController;
+  late final List<ProjectModel> _projects;
 
   ProjectModel? _selectedRoom;
   double _volume = 0.7;
@@ -73,6 +74,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   List<LofiTrack> _builtinTracks = [];
   List<EnhancedAudioModel> _libraryTracks = [];
   bool _isLoading = true;
+  bool _isTracksExpanded = true;
+  bool _isVisualsExpanded = true;
   String? _currentlyPreviewingPath;
   Timer? _previewAutoStopTimer;
   final Random _randomizer = Random();
@@ -80,6 +83,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   @override
   void initState() {
     super.initState();
+    _projects = List<ProjectModel>.from(widget.projects);
     _selectedRoom = widget.selectedProject;
     _roomPageController = PageController(
       viewportFraction: 0.78,
@@ -195,7 +199,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   Future<void> _centerSelectedRoomCard(ProjectModel? room) async {
     final targetPage = room == null
         ? 0
-        : (widget.projects.indexWhere((project) => project.id == room.id) + 1);
+        : (_projects.indexWhere((project) => project.id == room.id) + 1);
     if (!_roomPageController.hasClients || targetPage < 0) return;
     await _roomPageController.animateToPage(
       targetPage,
@@ -205,14 +209,131 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   Future<void> _selectRandomSpecificRoom() async {
-    if (widget.projects.isEmpty) return;
-    final randomRoom =
-        widget.projects[_randomizer.nextInt(widget.projects.length)];
+    if (_projects.isEmpty) return;
+    final randomRoom = _projects[_randomizer.nextInt(_projects.length)];
     await _selectRoom(randomRoom);
   }
 
+  Widget _buildRoomDialogContent(BuildContext dialogContext, Widget child) {
+    final size = MediaQuery.of(dialogContext).size;
+    final dialogWidth = size.width * 0.9;
+    final dialogMaxHeight = size.height * 0.78;
+
+    return SizedBox(
+      width: dialogWidth,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: dialogMaxHeight),
+        child: SingleChildScrollView(child: child),
+      ),
+    );
+  }
+
+  Future<void> _showCreateRoomDialog() async {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final phrasesController = TextEditingController();
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Create Room'),
+          content: _buildRoomDialogContent(
+            dialogContext,
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: phrasesController,
+                  maxLines: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'Phrases (one per line)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final title = titleController.text.trim();
+                if (title.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Title cannot be empty')),
+                  );
+                  return;
+                }
+
+                final description = descriptionController.text.trim();
+                final phrases = phrasesController.text
+                    .split('\n')
+                    .map((item) => item.trim())
+                    .where((item) => item.isNotEmpty)
+                    .toList();
+
+                if (!Hive.isBoxOpen('projects')) {
+                  await Hive.openBox<ProjectModel>('projects');
+                }
+                final projectsBox = Hive.box<ProjectModel>('projects');
+                final room = ProjectModel(
+                  id: 'room_${DateTime.now().millisecondsSinceEpoch}',
+                  name: title,
+                  description: description.isEmpty ? null : description,
+                  color: '#607D8B',
+                  iconName: 'meeting_room',
+                  createdAt: DateTime.now(),
+                  priority: 2,
+                );
+                await projectsBox.add(room);
+
+                if (!mounted) return;
+                setState(() {
+                  _projects.add(room);
+                });
+                await _selectRoom(room);
+
+                if (phrases.isNotEmpty) {
+                  setState(() {
+                    _roomPhrases = phrases;
+                  });
+                  await _persistRoomConfiguration();
+                }
+
+                if (!mounted) return;
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _handleExit() async {
-    await _previewPlayer.stop();
+    await _stopPreview();
     if (!mounted) return;
     Navigator.of(
       context,
@@ -491,7 +612,6 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Visual Preview'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -515,9 +635,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      visual.isGif
-                          ? 'GIF playback speed'
-                          : 'Static image (no speed controls)',
+                      visual.isGif ? 'GIF playback speed' : '',
                       style: TextStyle(color: Colors.grey[700]),
                     ),
                     if (visual.isGif) ...[
@@ -601,6 +719,43 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       return clean.split(Platform.pathSeparator).last;
     }
     return trackPath.split(Platform.pathSeparator).last;
+  }
+
+  int _trackDurationSeconds(String trackPath) {
+    if (trackPath.startsWith('asset:')) {
+      final fullPath = trackPath.substring('asset:'.length);
+      for (final track in _builtinTracks) {
+        if (track.fullPath == fullPath) {
+          return _parseDurationToSeconds(track.duration);
+        }
+      }
+    } else if (trackPath.startsWith('file:')) {
+      final filePath = trackPath.substring('file:'.length);
+      for (final track in _libraryTracks) {
+        if (track.filePath == filePath) {
+          return track.durationMs ~/ 1000;
+        }
+      }
+    }
+    return 0;
+  }
+
+  int _parseDurationToSeconds(String value) {
+    final parts = value.split(':');
+    if (parts.length != 2) return 0;
+    final minutes = int.tryParse(parts[0]) ?? 0;
+    final seconds = int.tryParse(parts[1]) ?? 0;
+    return (minutes * 60) + seconds;
+  }
+
+  String _tracksAggregateSummary() {
+    final totalSeconds = _selectedTracks.fold<int>(
+      0,
+      (sum, trackPath) => sum + _trackDurationSeconds(trackPath),
+    );
+    final totalMinutes = (totalSeconds / 60).round();
+    final trackCount = _selectedTracks.length;
+    return '$trackCount tracks • $totalMinutes min total';
   }
 
   String _extensionOf(String path) {
@@ -737,8 +892,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     await showDialog<void>(
       context: context,
       builder: (context) {
-        final dialogMaxWidth = MediaQuery.of(context).size.width * 0.7;
-        final imageWidth = dialogMaxWidth.clamp(180.0, 280.0);
+        final dialogWidth = MediaQuery.of(context).size.width * 0.9;
+        final imageWidth = (dialogWidth - 48).clamp(200.0, 640.0);
         return AlertDialog(
           title: Row(
             children: [
@@ -754,9 +909,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 ),
             ],
           ),
-          content: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: imageWidth),
-            child: Column(
+          content: _buildRoomDialogContent(
+            context,
+            Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -767,10 +922,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                       borderRadius: BorderRadius.circular(12),
                       child: Image.asset(
                         info.assetIconPath!,
-                        height: 140,
+                        height: 180,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
-                          height: 100,
+                          height: 120,
                           color: Colors.grey.shade200,
                           alignment: Alignment.center,
                           child: const Icon(Icons.broken_image_outlined),
@@ -790,8 +945,18 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   const SizedBox(height: 6),
                   ..._roomPhrases.map(
                     (phrase) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text('• $phrase'),
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 4),
+                            child: Icon(Icons.circle, size: 6),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(phrase)),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -830,39 +995,37 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Edit Room Info'),
-          content: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 340),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Title',
-                      border: OutlineInputBorder(),
-                    ),
+          content: _buildRoomDialogContent(
+            context,
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: descriptionController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(),
-                    ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: phrasesController,
-                    maxLines: 6,
-                    decoration: const InputDecoration(
-                      labelText: 'Phrases (one per line)',
-                      border: OutlineInputBorder(),
-                    ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: phrasesController,
+                  maxLines: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'Phrases (one per line)',
+                    border: OutlineInputBorder(),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           actions: [
@@ -913,32 +1076,38 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Room Management'),
-        actions: [
-          IconButton(
-            tooltip: 'Exit room management',
-            onPressed: _handleExit,
-            icon: const Icon(Icons.exit_to_app),
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildRoomSelectionCard(),
-                  const SizedBox(height: 16),
-                  _buildTracksCard(),
-                  const SizedBox(height: 16),
-                  _buildVisualsCard(),
-                ],
-              ),
+    return WillPopScope(
+      onWillPop: () async {
+        await _handleExit();
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Room Management'),
+          actions: [
+            IconButton(
+              tooltip: 'Exit room management',
+              onPressed: _handleExit,
+              icon: const Icon(Icons.exit_to_app),
             ),
+          ],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildRoomSelectionCard(),
+                    const SizedBox(height: 16),
+                    _buildTracksCard(),
+                    const SizedBox(height: 16),
+                    _buildVisualsCard(),
+                  ],
+                ),
+              ),
+      ),
     );
   }
 
@@ -954,18 +1123,14 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               child: Stack(
                 children: [
                   PageView.builder(
-                    itemCount: widget.projects.length + 1,
+                    itemCount: _projects.length + 1,
                     controller: _roomPageController,
                     onPageChanged: (index) async {
-                      final room = index == 0
-                          ? null
-                          : widget.projects[index - 1];
+                      final room = index == 0 ? null : _projects[index - 1];
                       await _selectRoom(room, centerCard: false);
                     },
                     itemBuilder: (context, index) {
-                      final room = index == 0
-                          ? null
-                          : widget.projects[index - 1];
+                      final room = index == 0 ? null : _projects[index - 1];
                       final selected =
                           room?.id == _selectedRoom?.id ||
                           (room == null && _selectedRoom == null);
@@ -1121,6 +1286,21 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(width: 6),
+                          SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: _showCreateRoomDialog,
+                              child: const Icon(Icons.add, size: 16),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1148,37 +1328,34 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           const SizedBox(height: 6),
                           Wrap(
                             spacing: 6,
-                            children: List.generate(
-                              widget.projects.length + 1,
-                              (index) {
-                                final room = index == 0
-                                    ? null
-                                    : widget.projects[index - 1];
-                                final selected =
-                                    (room?.id == _selectedRoom?.id) ||
-                                    (room == null && _selectedRoom == null);
-                                return GestureDetector(
-                                  onTap: () async => _selectRoom(room),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 140),
-                                    width: 12,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(3),
-                                      border: Border.all(
-                                        color: Colors.grey.shade600,
-                                        width: 1.5,
-                                      ),
-                                      color: selected
-                                          ? Theme.of(
-                                              context,
-                                            ).colorScheme.primary
-                                          : Colors.transparent,
+                            children: List.generate(_projects.length + 1, (
+                              index,
+                            ) {
+                              final room = index == 0
+                                  ? null
+                                  : _projects[index - 1];
+                              final selected =
+                                  (room?.id == _selectedRoom?.id) ||
+                                  (room == null && _selectedRoom == null);
+                              return GestureDetector(
+                                onTap: () async => _selectRoom(room),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 140),
+                                  width: 12,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(3),
+                                    border: Border.all(
+                                      color: Colors.grey.shade600,
+                                      width: 1.5,
                                     ),
+                                    color: selected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Colors.transparent,
                                   ),
-                                );
-                              },
-                            ),
+                                ),
+                              );
+                            }),
                           ),
                         ],
                       ),
@@ -1245,6 +1422,24 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 const SizedBox(width: 8),
                 Text('Tracks', style: Theme.of(context).textTheme.titleMedium),
                 const Spacer(),
+                Text(
+                  '${_selectedTracks.length}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: _isTracksExpanded ? 'Hide tracks' : 'View tracks',
+                  onPressed: () {
+                    setState(() {
+                      _isTracksExpanded = !_isTracksExpanded;
+                    });
+                  },
+                  icon: Icon(
+                    _isTracksExpanded ? Icons.expand_less : Icons.expand_more,
+                  ),
+                ),
                 TextButton.icon(
                   onPressed: _showAddTrackSheet,
                   icon: const Icon(Icons.add),
@@ -1252,7 +1447,18 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 ),
               ],
             ),
-            if (_selectedTracks.isEmpty)
+            if (!_isTracksExpanded)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Center(
+                  child: Text(
+                    _tracksAggregateSummary(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ),
+              )
+            else if (_selectedTracks.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
@@ -1261,45 +1467,63 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 ),
               )
             else
-              ListView.separated(
+              GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _selectedTracks.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 6),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 6,
+                  childAspectRatio: 4.6,
+                ),
                 itemBuilder: (context, index) {
                   final track = _selectedTracks[index];
                   final isPlaying = _currentlyPreviewingPath == track;
-                  return ListTile(
-                    dense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    tileColor: Colors.grey.withValues(alpha: 0.08),
-                    leading: Icon(
-                      isPlaying ? Icons.graphic_eq : Icons.play_arrow,
-                      color: isPlaying ? Colors.green : null,
-                    ),
-                    title: Text(
-                      _trackName(track),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      track.startsWith('asset:')
-                          ? 'Built-in audio'
-                          : 'File audio',
-                    ),
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(10),
                     onTap: () => _previewTrack(track),
-                    trailing: IconButton(
-                      tooltip: 'Remove track',
-                      onPressed: () async {
-                        setState(() {
-                          _selectedTracks.removeAt(index);
-                        });
-                        await _persistRoomConfiguration();
-                      },
-                      icon: const Icon(Icons.delete_outline),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.grey.withValues(alpha: 0.08),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isPlaying ? Icons.graphic_eq : Icons.play_arrow,
+                            size: 16,
+                            color: isPlaying ? Colors.green : null,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              _trackName(track),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Remove track',
+                            constraints: const BoxConstraints.tightFor(
+                              width: 28,
+                              height: 28,
+                            ),
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () async {
+                              setState(() {
+                                _selectedTracks.removeAt(index);
+                              });
+                              await _persistRoomConfiguration();
+                            },
+                            icon: const Icon(Icons.delete_outline, size: 16),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -1311,6 +1535,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   Widget _buildVisualsCard() {
+    final visualsWithAddTileCount = _selectedVisuals.length + 1;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1323,6 +1548,24 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 const SizedBox(width: 8),
                 Text('Visuals', style: Theme.of(context).textTheme.titleMedium),
                 const Spacer(),
+                Text(
+                  '${_selectedVisuals.length}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: _isVisualsExpanded ? 'Hide visuals' : 'View visuals',
+                  onPressed: () {
+                    setState(() {
+                      _isVisualsExpanded = !_isVisualsExpanded;
+                    });
+                  },
+                  icon: Icon(
+                    _isVisualsExpanded ? Icons.expand_less : Icons.expand_more,
+                  ),
+                ),
                 TextButton.icon(
                   onPressed: _showAddVisualSheet,
                   icon: const Icon(Icons.add),
@@ -1330,7 +1573,18 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 ),
               ],
             ),
-            if (_selectedVisuals.isEmpty)
+            if (!_isVisualsExpanded)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Center(
+                  child: Text(
+                    '${_selectedVisuals.length} visuals',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ),
+              )
+            else if (_selectedVisuals.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
@@ -1338,11 +1592,11 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   style: TextStyle(color: Colors.grey[700]),
                 ),
               )
-            else
+            else ...[
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: _selectedVisuals.length,
+                itemCount: visualsWithAddTileCount,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   crossAxisSpacing: 10,
@@ -1350,6 +1604,23 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   childAspectRatio: 1.0,
                 ),
                 itemBuilder: (context, index) {
+                  if (index == _selectedVisuals.length) {
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: _showAddVisualSheet,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey.shade500,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Center(child: Icon(Icons.add, size: 22)),
+                      ),
+                    );
+                  }
+
                   final visual = _selectedVisuals[index];
                   return InkWell(
                     borderRadius: BorderRadius.circular(12),
@@ -1425,6 +1696,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   );
                 },
               ),
+            ],
           ],
         ),
       ),
@@ -1433,7 +1705,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
   int _currentPageForSelectedRoom() {
     if (_selectedRoom == null) return 0;
-    final index = widget.projects.indexWhere((p) => p.id == _selectedRoom?.id);
+    final index = _projects.indexWhere((p) => p.id == _selectedRoom?.id);
     return index < 0 ? 0 : index + 1;
   }
 }
