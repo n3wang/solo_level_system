@@ -769,6 +769,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             selectedProject: selectedProject,
             isRunning: _timerController.isRunning,
             canSubmitLog: canSubmitLog,
+            selectedExpandedWidth: PomodoroSizing.getAlbumContainerSize(context),
             onProjectSelected: (project) {
               setState(() {
                 selectedProject = project;

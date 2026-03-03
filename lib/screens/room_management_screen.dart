@@ -66,7 +66,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   final AudioPlayer _previewPlayer = AudioPlayer();
   final ImagePicker _imagePicker = ImagePicker();
   late final PageController _roomPageController;
-  late final List<RoomModel> _rooms;
+  late List<RoomModel> _rooms;
 
   RoomModel? _selectedRoom;
   double _volume = 0.7;
@@ -78,6 +78,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   List<LofiTrack> _builtinTracks = [];
   List<EnhancedAudioModel> _libraryTracks = [];
   bool _isLoading = true;
+  bool _showArchived = false;
   bool _isTracksExpanded = true;
   bool _isVisualsExpanded = true;
   String? _currentlyPreviewingPath;
@@ -95,6 +96,12 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     );
     _loadRoomContext();
   }
+
+  List<RoomModel> get _filteredRooms => _showArchived
+      ? _rooms.where((room) => !room.isActive).toList()
+      : _rooms.where((room) => room.isActive).toList();
+
+  bool get _canRandomRoomRoll => _filteredRooms.length > 1;
 
   @override
   void dispose() {
@@ -128,6 +135,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   Future<void> _loadRoomContext() async {
     setState(() => _isLoading = true);
     try {
+      await _loadRoomsFromStorage();
       _builtinTracks = await LofiService.getAllTracks();
       final audioBox = Hive.box<EnhancedAudioModel>('audioFiles');
       _libraryTracks = audioBox.values.toList();
@@ -160,6 +168,26 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<void> _loadRoomsFromStorage() async {
+    final box = await _openRoomsBox();
+    final loaded = box.values
+        .whereType<Map>()
+        .map(RoomModel.fromMap)
+        .toList();
+    if (!mounted) return;
+    setState(() {
+      _rooms = loaded.isEmpty ? List<RoomModel>.from(widget.rooms) : loaded;
+      final filtered = _filteredRooms;
+      if (_selectedRoom != null &&
+          !filtered.any((room) => room.id == _selectedRoom!.id)) {
+        _selectedRoom = null;
+      }
+      if (_selectedRoom == null && filtered.isNotEmpty) {
+        _selectedRoom = filtered.first;
+      }
+    });
   }
 
   Future<void> _loadRoomConfiguration() async {
@@ -215,7 +243,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   Future<void> _centerSelectedRoomCard(RoomModel? room) async {
     final targetPage = room == null
         ? 0
-        : (_rooms.indexWhere((item) => item.id == room.id) + 1);
+        : (_filteredRooms.indexWhere((item) => item.id == room.id) + 1);
     if (!_roomPageController.hasClients || targetPage < 0) return;
     await _roomPageController.animateToPage(
       targetPage,
@@ -225,13 +253,36 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   Future<void> _selectRandomSpecificRoom() async {
-    if (_rooms.length <= 1) return;
-    final candidates = _rooms
+    if (_filteredRooms.length <= 1) return;
+    final candidates = _filteredRooms
         .where((room) => room.id != _selectedRoom?.id)
         .toList();
     if (candidates.isEmpty) return;
     final randomRoom = candidates[_randomizer.nextInt(candidates.length)];
     await _selectRoom(randomRoom);
+  }
+
+  Future<void> _toggleSelectedRoomArchiveStatus() async {
+    final selected = _selectedRoom;
+    if (selected == null) return;
+
+    final before = _filteredRooms;
+    final oldIndex = before.indexWhere((room) => room.id == selected.id);
+    selected.isActive = _showArchived;
+    await _upsertRoom(selected);
+
+    if (!mounted) return;
+    setState(() {
+      final after = _filteredRooms;
+      if (after.isEmpty) {
+        _selectedRoom = null;
+        return;
+      }
+      final fallbackIndex = oldIndex.clamp(0, after.length - 1);
+      _selectedRoom = after[fallbackIndex];
+    });
+    await _centerSelectedRoomCard(_selectedRoom);
+    await _loadRoomConfiguration();
   }
 
   Widget _buildRoomDialogContent(BuildContext dialogContext, Widget child) {
@@ -1189,14 +1240,48 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Room Management'),
-          actions: [
-            IconButton(
-              tooltip: 'Exit room management',
-              onPressed: _handleExit,
-              icon: const Icon(Icons.exit_to_app),
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            tooltip: _selectedRoom == null
+                ? 'Close room management'
+                : 'Back to home with selected room',
+            onPressed: _handleExit,
+            icon: Icon(
+              _selectedRoom == null ? Icons.close : Icons.arrow_upward,
+              size: 20,
             ),
-          ],
+          ),
+          title: Row(
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _showArchived = !_showArchived;
+                    final filtered = _filteredRooms;
+                    if (_selectedRoom != null &&
+                        !filtered.any((room) => room.id == _selectedRoom!.id)) {
+                      _selectedRoom = null;
+                    }
+                    if (_selectedRoom == null && filtered.isNotEmpty) {
+                      _selectedRoom = filtered.first;
+                    }
+                  });
+                  _centerSelectedRoomCard(_selectedRoom);
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.onSurface,
+                  backgroundColor: Colors.transparent,
+                  side: const BorderSide(color: Colors.black26),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                ),
+                icon: Icon(_showArchived ? Icons.archive : Icons.folder_open),
+                label: Text(_showArchived ? 'Archived Room' : 'Active Room'),
+              ),
+            ],
+          ),
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
@@ -1229,14 +1314,14 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               child: Stack(
                 children: [
                   PageView.builder(
-                    itemCount: _rooms.length + 1,
+                    itemCount: _filteredRooms.length + 1,
                     controller: _roomPageController,
                     onPageChanged: (index) async {
-                      final room = index == 0 ? null : _rooms[index - 1];
+                      final room = index == 0 ? null : _filteredRooms[index - 1];
                       await _selectRoom(room, centerCard: false);
                     },
                     itemBuilder: (context, index) {
-                      final room = index == 0 ? null : _rooms[index - 1];
+                      final room = index == 0 ? null : _filteredRooms[index - 1];
                       final selected =
                           room?.id == _selectedRoom?.id ||
                           (room == null && _selectedRoom == null);
@@ -1357,7 +1442,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                       ),
                       child: Row(
                         children: [
-                          if (_rooms.length > 1) ...[
+                          if (_canRandomRoomRoll) ...[
                             SizedBox(
                               width: 34,
                               height: 34,
@@ -1377,6 +1462,28 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                             ),
                             const SizedBox(width: 6),
                           ],
+                          SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: _selectedRoom == null
+                                  ? null
+                                  : _toggleSelectedRoomArchiveStatus,
+                              child: Icon(
+                                _showArchived
+                                    ? Icons.unarchive_outlined
+                                    : Icons.archive_outlined,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
                           SizedBox(
                             width: 34,
                             height: 34,
@@ -1436,10 +1543,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           const SizedBox(height: 6),
                           Wrap(
                             spacing: 6,
-                            children: List.generate(_rooms.length + 1, (index) {
+                            children: List.generate(_filteredRooms.length + 1, (index) {
                               final room = index == 0
                                   ? null
-                                  : _rooms[index - 1];
+                                  : _filteredRooms[index - 1];
                               final selected =
                                   (room?.id == _selectedRoom?.id) ||
                                   (room == null && _selectedRoom == null);
