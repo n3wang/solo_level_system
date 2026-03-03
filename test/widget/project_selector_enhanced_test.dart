@@ -126,7 +126,7 @@ void main() {
       expect(find.text('Drawing'), findsOneWidget);
     });
 
-    testWidgets('should show only selected project with toggle option', (WidgetTester tester) async {
+    testWidgets('should show only selected project when one is selected', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -146,19 +146,23 @@ void main() {
       expect(find.text('Coding'), findsNothing);
       expect(find.text('Study'), findsNothing);
 
-      // Should show toggle button
-      expect(find.text('Show all projects'), findsOneWidget);
-      expect(find.byIcon(Icons.expand_more), findsOneWidget);
+      // Toggle has been removed from the design
+      expect(find.text('Show all projects'), findsNothing);
+      expect(find.text('Show less'), findsNothing);
     });
 
-    testWidgets('should expand to show all projects when toggle tapped', (WidgetTester tester) async {
+    testWidgets('should clear selection when selected project tapped', (WidgetTester tester) async {
+      ProjectModel? selectedProject;
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: ProjectSelectorWidget(
               projects: testProjects,
               selectedProject: testProjects[0],
-              onProjectSelected: (project) {},
+              onProjectSelected: (project) {
+                selectedProject = project;
+              },
               isRunning: false,
               canSubmitLog: false,
             ),
@@ -166,18 +170,10 @@ void main() {
         ),
       );
 
-      // Tap the toggle button to show all projects
-      await tester.tap(find.text('Show all projects'));
-      await tester.pump();
+      await tester.tap(find.text('Drawing'));
 
-      // Should now show all projects
-      expect(find.text('Drawing'), findsOneWidget);
-      expect(find.text('Coding'), findsOneWidget);
-      expect(find.text('Study'), findsOneWidget);
-
-      // Toggle button should change
-      expect(find.text('Show less'), findsOneWidget);
-      expect(find.byIcon(Icons.expand_less), findsOneWidget);
+      // Tapping selected project clears filter; parent can then show all projects.
+      expect(selectedProject, isNull);
     });
 
     testWidgets('should show duration info during running sessions', (WidgetTester tester) async {

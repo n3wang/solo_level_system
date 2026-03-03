@@ -25,8 +25,6 @@ class ProjectSelectorWidget extends StatefulWidget {
 }
 
 class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
-  bool showAllProjects = false;
-
   @override
   Widget build(BuildContext context) {
     final activeProjects = widget.projects
@@ -43,60 +41,16 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
       return SizedBox.shrink();
     }
 
-    // Determine which projects to show based on selection state and toggle
-    List<ProjectModel> projectsToShow;
-    if (widget.selectedProject != null && !showAllProjects) {
-      // Show only selected project with expand option
-      projectsToShow = activeProjects
-          .where((p) => p.id == widget.selectedProject!.id)
-          .toList();
-    } else {
-      projectsToShow = activeProjects;
-    }
+    // Show only selected project; unselecting returns to all projects.
+    final projectsToShow = widget.selectedProject != null
+        ? activeProjects.where((p) => p.id == widget.selectedProject!.id).toList()
+        : activeProjects;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Show toggle button if a project is selected
-          if (widget.selectedProject != null && !widget.isCollapsed) ...[
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  showAllProjects = !showAllProjects;
-                });
-              },
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                margin: EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      showAllProjects ? 'Show less' : 'Show all projects',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(width: 4),
-                    Icon(
-                      showAllProjects ? Icons.expand_less : Icons.expand_more,
-                      size: 16,
-                      color: Colors.grey[700],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
           Wrap(
             spacing: 8,
             children: projectsToShow.map((project) {
@@ -169,7 +123,7 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                   Text(
                     widget.isRunning || widget.canSubmitLog
                         ? '${project.workDurationMinutes}/${project.breakDurationMinutes}m'
-                        : _getRemainingWorkText(project),
+                        : project.progressText,
                     style: TextStyle(
                       fontSize: 9,
                       color: isSelected ? Colors.white60 : Colors.grey[500],
@@ -183,17 +137,6 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
         ),
       ),
     );
-  }
-
-  String _getRemainingWorkText(ProjectModel project) {
-    final remaining = project.getRemainingTodayPomodoros();
-    if (remaining <= 0) {
-      return 'Complete ✓';
-    } else if (remaining == 1) {
-      return '1 left';
-    } else {
-      return '$remaining left';
-    }
   }
 
   Color _parseColor(String colorHex) {

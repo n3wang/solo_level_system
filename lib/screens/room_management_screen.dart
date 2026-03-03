@@ -225,8 +225,12 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   Future<void> _selectRandomSpecificRoom() async {
-    if (_rooms.isEmpty) return;
-    final randomRoom = _rooms[_randomizer.nextInt(_rooms.length)];
+    if (_rooms.length <= 1) return;
+    final candidates = _rooms
+        .where((room) => room.id != _selectedRoom?.id)
+        .toList();
+    if (candidates.isEmpty) return;
+    final randomRoom = candidates[_randomizer.nextInt(candidates.length)];
     await _selectRoom(randomRoom);
   }
 
@@ -1353,24 +1357,26 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                       ),
                       child: Row(
                         children: [
-                          SizedBox(
-                            width: 34,
-                            height: 34,
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                          if (_rooms.length > 1) ...[
+                            SizedBox(
+                              width: 34,
+                              height: 34,
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                onPressed: _selectRandomSpecificRoom,
+                                child: const Icon(
+                                  Icons.casino_outlined,
+                                  size: 16,
                                 ),
                               ),
-                              onPressed: _selectRandomSpecificRoom,
-                              child: const Icon(
-                                Icons.casino_outlined,
-                                size: 16,
-                              ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
+                            const SizedBox(width: 6),
+                          ],
                           SizedBox(
                             width: 34,
                             height: 34,

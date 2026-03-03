@@ -31,6 +31,7 @@ import 'package:solo_level_system/widgets/pomodoro/session_squares_widget.dart';
 import 'package:solo_level_system/screens/room_management_screen.dart';
 import 'package:solo_level_system/screens/projects_management_screen.dart';
 import 'package:solo_level_system/utils/room_management_seed_service.dart';
+import 'package:solo_level_system/utils/project_seed_service.dart';
 import 'package:solo_level_system/models/room_management_model.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -476,11 +477,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _openProjectManagement() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const ProjectsManagementScreen()));
+    final selectedProjectId = await Navigator.of(context).push<String?>(
+      MaterialPageRoute(
+        builder: (_) => ProjectsManagementScreen(
+          initialSelectedProjectId: selectedProject?.id,
+        ),
+      ),
+    );
     if (!mounted) return;
     await _loadProjects();
+    if (!mounted) return;
+    setState(() {
+      if (selectedProjectId == null) {
+        selectedProject = null;
+      } else {
+        ProjectModel? nextSelected;
+        for (final project in projects) {
+          if (project.id == selectedProjectId) {
+            nextSelected = project;
+            break;
+          }
+        }
+        selectedProject = nextSelected;
+      }
+      if (selectedProject != null) {
+        workMinutes = selectedProject!.workDurationMinutes;
+        breakMinutes = selectedProject!.breakDurationMinutes;
+      } else {
+        workMinutes = userSettings?.defaultWorkMinutes ?? 25;
+        breakMinutes = userSettings?.defaultBreakMinutes ?? 5;
+      }
+      _timerController.updateDurations(workMinutes, breakMinutes);
+      if (!_timerController.isRunning && !_timerController.onBreak) {
+        remainingSeconds = workMinutes * 60;
+      }
+    });
+    await _loadSelectedRoomPhrases();
   }
 
   String formatTime(int seconds) {
@@ -503,6 +535,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await _loadConfig();
       await _loadUserSettings();
       await RoomManagementSeedService.ensureSampleRooms();
+      await ProjectSeedService.ensureSampleProjects();
       await _loadRooms();
       await _loadProjects();
       await _loadSelectedRoomPhrases();

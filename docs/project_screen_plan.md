@@ -257,7 +257,8 @@ If `showChipOnlyWithinOneHour` is true, show project chip only when current time
 
 ## Open Questions To Confirm Before Build
 
-- Should phrases live in `ProjectModel` directly, or stay in `roomManagement` keyed by project id?
-- Exact default hour windows (`09:00/13:00/18:30`) acceptable?
-- Should random selection be re-roll each tap or persist until changed?
-- When archiving selected project, should app always fall back to `No Project`, or nearest active project?
+- Should phrases live in `ProjectModel` directly, or stay in `roomManagement` keyed by project id?. > Stays in the room Managemnet
+- Exact default hour windows (`09:00/13:00/18:30`) acceptable? > Yes
+- Should random selection be re-roll each tap or persist until changed? > Yes reroll, for project manager and room amangement and exclude the current card if possible and the no project / No room selected. Do not show reroll if only is active card and no other project/card 
+- When archiving selected project, should app always fall back to `No Project`, or nearest active project? > Yes always to nearest project
+- The buttons in projects (random rolls, No project, create ) should be copying the design oinRoom management, meaning they overlay the cards, and works well. 

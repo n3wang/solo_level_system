@@ -1,11 +1,21 @@
 // lib/screens/projects_management_screen.dart
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
 
 class ProjectsManagementScreen extends StatefulWidget {
-  const ProjectsManagementScreen({super.key});
+  final String? initialSelectedProjectId;
+
+  const ProjectsManagementScreen({
+    super.key,
+    this.initialSelectedProjectId,
+  });
 
   @override
   _ProjectsManagementScreenState createState() =>
@@ -13,9 +23,18 @@ class ProjectsManagementScreen extends StatefulWidget {
 }
 
 class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
+  static const List<String> _supportedVisualExtensions = [
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+    'gif',
+  ];
   List<ProjectModel> projects = [];
   bool isLoading = true;
   bool _showArchived = false;
+  late final PageController _projectPageController;
+  final ImagePicker _imagePicker = ImagePicker();
   ProjectModel? _selectedProject;
   int _dailyTarget = 1;
   int _weeklyTarget = 2;
@@ -23,7 +42,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
   int _breakDuration = 5;
   final Map<int, int> _dayStates = {for (int day = 1; day <= 7; day++) day: 0};
   TimeOfDay _morningStart = const TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _afternoonStart = const TimeOfDay(hour: 12, minute: 30);
+  TimeOfDay _afternoonStart = const TimeOfDay(hour: 13, minute: 0);
   TimeOfDay _eveningStart = const TimeOfDay(hour: 18, minute: 30);
   bool _sendNotification = false;
   bool _showOnlyWithinHour = false;
@@ -32,6 +51,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
   @override
   void initState() {
     super.initState();
+    _projectPageController = PageController(viewportFraction: 0.88);
     _loadProjects();
   }
 
@@ -54,6 +74,14 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
 
       setState(() {
         final filtered = _filteredProjects;
+        if (_selectedProject == null && widget.initialSelectedProjectId != null) {
+          for (final project in filtered) {
+            if (project.id == widget.initialSelectedProjectId) {
+              _selectedProject = project;
+              break;
+            }
+          }
+        }
         if (_selectedProject != null &&
             !filtered.any((p) => p.id == _selectedProject!.id)) {
           _selectedProject = null;
@@ -63,6 +91,9 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
         }
         _syncEditorFromSelectedProject();
         isLoading = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _centerSelectedProjectCard(_selectedProject);
       });
     } catch (e) {
       print('Error loading projects: $e');
@@ -74,6 +105,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
 
   @override
   void dispose() {
+    _projectPageController.dispose();
     super.dispose();
   }
 
@@ -89,29 +121,50 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
   Widget _buildContent() {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          tooltip: _selectedProject == null
+              ? 'Close project management'
+              : 'Back to home with selected project',
+          onPressed: () => Navigator.of(context).pop(_selectedProject?.id),
+          icon: Icon(
+            _selectedProject == null ? Icons.close : Icons.arrow_upward,
+            size: 20,
+          ),
+        ),
         title: Row(
           children: [
             TextButton.icon(
               onPressed: () {
                 setState(() {
                   _showArchived = !_showArchived;
+                  final filtered = _filteredProjects;
+                  if (_selectedProject != null &&
+                      !filtered.any((p) => p.id == _selectedProject!.id)) {
+                    _selectedProject = null;
+                  }
+                  if (_selectedProject == null && filtered.isNotEmpty) {
+                    _selectedProject = filtered.first;
+                  }
+                  _syncEditorFromSelectedProject();
                 });
+                _centerSelectedProjectCard(_selectedProject);
               },
               style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: Colors.white.withValues(alpha: 0.14),
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
+                backgroundColor: Colors.transparent,
+                side: const BorderSide(color: Colors.black26),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               ),
               icon: Icon(_showArchived ? Icons.archive : Icons.folder_open),
-              label: Text(_showArchived ? 'Archived' : 'Active'),
+              label: Text(_showArchived ? 'Archived Project' : 'Active Project'),
             ),
-            const SizedBox(width: 10),
-            Text(_showArchived ? 'Projects (Archived)' : 'Projects'),
           ],
         ),
       ),
@@ -122,6 +175,8 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
   List<ProjectModel> get _filteredProjects => _showArchived
       ? projects.where((p) => !p.isActive).toList()
       : projects.where((p) => p.isActive).toList();
+
+  bool get _canRandomProjectRoll => _filteredProjects.length > 1;
 
   void _syncEditorFromSelectedProject() {
     final p = _selectedProject;
@@ -154,11 +209,12 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     p.workDurationMinutes = _workDuration;
     p.breakDurationMinutes = _breakDuration;
     p.preferredWorkHour = _morningStart.hour;
-    p.activeDays = _dayStates.entries
-        .where((entry) => entry.value != 1)
-        .map((entry) => entry.key)
-        .toList()
-      ..sort();
+    p.activeDays =
+        _dayStates.entries
+            .where((entry) => entry.value != 1)
+            .map((entry) => entry.key)
+            .toList()
+          ..sort();
     await p.save();
     if (!mounted) return;
     setState(() {});
@@ -170,7 +226,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
       child: Column(
         children: [
           _buildProjectPreviewCard(),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           _buildProjectSettingsCard(),
         ],
       ),
@@ -178,153 +234,271 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
   }
 
   Widget _buildProjectPreviewCard() {
-    final selected = _selectedProject;
-    final name = selected?.name ?? 'No Project';
-    final description = selected?.description ?? 'No description yet';
     final isActiveList = !_showArchived;
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Row(
+            Stack(
               children: [
                 Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.black26),
-                  ),
-                  child: TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _showArchived = !_showArchived;
-                        final filtered = _filteredProjects;
-                        if (_selectedProject != null &&
-                            !filtered.any((p) => p.id == _selectedProject!.id)) {
-                          _selectedProject = null;
-                        }
-                        if (_selectedProject == null && filtered.isNotEmpty) {
-                          _selectedProject = filtered.first;
-                        }
-                        _syncEditorFromSelectedProject();
-                      });
-                    },
-                    child: Text(_showArchived ? 'archived' : 'active'),
-                  ),
-                ),
-                const Spacer(),
-                _buildMiniActionButton(
-                  icon: isActiveList ? Icons.archive_outlined : Icons.unarchive_outlined,
-                  tooltip: isActiveList ? 'Archive selected project' : 'Restore selected project',
-                  onPressed: _selectedProject == null
-                      ? null
-                      : () async {
-                          if (isActiveList) {
-                            _selectedProject!.archive();
-                          } else {
-                            _selectedProject!.unarchive();
-                          }
-                          await _loadProjects();
-                        },
-                ),
-                const SizedBox(width: 6),
-                _buildMiniActionButton(
-                  icon: Icons.add,
-                  tooltip: 'Create project',
-                  onPressed: _showCreateProjectDialog,
-                ),
-                const SizedBox(width: 6),
-                _buildMiniActionButton(
-                  icon: Icons.casino_outlined,
-                  tooltip: 'Random project',
-                  onPressed: () {
-                    final filtered = _filteredProjects;
-                    if (filtered.isEmpty) return;
-                    filtered.shuffle();
-                    setState(() {
-                      _selectedProject = filtered.first;
-                      _syncEditorFromSelectedProject();
-                    });
-                  },
-                ),
-                const SizedBox(width: 6),
-                _buildMiniActionButton(
-                  icon: Icons.close,
-                  tooltip: 'No project',
-                  onPressed: () {
-                    setState(() {
-                      _selectedProject = null;
-                      _syncEditorFromSelectedProject();
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.black26),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 84,
-                    height: 84,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.black26),
+                  padding: const EdgeInsets.all(8),
+                  child: SizedBox(
+                    height: 112,
+                    child: PageView.builder(
+                      controller: _projectPageController,
+                      itemCount: _filteredProjects.length + 1,
+                      onPageChanged: (index) {
+                        final project = index == 0
+                            ? null
+                            : _filteredProjects[index - 1];
+                        setState(() {
+                          _selectedProject = project;
+                          _syncEditorFromSelectedProject();
+                        });
+                      },
+                      itemBuilder: (context, index) {
+                        final project = index == 0
+                            ? null
+                            : _filteredProjects[index - 1];
+                        final projectName = project?.name ?? 'No Project';
+                        final projectDescription =
+                            project?.description ?? 'No description yet';
+                        final selectedCard =
+                            (project == null && _selectedProject == null) ||
+                            project?.id == _selectedProject?.id;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () async {
+                              final alreadySelected =
+                                  (project == null &&
+                                      _selectedProject == null) ||
+                                  (project?.id == _selectedProject?.id);
+                              if (alreadySelected) {
+                                await _centerSelectedProjectCard(project);
+                                await _showProjectInfoModal(project);
+                                return;
+                              }
+                              setState(() {
+                                _selectedProject = project;
+                                _syncEditorFromSelectedProject();
+                              });
+                              await _centerSelectedProjectCard(project);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: selectedCard
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.grey.shade400,
+                                  width: selectedCard ? 2 : 1,
+                                ),
+                                color: selectedCard
+                                    ? Theme.of(context).colorScheme.primary
+                                          .withValues(alpha: 0.1)
+                                    : null,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    projectName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    projectDescription,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.grey[700],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                Positioned(
+                  top: 0,
+                  right: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.94),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
                       children: [
-                        Text(
-                          name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 22,
+                        SizedBox(
+                          width: 34,
+                          height: 34,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: _selectedProject == null
+                                ? null
+                                : () async {
+                                    if (isActiveList) {
+                                      await _archiveSelectedProjectWithNearestFallback();
+                                    } else {
+                                      _selectedProject!.unarchive();
+                                      await _loadProjects();
+                                    }
+                                  },
+                            child: Icon(
+                              isActiveList
+                                  ? Icons.archive_outlined
+                                  : Icons.unarchive_outlined,
+                              size: 16,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(description, maxLines: 2, overflow: TextOverflow.ellipsis),
+                        const SizedBox(width: 6),
+                        SizedBox(
+                          width: 34,
+                          height: 34,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: _showCreateProjectDialog,
+                            child: const Icon(Icons.add, size: 16),
+                          ),
+                        ),
+                        if (_canRandomProjectRoll) ...[
+                          const SizedBox(width: 6),
+                          SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: () async {
+                                final candidates = _filteredProjects
+                                    .where((p) => p.id != _selectedProject?.id)
+                                    .toList();
+                                if (candidates.isEmpty) return;
+                                candidates.shuffle();
+                                final pick = candidates.first;
+                                setState(() {
+                                  _selectedProject = pick;
+                                  _syncEditorFromSelectedProject();
+                                });
+                                await _centerSelectedProjectCard(pick);
+                              },
+                              child: const Icon(
+                                Icons.casino_outlined,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(width: 6),
+                        SizedBox(
+                          width: 34,
+                          height: 34,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: () async {
+                              setState(() {
+                                _selectedProject = null;
+                                _syncEditorFromSelectedProject();
+                              });
+                              await _centerSelectedProjectCard(null);
+                            },
+                            child: const Icon(
+                              Icons.folder_off_outlined,
+                              size: 16,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Container(
-                    width: 44,
-                    height: 84,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black26),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
             const SizedBox(height: 10),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text('Project'),
-                const SizedBox(width: 8),
-                Wrap(
-                  spacing: 5,
-                  children: [
-                    for (int i = 0; i <= _filteredProjects.length; i++)
-                      _buildProjectIndicator(i),
-                  ],
+                Expanded(
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Project',
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            children: [
+                              for (int i = 0; i <= _filteredProjects.length; i++)
+                                _buildProjectIndicator(i),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
                 const Spacer(),
-                const Text('Breakdown'),
-                const SizedBox(width: 8),
-                _buildBreakdownBars(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Breakdown',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 6),
+                    _buildBreakdownBars(),
+                  ],
+                ),
               ],
             ),
           ],
@@ -333,28 +507,10 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     );
   }
 
-  Widget _buildMiniActionButton({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback? onPressed,
-  }) {
-    return SizedBox(
-      width: 34,
-      height: 34,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-        child: Icon(icon, size: 16),
-      ),
-    );
-  }
-
   Widget _buildProjectIndicator(int index) {
     final project = index == 0 ? null : _filteredProjects[index - 1];
-    final selected = (project == null && _selectedProject == null) ||
+    final selected =
+        (project == null && _selectedProject == null) ||
         (project?.id == _selectedProject?.id);
     return GestureDetector(
       onTap: () {
@@ -365,12 +521,14 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 140),
-        width: 10,
-        height: 22,
+        width: 12,
+        height: 24,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(3),
-          border: Border.all(color: Colors.grey.shade600, width: 1.4),
-          color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+          border: Border.all(color: Colors.grey.shade600, width: 1.5),
+          color: selected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.transparent,
         ),
       ),
     );
@@ -394,12 +552,12 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
 
   Widget _buildBreakdownBar(Color color) {
     return Container(
-      width: 9,
-      height: 20,
+      width: 12,
+      height: 24,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: color.withValues(alpha: 0.6), width: 1.2),
-        color: color.withValues(alpha: 0.08),
+        border: Border.all(color: color.withValues(alpha: 0.8), width: 1.5),
+        color: color.withValues(alpha: 0.02),
       ),
     );
   }
@@ -410,52 +568,81 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
       opacity: enabled ? 1 : 0.6,
       child: IgnorePointer(
         ignoring: !enabled,
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Session Targets',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 12),
-                Row(
+        child: Column(
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: _buildCounterField(
-                        label: 'Daily',
-                        value: _dailyTarget,
-                        min: 1,
-                        max: 20,
-                        onChanged: (v) async {
-                          setState(() => _dailyTarget = v);
-                          await _persistSelectedProject();
-                        },
-                      ),
+                    Row(
+                      children: [
+                        const Icon(Icons.flag_outlined, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Session Targets',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildCounterField(
-                        label: 'Weekly',
-                        value: _weeklyTarget,
-                        min: 1,
-                        max: 50,
-                        onChanged: (v) async {
-                          setState(() => _weeklyTarget = v);
-                          await _persistSelectedProject();
-                        },
-                      ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildCounterField(
+                            label: 'Daily',
+                            value: _dailyTarget,
+                            min: 1,
+                            max: 20,
+                            onChanged: (v) async {
+                              setState(() => _dailyTarget = v);
+                              await _persistSelectedProject();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildCounterField(
+                            label: 'Weekly',
+                            value: _weeklyTarget,
+                            min: 1,
+                            max: 50,
+                            onChanged: (v) async {
+                              setState(() => _weeklyTarget = v);
+                              await _persistSelectedProject();
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
-                const Text('Active Days', style: TextStyle(fontSize: 22)),
-                const SizedBox(height: 8),
-                Row(
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today_outlined, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Schedule',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Active Days',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -472,95 +659,130 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                           ),
                       ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          for (int day = 1; day <= 7; day++)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                '${_getDayName(day)}, ${_dayStateLabel(_dayStates[day] ?? 0)}',
-                                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                              ),
-                            ),
-                        ],
+                    const SizedBox(height: 8),
+                    Text(
+                      _activeDaysSummaryText(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                        height: 1.2,
                       ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Work Hour (Optional)',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTimeField('Morning', _morningStart, (v) async {
+                            setState(() => _morningStart = v);
+                            await _persistSelectedProject();
+                          }),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildTimeField(
+                            'Afternoon',
+                            _afternoonStart,
+                            (v) => setState(() => _afternoonStart = v),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildTimeField(
+                            'Evening',
+                            _eveningStart,
+                            (v) => setState(() => _eveningStart = v),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    CheckboxListTile(
+                      value: _sendNotification,
+                      onChanged: (v) => setState(() => _sendNotification = v ?? false),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text('Create Notification'),
+                    ),
+                    CheckboxListTile(
+                      value: _showOnlyWithinHour,
+                      onChanged: (v) => setState(() => _showOnlyWithinHour = v ?? false),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text('Show only within 1 hour of target'),
+                    ),
+                    CheckboxListTile(
+                      value: _dontScoreOutside,
+                      onChanged: (v) => setState(() => _dontScoreOutside = v ?? false),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text('Dont Score project if outside of hour range'),
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
-                const Text('Work Hour (Optional)', style: TextStyle(fontSize: 22)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(child: _buildTimeField('Morning', _morningStart)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildTimeField('Afternoon', _afternoonStart)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildTimeField('Evening', _eveningStart)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                CheckboxListTile(
-                  value: _sendNotification,
-                  onChanged: (v) => setState(() => _sendNotification = v ?? false),
-                  dense: true,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text('Create Notification'),
-                ),
-                CheckboxListTile(
-                  value: _showOnlyWithinHour,
-                  onChanged: (v) => setState(() => _showOnlyWithinHour = v ?? false),
-                  dense: true,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text('Show only within 1 hour of target'),
-                ),
-                CheckboxListTile(
-                  value: _dontScoreOutside,
-                  onChanged: (v) => setState(() => _dontScoreOutside = v ?? false),
-                  dense: true,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text('Dont Score project if outside of hour range'),
-                ),
-                const SizedBox(height: 10),
-                const Text('Session Duration (minutes)', style: TextStyle(fontSize: 22)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildCounterField(
-                        label: 'Work Duration',
-                        value: _workDuration,
-                        min: 5,
-                        max: 180,
-                        step: 5,
-                        onChanged: (v) async {
-                          setState(() => _workDuration = v);
-                          await _persistSelectedProject();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildCounterField(
-                        label: 'Break',
-                        value: _breakDuration,
-                        min: 5,
-                        max: 60,
-                        step: 5,
-                        onChanged: (v) async {
-                          setState(() => _breakDuration = v);
-                          await _persistSelectedProject();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.timer_outlined, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Session Duration',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildCounterField(
+                            label: 'Work Duration',
+                            value: _workDuration,
+                            min: 5,
+                            max: 180,
+                            step: 5,
+                            onChanged: (v) async {
+                              setState(() => _workDuration = v);
+                              await _persistSelectedProject();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildCounterField(
+                            label: 'Break',
+                            value: _breakDuration,
+                            min: 5,
+                            max: 60,
+                            step: 5,
+                            onChanged: (v) async {
+                              setState(() => _breakDuration = v);
+                              await _persistSelectedProject();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -577,21 +799,35 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(label),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
         const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            IconButton(
-              onPressed: value > min ? () => onChanged(value - step) : null,
-              icon: const Icon(Icons.remove_circle_outline),
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: OutlinedButton(
+                onPressed: value > min ? () => onChanged(value - step) : null,
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Icon(Icons.remove, size: 16),
+              ),
             ),
+            const SizedBox(width: 8),
             Container(
               width: 64,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.black26),
+                color: Colors.grey.withValues(alpha: 0.12),
               ),
               child: Text(
                 value.toString(),
@@ -599,9 +835,20 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
-            IconButton(
-              onPressed: value < max ? () => onChanged(value + step) : null,
-              icon: const Icon(Icons.add_circle_outline),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: OutlinedButton(
+                onPressed: value < max ? () => onChanged(value + step) : null,
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Icon(Icons.add, size: 16),
+              ),
             ),
           ],
         ),
@@ -609,553 +856,283 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     );
   }
 
-  Widget _buildTimeField(String label, TimeOfDay value) {
-    final text = '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.black26),
+  Widget _buildTimeField(
+    String label,
+    TimeOfDay value,
+    ValueChanged<TimeOfDay> onChanged,
+  ) {
+    final text =
+        '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () async {
+        final picked = await showTimePicker(
+          context: context,
+          initialTime: value,
+        );
+        if (picked != null) onChanged(picked);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: Colors.grey.withValues(alpha: 0.12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 12)),
+            const SizedBox(height: 4),
+            Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 12)),
-          const SizedBox(height: 4),
-          Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Future<void> _centerSelectedProjectCard(ProjectModel? project) async {
+    if (!_projectPageController.hasClients) return;
+    final targetPage = project == null
+        ? 0
+        : (_filteredProjects.indexWhere((p) => p.id == project.id) + 1);
+    if (targetPage < 0) return;
+    await _projectPageController.animateToPage(
+      targetPage,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _archiveSelectedProjectWithNearestFallback() async {
+    final selected = _selectedProject;
+    if (selected == null) return;
+    final activeBefore = projects.where((p) => p.isActive).toList();
+    final oldIndex = activeBefore.indexWhere((p) => p.id == selected.id);
+    selected.archive();
+    final remainingActive = projects
+        .where((p) => p.isActive && p.id != selected.id)
+        .toList();
+
+    ProjectModel? fallback;
+    if (remainingActive.isNotEmpty) {
+      final clampedIndex = oldIndex.clamp(0, remainingActive.length - 1);
+      fallback = remainingActive[clampedIndex];
+    }
+
+    setState(() {
+      _selectedProject = fallback;
+      _syncEditorFromSelectedProject();
+    });
+    await _loadProjects();
+  }
+
+  Future<void> _showProjectInfoModal(ProjectModel? project) async {
+    if (!mounted) return;
+    final title = project?.name ?? 'No Project';
+    final description = project?.description ?? 'No description yet';
+    final imagePath = project == null ? null : _projectImagePath(project);
+    final milestones = project == null
+        ? <String>[]
+        : _projectMilestones(project);
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Expanded(child: Text(title)),
+            if (project != null)
+              IconButton(
+                tooltip: 'Edit project info',
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await _showEditProjectInfoDialog(project);
+                },
+                icon: const Icon(Icons.edit_outlined),
+              ),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 340),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (imagePath != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    File(imagePath),
+                    height: 140,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 100,
+                      color: Colors.grey.shade200,
+                      alignment: Alignment.center,
+                      child: const Text('Unable to preview image'),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              Text(description),
+              if (milestones.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Milestones',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                const SizedBox(height: 6),
+                ...milestones.map(
+                  (milestone) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text('• $milestone'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          if (project != null)
+            TextButton.icon(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _showProjectPhotoSheet(project);
+              },
+              icon: const Icon(Icons.photo_library_outlined),
+              label: const Text('Photo'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
         ],
       ),
     );
   }
 
-  void _showCreateProjectDialog() {
-    _showProjectDialog();
-  }
-
-  void _showProjectDialog({ProjectModel? project}) {
-    final isEditing = project != null;
-    final nameController = TextEditingController(text: project?.name ?? '');
+  Future<void> _showEditProjectInfoDialog(ProjectModel project) async {
+    final titleController = TextEditingController(text: project.name);
     final descriptionController = TextEditingController(
-      text: project?.description ?? '',
+      text: project.description ?? '',
     );
-    String selectedColor = project?.color ?? '#2196F3';
-    String selectedIcon = project?.iconName ?? 'folder';
-    int selectedPriority = project?.priority ?? 1;
-    String selectedTargetType = project?.targetType ?? 'daily';
-    int selectedDailyTarget = project?.dailySessionTarget ?? 1;
-    int selectedWeeklyTarget = project?.weeklySessionTarget ?? 2;
-    int? selectedWorkHour = project?.preferredWorkHour;
-    List<int> selectedActiveDays = List.from(
-      project?.activeDays ?? [1, 2, 3, 4, 5, 6, 7],
+    final milestonesController = TextEditingController(
+      text: _projectMilestones(project).join('\n'),
     );
-    final Map<int, int> selectedDayStates = {
-      for (int day = 1; day <= 7; day++)
-        day: selectedActiveDays.contains(day) ? 0 : 1,
-    };
-    final dailyTargetController = TextEditingController(
-      text: selectedDailyTarget.toString(),
-    );
-    final weeklyTargetController = TextEditingController(
-      text: selectedWeeklyTarget.toString(),
-    );
-    int selectedWorkDuration = project?.workDurationMinutes ?? 25;
-    int selectedBreakDuration = project?.breakDurationMinutes ?? 5;
+    String selectedIconName = project.iconName ?? 'folder';
 
-    showDialog(
+    await showDialog<void>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(isEditing ? 'Edit Project' : 'Create New Project'),
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Edit Project Info'),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // MOST IMPORTANT FIELDS FIRST
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Project Name',
-                    hintText: 'e.g., "Learn Flutter"',
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
-                ),
-                SizedBox(height: 20),
-
-                // Daily Session Target - Second most important
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Daily',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        if (selectedDailyTarget > 1) {
-                                          selectedDailyTarget--;
-                                          dailyTargetController.text =
-                                              selectedDailyTarget.toString();
-                                        }
-                                      });
-                                    },
-                                    icon: Icon(Icons.remove_circle_outline),
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                  SizedBox(
-                                    width: 56,
-                                    child: TextField(
-                                      controller: dailyTargetController,
-                                      textAlign: TextAlign.center,
-                                      keyboardType: TextInputType.number,
-                                      decoration: InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          vertical: 8,
-                                        ),
-                                      ),
-                                      onChanged: (value) {
-                                        final parsed = int.tryParse(value);
-                                        if (parsed != null && parsed > 0) {
-                                          selectedDailyTarget = parsed;
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        if (selectedDailyTarget < 20) {
-                                          selectedDailyTarget++;
-                                          dailyTargetController.text =
-                                              selectedDailyTarget.toString();
-                                        }
-                                      });
-                                    },
-                                    icon: Icon(Icons.add_circle_outline),
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Weekly',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        if (selectedWeeklyTarget > 1) {
-                                          selectedWeeklyTarget--;
-                                          weeklyTargetController.text =
-                                              selectedWeeklyTarget.toString();
-                                        }
-                                      });
-                                    },
-                                    icon: Icon(Icons.remove_circle_outline),
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                  SizedBox(
-                                    width: 56,
-                                    child: TextField(
-                                      controller: weeklyTargetController,
-                                      textAlign: TextAlign.center,
-                                      keyboardType: TextInputType.number,
-                                      decoration: InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          vertical: 8,
-                                        ),
-                                      ),
-                                      onChanged: (value) {
-                                        final parsed = int.tryParse(value);
-                                        if (parsed != null && parsed > 0) {
-                                          selectedWeeklyTarget = parsed;
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        if (selectedWeeklyTarget < 50) {
-                                          selectedWeeklyTarget++;
-                                          weeklyTargetController.text =
-                                              selectedWeeklyTarget.toString();
-                                        }
-                                      });
-                                    },
-                                    icon: Icon(Icons.add_circle_outline),
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: descriptionController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
                     ),
-                  ],
-                ),
-                SizedBox(height: 20),
-
-                // Active Days (cycle states)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Active Days',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (int day = 1; day <= 7; day++)
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    selectedDayStates[day] = _nextDayState(
-                                      selectedDayStates[day] ?? 0,
-                                    );
-                                  });
-                                },
-                                child: _buildDayStateRect(
-                                  selectedDayStates[day] ?? 0,
-                                ),
-                              ),
-                          ],
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (int day = 1; day <= 7; day++)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 4),
-                                  child: Text(
-                                    '${_getDayName(day)}: ${_dayStateLabel(selectedDayStates[day] ?? 0)}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[700],
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24),
-
-                // DIVIDER FOR LESS IMPORTANT SETTINGS
-                Divider(thickness: 1),
-                Text(
-                  'Additional Settings',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[600],
                   ),
-                ),
-                SizedBox(height: 16),
-
-                // Less important fields below
-                TextField(
-                  controller: descriptionController,
-                  decoration: InputDecoration(
-                    labelText: 'Description (Optional)',
-                    hintText: 'Brief description of your project',
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Project Icon',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
                   ),
-                  maxLines: 2,
-                ),
-                SizedBox(height: 16),
-                DropdownButtonFormField<int>(
-                  initialValue: selectedPriority,
-                  decoration: InputDecoration(labelText: 'Priority'),
-                  items: [
-                    DropdownMenuItem(value: 1, child: Text('Low')),
-                    DropdownMenuItem(value: 2, child: Text('Medium')),
-                    DropdownMenuItem(value: 3, child: Text('High')),
-                    DropdownMenuItem(value: 4, child: Text('Urgent')),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) selectedPriority = value;
-                  },
-                ),
-                SizedBox(height: 16),
-                // Preferred Work Hour
-                DropdownButtonFormField<int?>(
-                  dropdownColor: Theme.of(context).canvasColor,
-                  initialValue: selectedWorkHour,
-                  decoration: InputDecoration(
-                    labelText: 'Preferred Work Hour (Optional)',
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: _availableProjectIcons.map((iconName) {
+                      final selected = selectedIconName == iconName;
+                      return ChoiceChip(
+                        label: Icon(_projectIconData(iconName), size: 18),
+                        selected: selected,
+                        onSelected: (_) {
+                          setDialogState(() {
+                            selectedIconName = iconName;
+                          });
+                        },
+                      );
+                    }).toList(),
                   ),
-                  items: [
-                    DropdownMenuItem<int?>(
-                      value: null,
-                      child: Text('No preference'),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: milestonesController,
+                    maxLines: 6,
+                    decoration: const InputDecoration(
+                      labelText: 'Milestones (one per line)',
+                      border: OutlineInputBorder(),
                     ),
-                    for (int hour = 0; hour < 24; hour++)
-                      DropdownMenuItem<int?>(
-                        value: hour,
-                        child: Text('${hour.toString().padLeft(2, '0')}:00'),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      selectedWorkHour = value;
-                    });
-                  },
-                ),
-                SizedBox(height: 16),
-                // Work Session Duration
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Work Session Duration (minutes)',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              if (selectedWorkDuration > 5) {
-                                selectedWorkDuration -= 5;
-                              }
-                            });
-                          },
-                          icon: Icon(Icons.remove_circle_outline),
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '$selectedWorkDuration min',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              if (selectedWorkDuration < 60) {
-                                selectedWorkDuration += 5;
-                              }
-                            });
-                          },
-                          icon: Icon(Icons.add_circle_outline),
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16),
-                // Break Session Duration
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Break Duration (minutes)',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              if (selectedBreakDuration > 5) {
-                                selectedBreakDuration -= 5;
-                              }
-                            });
-                          },
-                          icon: Icon(Icons.remove_circle_outline),
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '$selectedBreakDuration min',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              if (selectedBreakDuration < 60) {
-                                selectedBreakDuration += 5;
-                              }
-                            });
-                          },
-                          icon: Icon(Icons.add_circle_outline),
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Breakdown',
-                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: [
-                    ...List.generate(
-                      (selectedWorkDuration / 5).ceil(),
-                      (_) => Container(
-                        width: 12,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.red.shade300),
-                          color: Colors.red.withValues(alpha: 0.15),
-                        ),
-                      ),
-                    ),
-                    ...List.generate(
-                      (selectedBreakDuration / 5).ceil(),
-                      (_) => Container(
-                        width: 12,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.green.shade300),
-                          color: Colors.green.withValues(alpha: 0.15),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           actions: [
+            TextButton.icon(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _showProjectPhotoSheet(project);
+              },
+              icon: const Icon(Icons.photo_library_outlined),
+              label: const Text('Photo'),
+            ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                if (nameController.text.isNotEmpty) {
-                  selectedActiveDays = selectedDayStates.entries
-                      .where((entry) => entry.value != 1)
-                      .map((entry) => entry.key)
-                      .toList()
-                    ..sort();
-                  if (isEditing) {
-                    project.name = nameController.text;
-                    project.description = descriptionController.text;
-                    project.priority = selectedPriority;
-                    project.targetType = selectedTargetType;
-                    project.dailySessionTarget = selectedDailyTarget;
-                    project.weeklySessionTarget = selectedWeeklyTarget;
-                    project.preferredWorkHour = selectedWorkHour;
-                    project.activeDays = selectedActiveDays;
-                    project.workDurationMinutes = selectedWorkDuration;
-                    project.breakDurationMinutes = selectedBreakDuration;
-                    project.save();
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Project updated!')));
-                  } else {
-                    _createProject(
-                      nameController.text,
-                      descriptionController.text,
-                      selectedColor,
-                      selectedIcon,
-                      selectedPriority,
-                      selectedTargetType,
-                      selectedDailyTarget,
-                      selectedWeeklyTarget,
-                      selectedWorkHour,
-                      selectedActiveDays,
-                      selectedWorkDuration,
-                      selectedBreakDuration,
-                    );
-                  }
-                  Navigator.of(context).pop();
+              onPressed: () async {
+                final title = titleController.text.trim();
+                if (title.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Title cannot be empty')),
+                  );
+                  return;
                 }
+                final milestones = milestonesController.text
+                    .split('\n')
+                    .map((m) => m.trim())
+                    .where((m) => m.isNotEmpty)
+                    .toList();
+                final currentImage = _projectImagePath(project);
+
+                project.name = title;
+                project.description = descriptionController.text.trim().isEmpty
+                    ? null
+                    : descriptionController.text.trim();
+                project.iconName = selectedIconName;
+                project.notes = _composeProjectNotes(
+                  imagePath: currentImage,
+                  milestones: milestones,
+                );
+                await project.save();
+
+                if (!mounted) return;
+                setState(() {});
+                Navigator.of(context).pop();
               },
-              child: Text(isEditing ? 'Update' : 'Create'),
+              child: const Text('Save'),
             ),
           ],
         ),
@@ -1163,37 +1140,254 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     );
   }
 
-  Future<void> _createProject(
-    String name,
-    String description,
-    String color,
-    String icon,
-    int priority,
-    String targetType,
-    int dailyTarget,
-    int weeklyTarget,
-    int? workHour,
-    List<int> activeDays,
-    int workDuration,
-    int breakDuration,
+  Future<void> _showProjectPhotoSheet(ProjectModel project) async {
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Add from local album'),
+                subtitle: const Text('Select image from gallery'),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await _pickProjectPhotoFromGallery(project);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.upload_file_outlined),
+                title: const Text('Upload image or GIF from files'),
+                subtitle: Text(
+                  'Accepted: ${_supportedVisualExtensions.join(', ')}',
+                ),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await _pickProjectPhotoFromFiles(project);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickProjectPhotoFromGallery(ProjectModel project) async {
+    final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
+    final sourcePath = picked?.path;
+    if (sourcePath == null) return;
+    await _setProjectPhotoFromPath(project, sourcePath);
+  }
+
+  Future<void> _pickProjectPhotoFromFiles(ProjectModel project) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: _supportedVisualExtensions,
+    );
+    final sourcePath = result?.files.single.path;
+    if (sourcePath == null) return;
+    await _setProjectPhotoFromPath(project, sourcePath);
+  }
+
+  Future<void> _setProjectPhotoFromPath(
+    ProjectModel project,
+    String sourcePath,
   ) async {
+    final extension = _extensionOf(sourcePath).toLowerCase();
+    if (!_supportedVisualExtensions.contains(extension)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unsupported format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final copiedPath = await _copyToAppStorage(
+      sourcePath,
+      subFolder: 'project_visuals',
+    );
+    project.notes = _composeProjectNotes(
+      imagePath: copiedPath,
+      milestones: _projectMilestones(project),
+    );
+    await project.save();
+
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  String? _projectImagePath(ProjectModel project) {
+    final notes = project.notes;
+    if (notes == null || notes.isEmpty) return null;
+    final firstLine = notes.split('\n').first.trim();
+    if (firstLine.startsWith('[photo]')) {
+      final path = firstLine.substring('[photo]'.length).trim();
+      return path.isEmpty ? null : path;
+    }
+    return null;
+  }
+
+  List<String> _projectMilestones(ProjectModel project) {
+    final notes = project.notes;
+    if (notes == null || notes.trim().isEmpty) {
+      return project.tags;
+    }
+    final lines = notes
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    if (lines.isEmpty) return project.tags;
+    if (lines.first.startsWith('[photo]')) {
+      return lines.skip(1).toList();
+    }
+    return lines;
+  }
+
+  String? _composeProjectNotes({
+    String? imagePath,
+    required List<String> milestones,
+  }) {
+    final lines = <String>[];
+    if (imagePath != null && imagePath.isNotEmpty) {
+      lines.add('[photo]$imagePath');
+    }
+    lines.addAll(milestones);
+    if (lines.isEmpty) return null;
+    return lines.join('\n');
+  }
+
+  String _extensionOf(String path) {
+    final lastDot = path.lastIndexOf('.');
+    if (lastDot == -1 || lastDot == path.length - 1) return '';
+    return path.substring(lastDot + 1);
+  }
+
+  Future<String> _copyToAppStorage(
+    String sourcePath, {
+    required String subFolder,
+  }) async {
+    final sourceFile = File(sourcePath);
+    final extension = _extensionOf(sourcePath);
+    final appDir = await getApplicationDocumentsDirectory();
+    final targetDir = Directory('${appDir.path}/$subFolder');
+    if (!await targetDir.exists()) {
+      await targetDir.create(recursive: true);
+    }
+
+    final targetPath =
+        '${targetDir.path}/${DateTime.now().millisecondsSinceEpoch}.${extension.isEmpty ? "bin" : extension}';
+    final copiedFile = await sourceFile.copy(targetPath);
+    return copiedFile.path;
+  }
+
+  static const List<String> _availableProjectIcons = [
+    'folder',
+    'work',
+    'school',
+    'fitness_center',
+    'palette',
+    'code',
+    'music_note',
+    'home',
+    'business',
+    'psychology',
+    'science',
+    'book',
+    'camera',
+  ];
+
+  IconData _projectIconData(String iconName) {
+    switch (iconName) {
+      case 'work':
+        return Icons.work;
+      case 'school':
+        return Icons.school;
+      case 'fitness_center':
+        return Icons.fitness_center;
+      case 'palette':
+        return Icons.palette;
+      case 'code':
+        return Icons.code;
+      case 'music_note':
+        return Icons.music_note;
+      case 'home':
+        return Icons.home;
+      case 'business':
+        return Icons.business;
+      case 'psychology':
+        return Icons.psychology;
+      case 'science':
+        return Icons.science;
+      case 'book':
+        return Icons.book;
+      case 'camera':
+        return Icons.camera_alt;
+      default:
+        return Icons.folder;
+    }
+  }
+
+  void _showCreateProjectDialog() {
+    final nameController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create New Project'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Project Name',
+            hintText: 'e.g., Study for CFA',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isEmpty) return;
+              await _createProject(name);
+              if (!mounted) return;
+              Navigator.of(context).pop();
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _createProject(String name) async {
     try {
       print('Creating project with name: $name');
 
       final project = ProjectModel(
         id: 'project_${DateTime.now().millisecondsSinceEpoch}',
         name: name,
-        description: description,
-        color: color,
-        iconName: icon,
-        priority: priority,
-        targetType: targetType,
-        dailySessionTarget: dailyTarget,
-        weeklySessionTarget: weeklyTarget,
-        preferredWorkHour: workHour,
-        activeDays: activeDays,
-        workDurationMinutes: workDuration,
-        breakDurationMinutes: breakDuration,
+        description: null,
+        color: '#607D8B',
+        iconName: 'folder',
+        priority: 1,
+        targetType: 'daily',
+        dailySessionTarget: 1,
+        weeklySessionTarget: 2,
+        preferredWorkHour: 9,
+        activeDays: const [1, 2, 3, 4, 5, 6, 7],
+        workDurationMinutes: 25,
+        breakDurationMinutes: 5,
         createdAt: DateTime.now(),
       );
 
@@ -1211,6 +1405,9 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
 
       setState(() {
         projects.add(project);
+        _showArchived = false;
+        _selectedProject = project;
+        _syncEditorFromSelectedProject();
       });
 
       print('UI updated with new project');
@@ -1259,14 +1456,33 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
       case 1:
         return 'Not active';
       case 2:
-        return 'Morning only';
+        return 'Morning';
       case 3:
-        return 'Afternoon only';
+        return 'Afternoon';
       case 4:
-        return 'Evening only';
+        return 'Evening';
       default:
         return 'Active';
     }
+  }
+
+  String? _daySummaryText(int day, int state) {
+    final dayName = _getDayName(day);
+    if (state == 1) return null; // Not active: do not show on summary text.
+    if (state == 0) return dayName; // Fully active: show only weekday.
+    return '$dayName, ${_dayStateLabel(state)}';
+  }
+
+  String _activeDaysSummaryText() {
+    final entries = <String>[];
+    for (int day = 1; day <= 7; day++) {
+      final text = _daySummaryText(day, _dayStates[day] ?? 0);
+      if (text != null) {
+        entries.add(text);
+      }
+    }
+    if (entries.isEmpty) return 'No active days';
+    return entries.join(', ');
   }
 
   Widget _buildDayStateRect(int state) {
@@ -1306,3 +1522,4 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     );
   }
 }
+
