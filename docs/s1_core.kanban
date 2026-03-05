@@ -2,8 +2,54 @@
   "lists": [
     {
       "id": "1a85af95-8733-4f4a-9df3-94e7d1bddb67",
-      "title": "Backlog",
-      "cards": []
+      "title": "Backlog [move n sprint]",
+      "cards": [
+        {
+          "id": "93bca62b-4887-44c0-9c76-af5f74de96e0",
+          "listId": "1a85af95-8733-4f4a-9df3-94e7d1bddb67",
+          "title": "Solving the accent issues",
+          "description": "On dark mode I cant see what I am clicking. Also why does accent setting nt actually reflect on the aplication? Why the my rewards when tab is selected is purple and not my selected accent color on settings? Do I need to restart teh application to see this accent color changes?",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "01e685b2-8aec-4463-997b-3ef4099ce64d",
+          "listId": "1a85af95-8733-4f4a-9df3-94e7d1bddb67",
+          "title": "Chrome Extension",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "e2eb75c4-1ad5-4730-a6cd-aebe64352f6a",
+          "listId": "1a85af95-8733-4f4a-9df3-94e7d1bddb67",
+          "title": "Building chrome extension more than anything for the pomodoro Tracking Situation",
+          "description": "https://chatgpt.com/c/69238403-080c-832a-8865-f66c0838d53b",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "6c216767-786b-4558-a01e-ffd77e9af02e",
+          "listId": "1a85af95-8733-4f4a-9df3-94e7d1bddb67",
+          "title": "State Machine Mode",
+          "description": "State machine idea is that in a specific project you should be able to to have multiple states the default being 5 mins break etc, but is that what you want? Actually is good just game + 25 nmins break.",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "7114453c-91fb-4f29-b47e-063c4c42fed8",
+          "listId": "1a85af95-8733-4f4a-9df3-94e7d1bddb67",
+          "title": "Design the holo system for playing an holo animation",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        }
+      ]
     },
     {
       "id": "b3dd71b0-e835-4e17-a02b-d82c10654709",
@@ -108,55 +154,10 @@
           "comments": []
         },
         {
-          "id": "93bca62b-4887-44c0-9c76-af5f74de96e0",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Solving the accent issues",
-          "description": "On dark mode I cant see what I am clicking. Also why does accent setting nt actually reflect on the aplication? Why the my rewards when tab is selected is purple and not my selected accent color on settings? Do I need to restart teh application to see this accent color changes?",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
           "id": "6f0953d6-e1b0-4bdc-9766-8f38132c4c9f",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "7 minutes workout screen",
           "description": "Create a 7 minutes workout support screen for where it follows the popular workout which is mostly time based. Reuse the visuals and components from the pomodoro screens as you should pause and continue playing the workout. have some sound playing \n\n🕖 7-Minute Workout Routine Script\n\nIntro (10 sec)\nWarm up lightly — march in place, roll your shoulders, and get ready.\nEach move lasts 30 seconds, 10 seconds to transition.\n\n1️⃣ Jumping Jacks – 30 sec\n\nFull-body warm-up. Jump feet out and in while swinging arms overhead.\nTransition – 10 sec\n\n2️⃣ Wall Sit – 30 sec\n\nBack against the wall, knees at 90°, hold strong, core tight.\nTransition – 10 sec\n\n3️⃣ Push-Ups – 30 sec\n\nLower chest toward the floor, keep your body straight, press up.\nModify on knees if needed.\nTransition – 10 sec\n\n4️⃣ Ab Crunch – 30 sec\n\nLie back, knees bent, curl shoulders up, reach toward knees.\nEngage abs, don’t pull on your neck.\nTransition – 10 sec\n\n5️⃣ Step-Ups – 30 sec\n\nStep onto a sturdy chair or bench, switch legs each time.\nKeep chest up, drive through the heel.\nTransition – 10 sec\n\n6️⃣ Squats – 30 sec\n\nFeet shoulder-width apart, hips back like sitting, stand tall.\nKeep knees behind toes.\nTransition – 10 sec\n\n7️⃣ Triceps Dips (on Chair) – 30 sec\n\nHands on chair edge, lower elbows to 90°, press up.\nFor challenge, lift one leg.\nTransition – 10 sec\n\n8️⃣ Plank – 30 sec\n\nElbows under shoulders, body straight from head to heels.\nTighten your core.\nTransition – 10 sec\n\n9️⃣ High Knees – 30 sec\n\nRun in place, lift knees high to waist level, pump arms fast.\nTransition – 10 sec\n\n🔟 Lunges – 30 sec\n\nAlternate legs, step forward, both knees 90°, push back to stand.\nTransition – 10 sec\n\n11️⃣ Push-Up + Rotation – 30 sec\n\nDo one push-up, rotate to side plank, reach arm up, alternate sides.\nTransition – 10 sec\n\n12️⃣ Side Plank – 15 sec each side\n\nElbow under shoulder, lift hips, body straight. Switch sides halfway.\n\n\n\n",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "01e685b2-8aec-4463-997b-3ef4099ce64d",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Chrome Extension",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "e2eb75c4-1ad5-4730-a6cd-aebe64352f6a",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Building chrome extension more than anything for the pomodoro Tracking Situation",
-          "description": "https://chatgpt.com/c/69238403-080c-832a-8865-f66c0838d53b",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "6c216767-786b-4558-a01e-ffd77e9af02e",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "State Machine Mode",
-          "description": "State machine idea is that in a specific project you should be able to to have multiple states the default being 5 mins break etc, but is that what you want? Actually is good just game + 25 nmins break.",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "7114453c-91fb-4f29-b47e-063c4c42fed8",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Design the holo system for playing an holo animation",
-          "description": "",
           "labels": [],
           "checkboxes": [],
           "comments": []

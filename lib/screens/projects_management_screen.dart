@@ -185,6 +185,12 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
       _weeklyTarget = 2;
       _workDuration = 25;
       _breakDuration = 5;
+      _morningStart = const TimeOfDay(hour: 9, minute: 0);
+      _afternoonStart = const TimeOfDay(hour: 13, minute: 0);
+      _eveningStart = const TimeOfDay(hour: 18, minute: 30);
+      _sendNotification = false;
+      _showOnlyWithinHour = false;
+      _dontScoreOutside = false;
       for (int day = 1; day <= 7; day++) {
         _dayStates[day] = 0;
       }
@@ -194,10 +200,26 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     _weeklyTarget = p.weeklySessionTarget;
     _workDuration = p.workDurationMinutes;
     _breakDuration = p.breakDurationMinutes;
+    final meta = _projectMeta(project: p);
     final preferred = p.preferredWorkHour ?? 9;
-    _morningStart = TimeOfDay(hour: preferred, minute: 0);
+    _morningStart = _timeFromMeta(meta['morning_start']) ??
+        TimeOfDay(hour: preferred, minute: 0);
+    _afternoonStart =
+        _timeFromMeta(meta['afternoon_start']) ??
+        const TimeOfDay(hour: 13, minute: 0);
+    _eveningStart =
+        _timeFromMeta(meta['evening_start']) ??
+        const TimeOfDay(hour: 18, minute: 30);
+    _sendNotification = _boolFromMeta(meta['send_notification']);
+    _showOnlyWithinHour = _boolFromMeta(meta['show_only_within_hour']);
+    _dontScoreOutside = _boolFromMeta(meta['dont_score_outside']);
+    final parsedDayStates = _dayStatesFromMeta(meta['day_states']);
     for (int day = 1; day <= 7; day++) {
-      _dayStates[day] = p.activeDays.contains(day) ? 0 : 1;
+      if (parsedDayStates != null) {
+        _dayStates[day] = parsedDayStates[day] ?? 0;
+      } else {
+        _dayStates[day] = p.activeDays.contains(day) ? 0 : 1;
+      }
     }
   }
 
@@ -215,6 +237,11 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
             .map((entry) => entry.key)
             .toList()
           ..sort();
+    p.notes = _composeProjectNotes(
+      imagePath: _projectImagePath(p),
+      milestones: _projectMilestones(p),
+      metadata: _projectMetaForPersistence(),
+    );
     await p.save();
     if (!mounted) return;
     setState(() {});
@@ -687,7 +714,10 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                           child: _buildTimeField(
                             'Afternoon',
                             _afternoonStart,
-                            (v) => setState(() => _afternoonStart = v),
+                            (v) async {
+                              setState(() => _afternoonStart = v);
+                              await _persistSelectedProject();
+                            },
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -695,7 +725,10 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                           child: _buildTimeField(
                             'Evening',
                             _eveningStart,
-                            (v) => setState(() => _eveningStart = v),
+                            (v) async {
+                              setState(() => _eveningStart = v);
+                              await _persistSelectedProject();
+                            },
                           ),
                         ),
                       ],
@@ -703,7 +736,10 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                     const SizedBox(height: 10),
                     CheckboxListTile(
                       value: _sendNotification,
-                      onChanged: (v) => setState(() => _sendNotification = v ?? false),
+                      onChanged: (v) async {
+                        setState(() => _sendNotification = v ?? false);
+                        await _persistSelectedProject();
+                      },
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
@@ -711,7 +747,10 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                     ),
                     CheckboxListTile(
                       value: _showOnlyWithinHour,
-                      onChanged: (v) => setState(() => _showOnlyWithinHour = v ?? false),
+                      onChanged: (v) async {
+                        setState(() => _showOnlyWithinHour = v ?? false);
+                        await _persistSelectedProject();
+                      },
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
@@ -719,7 +758,10 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                     ),
                     CheckboxListTile(
                       value: _dontScoreOutside,
-                      onChanged: (v) => setState(() => _dontScoreOutside = v ?? false),
+                      onChanged: (v) async {
+                        setState(() => _dontScoreOutside = v ?? false);
+                        await _persistSelectedProject();
+                      },
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
@@ -1125,6 +1167,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                 project.notes = _composeProjectNotes(
                   imagePath: currentImage,
                   milestones: milestones,
+                  metadata: _projectMeta(project: project),
                 );
                 await project.save();
 
@@ -1217,6 +1260,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     project.notes = _composeProjectNotes(
       imagePath: copiedPath,
       milestones: _projectMilestones(project),
+      metadata: _projectMeta(project: project),
     );
     await project.save();
 
@@ -1227,10 +1271,12 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
   String? _projectImagePath(ProjectModel project) {
     final notes = project.notes;
     if (notes == null || notes.isEmpty) return null;
-    final firstLine = notes.split('\n').first.trim();
-    if (firstLine.startsWith('[photo]')) {
-      final path = firstLine.substring('[photo]'.length).trim();
-      return path.isEmpty ? null : path;
+    for (final raw in notes.split('\n')) {
+      final line = raw.trim();
+      if (line.startsWith('[photo]')) {
+        final path = line.substring('[photo]'.length).trim();
+        return path.isEmpty ? null : path;
+      }
     }
     return null;
   }
@@ -1246,19 +1292,89 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
         .where((line) => line.isNotEmpty)
         .toList();
     if (lines.isEmpty) return project.tags;
-    if (lines.first.startsWith('[photo]')) {
-      return lines.skip(1).toList();
+    return lines
+        .where((line) => !line.startsWith('[photo]'))
+        .where((line) => !line.startsWith('[meta]'))
+        .toList();
+  }
+
+  Map<String, String> _projectMeta({required ProjectModel project}) {
+    final notes = project.notes;
+    if (notes == null || notes.trim().isEmpty) return const {};
+    final meta = <String, String>{};
+    for (final raw in notes.split('\n')) {
+      final line = raw.trim();
+      if (!line.startsWith('[meta]')) continue;
+      final payload = line.substring('[meta]'.length);
+      final index = payload.indexOf('=');
+      if (index <= 0 || index >= payload.length - 1) continue;
+      final key = payload.substring(0, index).trim();
+      final value = payload.substring(index + 1).trim();
+      if (key.isNotEmpty) meta[key] = value;
     }
-    return lines;
+    return meta;
+  }
+
+  bool _boolFromMeta(String? raw) => raw?.toLowerCase() == 'true';
+
+  TimeOfDay? _timeFromMeta(String? raw) {
+    if (raw == null) return null;
+    final parts = raw.split(':');
+    if (parts.length != 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  String _timeToMeta(TimeOfDay time) =>
+      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+
+  Map<int, int>? _dayStatesFromMeta(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    final values = raw.split(',');
+    if (values.length != 7) return null;
+    final map = <int, int>{};
+    for (int day = 1; day <= 7; day++) {
+      final parsed = int.tryParse(values[day - 1].trim());
+      if (parsed == null || parsed < 0 || parsed > 4) return null;
+      map[day] = parsed;
+    }
+    return map;
+  }
+
+  String _dayStatesToMeta() =>
+      List.generate(7, (index) => (_dayStates[index + 1] ?? 0).toString()).join(',');
+
+  Map<String, String> _projectMetaForPersistence() {
+    return {
+      'morning_start': _timeToMeta(_morningStart),
+      'afternoon_start': _timeToMeta(_afternoonStart),
+      'evening_start': _timeToMeta(_eveningStart),
+      'day_states': _dayStatesToMeta(),
+      'send_notification': _sendNotification.toString(),
+      'show_only_within_hour': _showOnlyWithinHour.toString(),
+      'dont_score_outside': _dontScoreOutside.toString(),
+    };
   }
 
   String? _composeProjectNotes({
     String? imagePath,
     required List<String> milestones,
+    Map<String, String>? metadata,
   }) {
     final lines = <String>[];
     if (imagePath != null && imagePath.isNotEmpty) {
       lines.add('[photo]$imagePath');
+    }
+    if (metadata != null && metadata.isNotEmpty) {
+      final orderedKeys = metadata.keys.toList()..sort();
+      for (final key in orderedKeys) {
+        final value = metadata[key];
+        if (value == null || value.trim().isEmpty) continue;
+        lines.add('[meta]$key=$value');
+      }
     }
     lines.addAll(milestones);
     if (lines.isEmpty) return null;

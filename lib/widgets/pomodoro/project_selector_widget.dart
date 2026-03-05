@@ -29,12 +29,18 @@ class ProjectSelectorWidget extends StatefulWidget {
 class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
   @override
   Widget build(BuildContext context) {
-    final activeProjects = widget.projects
-        .where((p) => p.isActiveToday)
-        .take(6)
-        .toList();
+    final bool compact = MediaQuery.of(context).size.width < 420;
+    final now = DateTime.now();
+    final visibleProjects = <_ProjectChipPresentation>[];
+    for (final project in widget.projects.where((p) => p.isActive)) {
+      final presentation = _presentationForProject(project, now);
+      if (presentation != null) {
+        visibleProjects.add(presentation);
+      }
+      if (visibleProjects.length >= 6) break;
+    }
 
-    if (activeProjects.isEmpty) {
+    if (visibleProjects.isEmpty) {
       return SizedBox.shrink();
     }
 
@@ -45,8 +51,10 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
 
     // Show only selected project; unselecting returns to all projects.
     final projectsToShow = widget.selectedProject != null
-        ? activeProjects.where((p) => p.id == widget.selectedProject!.id).toList()
-        : activeProjects;
+        ? visibleProjects
+            .where((entry) => entry.project.id == widget.selectedProject!.id)
+            .toList()
+        : visibleProjects;
     final showSingleSelectedChip =
         widget.selectedProject != null && projectsToShow.length == 1;
 
@@ -63,15 +71,24 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
               if (showSingleSelectedChip)
                 _buildAnimatedSingleSelectedChip(
                   context,
-                  projectsToShow.first,
+                  projectsToShow.first.project,
+                  projectsToShow.first.opacity,
                   constraints.maxWidth,
+                  compact,
                 )
               else
                 Wrap(
                   spacing: 8,
-                  children: projectsToShow.map((project) {
-                    final isSelected = widget.selectedProject?.id == project.id;
-                    return _buildProjectChip(context, project, isSelected);
+                  children: projectsToShow.map((entry) {
+                    final isSelected =
+                        widget.selectedProject?.id == entry.project.id;
+                    return _buildProjectChip(
+                      context,
+                      entry.project,
+                      isSelected,
+                      compact: compact,
+                      opacity: entry.opacity,
+                    );
                   }).toList(),
                 ),
             ],
@@ -84,7 +101,9 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
   Widget _buildAnimatedSingleSelectedChip(
     BuildContext context,
     ProjectModel project,
+    double baseOpacity,
     double maxWidth,
+    bool compact,
   ) {
     final baseColor = _parseColor(project.color);
     final targetWidth = widget.selectedExpandedWidth == null
@@ -100,47 +119,40 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
         final colorProgress = ((t - 0.5) / 0.5).clamp(0.0, 1.0);
         final width = (targetWidth * (0.58 + (0.42 * expandProgress)));
         final chipColor = Color.lerp(
-          baseColor.withValues(alpha: 0.1),
-          baseColor,
-          colorProgress,
-        )!;
-        final borderWidth = 1 + colorProgress;
-        final foregroundColor = Color.lerp(
-          baseColor,
           Colors.white,
+          Colors.black.withValues(alpha: 0.06),
           colorProgress,
         )!;
-        final secondaryColor = Color.lerp(
-          Colors.grey[600],
-          Colors.white70,
-          colorProgress,
-        )!;
-        final tertiaryColor = Color.lerp(
-          Colors.grey[500],
-          Colors.white60,
-          colorProgress,
-        )!;
+        const borderWidth = 1.2;
+        final foregroundColor = Colors.black87;
+        final secondaryColor = Colors.grey[700]!;
+        final tertiaryColor = Colors.grey[600]!;
 
         return SizedBox(
           width: width,
-          child: GestureDetector(
-            onTap: () => widget.onProjectSelected(null),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: chipColor,
-                border: Border.all(color: baseColor, width: borderWidth),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                children: [
+          child: Opacity(
+            opacity: baseOpacity,
+            child: GestureDetector(
+              onTap: () => widget.onProjectSelected(null),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 10 : 12,
+                  vertical: compact ? 6 : 8,
+                ),
+                decoration: BoxDecoration(
+                  color: chipColor,
+                  border: Border.all(color: Colors.black54, width: borderWidth),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
                   if (project.iconName != null) ...[
                     Icon(
                       _getIconData(project.iconName!),
-                      size: 14,
-                      color: foregroundColor,
+                      size: compact ? 13 : 14,
+                      color: baseColor,
                     ),
                     const SizedBox(width: 4),
                   ],
@@ -150,8 +162,7 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        fontSize: compact ? 11 : 12,
                         color: foregroundColor,
                       ),
                     ),
@@ -164,24 +175,24 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                         Text(
                           project.progressText,
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: compact ? 9 : 10,
                             color: secondaryColor,
                           ),
                         ),
-                        Text(
-                          widget.isRunning || widget.canSubmitLog
-                              ? '${project.workDurationMinutes}/${project.breakDurationMinutes}m'
-                              : project.progressText,
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: tertiaryColor,
-                            fontStyle: FontStyle.italic,
+                        if (widget.isRunning || widget.canSubmitLog)
+                          Text(
+                            '${project.workDurationMinutes}/${project.breakDurationMinutes}m',
+                            style: TextStyle(
+                              fontSize: compact ? 8 : 9,
+                              color: tertiaryColor,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ],
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -194,7 +205,7 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
     BuildContext context,
     ProjectModel project,
     bool isSelected,
-    {bool expandToFullWidth = false}
+    {bool expandToFullWidth = false, bool compact = false, double opacity = 1.0}
   ) {
     final color = _parseColor(project.color);
 
@@ -208,23 +219,31 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
           widget.onProjectSelected(project);
         }
       },
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        width: expandToFullWidth ? double.infinity : null,
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? color : color.withValues(alpha: 0.1),
-          border: Border.all(color: color, width: isSelected ? 2 : 1),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          mainAxisSize: expandToFullWidth ? MainAxisSize.max : MainAxisSize.min,
-          children: [
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 180),
+        opacity: opacity,
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: 200),
+          width: expandToFullWidth ? double.infinity : null,
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 10 : 12,
+            vertical: compact ? 6 : 8,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Colors.black.withValues(alpha: 0.06)
+                : Colors.white,
+            border: Border.all(color: Colors.black87, width: isSelected ? 2 : 1),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: Row(
+            mainAxisSize: expandToFullWidth ? MainAxisSize.max : MainAxisSize.min,
+            children: [
             if (project.iconName != null) ...[
               Icon(
                 _getIconData(project.iconName!),
-                size: 14,
-                color: isSelected ? Colors.white : color,
+                size: compact ? 13 : 14,
+                color: color,
               ),
               SizedBox(width: 4),
             ],
@@ -235,9 +254,9 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: compact ? 11 : 12,
                     fontWeight: FontWeight.w500,
-                    color: isSelected ? Colors.white : color,
+                    color: Colors.black87,
                   ),
                 ),
               )
@@ -247,9 +266,9 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: compact ? 11 : 12,
                   fontWeight: FontWeight.w500,
-                  color: isSelected ? Colors.white : color,
+                  color: Colors.black87,
                 ),
               ),
             if (!widget.isCollapsed) ...[
@@ -262,21 +281,19 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                     Text(
                       project.progressText,
                       style: TextStyle(
-                        fontSize: 10,
-                        color: isSelected ? Colors.white70 : Colors.grey[600],
+                        fontSize: compact ? 9 : 10,
+                        color: Colors.grey[700],
                       ),
                     ),
-                    // Show remaining work when not running, or duration when running
-                    Text(
-                      widget.isRunning || widget.canSubmitLog
-                          ? '${project.workDurationMinutes}/${project.breakDurationMinutes}m'
-                          : project.progressText,
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: isSelected ? Colors.white60 : Colors.grey[500],
-                        fontStyle: FontStyle.italic,
+                    if (widget.isRunning || widget.canSubmitLog)
+                      Text(
+                        '${project.workDurationMinutes}/${project.breakDurationMinutes}m',
+                        style: TextStyle(
+                          fontSize: compact ? 8 : 9,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ] else
@@ -286,28 +303,155 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                     Text(
                       project.progressText,
                       style: TextStyle(
-                        fontSize: 10,
-                        color: isSelected ? Colors.white70 : Colors.grey[600],
+                        fontSize: compact ? 9 : 10,
+                        color: Colors.grey[700],
                       ),
                     ),
-                    // Show remaining work when not running, or duration when running
-                    Text(
-                      widget.isRunning || widget.canSubmitLog
-                          ? '${project.workDurationMinutes}/${project.breakDurationMinutes}m'
-                          : project.progressText,
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: isSelected ? Colors.white60 : Colors.grey[500],
-                        fontStyle: FontStyle.italic,
+                    if (widget.isRunning || widget.canSubmitLog)
+                      Text(
+                        '${project.workDurationMinutes}/${project.breakDurationMinutes}m',
+                        style: TextStyle(
+                          fontSize: compact ? 8 : 9,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
-                    ),
                   ],
                 ),
             ],
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  _ProjectChipPresentation? _presentationForProject(
+    ProjectModel project,
+    DateTime now,
+  ) {
+    final meta = _projectMeta(project);
+    final showOnlyWithinHour = _boolMeta(meta['show_only_within_hour']);
+
+    if (!showOnlyWithinHour) {
+      return _ProjectChipPresentation(project: project, opacity: 1);
+    }
+
+    final withinWindow = _isWithinBufferedWindow(
+      now: now,
+      project: project,
+      morningStart: _timeMeta(
+            meta['morning_start'],
+          ) ??
+          TimeOfDay(hour: project.preferredWorkHour ?? 9, minute: 0),
+      afternoonStart:
+          _timeMeta(meta['afternoon_start']) ??
+          const TimeOfDay(hour: 13, minute: 0),
+      eveningStart:
+          _timeMeta(meta['evening_start']) ??
+          const TimeOfDay(hour: 18, minute: 30),
+      dayStates: _dayStatesMeta(meta['day_states'], fallbackActiveDays: project.activeDays),
+    );
+
+    return _ProjectChipPresentation(
+      project: project,
+      opacity: withinWindow ? 1.0 : 0.45,
+    );
+  }
+
+  Map<String, String> _projectMeta(ProjectModel project) {
+    final notes = project.notes;
+    if (notes == null || notes.trim().isEmpty) return const {};
+    final meta = <String, String>{};
+    for (final raw in notes.split('\n')) {
+      final line = raw.trim();
+      if (!line.startsWith('[meta]')) continue;
+      final payload = line.substring('[meta]'.length);
+      final idx = payload.indexOf('=');
+      if (idx <= 0 || idx >= payload.length - 1) continue;
+      final key = payload.substring(0, idx).trim();
+      final value = payload.substring(idx + 1).trim();
+      if (key.isNotEmpty) meta[key] = value;
+    }
+    return meta;
+  }
+
+  bool _boolMeta(String? raw) => raw?.toLowerCase() == 'true';
+
+  TimeOfDay? _timeMeta(String? raw) {
+    if (raw == null) return null;
+    final parts = raw.split(':');
+    if (parts.length != 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  Map<int, int> _dayStatesMeta(String? raw, {required List<int> fallbackActiveDays}) {
+    if (raw != null && raw.trim().isNotEmpty) {
+      final parts = raw.split(',');
+      if (parts.length == 7) {
+        final map = <int, int>{};
+        bool allValid = true;
+        for (int day = 1; day <= 7; day++) {
+          final parsed = int.tryParse(parts[day - 1].trim());
+          if (parsed == null || parsed < 0 || parsed > 4) {
+            allValid = false;
+            break;
+          }
+          map[day] = parsed;
+        }
+        if (allValid) return map;
+      }
+    }
+    return {for (int day = 1; day <= 7; day++) day: fallbackActiveDays.contains(day) ? 0 : 1};
+  }
+
+  bool _isWithinBufferedWindow({
+    required DateTime now,
+    required ProjectModel project,
+    required TimeOfDay morningStart,
+    required TimeOfDay afternoonStart,
+    required TimeOfDay eveningStart,
+    required Map<int, int> dayStates,
+  }) {
+    if (!project.isActive) return false;
+    final state = dayStates[now.weekday] ?? 1;
+    if (state == 1) return false;
+
+    int toMinute(TimeOfDay time) => time.hour * 60 + time.minute;
+    final nowMinute = now.hour * 60 + now.minute;
+    final morning = toMinute(morningStart);
+    final afternoon = toMinute(afternoonStart);
+    final evening = toMinute(eveningStart);
+
+    int start;
+    int end;
+    switch (state) {
+      case 2: // morning
+        start = morning;
+        end = afternoon;
+        break;
+      case 3: // afternoon
+        start = afternoon;
+        end = evening;
+        break;
+      case 4: // evening
+        start = evening;
+        end = 24 * 60;
+        break;
+      case 0: // fully active
+      default:
+        start = morning;
+        end = 24 * 60;
+        break;
+    }
+
+    final bufferedStart = (start - 60).clamp(0, 24 * 60);
+    final bufferedEnd = (end + 60).clamp(0, 24 * 60);
+    return nowMinute >= bufferedStart && nowMinute <= bufferedEnd;
   }
 
   Color _parseColor(String colorHex) {
@@ -348,6 +492,13 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
         return Icons.folder;
     }
   }
+}
+
+class _ProjectChipPresentation {
+  final ProjectModel project;
+  final double opacity;
+
+  const _ProjectChipPresentation({required this.project, required this.opacity});
 }
 
 // Compact version for when space is limited

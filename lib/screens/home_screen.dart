@@ -223,6 +223,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  Widget _buildAnimatedTimerText() {
+    final bool isUrgencyWindow =
+        _timerController.isRunning && remainingSeconds > 0 && remainingSeconds <= 30;
+    final double amplitude = remainingSeconds <= 10 ? 3.2 : 2.0;
+    final double targetOffset =
+        isUrgencyWindow ? (remainingSeconds.isEven ? -amplitude : amplitude) : 0.0;
+
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(
+        'timer-shake-${_timerController.isRunning}-${_timerController.onBreak}-$remainingSeconds',
+      ),
+      tween: Tween(begin: 0, end: targetOffset),
+      duration: Duration(milliseconds: remainingSeconds <= 10 ? 120 : 170),
+      curve: Curves.easeOutCubic,
+      builder: (context, dx, child) {
+        return Transform.translate(offset: Offset(dx, 0), child: child);
+      },
+      child: Text(
+        formatTime(remainingSeconds),
+        style: TextStyle(
+          fontSize: PomodoroSizing.getTimerFontSize(context),
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+          shadows: [
+            Shadow(
+              blurRadius: 10.0,
+              color: Colors.black,
+              offset: Offset(2.0, 2.0),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _playLofi() async {
     print('[MUSIC] _playLofi() called');
     if (_backgroundMusicService.isPlaying) {
@@ -847,7 +882,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: isRunning ? Colors.red : Colors.green,
+                              color: Colors.green,
                               width: 2,
                             ),
                             image:
@@ -869,9 +904,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         .currentTrack
                                         ?.albumImagePath ==
                                     null
-                                ? (isRunning
-                                      ? Colors.red.withValues(alpha: 0.1)
-                                      : Colors.green.withValues(alpha: 0.1))
+                                ? Colors.green.withValues(alpha: 0.1)
                                 : null,
                           ),
                         ),
@@ -886,23 +919,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                formatTime(remainingSeconds),
-                                style: TextStyle(
-                                  fontSize: PomodoroSizing.getTimerFontSize(
-                                    context,
-                                  ),
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  shadows: [
-                                    Shadow(
-                                      blurRadius: 10.0,
-                                      color: Colors.black,
-                                      offset: Offset(2.0, 2.0),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              _buildAnimatedTimerText(),
                               SizedBox(height: 8),
                               _buildTimerOverlayText(),
                               SizedBox(height: 8),
@@ -973,7 +990,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: isRunning ? Colors.red : Colors.green,
+                              color: Colors.green,
                               width: 2,
                             ),
                             image:
@@ -995,9 +1012,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         .currentTrack
                                         ?.albumImagePath ==
                                     null
-                                ? (isRunning
-                                      ? Colors.red.withValues(alpha: 0.1)
-                                      : Colors.green.withValues(alpha: 0.1))
+                                ? Colors.green.withValues(alpha: 0.1)
                                 : null,
                           ),
                         ),
@@ -1012,23 +1027,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                formatTime(remainingSeconds),
-                                style: TextStyle(
-                                  fontSize: PomodoroSizing.getTimerFontSize(
-                                    context,
-                                  ),
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  shadows: [
-                                    Shadow(
-                                      blurRadius: 10.0,
-                                      color: Colors.black,
-                                      offset: Offset(2.0, 2.0),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              _buildAnimatedTimerText(),
                               SizedBox(height: 8),
                               _buildTimerOverlayText(),
                               SizedBox(height: 8),
@@ -1130,23 +1129,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              formatTime(remainingSeconds),
-                              style: TextStyle(
-                                fontSize: PomodoroSizing.getTimerFontSize(
-                                  context,
-                                ),
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 10.0,
-                                    color: Colors.black,
-                                    offset: Offset(2.0, 2.0),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            _buildAnimatedTimerText(),
                             SizedBox(height: 8),
                             _buildTimerOverlayText(),
                             SizedBox(height: 8),
@@ -1256,23 +1239,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              formatTime(remainingSeconds),
-                              style: TextStyle(
-                                fontSize: PomodoroSizing.getTimerFontSize(
-                                  context,
-                                ),
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 10.0,
-                                    color: Colors.black,
-                                    offset: Offset(2.0, 2.0),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            _buildAnimatedTimerText(),
                             SizedBox(height: 8),
                             _buildTimerOverlayText(),
                             SizedBox(height: 8),
