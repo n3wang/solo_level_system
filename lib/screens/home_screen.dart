@@ -65,6 +65,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   ProjectModel? selectedProject;
   List<RoomModel> rooms = [];
   RoomModel? selectedRoom;
+  bool _isRoomQuickPickerOpen = false;
+  final Map<String, String> _roomQuickVisualPathById = {};
 
   // Progress system state
   UserProgressModel? userProgress;
@@ -75,6 +77,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final Random _random = Random();
   Timer? _roomPhraseTimer;
   List<String> _roomPhrases = [];
+  List<RoomVisualConfig> _roomVisuals = [];
+  int _currentRoomVisualIndex = 0;
   String? _currentRoomPhrase;
 
   final _bgPlayer = ap.AudioPlayer();
@@ -85,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _onTimerStateChanged() {
     final wasRunning = isRunning;
+    final previousTrack = currentlyPlayingTrack;
     setState(() {
       // Update UI when timer state changes
       remainingSeconds = _timerController.remainingSeconds;
@@ -100,6 +105,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         logStateMessage = "State: Finished – Submit Log";
       }
     });
+
+    if (previousTrack != null &&
+        currentlyPlayingTrack != null &&
+        previousTrack != currentlyPlayingTrack) {
+      _advanceRoomVisual();
+    }
 
     if (!wasRunning && _timerController.isRunning) {
       _startRoomPhraseRotation();
@@ -118,13 +129,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final raw = box.get(roomKey);
 
     List<String> phrases = [];
+    List<RoomVisualConfig> visuals = [];
     if (raw is Map) {
-      phrases = RoomManagementModel.fromMap(raw).phrases;
+      final model = RoomManagementModel.fromMap(raw);
+      phrases = model.phrases;
+      visuals = model.selectedVisuals;
     }
 
     if (!mounted) return;
     setState(() {
       _roomPhrases = phrases;
+      _roomVisuals = visuals;
+      if (_roomVisuals.isEmpty) {
+        _currentRoomVisualIndex = 0;
+      } else if (_currentRoomVisualIndex >= _roomVisuals.length) {
+        _currentRoomVisualIndex = 0;
+      }
       if (_roomPhrases.isEmpty) {
         _currentRoomPhrase = null;
       } else if (_currentRoomPhrase == null ||
@@ -136,6 +156,265 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_timerController.isRunning) {
       _startRoomPhraseRotation();
     }
+  }
+
+  Future<void> _loadRoomQuickPickerVisuals() async {
+    if (!Hive.isBoxOpen('roomManagement')) {
+      await Hive.openBox('roomManagement');
+    }
+    final box = Hive.box('roomManagement');
+    final nextMap = <String, String>{};
+    final rawMap = box.toMap();
+    for (final entry in rawMap.entries) {
+      final key = entry.key.toString();
+      final value = entry.value;
+      if (value is! Map) continue;
+      final model = RoomManagementModel.fromMap(value);
+      if (model.selectedVisuals.isNotEmpty) {
+        nextMap[key] = model.selectedVisuals.first.path;
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _roomQuickVisualPathById
+        ..clear()
+        ..addAll(nextMap);
+    });
+  }
+
+  List<RoomModel> get _quickPickerRooms {
+    final activeRooms = rooms.where((room) => room.isActive).toList();
+    if (activeRooms.length <= 5) return activeRooms;
+    final shortlist = activeRooms.take(5).toList();
+    final selected = selectedRoom;
+    if (selected != null &&
+        selected.isActive &&
+        !shortlist.any((room) => room.id == selected.id)) {
+      shortlist[shortlist.length - 1] = selected;
+    }
+    return shortlist;
+  }
+
+  ImageProvider? _roomQuickImageProvider(RoomModel room) {
+    if (room.iconAssetPath != null && room.iconAssetPath!.isNotEmpty) {
+      return AssetImage(room.iconAssetPath!);
+    }
+    final path = _roomQuickVisualPathById[room.id];
+    if (path != null && path.isNotEmpty) {
+      if (_isAssetReference(path)) {
+        return AssetImage(path.substring('asset:'.length));
+      }
+      final file = File(path);
+      if (file.existsSync()) {
+        return FileImage(file);
+      }
+    }
+    return null;
+  }
+
+  Future<void> _selectRoomFromQuickPicker(RoomModel room) async {
+    if (!mounted) return;
+    setState(() {
+      selectedRoom = room;
+      _isRoomQuickPickerOpen = false;
+      _currentRoomVisualIndex = 0;
+    });
+    await _loadSelectedRoomPhrases();
+  }
+
+  Future<void> _clearRoomFromQuickPicker() async {
+    if (!mounted) return;
+    setState(() {
+      selectedRoom = null;
+      _isRoomQuickPickerOpen = false;
+      _roomVisuals = [];
+      _currentRoomVisualIndex = 0;
+    });
+    await _loadSelectedRoomPhrases();
+  }
+
+  Widget _buildRoomQuickPickerRail() {
+    final items = _quickPickerRooms;
+    final isOpen = _isRoomQuickPickerOpen && items.isNotEmpty;
+    final showNoRoomAction = selectedRoom != null;
+    final totalCount = items.length + (showNoRoomAction ? 1 : 0);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+      width: isOpen ? ((totalCount * 42) + ((totalCount - 1) * 8) + 12) : 0,
+      height: 40,
+      child: ClipRect(
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: isOpen ? 1 : 0,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                if (showNoRoomAction) ...[
+                  _buildNoRoomQuickPickerItem(),
+                  if (items.isNotEmpty) const SizedBox(width: 8),
+                ],
+                for (int index = 0; index < items.length; index++) ...[
+                  if (index > 0) const SizedBox(width: 8),
+                  _buildRoomQuickPickerItem(items[index]),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoRoomQuickPickerItem() {
+    return GestureDetector(
+      onTap: _clearRoomFromQuickPicker,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black54, width: 1.1),
+          color: Colors.black.withValues(alpha: 0.03),
+        ),
+        child: Icon(
+          Icons.meeting_room_outlined,
+          size: 18,
+          color: Colors.grey[700],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoomQuickPickerItem(RoomModel room) {
+    final isSelected = selectedRoom?.id == room.id;
+    final imageProvider = _roomQuickImageProvider(room);
+    return GestureDetector(
+      onTap: () async => _selectRoomFromQuickPicker(room),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Colors.black54,
+            width: isSelected ? 1.8 : 1.1,
+          ),
+          color: Colors.black.withValues(alpha: 0.03),
+          image: imageProvider != null
+              ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
+              : null,
+        ),
+        child: imageProvider == null
+            ? Icon(
+                Icons.meeting_room_outlined,
+                size: 18,
+                color: Colors.grey[700],
+              )
+            : null,
+      ),
+    );
+  }
+
+  Future<void> _handleRoomFabTap() async {
+    if (_isRoomQuickPickerOpen) {
+      await _openRoomManagement();
+      return;
+    }
+    if (_quickPickerRooms.isEmpty) {
+      await _openRoomManagement();
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _isRoomQuickPickerOpen = true;
+    });
+  }
+
+  Widget _buildRoomFabWithPicker() {
+    final items = _quickPickerRooms;
+    final isOpen = _isRoomQuickPickerOpen && items.isNotEmpty;
+    final railWidth = isOpen ? ((items.length * 42) + ((items.length - 1) * 8) + 12) : 0.0;
+    const double roomFabSize = 40;
+    const double railStartOffset = 52; // Keep expanded icons clearly to the right.
+
+    return SizedBox(
+      width: roomFabSize + railWidth + 16,
+      height: 42,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: railStartOffset,
+            top: 1,
+            child: AnimatedSlide(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              offset: isOpen ? Offset.zero : const Offset(-0.35, 0),
+              child: _buildRoomQuickPickerRail(),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: 1,
+            child: GestureDetector(
+              onTap: _handleRoomFabTap,
+              child: Tooltip(
+                message: isOpen
+                    ? 'Open room management'
+                    : 'Open quick rooms',
+                child: Material(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: Icon(
+                      Icons.home_work_outlined,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _advanceRoomVisual() {
+    if (selectedRoom == null || _roomVisuals.length <= 1 || !mounted) return;
+    setState(() {
+      _currentRoomVisualIndex =
+          (_currentRoomVisualIndex + 1) % _roomVisuals.length;
+    });
+  }
+
+  bool _isAssetReference(String path) => path.startsWith('asset:');
+
+  ImageProvider? _currentPomodoroImageProvider() {
+    if (selectedRoom != null && _roomVisuals.isNotEmpty) {
+      final visual = _roomVisuals[_currentRoomVisualIndex % _roomVisuals.length];
+      if (_isAssetReference(visual.path)) {
+        return AssetImage(visual.path.substring('asset:'.length));
+      }
+      final file = File(visual.path);
+      if (file.existsSync()) {
+        return FileImage(file);
+      }
+    }
+    final albumImagePath = _backgroundMusicService.currentTrack?.albumImagePath;
+    if (albumImagePath != null) {
+      return AssetImage(albumImagePath);
+    }
+    return null;
   }
 
   void _startRoomPhraseRotation() {
@@ -223,6 +502,59 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  Widget _buildSelectedProjectOverlayText() {
+    final project = selectedProject;
+    if (project == null) return const SizedBox.shrink();
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 180),
+      child: Text(
+        '${project.name} ${project.workDurationMinutes}-${project.breakDurationMinutes}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.right,
+        style: const TextStyle(
+          fontSize: 10,
+          color: Colors.white,
+          fontStyle: FontStyle.italic,
+          shadows: [
+            Shadow(
+              blurRadius: 5.0,
+              color: Colors.black,
+              offset: Offset(1.0, 1.0),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedRoomOverlayText() {
+    final room = selectedRoom;
+    if (room == null) return const SizedBox.shrink();
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 120),
+      child: Text(
+        room.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.left,
+        style: const TextStyle(
+          fontSize: 10,
+          color: Colors.white,
+          fontStyle: FontStyle.italic,
+          shadows: [
+            Shadow(
+              blurRadius: 5.0,
+              color: Colors.black,
+              offset: Offset(1.0, 1.0),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildAnimatedTimerText() {
     final bool isUrgencyWindow =
         _timerController.isRunning && remainingSeconds > 0 && remainingSeconds <= 30;
@@ -297,10 +629,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await _backgroundMusicService.playRandomTrack();
 
       // Update the current track display
+      final previousTrack = currentlyPlayingTrack;
       setState(() {
         final track = _backgroundMusicService.currentTrack;
         currentlyPlayingTrack = track?.title ?? 'Unknown Track';
       });
+      if (previousTrack != null &&
+          currentlyPlayingTrack != null &&
+          previousTrack != currentlyPlayingTrack) {
+        _advanceRoomVisual();
+      }
       print('[MUSIC] Now playing: $currentlyPlayingTrack');
     } catch (e) {
       print('[MUSIC] Failed to play lofi music: $e');
@@ -478,6 +816,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _openRoomManagement() async {
+    setState(() {
+      _isRoomQuickPickerOpen = false;
+    });
     final result = await Navigator.of(context).push<RoomManagementResult>(
       MaterialPageRoute(
         builder: (_) =>
@@ -490,6 +831,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Refresh rooms first so we can resolve the returned selection against
     // the latest room list from storage.
     await _loadRooms();
+    await _loadRoomQuickPickerVisuals();
     if (!mounted) return;
 
     final latestRooms = List<RoomModel>.from(rooms);
@@ -690,8 +1032,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (selectedRoom != null &&
             !loadedRooms.any((room) => room.id == selectedRoom!.id)) {
           selectedRoom = null;
+          _isRoomQuickPickerOpen = false;
         }
       });
+      await _loadRoomQuickPickerVisuals();
     } catch (e) {
       print('Error loading rooms: $e');
       setState(() {
@@ -763,31 +1107,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   child: const Icon(Icons.folder_open_outlined),
                 ),
                 const SizedBox(height: 8),
-                FloatingActionButton.small(
-                  heroTag: 'room-management-fab',
-                  tooltip: 'Open room management',
-                  elevation: 0,
-                  hoverElevation: 0,
-                  focusElevation: 0,
-                  highlightElevation: 0,
-                  onPressed: _openRoomManagement,
-                  child: const Icon(Icons.home_work_outlined),
-                ),
+                _buildRoomFabWithPicker(),
               ],
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              // Main Timer Display
-              _buildTimerSection(),
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            if (_isRoomQuickPickerOpen) {
+              setState(() {
+                _isRoomQuickPickerOpen = false;
+              });
+            }
+          },
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                // Main Timer Display
+                _buildTimerSection(),
 
-              // Recording and Photo Section (conditional)
-              // _buildConditionalRecordingSection(),
-            ],
+                // Recording and Photo Section (conditional)
+                // _buildConditionalRecordingSection(),
+              ],
+            ),
           ),
         ),
       ),
@@ -885,25 +1230,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               color: Colors.green,
                               width: 2,
                             ),
-                            image:
-                                _backgroundMusicService
-                                        .currentTrack
-                                        ?.albumImagePath !=
-                                    null
+                            image: _currentPomodoroImageProvider() != null
                                 ? DecorationImage(
-                                    image: AssetImage(
-                                      _backgroundMusicService
-                                          .currentTrack!
-                                          .albumImagePath!,
-                                    ),
+                                    image: _currentPomodoroImageProvider()!,
                                     fit: BoxFit.cover,
                                   )
                                 : null,
-                            color:
-                                _backgroundMusicService
-                                        .currentTrack
-                                        ?.albumImagePath ==
-                                    null
+                            color: _currentPomodoroImageProvider() == null
                                 ? Colors.green.withValues(alpha: 0.1)
                                 : null,
                           ),
@@ -929,6 +1262,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ],
                           ),
                         ),
+                        if (selectedProject != null)
+                          Positioned(
+                            top: 8,
+                            right: 10,
+                            child: _buildSelectedProjectOverlayText(),
+                          ),
+                        if (selectedRoom != null)
+                          Positioned(
+                            top: 8,
+                            left: 10,
+                            child: _buildSelectedRoomOverlayText(),
+                          ),
                       ],
                     ),
                   ),
@@ -993,25 +1338,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               color: Colors.green,
                               width: 2,
                             ),
-                            image:
-                                _backgroundMusicService
-                                        .currentTrack
-                                        ?.albumImagePath !=
-                                    null
+                            image: _currentPomodoroImageProvider() != null
                                 ? DecorationImage(
-                                    image: AssetImage(
-                                      _backgroundMusicService
-                                          .currentTrack!
-                                          .albumImagePath!,
-                                    ),
+                                    image: _currentPomodoroImageProvider()!,
                                     fit: BoxFit.cover,
                                   )
                                 : null,
-                            color:
-                                _backgroundMusicService
-                                        .currentTrack
-                                        ?.albumImagePath ==
-                                    null
+                            color: _currentPomodoroImageProvider() == null
                                 ? Colors.green.withValues(alpha: 0.1)
                                 : null,
                           ),
@@ -1037,6 +1370,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ],
                           ),
                         ),
+                        if (selectedProject != null)
+                          Positioned(
+                            top: 8,
+                            right: 10,
+                            child: _buildSelectedProjectOverlayText(),
+                          ),
+                        if (selectedRoom != null)
+                          Positioned(
+                            top: 8,
+                            left: 10,
+                            child: _buildSelectedRoomOverlayText(),
+                          ),
                       ],
                     ),
                   ),
@@ -1139,6 +1484,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ],
                         ),
                       ),
+                      if (selectedProject != null)
+                        Positioned(
+                          top: 8,
+                          right: 10,
+                          child: _buildSelectedProjectOverlayText(),
+                        ),
+                      if (selectedRoom != null)
+                        Positioned(
+                          top: 8,
+                          left: 10,
+                          child: _buildSelectedRoomOverlayText(),
+                        ),
                     ],
                   ),
                 ),
@@ -1249,6 +1606,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ],
                         ),
                       ),
+                      if (selectedProject != null)
+                        Positioned(
+                          top: 8,
+                          right: 10,
+                          child: _buildSelectedProjectOverlayText(),
+                        ),
+                      if (selectedRoom != null)
+                        Positioned(
+                          top: 8,
+                          left: 10,
+                          child: _buildSelectedRoomOverlayText(),
+                        ),
                     ],
                   ),
                 ),

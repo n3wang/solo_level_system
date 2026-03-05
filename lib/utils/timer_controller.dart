@@ -18,6 +18,7 @@ class TimerController {
   bool _isRunning = false;
   bool _onBreak = false;
   bool _allowMusic = true;
+  bool _isStarting = false;
   Timer? _timer;
   DateTime? _sessionStartTime;
 
@@ -73,47 +74,59 @@ class TimerController {
 
   // Start timer
   void startTimer() async {
+    if (_isRunning || _isStarting) return;
+    _isStarting = true;
+
     // Cancel any existing timer first to prevent multiple timers running
     _timer?.cancel();
+    _timer = null;
 
-    if (_allowMusic) {
-      // If there's a current track playing, resume it. Otherwise play a random track
-      if (_backgroundMusicService.currentTrack != null &&
-          !_backgroundMusicService.isPlaying) {
-        await _backgroundMusicService.resume();
-      } else {
-        await _playLofi();
-      }
-    }
-
-    // Enable wakelock to keep screen on during pomodoro
-    if (!kIsWeb) await WakelockPlus.enable();
-
+    // Set running immediately to avoid rapid double-tap creating duplicates.
     _isRunning = true;
     if (!_onBreak) {
       _sessionStartTime = DateTime.now();
     }
     _notifyListeners();
 
-    // Show notification
-    _notificationService.showTimerNotification(
-      remainingSeconds: _remainingSeconds,
-      isRunning: true,
-      isBreak: _onBreak,
-      onPlay: startTimer,
-      onPause: pauseTimer,
-      onReset: resetTimer,
-      onMute: toggleMute,
-    );
-
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (_remainingSeconds <= 0) {
-        _completeSession();
-      } else {
-        _remainingSeconds--;
-        _notifyListeners();
+    try {
+      if (_allowMusic) {
+        // If there's a current track playing, resume it. Otherwise play a random track
+        if (_backgroundMusicService.currentTrack != null &&
+            !_backgroundMusicService.isPlaying) {
+          await _backgroundMusicService.resume();
+        } else {
+          await _playLofi();
+        }
       }
-    });
+
+      // Enable wakelock to keep screen on during pomodoro
+      if (!kIsWeb) await WakelockPlus.enable();
+
+      // If paused while async setup was in progress, do not create timer.
+      if (!_isRunning) return;
+
+      // Show notification
+      _notificationService.showTimerNotification(
+        remainingSeconds: _remainingSeconds,
+        isRunning: true,
+        isBreak: _onBreak,
+        onPlay: startTimer,
+        onPause: pauseTimer,
+        onReset: resetTimer,
+        onMute: toggleMute,
+      );
+
+      _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+        if (_remainingSeconds <= 0) {
+          _completeSession();
+        } else {
+          _remainingSeconds--;
+          _notifyListeners();
+        }
+      });
+    } finally {
+      _isStarting = false;
+    }
   }
 
   // Pause timer
@@ -127,6 +140,7 @@ class TimerController {
       await _backgroundMusicService.pause();
     }
     _timer?.cancel();
+    _timer = null;
     _isRunning = false;
 
     // Disable wakelock when timer is paused

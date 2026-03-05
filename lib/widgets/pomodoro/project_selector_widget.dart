@@ -179,15 +179,14 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                             color: secondaryColor,
                           ),
                         ),
-                        if (widget.isRunning || widget.canSubmitLog)
-                          Text(
-                            '${project.workDurationMinutes}/${project.breakDurationMinutes}m',
-                            style: TextStyle(
-                              fontSize: compact ? 8 : 9,
-                              color: tertiaryColor,
-                              fontStyle: FontStyle.italic,
-                            ),
+                        Text(
+                          '${project.workDurationMinutes}-${project.breakDurationMinutes}',
+                          style: TextStyle(
+                            fontSize: compact ? 8 : 9,
+                            color: tertiaryColor,
+                            fontStyle: FontStyle.italic,
                           ),
+                        ),
                       ],
                     ),
                   ],
@@ -285,15 +284,14 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                         color: Colors.grey[700],
                       ),
                     ),
-                    if (widget.isRunning || widget.canSubmitLog)
-                      Text(
-                        '${project.workDurationMinutes}/${project.breakDurationMinutes}m',
-                        style: TextStyle(
-                          fontSize: compact ? 8 : 9,
-                          color: Colors.grey[600],
-                          fontStyle: FontStyle.italic,
-                        ),
+                    Text(
+                      '${project.workDurationMinutes}-${project.breakDurationMinutes}',
+                      style: TextStyle(
+                        fontSize: compact ? 8 : 9,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
                       ),
+                    ),
                   ],
                 ),
               ] else
@@ -307,15 +305,14 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                         color: Colors.grey[700],
                       ),
                     ),
-                    if (widget.isRunning || widget.canSubmitLog)
-                      Text(
-                        '${project.workDurationMinutes}/${project.breakDurationMinutes}m',
-                        style: TextStyle(
-                          fontSize: compact ? 8 : 9,
-                          color: Colors.grey[600],
-                          fontStyle: FontStyle.italic,
-                        ),
+                    Text(
+                      '${project.workDurationMinutes}-${project.breakDurationMinutes}',
+                      style: TextStyle(
+                        fontSize: compact ? 8 : 9,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
                       ),
+                    ),
                   ],
                 ),
             ],
