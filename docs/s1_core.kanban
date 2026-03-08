@@ -161,6 +161,24 @@
           "labels": [],
           "checkboxes": [],
           "comments": []
+        },
+        {
+          "id": "e751cd0f-6225-4777-ab94-a40c8d2999b6",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Revision and usefulness of settings",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "71281cfe-47d6-46c9-9ce2-3a23a2eddb8a",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Rewards overhaul",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
         }
       ]
     },
@@ -168,6 +186,71 @@
       "id": "125bd6ab-d32d-460e-9159-9c34b027ef62",
       "title": "Doing",
       "cards": [
+        {
+          "id": "2aeadd31-6b27-4cd5-8431-e77e3f7a8d38",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Create the Room Management Screen",
+          "description": "",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "7aaf1611-2616-4f2c-b1d2-86652146e12f",
+              "title": "Add more base visuals for each",
+              "checked": true
+            },
+            {
+              "id": "7e4e58fa-ff37-498d-8c7e-be080891f775",
+              "title": "Allow for stopping audio when doing the doemo. (also make cap it inot 20 seconds on preview play",
+              "checked": true
+            },
+            {
+              "id": "6d11b041-a52b-4b63-9770-fa0475c42d5c",
+              "title": "Only have 3 setted up volume levels, which will be multiplying the base volume x1 x2 x3",
+              "checked": true
+            },
+            {
+              "id": "846c9e8b-69ef-4256-bd8c-7c1eb113b2a2",
+              "title": "when clicking on the modal opened for the room alow for having a pencil icon on the top right corner to edit the basic info of the room . Have title, description, and a list of potential phrases (this is a list of string) important as if available can every so often show the phrases on the pomodoro when it is running. ",
+              "checked": true
+            },
+            {
+              "id": "f7a058f5-b347-4ec8-8b77-a309fba89190",
+              "title": "Improve the cards organization to be more like in the image. There in the left have as a square since it will alawys have sqarish ratio the square thing and then on the right the title, and the different phrases. (remove the tap for room details)",
+              "checked": true
+            },
+            {
+              "id": "bdc5c423-4cc2-4020-8d61-a2409c1ea6d9",
+              "title": "Do something similar to the visuals part have on the right side the amount of visuals count. and then also have an empty visual box jus so that works in a similar way to adding a visual (add button ) ",
+              "checked": true
+            },
+            {
+              "id": "36e637ed-8699-475a-b3f4-ca928e14519c",
+              "title": "Topped audio to 20 seconds",
+              "checked": true
+            },
+            {
+              "id": "9bd55507-033a-4283-91f8-e2f419afa602",
+              "title": "Make it interactive from the room tab",
+              "checked": true
+            },
+            {
+              "id": "18c67b26-61e8-49af-a98e-43ec83852a40",
+              "title": "I dont think the selected gif speed is actually playing based on the setted up speed. That speed should be saved and when on the pomodoro it should play at that speed.. also make the gif playback speed buttons smaller size. ",
+              "checked": true
+            },
+            {
+              "id": "8748976b-0469-429e-b3e2-0f7b0e5fce51",
+              "title": "Do not have close and save speed buttons tapping out of the modal should auatomatically save that last cnfigured speed (if it is a gif)",
+              "checked": true
+            }
+          ],
+          "comments": [
+            {
+              "id": "e78ecf43-e664-44b4-97e7-e2b4a34d46a9",
+              "comment": "when clicking on the modal opened for the room alow for having a pencil icon on the top right corner to edit the basic info of the room . Have title, description, and a list of potential phrases (this is a list of string) important as if available can every so often show the phrases on the pomodoro when it is running. "
+            }
+          ]
+        },
         {
           "id": "ac5b784b-6bcf-4275-b83d-eb95da82b7ba",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
@@ -267,272 +350,212 @@
               "comment": "Creat the icons for the following workouts\n\nSquat (back squat / front squat)\nDeadlift (conventional / Romanian)\nBench press\nOverhead press (shoulder press)\nPull-ups / Chin-ups\nBarbell row\nLat pulldown\nLeg press\nDumbbell bench press\n\nDumbbell shoulder press\nBicep curls (barbell or dumbbell)\nTricep pushdowns\nChest fly (machine or dumbbell)\nLeg curl (hamstrings)\nLeg extension (quadriceps)\nPlank\nHanging leg raises\nRussian twists\nTreadmill running or walking\nStationary bike / spin bike\n"
             }
           ]
-        },
-        {
-          "id": "2aeadd31-6b27-4cd5-8431-e77e3f7a8d38",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Create the Room Management Screen",
-          "description": "",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "7aaf1611-2616-4f2c-b1d2-86652146e12f",
-              "title": "Add more base visuals for each",
-              "checked": true
-            },
-            {
-              "id": "7e4e58fa-ff37-498d-8c7e-be080891f775",
-              "title": "Allow for stopping audio when doing the doemo. (also make cap it inot 20 seconds on preview play",
-              "checked": true
-            },
-            {
-              "id": "6d11b041-a52b-4b63-9770-fa0475c42d5c",
-              "title": "Only have 3 setted up volume levels, which will be multiplying the base volume x1 x2 x3",
-              "checked": true
-            },
-            {
-              "id": "846c9e8b-69ef-4256-bd8c-7c1eb113b2a2",
-              "title": "when clicking on the modal opened for the room alow for having a pencil icon on the top right corner to edit the basic info of the room . Have title, description, and a list of potential phrases (this is a list of string) important as if available can every so often show the phrases on the pomodoro when it is running. ",
-              "checked": true
-            },
-            {
-              "id": "f7a058f5-b347-4ec8-8b77-a309fba89190",
-              "title": "Improve the cards organization to be more like in the image. There in the left have as a square since it will alawys have sqarish ratio the square thing and then on the right the title, and the different phrases. (remove the tap for room details)",
-              "checked": true
-            },
-            {
-              "id": "bdc5c423-4cc2-4020-8d61-a2409c1ea6d9",
-              "title": "Do something similar to the visuals part have on the right side the amount of visuals count. and then also have an empty visual box jus so that works in a similar way to adding a visual (add button ) ",
-              "checked": false
-            },
-            {
-              "id": "18c67b26-61e8-49af-a98e-43ec83852a40",
-              "title": "I dont think the selected gif speed is actually playing based on the setted up speed. Fix that if thats the case. also make the gif playbackk speed smaller size",
-              "checked": false
-            },
-            {
-              "id": "8748976b-0469-429e-b3e2-0f7b0e5fce51",
-              "title": "Do not have close and save speed buttons tapping out of the modal should auatomatically save that last cnfigured speed (if it is a gif)",
-              "checked": false
-            },
-            {
-              "id": "36e637ed-8699-475a-b3f4-ca928e14519c",
-              "title": "Topped audio to 20 seconds",
-              "checked": true
-            }
-          ],
-          "comments": [
-            {
-              "id": "e78ecf43-e664-44b4-97e7-e2b4a34d46a9",
-              "comment": "when clicking on the modal opened for the room alow for having a pencil icon on the top right corner to edit the basic info of the room . Have title, description, and a list of potential phrases (this is a list of string) important as if available can every so often show the phrases on the pomodoro when it is running. "
-            }
-          ]
         }
       ]
     },
     {
       "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
       "title": "Done",
-      "cards": [
-        {
-          "id": "e52cb33d-ab02-4f2e-bf3c-af29bd899061",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Create play notification from a button",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "53797126-6748-4c7d-9c2a-7bd20cf0f7a0",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Youtube Playlist for Pomodoros",
-          "description": "For the pomodoros instead of playing music I want to also have a feature where the user can link a playlist from youtube to play that video instead, if the user has youtube already isntalled you should be able to use those settings like logged in account etc. Is that possible? The user should be able to create playlist and choose between either music or one the playlist selected, the idea is that if using playlist then when stopping or not stopping the thing it shouldnt reset or change the playtime, since for example this is designed to have mit lectures on the background, it wouldn tit be convenient if it keeps resetting. ",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "44f685f4-0964-4f23-a017-20d88bd23131",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Being able to rate down or up music tracks",
-          "description": "one can vote increase the frequency that music appear by voting up and down.",
-          "labels": [],
-          "checkboxes": [],
-          "comments": [
-            {
-              "id": "55e373a4-8f43-4b80-9fa0-85d166855746",
-              "comment": "if a user doesnt like a music, it can vote up or down a music (boolean option) so three states, voted up, down, and not voted. Create the HIVE requirements for this to happen, it should have a minimalistic UI for voting up or down with just the icons to press.Voted down music should not appear anymore, when random music method is called, while voted up music shoudl have double the chances.\n\n"
-            }
-          ]
-        },
-        {
-          "id": "40417605-f923-4544-9026-299e2e464952",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Predefining times.",
-          "description": "On settings have predefined work and break durations that you can click and sets the work duration and break douration on clicking the predefined such as\n\n15, 25 30, 50 mins for work\n1, 5, 10 for break as defaults",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "f937d620-e1be-405c-b0f8-cb7d1b48c889",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Better stats",
-          "description": "The stats should display ",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "ccdd09ea-116f-4910-9917-b86499807876",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Better Hands off controls",
-          "description": "When going out of the application it should display inthe notification section setting shte counter and the play stop controls",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "a8a2f74b-588d-4dfe-a9dc-246e367929fa",
-              "title": "Notification",
-              "checked": true
-            },
-            {
-              "id": "fd865014-dec7-4431-b1ef-fd973b5cf067",
-              "title": "The pause and stop button doesnt actually work, Do the refactor to make it work",
-              "checked": false
-            },
-            {
-              "id": "55206dcd-4147-4293-aefb-f673fe7a9210",
-              "title": "The controls should change after pause to reset, also replace stop with mute. (foir audio muting)",
-              "checked": false
-            }
-          ],
-          "comments": []
-        },
-        {
-          "id": "8c5bc363-2ef2-4f87-846b-628ded68a974",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Habits and Projects Creations",
-          "description": "Create something called a project model , in which you can have set up project each project can be hooked  to havbits where to schedule count of times of pomodoros to perform on a weekday, on which weekday, which can be multiple weekdays you can have up to 6 projects. When working on the pomodoro you can select the project by pressing the project that you are working when the pomodoro is paused by having up to 6 squared small text tags for the project you are working, once selected the pomodoro becaomes only showing that project clicking again untoggles it and shows all the projects options. Th\n\n\n",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "dfc57aa9-61db-4c26-b89d-b5b62c415e3f",
-              "title": "The project should be created, but is not",
-              "checked": true
-            },
-            {
-              "id": "61b3c583-a748-4d83-984d-821b4f822d5f",
-              "title": "On settings allow for Primary Color",
-              "checked": true
-            }
-          ],
-          "comments": []
-        },
-        {
-          "id": "c83b0166-1fbc-4aa2-9b6d-8cb78fef771a",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "add completion audios",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "b492c792-699b-4626-83c6-4605f80d437c",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Associate audios with gibli animated images",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "46add1df-fab5-46d8-bb40-2d6c60f5f73c",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Rewards and experience system",
-          "description": "\nCreate an experience and pointage system, The rewards system that provides 25 points and 25 experience for a block of 25 minutes of work. You can create your own rewards like \"3D printer allowance\" for 2000 pts meaning that u can spend 2000 pts to allow yourself to buy a 3d printer. and like so. The experience system is for unlocking more features on the application itself (will be used later) but for now have a screen in the analytics systems for viewing how many points and experience, management of rewards and and toggle distoggle features of the application that can only be toggled after certain experience points",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "f86efe09-43c0-4774-92c6-362ad17a2888",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Refactor Audios",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": [
-            {
-              "id": "00157805-2d09-41c6-b226-8b95fed28ffb",
-              "comment": "go to assets\\lofi\\ adn refactor them all in simpe filenames also create a  \n   json containing a map of this lofis including author and site and         \n  duration, create a script that automatically creates that json or updates  \n   that in the future, the code should read from that json to retrieve the   \n  avilable audios"
-            }
-          ]
-        },
-        {
-          "id": "c27e9815-8d13-4a3b-8355-039369262910",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "It keep basic tracking of workout habits",
-          "description": "The application should have a bottom bar for different applications such as \nFocus Pomodoro, Analytics, and Workout Mode.\n\nFor the workout model:\nThe idea is that it should be able to keep track of which workouts to perform. Also the number of times it was completed. \n\nThe routines can be set by the person.\nCan also create workout habit and also the user can create new workouts. these are saved on memory. The workout routines are a collection of different workouts. User can modify the sets to do and weight. As well as track past workouts. and set new records.\n\n",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "1ddf7d47-7b07-46ba-b0e3-72b877483876",
-              "title": "Allow for working out sessions to be working",
-              "checked": true
-            },
-            {
-              "id": "bf5d182b-4d45-4b88-bce7-58755a35e8ab",
-              "title": "Allows for rest time in between",
-              "checked": true
-            },
-            {
-              "id": "03763464-ee5d-4c65-955c-4c55ee63f42f",
-              "title": "Allows for creating workout routines",
-              "checked": true
-            },
-            {
-              "id": "8083bb89-6e76-41e3-905a-336fe4b89010",
-              "title": "Actually allow for creating excerize screens",
-              "checked": true
-            }
-          ],
-          "comments": []
-        },
-        {
-          "id": "dd19c095-569b-4cf6-8255-24ca5fb0f5da",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Migrating Configuration and Settings all in One",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "70475490-8048-43cd-8b34-02ed1370799b",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Configuration on Settings and Configuration",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "13494975-d61e-4c72-8719-a53ef891da2a",
-          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "Why is using Mock Record Audio it should be working",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        }
-      ]
+      "cards": []
     }
   ],
   "archive": {
     "lists": [],
-    "cards": []
+    "cards": [
+      {
+        "id": "e52cb33d-ab02-4f2e-bf3c-af29bd899061",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Create play notification from a button",
+        "description": "",
+        "labels": [],
+        "checkboxes": [],
+        "comments": []
+      },
+      {
+        "id": "53797126-6748-4c7d-9c2a-7bd20cf0f7a0",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Youtube Playlist for Pomodoros",
+        "description": "For the pomodoros instead of playing music I want to also have a feature where the user can link a playlist from youtube to play that video instead, if the user has youtube already isntalled you should be able to use those settings like logged in account etc. Is that possible? The user should be able to create playlist and choose between either music or one the playlist selected, the idea is that if using playlist then when stopping or not stopping the thing it shouldnt reset or change the playtime, since for example this is designed to have mit lectures on the background, it wouldn tit be convenient if it keeps resetting. ",
+        "labels": [],
+        "checkboxes": [],
+        "comments": []
+      },
+      {
+        "id": "44f685f4-0964-4f23-a017-20d88bd23131",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Being able to rate down or up music tracks",
+        "description": "one can vote increase the frequency that music appear by voting up and down.",
+        "labels": [],
+        "checkboxes": [],
+        "comments": [
+          {
+            "id": "55e373a4-8f43-4b80-9fa0-85d166855746",
+            "comment": "if a user doesnt like a music, it can vote up or down a music (boolean option) so three states, voted up, down, and not voted. Create the HIVE requirements for this to happen, it should have a minimalistic UI for voting up or down with just the icons to press.Voted down music should not appear anymore, when random music method is called, while voted up music shoudl have double the chances.\n\n"
+          }
+        ]
+      },
+      {
+        "id": "40417605-f923-4544-9026-299e2e464952",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Predefining times.",
+        "description": "On settings have predefined work and break durations that you can click and sets the work duration and break douration on clicking the predefined such as\n\n15, 25 30, 50 mins for work\n1, 5, 10 for break as defaults",
+        "labels": [],
+        "checkboxes": [],
+        "comments": []
+      },
+      {
+        "id": "f937d620-e1be-405c-b0f8-cb7d1b48c889",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Better stats",
+        "description": "The stats should display ",
+        "labels": [],
+        "checkboxes": [],
+        "comments": []
+      },
+      {
+        "id": "ccdd09ea-116f-4910-9917-b86499807876",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Better Hands off controls",
+        "description": "When going out of the application it should display inthe notification section setting shte counter and the play stop controls",
+        "labels": [],
+        "checkboxes": [
+          {
+            "id": "a8a2f74b-588d-4dfe-a9dc-246e367929fa",
+            "title": "Notification",
+            "checked": true
+          },
+          {
+            "id": "fd865014-dec7-4431-b1ef-fd973b5cf067",
+            "title": "The pause and stop button doesnt actually work, Do the refactor to make it work",
+            "checked": false
+          },
+          {
+            "id": "55206dcd-4147-4293-aefb-f673fe7a9210",
+            "title": "The controls should change after pause to reset, also replace stop with mute. (foir audio muting)",
+            "checked": false
+          }
+        ],
+        "comments": []
+      },
+      {
+        "id": "8c5bc363-2ef2-4f87-846b-628ded68a974",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Habits and Projects Creations",
+        "description": "Create something called a project model , in which you can have set up project each project can be hooked  to havbits where to schedule count of times of pomodoros to perform on a weekday, on which weekday, which can be multiple weekdays you can have up to 6 projects. When working on the pomodoro you can select the project by pressing the project that you are working when the pomodoro is paused by having up to 6 squared small text tags for the project you are working, once selected the pomodoro becaomes only showing that project clicking again untoggles it and shows all the projects options. Th\n\n\n",
+        "labels": [],
+        "checkboxes": [
+          {
+            "id": "dfc57aa9-61db-4c26-b89d-b5b62c415e3f",
+            "title": "The project should be created, but is not",
+            "checked": true
+          },
+          {
+            "id": "61b3c583-a748-4d83-984d-821b4f822d5f",
+            "title": "On settings allow for Primary Color",
+            "checked": true
+          }
+        ],
+        "comments": []
+      },
+      {
+        "id": "c83b0166-1fbc-4aa2-9b6d-8cb78fef771a",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "add completion audios",
+        "description": "",
+        "labels": [],
+        "checkboxes": [],
+        "comments": []
+      },
+      {
+        "id": "b492c792-699b-4626-83c6-4605f80d437c",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Associate audios with gibli animated images",
+        "description": "",
+        "labels": [],
+        "checkboxes": [],
+        "comments": []
+      },
+      {
+        "id": "46add1df-fab5-46d8-bb40-2d6c60f5f73c",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Rewards and experience system",
+        "description": "\nCreate an experience and pointage system, The rewards system that provides 25 points and 25 experience for a block of 25 minutes of work. You can create your own rewards like \"3D printer allowance\" for 2000 pts meaning that u can spend 2000 pts to allow yourself to buy a 3d printer. and like so. The experience system is for unlocking more features on the application itself (will be used later) but for now have a screen in the analytics systems for viewing how many points and experience, management of rewards and and toggle distoggle features of the application that can only be toggled after certain experience points",
+        "labels": [],
+        "checkboxes": [],
+        "comments": []
+      },
+      {
+        "id": "f86efe09-43c0-4774-92c6-362ad17a2888",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Refactor Audios",
+        "description": "",
+        "labels": [],
+        "checkboxes": [],
+        "comments": [
+          {
+            "id": "00157805-2d09-41c6-b226-8b95fed28ffb",
+            "comment": "go to assets\\lofi\\ adn refactor them all in simpe filenames also create a  \n   json containing a map of this lofis including author and site and         \n  duration, create a script that automatically creates that json or updates  \n   that in the future, the code should read from that json to retrieve the   \n  avilable audios"
+          }
+        ]
+      },
+      {
+        "id": "c27e9815-8d13-4a3b-8355-039369262910",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "It keep basic tracking of workout habits",
+        "description": "The application should have a bottom bar for different applications such as \nFocus Pomodoro, Analytics, and Workout Mode.\n\nFor the workout model:\nThe idea is that it should be able to keep track of which workouts to perform. Also the number of times it was completed. \n\nThe routines can be set by the person.\nCan also create workout habit and also the user can create new workouts. these are saved on memory. The workout routines are a collection of different workouts. User can modify the sets to do and weight. As well as track past workouts. and set new records.\n\n",
+        "labels": [],
+        "checkboxes": [
+          {
+            "id": "1ddf7d47-7b07-46ba-b0e3-72b877483876",
+            "title": "Allow for working out sessions to be working",
+            "checked": true
+          },
+          {
+            "id": "bf5d182b-4d45-4b88-bce7-58755a35e8ab",
+            "title": "Allows for rest time in between",
+            "checked": true
+          },
+          {
+            "id": "03763464-ee5d-4c65-955c-4c55ee63f42f",
+            "title": "Allows for creating workout routines",
+            "checked": true
+          },
+          {
+            "id": "8083bb89-6e76-41e3-905a-336fe4b89010",
+            "title": "Actually allow for creating excerize screens",
+            "checked": true
+          }
+        ],
+        "comments": []
+      },
+      {
+        "id": "dd19c095-569b-4cf6-8255-24ca5fb0f5da",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Migrating Configuration and Settings all in One",
+        "description": "",
+        "labels": [],
+        "checkboxes": [],
+        "comments": []
+      },
+      {
+        "id": "70475490-8048-43cd-8b34-02ed1370799b",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Configuration on Settings and Configuration",
+        "description": "",
+        "labels": [],
+        "checkboxes": [],
+        "comments": []
+      },
+      {
+        "id": "13494975-d61e-4c72-8719-a53ef891da2a",
+        "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+        "title": "Why is using Mock Record Audio it should be working",
+        "description": "",
+        "labels": [],
+        "checkboxes": [],
+        "comments": []
+      }
+    ]
   },
   "settings": {
     "labels": []

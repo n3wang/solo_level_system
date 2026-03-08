@@ -90,10 +90,12 @@ class TimerController {
 
     try {
       if (_allowMusic) {
-        // If there's a current track playing, resume it. Otherwise play a random track
-        if (_backgroundMusicService.currentTrack != null &&
-            !_backgroundMusicService.isPlaying) {
-          await _backgroundMusicService.resume();
+        // If there is an existing track, keep it (or resume if paused).
+        // Only pick random when there is no current track loaded.
+        if (_backgroundMusicService.currentTrack != null) {
+          if (!_backgroundMusicService.isPlaying) {
+            await _backgroundMusicService.resume();
+          }
         } else {
           await _playLofi();
         }

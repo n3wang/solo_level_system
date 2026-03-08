@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/widgets/pomodoro/project_selector_widget.dart';
@@ -78,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Timer? _roomPhraseTimer;
   List<String> _roomPhrases = [];
   List<RoomVisualConfig> _roomVisuals = [];
+  List<String> _roomSelectedTracks = [];
   int _currentRoomVisualIndex = 0;
   String? _currentRoomPhrase;
 
@@ -130,16 +135,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     List<String> phrases = [];
     List<RoomVisualConfig> visuals = [];
+    List<String> selectedTracks = [];
     if (raw is Map) {
       final model = RoomManagementModel.fromMap(raw);
       phrases = model.phrases;
-      visuals = model.selectedVisuals;
+      visuals = await _sanitizeRoomVisuals(model.selectedVisuals);
+      selectedTracks = model.selectedTracks;
     }
 
     if (!mounted) return;
     setState(() {
       _roomPhrases = phrases;
       _roomVisuals = visuals;
+      _roomSelectedTracks = selectedTracks;
       if (_roomVisuals.isEmpty) {
         _currentRoomVisualIndex = 0;
       } else if (_currentRoomVisualIndex >= _roomVisuals.length) {
@@ -156,6 +164,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_timerController.isRunning) {
       _startRoomPhraseRotation();
     }
+    await _enforceRoomTrackRestriction();
   }
 
   Future<void> _loadRoomQuickPickerVisuals() async {
@@ -170,8 +179,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final value = entry.value;
       if (value is! Map) continue;
       final model = RoomManagementModel.fromMap(value);
-      if (model.selectedVisuals.isNotEmpty) {
-        nextMap[key] = model.selectedVisuals.first.path;
+      final visuals = await _sanitizeRoomVisuals(model.selectedVisuals);
+      if (visuals.isNotEmpty) {
+        nextMap[key] = visuals.first.path;
       }
     }
     if (!mounted) return;
@@ -203,6 +213,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (path != null && path.isNotEmpty) {
       if (_isAssetReference(path)) {
         return AssetImage(path.substring('asset:'.length));
+      }
+      if (_isDataUriReference(path)) {
+        return MemoryImage(_bytesFromDataUri(path));
       }
       final file = File(path);
       if (file.existsSync()) {
@@ -249,17 +262,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           opacity: isOpen ? 1 : 0,
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Row(
-              children: [
-                if (showNoRoomAction) ...[
-                  _buildNoRoomQuickPickerItem(),
-                  if (items.isNotEmpty) const SizedBox(width: 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
+              child: Row(
+                children: [
+                  if (showNoRoomAction) ...[
+                    _buildNoRoomQuickPickerItem(),
+                    if (items.isNotEmpty) const SizedBox(width: 8),
+                  ],
+                  for (int index = 0; index < items.length; index++) ...[
+                    if (index > 0) const SizedBox(width: 8),
+                    _buildRoomQuickPickerItem(items[index]),
+                  ],
                 ],
-                for (int index = 0; index < items.length; index++) ...[
-                  if (index > 0) const SizedBox(width: 8),
-                  _buildRoomQuickPickerItem(items[index]),
-                ],
-              ],
+              ),
             ),
           ),
         ),
@@ -339,7 +356,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildRoomFabWithPicker() {
     final items = _quickPickerRooms;
     final isOpen = _isRoomQuickPickerOpen && items.isNotEmpty;
-    final railWidth = isOpen ? ((items.length * 42) + ((items.length - 1) * 8) + 12) : 0.0;
+    final totalCount = items.length + (selectedRoom != null ? 1 : 0);
+    final railWidth = isOpen && totalCount > 0
+        ? ((totalCount * 42) + ((totalCount - 1) * 8) + 12)
+        : 0.0;
     const double roomFabSize = 40;
     const double railStartOffset = 52; // Keep expanded icons clearly to the right.
 
@@ -398,23 +418,98 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   bool _isAssetReference(String path) => path.startsWith('asset:');
+  bool _isDataUriReference(String path) => path.startsWith('data:');
 
-  ImageProvider? _currentPomodoroImageProvider() {
-    if (selectedRoom != null && _roomVisuals.isNotEmpty) {
-      final visual = _roomVisuals[_currentRoomVisualIndex % _roomVisuals.length];
-      if (_isAssetReference(visual.path)) {
-        return AssetImage(visual.path.substring('asset:'.length));
+  Future<bool> _assetExists(String assetPath) async {
+    try {
+      await rootBundle.load(assetPath);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<List<RoomVisualConfig>> _sanitizeRoomVisuals(
+    List<RoomVisualConfig> visuals,
+  ) async {
+    final valid = <RoomVisualConfig>[];
+    for (final visual in visuals) {
+      final path = visual.path.trim();
+      if (path.isEmpty) continue;
+      if (_isAssetReference(path)) {
+        final resolved = path.substring('asset:'.length);
+        if (await _assetExists(resolved)) {
+          valid.add(visual);
+        }
+        continue;
       }
-      final file = File(visual.path);
+      if (_isDataUriReference(path)) {
+        valid.add(visual);
+        continue;
+      }
+      final file = File(path);
       if (file.existsSync()) {
-        return FileImage(file);
+        valid.add(visual);
       }
     }
+    return valid;
+  }
+
+  RoomVisualConfig? _currentRoomVisual() {
+    if (selectedRoom == null || _roomVisuals.isEmpty) return null;
+    return _roomVisuals[_currentRoomVisualIndex % _roomVisuals.length];
+  }
+
+  Widget? _currentPomodoroMediaWidget() {
+    final visual = _currentRoomVisual();
+    if (visual != null) {
+      if (visual.isGif) {
+        return _HomeSpeedControlledGif(
+          sourcePath: visual.path,
+          isAssetReference: _isAssetReference(visual.path),
+          speed: visual.gifSpeed,
+          fit: BoxFit.cover,
+          errorChild: Container(color: Colors.green.withValues(alpha: 0.1)),
+        );
+      }
+      if (_isAssetReference(visual.path)) {
+        return Image.asset(
+          visual.path.substring('asset:'.length),
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        );
+      }
+      if (_isDataUriReference(visual.path)) {
+        return Image.memory(
+          _bytesFromDataUri(visual.path),
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        );
+      }
+      return Image.file(
+        File(visual.path),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      );
+    }
+
     final albumImagePath = _backgroundMusicService.currentTrack?.albumImagePath;
     if (albumImagePath != null) {
-      return AssetImage(albumImagePath);
+      return Image.asset(
+        albumImagePath,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      );
     }
     return null;
+  }
+
+  Uint8List _bytesFromDataUri(String dataUri) {
+    final comma = dataUri.indexOf(',');
+    if (comma < 0 || comma >= dataUri.length - 1) {
+      return Uint8List(0);
+    }
+    return base64Decode(dataUri.substring(comma + 1));
   }
 
   void _startRoomPhraseRotation() {
@@ -626,7 +721,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         '[MUSIC] Playing random track, looping: ${config?.playAudioOnRepeat ?? false}',
       );
 
-      await _backgroundMusicService.playRandomTrack();
+      final allowed = _allowedRoomTrackFilenames();
+      if (selectedRoom != null) {
+        if (allowed.isEmpty) {
+          await _backgroundMusicService.stop();
+          if (!mounted) return;
+          setState(() {
+            currentlyPlayingTrack = 'No room tracks';
+          });
+          return;
+        }
+        await _backgroundMusicService.playRandomTrackFromFilenames(allowed);
+      } else {
+        await _backgroundMusicService.playRandomTrack();
+      }
 
       // Update the current track display
       final previousTrack = currentlyPlayingTrack;
@@ -667,7 +775,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     print('[MUSIC] Is playing: ${_backgroundMusicService.isPlaying}');
 
     if (_backgroundMusicService.currentTrack != null &&
-        !_backgroundMusicService.isPlaying) {
+        !_backgroundMusicService.isPlaying &&
+        _isCurrentTrackAllowedForRoom()) {
       print('[MUSIC] Resuming from current position...');
       await _backgroundMusicService.resume();
       print('[MUSIC] Resume complete');
@@ -675,6 +784,59 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       print('[MUSIC] No track loaded or already playing, playing new track...');
       // If no track is loaded, play a random one
       await _playLofi();
+    }
+  }
+
+  Set<String> _allowedRoomTrackFilenames() {
+    final result = <String>{};
+    for (final raw in _roomSelectedTracks) {
+      String path = raw.trim();
+      if (path.isEmpty) continue;
+      if (_isAssetReference(path)) {
+        path = path.substring('asset:'.length);
+      }
+      final normalized = path.replaceAll('\\', '/');
+      if (!normalized.contains('/lofi/')) continue;
+      final filename = normalized.split('/').last.trim();
+      if (filename.isNotEmpty) {
+        result.add(filename);
+      }
+    }
+    return result;
+  }
+
+  bool _isCurrentTrackAllowedForRoom() {
+    if (selectedRoom == null) return true;
+    final allowed = _allowedRoomTrackFilenames();
+    if (allowed.isEmpty) return false;
+    return _backgroundMusicService.isCurrentTrackAllowed(allowed);
+  }
+
+  Future<void> _enforceRoomTrackRestriction() async {
+    // Changing rooms while timer is idle should not start or change playback.
+    if (!_timerController.isRunning) return;
+    if (selectedRoom == null) return;
+    final allowed = _allowedRoomTrackFilenames();
+    if (allowed.isEmpty) {
+      await _backgroundMusicService.stop();
+      if (!mounted) return;
+      setState(() {
+        currentlyPlayingTrack = 'No room tracks';
+      });
+      return;
+    }
+    if (_backgroundMusicService.currentTrack == null) return;
+    if (_backgroundMusicService.isCurrentTrackAllowed(allowed)) return;
+    await _backgroundMusicService.playRandomTrackFromFilenames(allowed);
+    if (!mounted) return;
+    final previousTrack = currentlyPlayingTrack;
+    setState(() {
+      currentlyPlayingTrack = _backgroundMusicService.currentTrack?.title;
+    });
+    if (previousTrack != null &&
+        currentlyPlayingTrack != null &&
+        previousTrack != currentlyPlayingTrack) {
+      _advanceRoomVisual();
     }
   }
 
@@ -1175,6 +1337,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildGestureTimer() {
+    final mediaWidget = _currentPomodoroMediaWidget();
     return GestureDetector(
       onTap: () {
         print('[HOME] Timer tapped!');
@@ -1230,16 +1393,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               color: Colors.green,
                               width: 2,
                             ),
-                            image: _currentPomodoroImageProvider() != null
-                                ? DecorationImage(
-                                    image: _currentPomodoroImageProvider()!,
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
-                            color: _currentPomodoroImageProvider() == null
+                            color: mediaWidget == null
                                 ? Colors.green.withValues(alpha: 0.1)
                                 : null,
                           ),
+                          child: mediaWidget == null
+                              ? null
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: mediaWidget,
+                                ),
                         ),
                         // Timer overlay with semi-transparent background
                         Container(
@@ -1338,16 +1501,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               color: Colors.green,
                               width: 2,
                             ),
-                            image: _currentPomodoroImageProvider() != null
-                                ? DecorationImage(
-                                    image: _currentPomodoroImageProvider()!,
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
-                            color: _currentPomodoroImageProvider() == null
+                            color: mediaWidget == null
                                 ? Colors.green.withValues(alpha: 0.1)
                                 : null,
                           ),
+                          child: mediaWidget == null
+                              ? null
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: mediaWidget,
+                                ),
                         ),
                         // Timer overlay with semi-transparent background
                         Container(
@@ -1743,6 +1906,143 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _notificationService.dispose();
     _stopRoomPhraseRotation(clearCurrent: false);
     super.dispose();
+  }
+}
+
+class _HomeSpeedControlledGif extends StatefulWidget {
+  final String sourcePath;
+  final bool isAssetReference;
+  final double speed;
+  final BoxFit fit;
+  final Widget? errorChild;
+
+  const _HomeSpeedControlledGif({
+    required this.sourcePath,
+    required this.isAssetReference,
+    required this.speed,
+    this.fit = BoxFit.contain,
+    this.errorChild,
+  });
+
+  @override
+  State<_HomeSpeedControlledGif> createState() => _HomeSpeedControlledGifState();
+}
+
+class _HomeSpeedControlledGifState extends State<_HomeSpeedControlledGif> {
+  List<ui.FrameInfo> _frames = const [];
+  int _frameIndex = 0;
+  Timer? _frameTimer;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFrames();
+  }
+
+  @override
+  void didUpdateWidget(covariant _HomeSpeedControlledGif oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final sourceChanged =
+        widget.sourcePath != oldWidget.sourcePath ||
+        widget.isAssetReference != oldWidget.isAssetReference;
+    if (sourceChanged) {
+      _frameTimer?.cancel();
+      _frames = const [];
+      _frameIndex = 0;
+      _failed = false;
+      _loadFrames();
+      return;
+    }
+    if (widget.speed != oldWidget.speed && _frames.isNotEmpty) {
+      _frameTimer?.cancel();
+      _scheduleNextFrame();
+    }
+  }
+
+  Future<void> _loadFrames() async {
+    try {
+      final bytes = await _loadBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frames = <ui.FrameInfo>[];
+      for (var i = 0; i < codec.frameCount; i++) {
+        frames.add(await codec.getNextFrame());
+      }
+      if (!mounted) return;
+      setState(() {
+        _frames = frames;
+        _frameIndex = 0;
+        _failed = false;
+      });
+      _scheduleNextFrame();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _failed = true;
+      });
+    }
+  }
+
+  Future<Uint8List> _loadBytes() async {
+    if (widget.isAssetReference) {
+      final path = widget.sourcePath.startsWith('asset:')
+          ? widget.sourcePath.substring('asset:'.length)
+          : widget.sourcePath;
+      final data = await rootBundle.load(path);
+      return data.buffer.asUint8List();
+    }
+    if (widget.sourcePath.startsWith('data:')) {
+      final comma = widget.sourcePath.indexOf(',');
+      if (comma < 0 || comma >= widget.sourcePath.length - 1) {
+        return Uint8List(0);
+      }
+      return base64Decode(widget.sourcePath.substring(comma + 1));
+    }
+    final file = File(widget.sourcePath);
+    return file.readAsBytes();
+  }
+
+  void _scheduleNextFrame() {
+    if (!mounted || _frames.isEmpty) return;
+    final current = _frames[_frameIndex];
+    final baseMs = current.duration.inMilliseconds <= 0
+        ? 100
+        : current.duration.inMilliseconds;
+    final speed = widget.speed <= 0 ? 1.0 : widget.speed;
+    final nextMs = (baseMs / speed).clamp(16, 1000).toInt();
+    _frameTimer = Timer(Duration(milliseconds: nextMs), () {
+      if (!mounted || _frames.isEmpty) return;
+      setState(() {
+        _frameIndex = (_frameIndex + 1) % _frames.length;
+      });
+      _scheduleNextFrame();
+    });
+  }
+
+  @override
+  void dispose() {
+    _frameTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_failed) {
+      return widget.errorChild ??
+          Container(
+            color: Colors.grey.shade200,
+            alignment: Alignment.center,
+            child: const Icon(Icons.broken_image_outlined),
+          );
+    }
+    if (_frames.isEmpty) {
+      return Container(color: Colors.transparent);
+    }
+    return RawImage(
+      image: _frames[_frameIndex].image,
+      fit: widget.fit,
+      filterQuality: FilterQuality.medium,
+    );
   }
 }
 

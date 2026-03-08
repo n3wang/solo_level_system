@@ -27,6 +27,48 @@ class ProjectSelectorWidget extends StatefulWidget {
 }
 
 class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
+  Color _chipBackgroundColor({
+    required BuildContext context,
+    required Color accent,
+    required bool selected,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    if (selected) {
+      return Color.lerp(scheme.surface, accent, 0.18)!.withValues(alpha: 0.9);
+    }
+    return scheme.surface.withValues(alpha: 0.82);
+  }
+
+  Color _chipBorderColor({
+    required BuildContext context,
+    required Color accent,
+    required bool selected,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    if (selected) return accent.withValues(alpha: 0.9);
+    return scheme.onSurface.withValues(alpha: 0.36);
+  }
+
+  Color _chipPrimaryTextColor({
+    required BuildContext context,
+    required bool selected,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return selected
+        ? scheme.onSurface.withValues(alpha: 0.96)
+        : scheme.onSurface.withValues(alpha: 0.88);
+  }
+
+  Color _chipSecondaryTextColor({
+    required BuildContext context,
+    required bool selected,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return selected
+        ? scheme.onSurface.withValues(alpha: 0.78)
+        : scheme.onSurface.withValues(alpha: 0.66);
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool compact = MediaQuery.of(context).size.width < 420;
@@ -106,6 +148,13 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
     bool compact,
   ) {
     final baseColor = _parseColor(project.color);
+    final borderColor =
+        _chipBorderColor(context: context, accent: baseColor, selected: true);
+    final foregroundColor = _chipPrimaryTextColor(context: context, selected: true);
+    final secondaryColor =
+        _chipSecondaryTextColor(context: context, selected: true);
+    final tertiaryColor =
+        _chipSecondaryTextColor(context: context, selected: false);
     final targetWidth = widget.selectedExpandedWidth == null
         ? maxWidth
         : widget.selectedExpandedWidth!.clamp(0.0, maxWidth);
@@ -116,17 +165,13 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
       curve: Curves.easeOutCubic,
       builder: (context, t, _) {
         final expandProgress = (t / 0.72).clamp(0.0, 1.0);
-        final colorProgress = ((t - 0.5) / 0.5).clamp(0.0, 1.0);
         final width = (targetWidth * (0.58 + (0.42 * expandProgress)));
-        final chipColor = Color.lerp(
-          Colors.white,
-          Colors.black.withValues(alpha: 0.06),
-          colorProgress,
-        )!;
+        final chipColor = _chipBackgroundColor(
+          context: context,
+          accent: baseColor,
+          selected: true,
+        );
         const borderWidth = 1.2;
-        final foregroundColor = Colors.black87;
-        final secondaryColor = Colors.grey[700]!;
-        final tertiaryColor = Colors.grey[600]!;
 
         return SizedBox(
           width: width,
@@ -142,8 +187,8 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                 ),
                 decoration: BoxDecoration(
                   color: chipColor,
-                  border: Border.all(color: Colors.black54, width: borderWidth),
-                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: borderColor, width: borderWidth),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.max,
@@ -207,6 +252,20 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
     {bool expandToFullWidth = false, bool compact = false, double opacity = 1.0}
   ) {
     final color = _parseColor(project.color);
+    final chipColor = _chipBackgroundColor(
+      context: context,
+      accent: color,
+      selected: isSelected,
+    );
+    final borderColor = _chipBorderColor(
+      context: context,
+      accent: color,
+      selected: isSelected,
+    );
+    final primaryTextColor =
+        _chipPrimaryTextColor(context: context, selected: isSelected);
+    final secondaryTextColor =
+        _chipSecondaryTextColor(context: context, selected: isSelected);
 
     return GestureDetector(
       onTap: () {
@@ -229,11 +288,9 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
             vertical: compact ? 6 : 8,
           ),
           decoration: BoxDecoration(
-            color: isSelected
-                ? Colors.black.withValues(alpha: 0.06)
-                : Colors.white,
-            border: Border.all(color: Colors.black87, width: isSelected ? 2 : 1),
-            borderRadius: BorderRadius.circular(5),
+            color: chipColor,
+            border: Border.all(color: borderColor, width: isSelected ? 1.7 : 1),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             mainAxisSize: expandToFullWidth ? MainAxisSize.max : MainAxisSize.min,
@@ -255,7 +312,7 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                   style: TextStyle(
                     fontSize: compact ? 11 : 12,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+                    color: primaryTextColor,
                   ),
                 ),
               )
@@ -267,7 +324,7 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                 style: TextStyle(
                   fontSize: compact ? 11 : 12,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black87,
+                  color: primaryTextColor,
                 ),
               ),
             if (!widget.isCollapsed) ...[
@@ -281,14 +338,14 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                       project.progressText,
                       style: TextStyle(
                         fontSize: compact ? 9 : 10,
-                        color: Colors.grey[700],
+                        color: secondaryTextColor,
                       ),
                     ),
                     Text(
                       '${project.workDurationMinutes}-${project.breakDurationMinutes}',
                       style: TextStyle(
                         fontSize: compact ? 8 : 9,
-                        color: Colors.grey[600],
+                        color: secondaryTextColor.withValues(alpha: 0.9),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -302,14 +359,14 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                       project.progressText,
                       style: TextStyle(
                         fontSize: compact ? 9 : 10,
-                        color: Colors.grey[700],
+                        color: secondaryTextColor,
                       ),
                     ),
                     Text(
                       '${project.workDurationMinutes}-${project.breakDurationMinutes}',
                       style: TextStyle(
                         fontSize: compact ? 8 : 9,
-                        color: Colors.grey[600],
+                        color: secondaryTextColor.withValues(alpha: 0.9),
                         fontStyle: FontStyle.italic,
                       ),
                     ),

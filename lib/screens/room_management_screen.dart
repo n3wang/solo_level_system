@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
@@ -6,6 +7,7 @@ import 'dart:ui' as ui;
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
@@ -637,17 +639,36 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
   Future<void> _pickVisualFromGallery() async {
     final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
-    final sourcePath = picked?.path;
-    if (sourcePath == null) return;
-    await _addVisualFromPath(sourcePath);
+    if (picked == null) return;
+    if (kIsWeb) {
+      final bytes = await picked.readAsBytes();
+      await _addVisualFromBytes(bytes, picked.name);
+      return;
+    }
+    await _addVisualFromPath(picked.path);
   }
 
   Future<void> _pickVisualFromFiles() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: _supportedVisualExtensions,
+      withData: kIsWeb,
     );
-    final sourcePath = result?.files.single.path;
+    final file = result?.files.single;
+    if (file == null) return;
+    if (kIsWeb) {
+      final bytes = file.bytes;
+      if (bytes == null || bytes.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to read selected file')),
+        );
+        return;
+      }
+      await _addVisualFromBytes(bytes, file.name);
+      return;
+    }
+    final sourcePath = file.path;
     if (sourcePath == null) return;
     await _addVisualFromPath(sourcePath);
   }
@@ -682,6 +703,37 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     setState(() {
       _selectedVisuals.add(
         RoomVisualConfig(path: copiedPath, isGif: extension == 'gif'),
+      );
+    });
+    await _persistRoomConfiguration();
+  }
+
+  Future<void> _addVisualFromBytes(Uint8List bytes, String fileName) async {
+    final extension = _extensionOf(fileName).toLowerCase();
+    if (!_supportedVisualExtensions.contains(extension)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unsupported visual format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final dataUri = _dataUriForBytes(bytes, extension);
+    if (_selectedVisuals.any((visual) => visual.path == dataUri)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Visual already added')));
+      return;
+    }
+
+    setState(() {
+      _selectedVisuals.add(
+        RoomVisualConfig(path: dataUri, isGif: extension == 'gif'),
       );
     });
     await _persistRoomConfiguration();
@@ -765,10 +817,16 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           return ChoiceChip(
                             label: Text(
                               'x${_speedLabel(speed)}',
-                              style: const TextStyle(fontSize: 11),
+                              style: const TextStyle(fontSize: 10),
                             ),
                             selected: speed == selectedSpeed,
-                            visualDensity: VisualDensity.compact,
+                            showCheckmark: false,
+                            visualDensity: const VisualDensity(
+                              horizontal: -3,
+                              vertical: -3,
+                            ),
+                            labelPadding: const EdgeInsets.symmetric(horizontal: 5),
+                            padding: EdgeInsets.zero,
                             materialTapTargetSize:
                                 MaterialTapTargetSize.shrinkWrap,
                             onSelected: (_) {
@@ -781,35 +839,21 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Close'),
-                ),
-                if (visual.isGif)
-                  ElevatedButton(
-                    onPressed: () async {
-                      final index = _selectedVisuals.indexWhere(
-                        (item) => item.path == visual.path,
-                      );
-                      if (index >= 0) {
-                        setState(() {
-                          _selectedVisuals[index] = _selectedVisuals[index]
-                              .copyWith(gifSpeed: selectedSpeed);
-                        });
-                        await _persistRoomConfiguration();
-                      }
-                      if (!mounted) return;
-                      Navigator.of(this.context).pop();
-                    },
-                    child: const Text('Save speed'),
-                  ),
-              ],
             );
           },
         );
       },
     );
+
+    if (!mounted || !visual.isGif || selectedSpeed == visual.gifSpeed) return;
+    final index = _selectedVisuals.indexWhere((item) => item.path == visual.path);
+    if (index < 0) return;
+    setState(() {
+      _selectedVisuals[index] = _selectedVisuals[index].copyWith(
+        gifSpeed: selectedSpeed,
+      );
+    });
+    await _persistRoomConfiguration();
   }
 
   List<_TrackOption> _buildTrackOptions() {
@@ -857,9 +901,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     }
     if (trackPath.startsWith('file:')) {
       final clean = trackPath.substring('file:'.length);
-      return clean.split(Platform.pathSeparator).last;
+      return _lastPathSegment(clean);
     }
-    return trackPath.split(Platform.pathSeparator).last;
+    return _lastPathSegment(trackPath);
   }
 
   int _trackDurationSeconds(String trackPath) {
@@ -912,13 +956,20 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   String _extensionOf(String path) {
-    final fileName = path.split(Platform.pathSeparator).last;
+    final fileName = _lastPathSegment(path);
     final dot = fileName.lastIndexOf('.');
     if (dot < 0) return '';
     return fileName.substring(dot + 1);
   }
 
+  String _lastPathSegment(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final parts = normalized.split('/');
+    return parts.isEmpty ? path : parts.last;
+  }
+
   bool _isAssetReference(String path) => path.startsWith('asset:');
+  bool _isDataUriReference(String path) => path.startsWith('data:');
 
   String _resolveAssetPath(String referencePath) {
     if (_isAssetReference(referencePath)) {
@@ -931,7 +982,29 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     if (_isAssetReference(visual.path)) {
       return AssetImage(_resolveAssetPath(visual.path));
     }
+    if (_isDataUriReference(visual.path)) {
+      return MemoryImage(_bytesFromDataUri(visual.path));
+    }
     return FileImage(File(visual.path));
+  }
+
+  String _dataUriForBytes(Uint8List bytes, String extension) {
+    final mime = switch (extension.toLowerCase()) {
+      'gif' => 'image/gif',
+      'png' => 'image/png',
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'webp' => 'image/webp',
+      _ => 'application/octet-stream',
+    };
+    return 'data:$mime;base64,${base64Encode(bytes)}';
+  }
+
+  Uint8List _bytesFromDataUri(String dataUri) {
+    final comma = dataUri.indexOf(',');
+    if (comma < 0 || comma >= dataUri.length - 1) {
+      return Uint8List(0);
+    }
+    return base64Decode(dataUri.substring(comma + 1));
   }
 
   String _roomKeyFor(RoomModel? room) => room?.id ?? _randomRoomKey;
@@ -1987,6 +2060,13 @@ class _SpeedControlledGifState extends State<_SpeedControlledGif> {
           : widget.sourcePath;
       final data = await rootBundle.load(path);
       return data.buffer.asUint8List();
+    }
+    if (widget.sourcePath.startsWith('data:')) {
+      final comma = widget.sourcePath.indexOf(',');
+      if (comma < 0 || comma >= widget.sourcePath.length - 1) {
+        return Uint8List(0);
+      }
+      return base64Decode(widget.sourcePath.substring(comma + 1));
     }
     final filePath = widget.sourcePath.startsWith('file:')
         ? widget.sourcePath.substring('file:'.length)

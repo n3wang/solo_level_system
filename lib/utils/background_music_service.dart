@@ -56,6 +56,30 @@ class BackgroundMusicService {
     await _playCurrentTrack();
   }
 
+  Future<void> playRandomTrackFromFilenames(Set<String> allowedFilenames) async {
+    if (allowedFilenames.isEmpty) return;
+    if (_playlist.isEmpty) {
+      await _refreshPlaylist();
+      if (_playlist.isEmpty) return;
+    }
+
+    final filtered = _playlist
+        .where((track) => allowedFilenames.contains(track.filename))
+        .toList();
+    if (filtered.isEmpty) return;
+    filtered.shuffle();
+    _currentTrack = filtered.first;
+    final index = _playlist.indexWhere((t) => t.id == _currentTrack!.id);
+    _currentTrackIndex = index >= 0 ? index : 0;
+    await _playCurrentTrack();
+  }
+
+  bool isCurrentTrackAllowed(Set<String> allowedFilenames) {
+    final current = _currentTrack;
+    if (current == null) return false;
+    return allowedFilenames.contains(current.filename);
+  }
+
   Future<void> playTrackById(int trackId) async {
     final track = await LofiService.getTrackById(trackId);
     if (track != null) {
