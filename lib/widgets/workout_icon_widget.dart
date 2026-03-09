@@ -1,13 +1,17 @@
-// lib/widgets/workout_icon_widget.dart
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
-import '../utils/workout_sprite_slicer.dart';
+import 'package:sprite_sheets/sprite_sheets.dart';
 
-/// Widget to display workout icons by slug name
-/// Uses the imageUrl field directly as the icon slug (e.g., "back_squat", "jumping_jacks")
-/// Loads from assets/icon/workout_icons_sliced/{slug}.png
-class WorkoutIconWidget extends StatefulWidget {
-  final String? imageUrl; // Icon slug (e.g., "back_squat", "jumping_jacks")
+/// Displays a workout icon from the `workout_icons_128px` spritesheet.
+///
+/// The [imageUrl] is the sprite slug (e.g. `"back_squat"`, `"jumping_jacks"`).
+/// Sprites are cut at render time from a single GPU texture — no per-file loads.
+///
+/// Legacy formats handled transparently:
+///   `workout_sprite_N` → grid index N (old numbered format)
+///   `workout_icon_N`   → grid index N (unnamed high-index sprites)
+class WorkoutIconWidget extends StatelessWidget {
+  /// Sprite slug or legacy index string. When null an icon placeholder is shown.
+  final String? imageUrl;
   final double? size;
   final Widget? placeholder;
   final Color? backgroundColor;
@@ -20,228 +24,88 @@ class WorkoutIconWidget extends StatefulWidget {
     this.backgroundColor,
   });
 
-  @override
-  State<WorkoutIconWidget> createState() => _WorkoutIconWidgetState();
-}
+  /// Resolve [imageUrl] into either a named slug or a numeric index.
+  ({String? name, int? index})? _resolve() {
+    final url = imageUrl;
+    if (url == null || url.isEmpty) return null;
 
-class _WorkoutIconWidgetState extends State<WorkoutIconWidget> {
-  ui.Image? _cachedImage;
-  bool _isLoading = true;
-  String? _currentSlug;
-
-  /// Get the icon slug from imageUrl
-  /// Handles both new format (slug) and legacy format (workout_sprite_INDEX)
-  String? _getIconSlug() {
-    if (widget.imageUrl == null || widget.imageUrl!.isEmpty) return null;
-
-    // Handle legacy format: workout_sprite_INDEX
-    if (widget.imageUrl!.startsWith('workout_sprite_')) {
-      // Convert to index-based filename for backward compatibility
-      final indexStr = widget.imageUrl!.replaceFirst('workout_sprite_', '');
-      final index = int.tryParse(indexStr);
-      if (index != null) {
-        return 'workout_icon_$index'; // Legacy fallback
-      }
+    // Legacy: "workout_sprite_N" → index N
+    if (url.startsWith('workout_sprite_')) {
+      final idx = int.tryParse(url.replaceFirst('workout_sprite_', ''));
+      if (idx != null) return (name: null, index: idx);
     }
 
-    // New format: use imageUrl directly as slug
-    return widget.imageUrl;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _currentSlug = _getIconSlug();
-    _loadImage();
-  }
-
-  @override
-  void didUpdateWidget(WorkoutIconWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final newSlug = _getIconSlug();
-    if (_currentSlug != newSlug) {
-      _currentSlug = newSlug;
-      _cachedImage = null;
-      _isLoading = true;
-      _loadImage();
-    }
-  }
-
-  Future<void> _loadImage() async {
-    final slug = _currentSlug;
-    if (slug == null) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-      return;
+    // Legacy: "workout_icon_N" → index N (unnamed sprites at the high end)
+    if (url.startsWith('workout_icon_')) {
+      final idx = int.tryParse(url.replaceFirst('workout_icon_', ''));
+      if (idx != null) return (name: null, index: idx);
     }
 
-    // Load image by slug name
-    final image = await WorkoutSpriteSlicer.getSpriteBySlug(slug);
-    if (mounted && _currentSlug == slug) {
-      setState(() {
-        _cachedImage = image;
-        _isLoading = false;
-      });
-    }
+    // Normal slug: look up by name in the CSV manifest
+    return (name: url, index: null);
   }
 
   @override
   Widget build(BuildContext context) {
-    final slug = _getIconSlug();
-    final bgColor = widget.backgroundColor ?? Colors.white;
+    final resolved = _resolve();
+    final bgColor = backgroundColor ?? Colors.white;
 
-    if (slug == null) {
+    if (resolved == null) {
       return _buildPlaceholder(bgColor);
     }
 
-    if (_isLoading || _cachedImage == null) {
-      return _buildLoading(bgColor);
-    }
-
-    // Once image is loaded, use RepaintBoundary to prevent unnecessary repaints
-    if (widget.size != null) {
+    if (size != null) {
       return RepaintBoundary(
-        child: Container(
-          width: widget.size,
-          height: widget.size,
+        child: ColoredBox(
           color: bgColor,
-          child: CustomPaint(
-            size: Size(widget.size!, widget.size!),
-            painter: _SpritePainter(_cachedImage!, fit: BoxFit.contain),
-          ),
-        ),
-      );
-    } else {
-      return RepaintBoundary(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final size = constraints.biggest.shortestSide;
-            return Container(
-              width: size,
-              height: size,
-              color: bgColor,
-              child: CustomPaint(
-                size: Size(size, size),
-                painter: _SpritePainter(_cachedImage!, fit: BoxFit.contain),
-              ),
-            );
-          },
+          child: _sprite(resolved, size!),
         ),
       );
     }
-  }
 
-  Widget _buildPlaceholder(Color bgColor) {
-    if (widget.size != null) {
-      return widget.placeholder ??
-          SizedBox(
-            width: widget.size,
-            height: widget.size,
-            child: Icon(Icons.fitness_center, size: widget.size),
-          );
-    } else {
-      return widget.placeholder ??
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final size = constraints.biggest.shortestSide;
-              return SizedBox(
-                width: size,
-                height: size,
-                child: Icon(Icons.fitness_center, size: size * 0.6),
-              );
-            },
-          );
-    }
-  }
-
-  Widget _buildLoading(Color bgColor) {
-    if (widget.size != null) {
-      return widget.placeholder ??
-          Container(
-            width: widget.size,
-            height: widget.size,
+    return RepaintBoundary(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final s = constraints.biggest.shortestSide;
+          return ColoredBox(
             color: bgColor,
-            child: _isLoading
-                ? Center(child: CircularProgressIndicator(strokeWidth: 2))
-                : Icon(Icons.fitness_center, size: widget.size! * 0.6),
+            child: _sprite(resolved, s),
           );
-    } else {
-      return widget.placeholder ??
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final size = constraints.biggest.shortestSide;
-              return Container(
-                width: size,
-                height: size,
-                color: bgColor,
-                child: _isLoading
-                    ? Center(child: CircularProgressIndicator(strokeWidth: 2))
-                    : Icon(Icons.fitness_center, size: size * 0.6),
-              );
-            },
-          );
-    }
-  }
-}
-
-/// Custom painter for drawing cached sprites
-class _SpritePainter extends CustomPainter {
-  final ui.Image image;
-  final BoxFit fit;
-
-  _SpritePainter(this.image, {this.fit = BoxFit.contain});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final srcSize = Size(image.width.toDouble(), image.height.toDouble());
-    final dstSize = size;
-
-    Rect srcRect, dstRect;
-
-    if (fit == BoxFit.contain) {
-      final srcAspect = srcSize.width / srcSize.height;
-      final dstAspect = dstSize.width / dstSize.height;
-
-      if (srcAspect > dstAspect) {
-        final scaledHeight = dstSize.width / srcAspect;
-        dstRect = Rect.fromLTWH(
-          0,
-          (dstSize.height - scaledHeight) / 2,
-          dstSize.width,
-          scaledHeight,
-        );
-      } else {
-        final scaledWidth = dstSize.height * srcAspect;
-        dstRect = Rect.fromLTWH(
-          (dstSize.width - scaledWidth) / 2,
-          0,
-          scaledWidth,
-          dstSize.height,
-        );
-      }
-      srcRect = Rect.fromLTWH(0, 0, srcSize.width, srcSize.height);
-    } else {
-      srcRect = Rect.fromLTWH(0, 0, srcSize.width, srcSize.height);
-      dstRect = Rect.fromLTWH(0, 0, dstSize.width, dstSize.height);
-    }
-
-    canvas.drawImageRect(
-      image,
-      srcRect,
-      dstRect,
-      Paint(),
+        },
+      ),
     );
   }
 
-  @override
-  bool shouldRepaint(_SpritePainter oldDelegate) =>
-      oldDelegate.image != image || oldDelegate.fit != fit;
+  Widget _sprite(({String? name, int? index}) r, double s) {
+    if (r.index != null) {
+      return SpriteImage(sheet: 'workout_icons', index: r.index!, size: s);
+    }
+    return SpriteImage(sheet: 'workout_icons', name: r.name!, size: s);
+  }
+
+  Widget _buildPlaceholder(Color bgColor) {
+    if (placeholder != null) return placeholder!;
+    if (size != null) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Icon(Icons.fitness_center, size: size! * 0.6),
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final s = constraints.biggest.shortestSide;
+        return SizedBox(
+          width: s,
+          height: s,
+          child: Icon(Icons.fitness_center, size: s * 0.6),
+        );
+      },
+    );
+  }
 }
 
-/// Widget to display workout icon by slug name directly
+/// Displays a workout icon by slug name directly.
 class WorkoutIconBySlugWidget extends StatelessWidget {
   final String slug;
   final double? size;
@@ -264,8 +128,8 @@ class WorkoutIconBySlugWidget extends StatelessWidget {
   }
 }
 
-/// Legacy widget - kept for backward compatibility
-/// @deprecated Use WorkoutIconBySlugWidget instead
+/// Legacy widget — kept for backward compatibility.
+/// @deprecated Use [WorkoutIconBySlugWidget] instead.
 class WorkoutIconByIndexWidget extends StatelessWidget {
   final int spriteIndex;
   final double? size;

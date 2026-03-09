@@ -1,6 +1,8 @@
 // lib/screens/analytics_screen.dart
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:solo_level_system/constants/app_ui_sizes.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/habit_tracker_model.dart';
@@ -51,7 +53,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             Tab(text: 'Overview'),
             Tab(text: 'Focus'),
             Tab(text: 'Workouts'),
-            Tab(text: 'Rewards'),
+            Tab(text: 'Motivation'),
           ],
         ),
       ),
@@ -59,7 +61,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         children: [
           // Time period selector below tabs
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppUiSizes.lg,
+              vertical: AppUiSizes.sm,
+            ),
             alignment: Alignment.centerRight,
             child: PopupMenuButton<String>(
               onSelected: (period) {
@@ -72,13 +77,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   )
                   .toList(),
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppUiSizes.sm,
+                  vertical: AppUiSizes.xs,
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(_selectedPeriod),
-                    SizedBox(width: 4),
-                    Icon(Icons.arrow_drop_down),
+                    const SizedBox(width: AppUiSizes.xs),
+                    const Icon(Icons.arrow_drop_down),
                   ],
                 ),
               ),
@@ -141,16 +149,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                         .toList();
 
                     return SingleChildScrollView(
-                      padding: EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppUiSizes.lg),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildQuickStats(pomodoros, workouts, habits),
                           // SizedBox(height: 24),
                           // _buildProductivityScore(pomodoros, workouts, habits),
-                          SizedBox(height: 24),
+                          const SizedBox(height: AppUiSizes.xxl),
                           _buildWeeklyOverview(pomodoros),
-                          SizedBox(height: 24),
+                          const SizedBox(height: AppUiSizes.xxl),
                           _buildGoalsProgress(pomodoros, workouts, habits),
                         ],
                       ),
@@ -186,16 +194,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             final filteredSessions = _filterSessionsByPeriod(sessions);
 
             return SingleChildScrollView(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppUiSizes.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildFocusStats(filteredSessions),
-                  SizedBox(height: 24),
+                  const SizedBox(height: AppUiSizes.xxl),
                   _buildFocusChart(filteredSessions),
-                  SizedBox(height: 24),
+                  const SizedBox(height: AppUiSizes.xxl),
                   _buildProjectBreakdown(filteredSessions),
-                  SizedBox(height: 24),
+                  const SizedBox(height: AppUiSizes.xxl),
                   _buildStreakInfo(sessions),
                 ],
               ),
@@ -229,16 +237,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             final filteredSessions = _filterWorkoutsByPeriod(sessions);
 
             return SingleChildScrollView(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppUiSizes.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildWorkoutStats(filteredSessions),
-                  SizedBox(height: 24),
+                  const SizedBox(height: AppUiSizes.xxl),
                   _buildWorkoutChart(filteredSessions),
-                  SizedBox(height: 24),
+                  const SizedBox(height: AppUiSizes.xxl),
                   _buildPersonalRecords(filteredSessions),
-                  SizedBox(height: 24),
+                  const SizedBox(height: AppUiSizes.xxl),
                   _buildMuscleGroupBreakdown(filteredSessions),
                 ],
               ),
@@ -261,15 +269,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppUiSizes.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Quick Stats - $_selectedPeriod',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppColorPalette.fontSizeSubtitle,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: AppUiSizes.lg),
             Row(
               children: [
                 Expanded(
@@ -304,15 +315,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   Widget _buildStatItem(String label, String value, IconData icon) {
     return Column(
       children: [
-        Icon(icon, size: 32, color: Theme.of(context).primaryColor),
-        SizedBox(height: 8),
+        Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(height: AppUiSizes.sm),
         Text(
           value,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontSize: AppColorPalette.fontSizeTitle,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontSize: AppColorPalette.fontSizeSmall,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -341,15 +358,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppUiSizes.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'This Week - Focus Sessions',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppColorPalette.fontSizeSubtitle,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: AppUiSizes.lg),
             SizedBox(
               height: 150,
               child: Row(
@@ -378,20 +398,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                         height: height.clamp(5.0, 100.0),
                         decoration: BoxDecoration(
                           color: sessions > 0
-                              ? Colors.grey[300]
-                              : Theme.of(context).primaryColor,
-                          borderRadius: BorderRadius.circular(4),
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.2)
+                              : Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(AppUiSizes.xs),
                         ),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: AppUiSizes.sm),
                       Text(
                         sessions.toString(),
-                        style: TextStyle(
-                          fontSize: 10,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontSize: AppColorPalette.fontSizeXSmall,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(dayNames[index], style: TextStyle(fontSize: 12)),
+                      Text(
+                        dayNames[index],
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          fontSize: AppColorPalette.fontSizeSmall,
+                        ),
+                      ),
                     ],
                   );
                 }),
@@ -420,15 +447,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppUiSizes.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Goals Progress',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppColorPalette.fontSizeSubtitle,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: AppUiSizes.lg),
             _buildGoalItem('Daily Focus Sessions', todayPomodoros, 5),
             _buildGoalItem(
               '$_selectedPeriod Workouts',
@@ -453,7 +483,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   Widget _buildGoalItem(String goal, int current, int target) {
     final progress = current / target;
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppUiSizes.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -461,12 +491,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [Text(goal), Text('$current/$target')],
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: AppUiSizes.xs),
           LinearProgressIndicator(
             value: progress,
-            backgroundColor: Colors.grey[300],
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.16),
             valueColor: AlwaysStoppedAnimation<Color>(
-              progress >= 1.0 ? Colors.green : Theme.of(context).primaryColor,
+              progress >= 1.0
+                  ? Theme.of(context).colorScheme.tertiary
+                  : Theme.of(context).colorScheme.primary,
             ),
           ),
         ],
@@ -505,18 +539,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   Widget _buildStatCard(String title, String value, IconData icon) {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppUiSizes.lg),
         child: Column(
           children: [
-            Icon(icon, size: 32, color: Theme.of(context).primaryColor),
-            SizedBox(height: 8),
+            Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: AppUiSizes.sm),
             Text(
               value,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppColorPalette.fontSizeSubtitle,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             Text(
               title,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontSize: AppColorPalette.fontSizeSmall,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+              ),
             ),
           ],
         ),
@@ -527,15 +567,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   Widget _buildFocusChart(List<PomodoroModel> sessions) {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppUiSizes.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Focus Sessions Over Time',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppColorPalette.fontSizeMedium,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: AppUiSizes.lg),
             SizedBox(
               height: 200,
               child: Center(child: Text('Chart would go here')),
@@ -565,25 +608,34 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppUiSizes.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Project Breakdown',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppColorPalette.fontSizeMedium,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: AppUiSizes.lg),
             projectStats.isEmpty
                 ? Text(
                     'No project data available',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.72),
+                    ),
                   )
                 : Column(
                     children: projectStats.entries
                         .map(
                           (entry) => Padding(
-                            padding: EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: AppUiSizes.xs,
+                            ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -597,18 +649,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                     ),
-                                    SizedBox(width: 8),
+                                    const SizedBox(width: AppUiSizes.sm),
                                     Text(
                                       projectNames[entry.key] ?? 'Unknown',
-                                      style: TextStyle(fontSize: 14),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium?.copyWith(
+                                        fontSize: AppColorPalette.fontSizeBody,
+                                      ),
                                     ),
                                   ],
                                 ),
                                 Text(
                                   '${entry.value} sessions',
-                                  style: TextStyle(
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.w500,
-                                    color: Colors.grey[700],
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withValues(alpha: 0.8),
                                   ),
                                 ),
                               ],
@@ -624,17 +682,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   Color _getProjectColor(String projectId) {
-    // Simple color assignment based on project ID
+    // Color assignment from centralized palette.
     final colors = [
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.red,
-      Colors.teal,
+      AppColorPalette.color2,
+      AppColorPalette.color3,
+      AppColorPalette.color4,
+      AppColorPalette.color1,
+      AppColorPalette.color5,
+      AppColorPalette.accent,
     ];
 
-    if (projectId == 'unassigned') return Colors.grey;
+    if (projectId == 'unassigned') return AppColorPalette.grey500;
 
     final hash = projectId.hashCode.abs();
     return colors[hash % colors.length];
@@ -645,36 +703,45 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppUiSizes.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Focus Streak',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppColorPalette.fontSizeMedium,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: AppUiSizes.lg),
             Row(
               children: [
                 Icon(
                   Icons.local_fire_department,
-                  color: currentStreak > 0 ? Colors.orange : Colors.grey,
+                  color: currentStreak > 0
+                      ? Theme.of(context).colorScheme.tertiary
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                   size: 32,
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: AppUiSizes.lg),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       currentStreak > 0 ? '$currentStreak days' : 'No streak',
-                      style: TextStyle(
-                        fontSize: 20,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: AppColorPalette.fontSizeTitle,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
                       'Current streak',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.72),
+                      ),
                     ),
                   ],
                 ),
@@ -751,22 +818,29 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   Widget _buildWorkoutChart(List<WorkoutSessionModel> sessions) {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppUiSizes.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Workout Frequency',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppColorPalette.fontSizeMedium,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: AppUiSizes.lg),
             sessions.isEmpty
                 ? SizedBox(
                     height: 100,
                     child: Center(
                       child: Text(
                         'No workout data yet. Start your first workout!',
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.72),
+                        ),
                       ),
                     ),
                   )
@@ -775,8 +849,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     child: Center(
                       child: Text(
                         '${sessions.length} total sessions recorded',
-                        style: TextStyle(
-                          fontSize: 16,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: AppColorPalette.fontSizeMedium,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -795,33 +869,44 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppUiSizes.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Personal Records',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppColorPalette.fontSizeMedium,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: AppUiSizes.lg),
             recordSessions.isEmpty
                 ? Text(
                     'No personal records set yet. Keep pushing!',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.72),
+                    ),
                   )
                 : Column(
                     children: [
                       Text(
                         '🏆 ${recordSessions.fold<int>(0, (sum, s) => sum + s.personalRecordsSet.length)} records set',
-                        style: TextStyle(
-                          fontSize: 16,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: AppColorPalette.fontSizeMedium,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: AppUiSizes.sm),
                       Text(
                         'Across ${recordSessions.length} sessions',
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.72),
+                        ),
                       ),
                     ],
                   ),
@@ -839,24 +924,33 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppUiSizes.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Workout Locations',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppColorPalette.fontSizeMedium,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: AppUiSizes.lg),
             locations.isEmpty
                 ? Text(
                     'No location data available',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.72),
+                    ),
                   )
                 : Column(
                     children: locations.entries.map((entry) {
                       return Padding(
-                        padding: EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppUiSizes.xs,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [

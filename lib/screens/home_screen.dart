@@ -6,6 +6,8 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:solo_level_system/constants/app_ui_sizes.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 
 import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/widgets/pomodoro/project_selector_widget.dart';
@@ -24,6 +26,8 @@ import 'package:solo_level_system/utils/background_music_service.dart';
 import 'package:solo_level_system/utils/sound_effects_service.dart';
 import 'package:solo_level_system/utils/notification_service.dart';
 import 'package:solo_level_system/utils/timer_controller.dart';
+import 'package:solo_level_system/utils/reward_seed_service.dart';
+import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:solo_level_system/models/room_model.dart';
@@ -285,6 +289,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildNoRoomQuickPickerItem() {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: _clearRoomFromQuickPicker,
       child: AnimatedContainer(
@@ -292,20 +297,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black54, width: 1.1),
-          color: Colors.black.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
+          border: Border.all(
+            color: scheme.onSurface.withValues(alpha: 0.42),
+            width: 1.1,
+          ),
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.24),
         ),
         child: Icon(
           Icons.meeting_room_outlined,
           size: 18,
-          color: Colors.grey[700],
+          color: scheme.onSurface.withValues(alpha: 0.76),
         ),
       ),
     );
   }
 
   Widget _buildRoomQuickPickerItem(RoomModel room) {
+    final scheme = Theme.of(context).colorScheme;
     final isSelected = selectedRoom?.id == room.id;
     final imageProvider = _roomQuickImageProvider(room);
     return GestureDetector(
@@ -315,14 +324,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
           border: Border.all(
             color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Colors.black54,
+                ? scheme.primary
+                : scheme.onSurface.withValues(alpha: 0.42),
             width: isSelected ? 1.8 : 1.1,
           ),
-          color: Colors.black.withValues(alpha: 0.03),
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.24),
           image: imageProvider != null
               ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
               : null,
@@ -331,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ? Icon(
                 Icons.meeting_room_outlined,
                 size: 18,
-                color: Colors.grey[700],
+                color: scheme.onSurface.withValues(alpha: 0.76),
               )
             : null,
       ),
@@ -469,7 +478,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           isAssetReference: _isAssetReference(visual.path),
           speed: visual.gifSpeed,
           fit: BoxFit.cover,
-          errorChild: Container(color: Colors.green.withValues(alpha: 0.1)),
+          errorChild: Container(
+            color: AppColorPalette.success.withValues(alpha: 0.1),
+          ),
         );
       }
       if (_isAssetReference(visual.path)) {
@@ -574,6 +585,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildTimerOverlayText() {
+    final scheme = Theme.of(context).colorScheme;
     final phraseText = _roomPhraseForOverlay();
     final text = phraseText ?? _timerHelpText();
     if (text == null || text.isEmpty) return const SizedBox.shrink();
@@ -581,14 +593,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 10,
-        color: Colors.white,
+        fontSize: AppColorPalette.fontSizeXSmall,
+        color: scheme.onPrimary,
         fontStyle: phraseText == null ? FontStyle.italic : FontStyle.normal,
         fontWeight: phraseText == null ? FontWeight.normal : FontWeight.w600,
-        shadows: const [
+        shadows: [
           Shadow(
             blurRadius: 5.0,
-            color: Colors.black,
+            color: scheme.shadow,
             offset: Offset(1.0, 1.0),
           ),
         ],
@@ -598,6 +610,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildSelectedProjectOverlayText() {
+    final scheme = Theme.of(context).colorScheme;
     final project = selectedProject;
     if (project == null) return const SizedBox.shrink();
 
@@ -608,14 +621,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.right,
-        style: const TextStyle(
-          fontSize: 10,
-          color: Colors.white,
+        style: TextStyle(
+          fontSize: AppColorPalette.fontSizeXSmall,
+          color: scheme.onPrimary,
           fontStyle: FontStyle.italic,
           shadows: [
             Shadow(
               blurRadius: 5.0,
-              color: Colors.black,
+              color: scheme.shadow,
               offset: Offset(1.0, 1.0),
             ),
           ],
@@ -625,6 +638,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildSelectedRoomOverlayText() {
+    final scheme = Theme.of(context).colorScheme;
     final room = selectedRoom;
     if (room == null) return const SizedBox.shrink();
     return ConstrainedBox(
@@ -634,14 +648,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.left,
-        style: const TextStyle(
-          fontSize: 10,
-          color: Colors.white,
+        style: TextStyle(
+          fontSize: AppColorPalette.fontSizeXSmall,
+          color: scheme.onPrimary,
           fontStyle: FontStyle.italic,
           shadows: [
             Shadow(
               blurRadius: 5.0,
-              color: Colors.black,
+              color: scheme.shadow,
               offset: Offset(1.0, 1.0),
             ),
           ],
@@ -651,6 +665,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildAnimatedTimerText() {
+    final scheme = Theme.of(context).colorScheme;
     final bool isUrgencyWindow =
         _timerController.isRunning && remainingSeconds > 0 && remainingSeconds <= 30;
     final double amplitude = remainingSeconds <= 10 ? 3.2 : 2.0;
@@ -672,11 +687,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         style: TextStyle(
           fontSize: PomodoroSizing.getTimerFontSize(context),
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: scheme.onPrimary,
           shadows: [
             Shadow(
               blurRadius: 10.0,
-              color: Colors.black,
+              color: scheme.shadow,
               offset: Offset(2.0, 2.0),
             ),
           ],
@@ -907,18 +922,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         SnackBar(
           content: Row(
             children: [
-              Icon(Icons.star, color: Colors.amber),
-              SizedBox(width: 8),
+              Icon(Icons.star, color: Theme.of(context).colorScheme.tertiary),
+              const SizedBox(width: AppUiSizes.sm),
               Expanded(
                 child: Text(
                   '+${minutesSpent * UserProgressModel.XP_PER_MINUTE} XP, +${minutesSpent * UserProgressModel.POINTS_PER_MINUTE} Points! ($minutesSpent min) Level ${userProgress!.currentLevel}',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
+          backgroundColor: Theme.of(context).colorScheme.tertiary,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -1075,6 +1090,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await _loadUserSettings();
       await RoomManagementSeedService.ensureSampleRooms();
       await ProjectSeedService.ensureSampleProjects();
+      await RewardSeedService.ensureDefaultBoardgameRewards();
+      await MotivationSeedService.ensureSeeded();
       await _loadRooms();
       await _loadProjects();
       await _loadSelectedRoomPhrases();
@@ -1390,11 +1407,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.green,
+                              color: AppColorPalette.success,
                               width: 2,
                             ),
                             color: mediaWidget == null
-                                ? Colors.green.withValues(alpha: 0.1)
+                                ? AppColorPalette.success.withValues(alpha: 0.1)
                                 : null,
                           ),
                           child: mediaWidget == null
@@ -1410,15 +1427,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           height: PomodoroSizing.getAlbumContainerSize(context),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
-                            color: Colors.black.withValues(alpha: 0.3),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.shadow.withValues(alpha: 0.3),
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               _buildAnimatedTimerText(),
-                              SizedBox(height: 8),
+                              const SizedBox(height: AppUiSizes.sm),
                               _buildTimerOverlayText(),
-                              SizedBox(height: 8),
+                              const SizedBox(height: AppUiSizes.sm),
                               SessionSquaresWidget(
                                 completedSessions: countCompletedToday,
                               ),
@@ -1498,11 +1517,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.green,
+                              color: AppColorPalette.success,
                               width: 2,
                             ),
                             color: mediaWidget == null
-                                ? Colors.green.withValues(alpha: 0.1)
+                                ? AppColorPalette.success.withValues(alpha: 0.1)
                                 : null,
                           ),
                           child: mediaWidget == null
@@ -1518,15 +1537,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           height: PomodoroSizing.getAlbumContainerSize(context),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
-                            color: Colors.black.withValues(alpha: 0.3),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.shadow.withValues(alpha: 0.3),
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               _buildAnimatedTimerText(),
-                              SizedBox(height: 8),
+                              const SizedBox(height: AppUiSizes.sm),
                               _buildTimerOverlayText(),
-                              SizedBox(height: 8),
+                              const SizedBox(height: AppUiSizes.sm),
                               SessionSquaresWidget(
                                 completedSessions: countCompletedToday,
                               ),
@@ -1632,7 +1653,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         height: PomodoroSizing.getAlbumContainerSize(context),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.shadow.withValues(alpha: 0.3),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -1754,7 +1777,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         height: PomodoroSizing.getAlbumContainerSize(context),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.shadow.withValues(alpha: 0.3),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -1847,6 +1872,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildSquareEvidenceButton() {
+    final warningColor = AppColorPalette.warning;
+    final successColor = AppColorPalette.success;
     return GestureDetector(
       onTap: takePhoto,
       child: Container(
@@ -1854,18 +1881,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         height: 80,
         decoration: BoxDecoration(
           color: (imagePath != null)
-              ? Colors.green.withValues(alpha: 0.1)
-              : Colors.orange.withValues(alpha: 0.1),
+              ? successColor.withValues(alpha: 0.1)
+              : warningColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: (imagePath != null) ? Colors.green : Colors.orange,
+            color: (imagePath != null) ? successColor : warningColor,
             width: 2,
           ),
         ),
         child: Icon(
           (imagePath != null) ? Icons.camera_alt : Icons.camera_alt_outlined,
           size: 24,
-          color: (imagePath != null) ? Colors.green : Colors.orange,
+          color: (imagePath != null) ? successColor : warningColor,
         ),
       ),
     );
@@ -2030,13 +2057,15 @@ class _HomeSpeedControlledGifState extends State<_HomeSpeedControlledGif> {
     if (_failed) {
       return widget.errorChild ??
           Container(
-            color: Colors.grey.shade200,
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
             alignment: Alignment.center,
             child: const Icon(Icons.broken_image_outlined),
           );
     }
     if (_frames.isEmpty) {
-      return Container(color: Colors.transparent);
+      return const SizedBox.shrink();
     }
     return RawImage(
       image: _frames[_frameIndex].image,
@@ -2193,6 +2222,9 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
+        final errorColor = AppColorPalette.error;
+        final successColor = AppColorPalette.success;
+        final infoColor = AppColorPalette.info;
         return Transform.scale(
           scale: _isRecording ? _pulseAnimation.value : 1.0,
           child: GestureDetector(
@@ -2210,17 +2242,17 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
               height: 80,
               decoration: BoxDecoration(
                 color: _isRecording
-                    ? Colors.red.withValues(alpha: 0.1)
+                    ? errorColor.withValues(alpha: 0.1)
                     : widget.hasRecording
-                    ? Colors.green.withValues(alpha: 0.1)
-                    : Colors.blue.withValues(alpha: 0.1),
+                    ? successColor.withValues(alpha: 0.1)
+                    : infoColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _isRecording
-                      ? Colors.red
+                      ? errorColor
                       : widget.hasRecording
-                      ? Colors.green
-                      : Colors.blue,
+                      ? successColor
+                      : infoColor,
                   width: 2,
                 ),
               ),
@@ -2239,18 +2271,18 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
                               : Icons.mic,
                           size: 24,
                           color: _isRecording
-                              ? Colors.red
+                              ? AppColorPalette.error
                               : widget.hasRecording
-                              ? Colors.green
-                              : Colors.blue,
+                              ? AppColorPalette.success
+                              : AppColorPalette.info,
                         ),
                         if (_isRecording) ...[
-                          SizedBox(height: 4),
+                          const SizedBox(height: AppUiSizes.xs),
                           Text(
                             '${_recordingDuration.inMinutes}:${(_recordingDuration.inSeconds % 60).toString().padLeft(2, '0')}',
                             style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.red,
+                              fontSize: AppColorPalette.fontSizeXSmall,
+                              color: AppColorPalette.error,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -2287,7 +2319,7 @@ class _AudioLevelsPainter extends CustomPainter {
     if (levels.isEmpty) return;
 
     final paint = Paint()
-      ..color = Colors.red.withValues(alpha: 0.3)
+      ..color = AppColorPalette.error.withValues(alpha: 0.3)
       ..strokeWidth = 2;
 
     final centerY = size.height / 2;

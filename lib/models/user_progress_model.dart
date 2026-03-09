@@ -1,5 +1,6 @@
 // lib/models/user_progress_model.dart
 import 'package:hive/hive.dart';
+import 'package:solo_level_system/utils/motivation_points_service.dart';
 part 'user_progress_model.g.dart';
 
 @HiveType(typeId: 21)
@@ -134,6 +135,11 @@ class UserProgressModel extends HiveObject {
     // Add rewards
     addExperience(totalXP);
     addPoints(totalPoints);
+    MotivationPointsService.recordEarned(
+      amount: totalPoints,
+      source: 'pomodoro_session',
+      metadata: {'minutes': minutesSpent},
+    );
 
     lastSessionDate = date;
     save();
@@ -155,6 +161,10 @@ class UserProgressModel extends HiveObject {
     if (availablePoints >= points) {
       availablePoints -= points;
       totalPointsSpent += points;
+      MotivationPointsService.recordSpent(
+        amount: points,
+        source: 'points_spend',
+      );
       save();
       return true;
     }
@@ -219,6 +229,11 @@ class UserProgressModel extends HiveObject {
       final bonusPoints = levelsGained * 50;
       availablePoints += bonusPoints;
       totalPointsEarned += bonusPoints;
+      MotivationPointsService.recordEarned(
+        amount: bonusPoints,
+        source: 'level_up_bonus',
+        metadata: {'levelsGained': levelsGained, 'newLevel': currentLevel},
+      );
 
       print('Level up bonus: +$bonusPoints points!');
 

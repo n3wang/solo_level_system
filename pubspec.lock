@@ -965,6 +965,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.0"
+  sprite_sheets:
+    dependency: "direct main"
+    description:
+      path: "packages/sprite_sheets"
+      relative: true
+    source: path
+    version: "0.1.0"
   stack_trace:
     dependency: transitive
     description:

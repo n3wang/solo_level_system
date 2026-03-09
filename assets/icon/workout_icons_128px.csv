@@ -1,43 +1,38 @@
-excercises,audio_path
-back squat,
-front squat,
-Deadlift conventional,
-Deadlift Romanian,
-Bench press,
-Overhead press,
-Pull-ups,
-Chin-ups,
-Barbell row,
-Lat pulldown,
-Leg press,
-Dumbbell bench press,
-Dumbbell shoulder press,
-"Bicep curls ",
-Tricep pushdowns,
-Chest fly,
-Leg curl,
-Leg extension,
-Plank,
-Hanging leg raises,
-Treadmill running or walking,
-Stationary bike / spin bike,
-Bodyweight Squats,
-Lunges,
-Wall Sit,
-Glute Bridges,
-Push-ups,
-Triceps Dips,
-Side Plank,
-Jumping Jacks,
-Burpees,
-Abdominal Crunch,
-Step-Ups,
-High Knees,
-Push-Up + Rotation,
-Break,
-Abdominal Crunch,
-Cool Down Walk,
-
-
-
-
+name,number
+back_squat,0
+front_squat,1
+deadlift_conventional,2
+deadlift_romanian,3
+bench_press,4
+overhead_press,5
+pullups,6
+chinups,7
+barbell_row,8
+lat_pulldown,9
+leg_press,10
+dumbbell_bench_press,11
+dumbbell_shoulder_press,12
+bicep_curls,13
+tricep_pushdowns,14
+chest_fly,15
+leg_curl,16
+leg_extension,17
+plank,18
+hanging_leg_raises,19
+treadmill_running_or_walking,20
+stationary_bike_spin_bike,21
+bodyweight_squats,22
+lunges,23
+wall_sit,24
+glute_bridges,25
+pushups,26
+triceps_dips,27
+side_plank,28
+jumping_jacks,29
+burpees,30
+abdominal_crunch,31
+stepups,32
+high_knees,33
+pushup_rotation,34
+break,35
+cool_down_walk,37

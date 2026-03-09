@@ -18,10 +18,13 @@ import 'models/project_model.dart';
 import 'models/user_progress_model.dart';
 import 'models/reward_model.dart';
 import 'models/motivational_card_model.dart';
+import 'models/motivation_item_model.dart';
+import 'models/motivation_points_transaction_model.dart';
 import 'models/timed_workout_model.dart';
 import 'utils/default_workouts_service.dart';
 import 'utils/programs_service.dart';
 import 'utils/palette_notifier.dart';
+import 'package:sprite_sheets/sprite_sheets.dart';
 
 const String _noisyWebWindowAssertPath =
     'org-dartlang-sdk:///lib/_engine/engine/window.dart:99:12';
@@ -88,6 +91,8 @@ void main() async {
     Hive.registerAdapter(UserProgressModelAdapter());
     Hive.registerAdapter(RewardModelAdapter());
     Hive.registerAdapter(MotivationalCardModelAdapter());
+    Hive.registerAdapter(MotivationItemModelAdapter());
+    Hive.registerAdapter(MotivationPointsTransactionModelAdapter());
     Hive.registerAdapter(TimedWorkoutItemAdapter());
     Hive.registerAdapter(TimedWorkoutModelAdapter());
 
@@ -297,6 +302,44 @@ void main() async {
       print('✓ Recreated motivationalCards box');
     }
 
+    try {
+      await Hive.openBox<MotivationItemModel>('motivationItems');
+      print('✓ Opened motivationItems box');
+    } catch (e) {
+      print('⚠️ Error opening motivationItems box, clearing and recreating: $e');
+      try {
+        await Hive.deleteBoxFromDisk('motivationItems');
+      } catch (deleteError) {
+        print(
+          'Note: Could not delete motivationItems box (may not exist): $deleteError',
+        );
+      }
+      await Hive.openBox<MotivationItemModel>('motivationItems');
+      print('✓ Recreated motivationItems box');
+    }
+
+    try {
+      await Hive.openBox<MotivationPointsTransactionModel>(
+        'motivationPointsTransactions',
+      );
+      print('✓ Opened motivationPointsTransactions box');
+    } catch (e) {
+      print(
+        '⚠️ Error opening motivationPointsTransactions box, clearing and recreating: $e',
+      );
+      try {
+        await Hive.deleteBoxFromDisk('motivationPointsTransactions');
+      } catch (deleteError) {
+        print(
+          'Note: Could not delete motivationPointsTransactions box (may not exist): $deleteError',
+        );
+      }
+      await Hive.openBox<MotivationPointsTransactionModel>(
+        'motivationPointsTransactions',
+      );
+      print('✓ Recreated motivationPointsTransactions box');
+    }
+
     print('All Hive boxes opened successfully');
 
     // Initialize default workouts on first install
@@ -320,6 +363,24 @@ void main() async {
       await DefaultWorkoutsService.updateAudioFilesFromYaml();
     } catch (e) {
       print('⚠️ Error syncing audio files: $e');
+    }
+
+    // Initialize spritesheets (cut-on-memory, single texture per sheet)
+    try {
+      await SpriteSheets.init(
+        sheets: [
+          SheetSource.asset('assets/icon/workout_icons_128px.png'),
+          SheetSource.asset(
+            'assets/icon/motivation_64.png',
+            tileWidth: 64,
+            tileHeight: 64,
+          ),
+        ],
+        onMissing: MissingSpriteBehavior.transparent,
+      );
+      print('✓ Loaded spritesheets');
+    } catch (e) {
+      print('⚠️ Error loading spritesheets: $e');
     }
 
     runApp(MyApp());

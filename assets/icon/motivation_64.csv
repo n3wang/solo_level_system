@@ -1,0 +1,96 @@
+name,number,description,category
+Codenames,1,Two teams give one-word clues to identify agents while avoiding the assassin.,boardgame
+Dixit,2,Players tell imaginative clues for surreal art cards and score through clever guesses.,boardgame
+Love Letter,3,Quick deduction card game about delivering letters and eliminating rivals.,boardgame
+Dominion,4,Classic deck-building game where players buy cards to build stronger turns.,boardgame
+Betrayal at House on the Hill,5,Cooperative exploration turns into one-vs-many horror with unique scenario twists.,boardgame
+Sheriff of Nottingham,6,Bluff and negotiate goods through inspections while outsmarting the sheriff.,boardgame
+Decrypto,7,Teams send coded clues to teammates while intercepting opponent code patterns.,boardgame
+Skull,8,Simple bluffing game of hidden skulls and flowers with escalating bids.,boardgame
+Exploding,9,Light take-that card game about avoiding explosive kittens with action cards.,boardgame
+Saboteur,10,Dwarves dig tunnels for gold while hidden saboteurs secretly block progress.,boardgame
+Wavelength,11,Teams guess where clues land on a spectrum for cooperative party scoring.,boardgame
+Mysterium,12,Ghost gives visual clues to mediums solving suspects locations and murder details.,boardgame
+Terraforming Mars,13,Engine-building strategy game where corporations develop Mars for human habitation.,boardgame
+Werewolf,14,Social deduction game with hidden roles and daytime voting accusations.,boardgame
+The Resistance,15,Players complete missions while spies sabotage and deceive the team.,boardgame
+Avalon,16,Arthurian Resistance variant with hidden roles and special powers for deduction.,boardgame
+Secret Hitler,17,Hidden roles and political voting game set in tense historical theme.,boardgame
+Coup,18,Fast bluffing card game of influence powers and challenge actions.,boardgame
+Settlers of Catan,19,Trade resources and build roads settlements to earn victory points.,boardgame
+Ticket to Ride,20,Collect train cards to claim routes and complete destination tickets.,boardgame
+carcasonne,21,Tile-laying game building cities roads and fields for area scoring.,boardgame
+Pandemic,22,Cooperative strategy to contain global outbreaks and discover disease cures.,boardgame
+Venus Flytrap,23,A carnivorous plant with trap-like leaves that snap shut when insects touch trigger hairs. Used for pest control botanical study and ornamental display.,plant
+Corpse Flower,24,Giant tropical flower that produces one of the largest blooms in the world and smells like rotting flesh. Used for botanical research greenhouse attractions and education about pollination.,plant
+Dragons Blood Tree,25,An umbrella-shaped tree that produces a deep red resin called dragons blood. Used in traditional medicine as dye varnish and incense.,plant
+Ghost Orchid,26,Rare orchid with floating white flowers that appear ghost-like in forests. Used for ornamental horticulture and conservation research.,plant
+Pitcher Plant,27,Carnivorous plant with tube-shaped leaves that trap insects in digestive liquid. Used for natural insect control and educational displays.,plant
+Mimosa pudica,28,Leaves fold inward quickly when touched. Used for educational demonstrations and as ornamental plant.,plant
+Baobab Tree,29,Massive tree with thick trunk that stores water and appears upside-down. Sacred in African traditional religions. Provides food from fruit pulp and offers traditional medicine fiber and shelter.,plant
+Jade Plant,30,Succulent with thick leaves often associated with prosperity. Rooted in Taoist feng shui symbolism for luck and good fortune. Used for indoor decoration.,plant
+Aloe Vera,31,Succulent with gel-filled leaves. Used for skin care burns treatment and cosmetics.,plant
+Stinging Nettle,32,Plant covered with tiny stinging hairs. Used for herbal tea medicine and textile fiber.,plant
+Mandrake,33,Plant with forked root historically linked to myths and magic. Mentioned in the Bible as a symbol of fertility and associated with ancient witchcraft traditions. Used in historical herbal medicine and folklore studies.,plant
+Bamboo,34,Fast-growing grass that can reach great heights. Used for construction furniture paper and food from bamboo shoots.,plant
+Lotus,35,Aquatic plant with large floating leaves and symbolic flowers. Sacred in Hinduism and Buddhism representing purity and spiritual enlightenment. Used for food from seeds and roots and in ornamental ponds.,plant
+Neem Tree,36,Tree revered in Hindu culture as a sacred healing plant. Known for strong medicinal and insect-repelling properties. Used as natural pesticide in medicine and skincare products.,plant
+Saffron Crocus,37,Flower whose stigmas produce the spice saffron. Used in religious ceremonies across ancient Persian and Greek traditions. Used as culinary spice dye and in traditional medicine.,plant
+Lavender,38,Aromatic herb with purple flowers. Used for essential oils perfumes relaxation products and cooking.,plant
+Ginkgo,39,Ancient tree species with fan-shaped leaves. Planted at Buddhist temples across Asia and considered sacred. Used for herbal supplements and urban landscaping.,plant
+Camellia sinensis,40,Evergreen shrub used to produce green black and oolong teas. Used for beverage production and antioxidants in health products.,plant
+Cocoa Tree,41,Tropical tree whose seeds produce chocolate. Used for chocolate production beverages and cosmetics.,plant
+Rubber Tree,42,Tree that produces latex sap. Used for natural rubber in tires gloves and industrial products.,plant
+Rafflesia,43,Parasitic plant producing the world's largest single flower known for its strong rotten smell. Used for botanical research eco-tourism and education about parasitic plants.,plant
+Monkey Puzzle Tree,44,Ancient conifer with stiff spiraling branches and sharp leaves. Used for ornamental landscaping and produces edible seeds.,plant
+Bleeding Heart,45,Plant with heart-shaped flowers that appear to drip from the bottom. Used for ornamental gardening.,plant
+Sundew,46,Carnivorous plant with sticky tentacles that trap insects. Used for botanical research and pest control in terrariums.,plant
+Walking Onion,47,Plant that forms bulb clusters that bend and walk across the ground. Provides edible onions and is a home gardening curiosity.,plant
+Tillandsia,48,Plant that grows without soil and absorbs nutrients from air and moisture. Used for indoor decoration and terrariums.,plant
+Welwitschia,49,Strange desert plant with only two leaves that grow continuously for centuries. Used for botanical research and desert ecosystem study.,plant
+Snake Plant,50,Hardy plant with tall sword-like leaves. Used for indoor air purification and houseplant decoration.,plant
+Prayer Plant,51,Leaves fold upward at night like hands in prayer. Used as indoor ornamental plant.,plant
+Ice Plant,52,Succulent with shiny cells on leaves that sparkle like ice crystals. Used for ground cover in gardens and erosion control.,plant
+Swiss Cheese Plant (Monstera),53,Tropical plant with large leaves full of natural holes. Used for interior decoration and ornamental landscaping.,plant
+Curry Leaf Tree,54,Small tree with aromatic leaves used in cooking. Used as culinary spice and in traditional medicine.,plant
+Curry Plant (Helichrysum),55,Plant with leaves that smell like curry but are rarely eaten. Used in aromatic gardens and for ornamental use.,plant
+Bottle Gourd,56,Climbing vine producing hard-shelled gourds. Used for containers musical instruments and utensils.,plant
+Ghost Pepper Plant,57,Plant that produces one of the world's hottest peppers. Used for extreme spice in cooking and hot sauces.,plant
+Chocolate Cosmos,58,Flower that naturally smells like chocolate. Used for ornamental gardening and fragrance gardens.,plant
+Corkscrew Vine,59,Vine with twisted spiral flowers. Used as decorative climbing plant.,plant
+Fairy Lantern,60,Plant with lantern-shaped flowers that grow close to the ground. Used for ornamental gardening.,plant
+Paperbark Tree,61,Australian tree with distinctive layered white bark that peels in thin papery sheets. Used in traditional Aboriginal medicine shelter construction and food wrapping.,plant
+Breadfruit Tree,62,Large tropical tree bearing starchy fruits that can be cooked and eaten. Important food staple in Pacific island communities used in cooking and traditional culture.,plant
+Marcus Aurelius,63,Roman Emperor and Stoic philosopher whose book Meditations shaped modern ideas of resilience self-discipline and mindful leadership. Widely read by world leaders and entrepreneurs today.,philosopher
+Seneca (4 BC–65 AD),64,Roman Stoic philosopher and playwright whose writings on time management and the brevity of life directly influence modern productivity and self-improvement culture.,philosopher
+Epictetus (50–135 AD),65,Former slave who became a Stoic philosopher. His teachings on focusing only on what we can control shaped cognitive behavioral therapy and modern resilience psychology.,philosopher
+Socrates (470–399 BC),66,Ancient Greek philosopher known for the Socratic method of questioning. His approach to critical thinking forms the foundation of modern education legal reasoning and scientific inquiry.,philosopher
+Plato (427–347 BC),67,Student of Socrates who founded the Academy in Athens. His theory of ideal forms and justice shaped Western philosophy politics and the concept of democracy.,philosopher
+Aristotle (384–322 BC),68,Student of Plato who founded formal logic and classified knowledge into sciences. His work underpins modern biology ethics politics and the scientific method.,philosopher
+Confucius (551–479 BC),69,Ancient Chinese philosopher and teacher whose emphasis on virtue education and social harmony continues to shape East Asian culture governance and family values.,philosopher
+Laozi (6th century BC),70,Ancient Chinese philosopher and founder of Taoism whose text the Tao Te Ching shapes Eastern thought on balance harmony and non-interference influencing leadership and wellness today.,philosopher
+Zhuangzi (369–286 BC),71,Taoist philosopher known for poetic philosophical writing whose ideas about perspective freedom and living naturally influence Eastern psychology and modern mindfulness practices.,philosopher
+Immanuel Kant (1724–1804),72,German philosopher who defined the limits of reason and human knowledge. His categorical imperative shapes modern ethics human rights law and democratic political theory.,philosopher
+Friedrich Nietzsche (1844–1900),73,German philosopher who challenged traditional morality and religion. His concepts of the will to power and self-overcoming influence modern psychology existentialism and cultural criticism.,philosopher
+Arthur Schopenhauer (1788–1860),74,German philosopher known for the philosophy of will whose ideas influenced Freud and Nietzsche and shaped modern theories on desire motivation and the unconscious mind.,philosopher
+René Descartes (1596–1650),75,French philosopher and mathematician who founded modern rationalism. His statement I think therefore I am anchors modern ideas of consciousness and the scientific method.,philosopher
+John Locke (1632–1704),76,English philosopher who defined natural rights of life liberty and property. His political theory directly shaped the United States Constitution and modern liberal democracy.,philosopher
+David Hume (1711–1776),77,Scottish philosopher who questioned causation and the limits of human reason. His empiricism influenced modern science economics and the philosophy of religion and mind.,philosopher
+Baruch Spinoza (1632–1677),78,Dutch philosopher who argued for the unity of God and nature as a single substance. His ideas shaped secular thought the separation of church and state and modern pantheism.,philosopher
+Voltaire (1694–1778),79,French Enlightenment writer and philosopher whose fierce advocacy for freedom of speech tolerance and secular governance helped ignite the French Revolution and modern civil liberties.,philosopher
+Jean-Jacques Rousseau (1712–1778),80,French philosopher who argued society corrupts natural human goodness. His ideas about the social contract and popular sovereignty shaped modern democracy and education theory.,philosopher
+Thomas Hobbes (1588–1679),81,English philosopher who argued that without government life would be brutal and short. His social contract theory laid the groundwork for modern political science and state authority.,philosopher
+John Stuart Mill (1806–1873),82,British philosopher and economist known for utilitarianism and liberalism. His defense of individual freedom and women's rights influenced modern democracy and human rights legislation.,philosopher
+Karl Marx (1818–1883),83,German philosopher and economist who analyzed capitalism and class struggle. His ideas shaped socialist and communist movements and continue to influence political economy and labor rights debate.,philosopher
+Simone de Beauvoir (1908–1986),84,French existentialist philosopher and feminist whose book The Second Sex is a founding text of modern feminism challenging gender roles and shaping women's liberation movements worldwide.,philosopher
+Jean-Paul Sartre (1905–1980),85,French existentialist philosopher who argued existence precedes essence. His ideas on radical freedom and personal responsibility profoundly shaped modern literature psychology and political activism.,philosopher
+Albert Camus (1913–1960),86,French-Algerian philosopher and author who explored the absurdity of life. His philosophy of rebellion against meaninglessness continues to inspire modern ethics literature and humanist thought.,philosopher
+Ludwig Wittgenstein (1889–1951),87,Austrian-British philosopher who revolutionized the philosophy of language. His insight that meaning depends on use in context shaped modern linguistics cognitive science and analytic philosophy.,philosopher
+Bertrand Russell (1872–1970),88,British philosopher and mathematician whose work in mathematical logic helped birth modern computer science and artificial intelligence. A leading voice for pacifism and rationalism.,philosopher
+Hannah Arendt (1906–1975),89,German-American political philosopher who analyzed totalitarianism and the nature of evil. Her work on political freedom and public life shapes modern debates on democracy authoritarianism and human rights.,philosopher
+Michel Foucault (1926–1984),90,French philosopher who analyzed how power and knowledge shape social institutions. His critiques of prisons medicine and sexuality influence modern sociology critical theory and political activism.,philosopher
+Thomas Aquinas (1225–1274),91,Medieval theologian and philosopher who synthesized Aristotle with Christian theology. His natural law theory underpins modern Catholic moral teaching and Western concepts of justice and human dignity.,philosopher
+Augustine of Hippo (354–430),92,Early Christian theologian and philosopher whose ideas on sin grace and the City of God shaped Western Christianity. His introspective writing influenced modern psychology and religious philosophy.,philosopher
+Diogenes (412–323 BC),93,Ancient Greek Cynic philosopher who lived in radical simplicity. His rejection of wealth and social convention challenges modern consumerism and inspires minimalist and anti-establishment thought.,philosopher
+Heraclitus (535–475 BC),94,Pre-Socratic Greek philosopher who taught that everything is in constant flux. His ideas on change and opposing forces influenced Hegel Marx and modern process philosophy.,philosopher
+Parmenides (515–450 BC),95,Pre-Socratic Greek philosopher who argued that reality is one unchanging whole. His reasoning against change and plurality shaped the foundations of Western metaphysics and logical argumentation.,philosopher

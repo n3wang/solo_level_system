@@ -1,9 +1,14 @@
 // lib/screens/rewards_management_screen.dart
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:solo_level_system/constants/app_ui_sizes.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
+import 'package:solo_level_system/models/motivation_item_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
-import 'motivational_cards_screen.dart';
+import 'package:solo_level_system/screens/motivation_hub_screen.dart';
+import 'package:solo_level_system/utils/motivation_seed_service.dart';
+import 'package:solo_level_system/utils/reward_seed_service.dart';
 
 class RewardsManagementScreen extends StatefulWidget {
   const RewardsManagementScreen({super.key});
@@ -23,7 +28,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 3, vsync: this, initialIndex: 2);
     _loadData();
   }
 
@@ -40,6 +45,11 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
       if (!Hive.isBoxOpen('rewards')) {
         await Hive.openBox<RewardModel>('rewards');
       }
+      if (!Hive.isBoxOpen('motivationItems')) {
+        await Hive.openBox<MotivationItemModel>('motivationItems');
+      }
+      await RewardSeedService.ensureDefaultBoardgameRewards();
+      await MotivationSeedService.ensureSeeded();
       final rewardsBox = Hive.box<RewardModel>('rewards');
       rewards = rewardsBox.values.toList();
 
@@ -89,16 +99,24 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
         children: [
           _buildAvailableRewardsTab(),
           _buildPurchasedRewardsTab(),
-          MotivationalCardsScreen(),
+          const MotivationHubScreen(),
         ],
       ),
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton.extended(
               onPressed: _showAddRewardDialog,
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-              icon: Icon(Icons.add),
-              label: Text('Create Reward'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('Create Reward'),
+            )
+          : _tabController.index == 2
+          ? FloatingActionButton.extended(
+              onPressed: _showQuickCreateMotivationDialog,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('Create'),
             )
           : null,
     );
@@ -113,13 +131,15 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
       children: [
         // Points overview card
         Container(
-          margin: EdgeInsets.all(16),
-          padding: EdgeInsets.all(20),
+          margin: const EdgeInsets.all(AppUiSizes.lg),
+          padding: const EdgeInsets.all(AppUiSizes.xl),
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withValues(alpha:0.1),
-            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
             border: Border.all(
-              color: Theme.of(context).primaryColor.withValues(alpha:0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.3),
             ),
           ),
           child: Row(
@@ -127,24 +147,28 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
               Icon(
                 Icons.stars,
                 size: 32,
-                color: Theme.of(context).primaryColor,
+                color: Theme.of(context).colorScheme.primary,
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: AppUiSizes.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '${userProgress!.availablePoints} Points Available',
-                      style: TextStyle(
-                        fontSize: 20,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     Text(
                       'Earn 1 point per minute of focused work',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: AppColorPalette.fontSizeBody,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.72),
+                      ),
                     ),
                   ],
                 ),
@@ -180,25 +204,33 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
             Icon(
               canPurchase ? Icons.add_circle_outline : Icons.history,
               size: 64,
-              color: Colors.grey[400],
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.4),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: AppUiSizes.lg),
             Text(
               canPurchase
                   ? 'No rewards created yet'
                   : 'No rewards purchased yet',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 16,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.72),
                 fontWeight: FontWeight.w500,
               ),
             ),
             if (canPurchase) ...[
-              SizedBox(height: 8),
+              const SizedBox(height: AppUiSizes.sm),
               Text(
                 'Create your first reward!\nSet your own point costs for treats you want.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: AppColorPalette.fontSizeBody,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.62),
+                ),
               ),
             ],
           ],
@@ -213,23 +245,26 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
     }
 
     return ListView(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppUiSizes.lg),
       children: groupedRewards.entries.map((entry) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (entry.value.isNotEmpty) ...[
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: AppUiSizes.sm),
                 child: Text(
                   entry.value.first.categoryDisplay,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontSize: AppColorPalette.fontSizeSubtitle,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               ...entry.value.map(
                 (reward) => _buildRewardCard(reward, canPurchase),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: AppUiSizes.lg),
             ],
           ],
         );
@@ -245,12 +280,18 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor:
-              _parseColor(reward.color) ?? Theme.of(context).primaryColor,
-          child: Icon(_getIconData(reward.iconName), color: Colors.white),
+              _parseColor(reward.color) ??
+              Theme.of(context).colorScheme.primary,
+          child: Icon(
+            _getIconData(reward.iconName),
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
         ),
         title: Text(
           reward.title,
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,8 +300,8 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
             if (reward.timesPurchased > 0)
               Text(
                 'Purchased ${reward.timesPurchased} time(s)',
-                style: TextStyle(
-                  color: Colors.green,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.tertiary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -273,19 +314,27 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 children: [
                   Text(
                     '${reward.pointsCost} pts',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: canAfford ? Colors.green : Colors.red,
+                      color: canAfford
+                          ? Theme.of(context).colorScheme.tertiary
+                          : Theme.of(context).colorScheme.error,
                     ),
                   ),
                   if (!canAfford)
                     Text(
                       'Need ${reward.pointsCost - userProgress!.availablePoints} more',
-                      style: TextStyle(fontSize: 10, color: Colors.red),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontSize: AppColorPalette.fontSizeXSmall,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                 ],
               )
-            : Icon(Icons.check_circle, color: Colors.green),
+            : Icon(
+                Icons.check_circle,
+                color: Theme.of(context).colorScheme.tertiary,
+              ),
         onTap: canPurchase && canAfford ? () => _purchaseReward(reward) : null,
         onLongPress: canPurchase ? () => _showRewardOptions(reward) : null,
       ),
@@ -307,8 +356,14 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
             },
           ),
           ListTile(
-            leading: Icon(Icons.delete, color: Colors.red),
-            title: Text('Delete Reward', style: TextStyle(color: Colors.red)),
+            leading: Icon(
+              Icons.delete,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(
+              'Delete Reward',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
             onTap: () {
               Navigator.pop(context);
               _deleteReward(reward);
@@ -342,19 +397,19 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 controller: titleController,
                 decoration: InputDecoration(labelText: 'Reward Title'),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: AppUiSizes.lg),
               TextField(
                 controller: descriptionController,
                 decoration: InputDecoration(labelText: 'Description'),
                 maxLines: 2,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: AppUiSizes.lg),
               TextField(
                 controller: pointsController,
                 decoration: InputDecoration(labelText: 'Points Cost'),
                 keyboardType: TextInputType.number,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: AppUiSizes.lg),
               DropdownButtonFormField<String>(
                 initialValue: selectedCategory,
                 decoration: InputDecoration(labelText: 'Category'),
@@ -392,8 +447,8 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             onPressed: () {
               if (titleController.text.isNotEmpty &&
@@ -434,7 +489,9 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
             child: Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
             onPressed: () {
               reward.delete();
               setState(() {
@@ -445,7 +502,10 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 context,
               ).showSnackBar(SnackBar(content: Text('Reward deleted')));
             },
-            child: Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Theme.of(context).colorScheme.onError),
+            ),
           ),
         ],
       ),
@@ -467,8 +527,8 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             onPressed: () {
               if (userProgress!.spendPoints(reward.pointsCost)) {
@@ -479,7 +539,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('🎉 Reward purchased! Enjoy your treat!'),
-                    backgroundColor: Colors.green,
+                    backgroundColor: Theme.of(context).colorScheme.tertiary,
                   ),
                 );
               }
@@ -488,6 +548,166 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
           ),
         ],
       ),
+    );
+  }
+
+  void _showQuickCreateMotivationDialog() {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final pointsController = TextEditingController(text: '20');
+    var selectedType = 'collection'; // collection | quote | reward
+    String selectedCategory = 'general';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Quick Create Motivation'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: 'collection',
+                          label: Text('Collection'),
+                        ),
+                        ButtonSegment(value: 'quote', label: Text('Quote')),
+                        ButtonSegment(value: 'reward', label: Text('Reward')),
+                      ],
+                      selected: {selectedType},
+                      onSelectionChanged: (value) {
+                        if (value.isEmpty) return;
+                        setDialogState(() {
+                          selectedType = value.first;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: AppUiSizes.lg),
+                    TextField(
+                      controller: titleController,
+                      decoration: InputDecoration(
+                        labelText: selectedType == 'quote'
+                            ? 'Person / Topic'
+                            : 'Title',
+                      ),
+                    ),
+                    const SizedBox(height: AppUiSizes.lg),
+                    TextField(
+                      controller: descriptionController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: selectedType == 'quote'
+                            ? 'Description or quote context'
+                            : 'Description',
+                      ),
+                    ),
+                    const SizedBox(height: AppUiSizes.lg),
+                    TextField(
+                      controller: pointsController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Points cost',
+                      ),
+                    ),
+                    if (selectedType == 'reward') ...[
+                      const SizedBox(height: AppUiSizes.lg),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedCategory,
+                        decoration: const InputDecoration(
+                          labelText: 'Category',
+                        ),
+                        items:
+                            const [
+                                  'general',
+                                  'electronics',
+                                  'entertainment',
+                                  'food',
+                                  'shopping',
+                                  'activities',
+                                  'tools',
+                                  'books',
+                                  'health',
+                                  'travel',
+                                ]
+                                .map(
+                                  (category) => DropdownMenuItem(
+                                    value: category,
+                                    child: Text(category),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() {
+                              selectedCategory = value;
+                            });
+                          }
+                        },
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final title = titleController.text.trim();
+                    final description = descriptionController.text.trim();
+                    final points =
+                        int.tryParse(pointsController.text.trim()) ?? 0;
+                    if (title.isEmpty || points <= 0) return;
+
+                    if (selectedType == 'reward') {
+                      await _addCustomReward(
+                        title,
+                        description,
+                        points,
+                        selectedCategory,
+                      );
+                    } else {
+                      final box = Hive.box<MotivationItemModel>(
+                        'motivationItems',
+                      );
+                      await box.add(
+                        MotivationItemModel(
+                          id: 'quick_${selectedType}_${DateTime.now().millisecondsSinceEpoch}',
+                          type: selectedType,
+                          title: title,
+                          description: description.isEmpty
+                              ? 'User-created $selectedType card'
+                              : description,
+                          category: selectedType,
+                          pointsCost: points,
+                          createdAt: DateTime.now(),
+                          isSystem: false,
+                          quotePerson: selectedType == 'quote' ? title : null,
+                          quoteText: selectedType == 'quote'
+                              ? (description.isEmpty ? title : description)
+                              : null,
+                        ),
+                      );
+                    }
+                    if (!mounted) return;
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('$selectedType card created')),
+                    );
+                  },
+                  child: const Text('Create'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -512,7 +732,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                   hintText: 'e.g., "New Phone Case"',
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: AppUiSizes.lg),
               TextField(
                 controller: descriptionController,
                 decoration: InputDecoration(
@@ -521,7 +741,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 ),
                 maxLines: 2,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: AppUiSizes.lg),
               TextField(
                 controller: pointsController,
                 decoration: InputDecoration(
@@ -531,7 +751,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 ),
                 keyboardType: TextInputType.number,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: AppUiSizes.lg),
               DropdownButtonFormField<String>(
                 initialValue: selectedCategory,
                 decoration: InputDecoration(labelText: 'Category'),
@@ -569,8 +789,8 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             onPressed: () {
               if (titleController.text.isNotEmpty &&
