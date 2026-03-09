@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:solo_level_system/screens/home_screen.dart';
 import 'package:solo_level_system/screens/analytics_screen.dart';
-import 'package:solo_level_system/screens/rewards_management_screen.dart';
 import 'package:solo_level_system/screens/settings_screen.dart';
 import 'package:solo_level_system/screens/workout_screen.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
@@ -27,7 +26,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       HomeScreen(onSettingsChanged: () => _notifySettingsChanged()),
       AnalyticsScreen(),
       WorkoutScreen(),
-      RewardsManagementScreen(),
       SettingsScreen(),
     ];
   }
@@ -50,7 +48,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         showSelectedLabels: false,
         showUnselectedLabels: false,
         onTap: (index) {
-          final bool comingFromSettings = _currentIndex == 4;
+          final bool comingFromSettings = _currentIndex == 3;
           setState(() {
             _currentIndex = index;
           });
@@ -78,12 +76,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             activeIcon: Icon(Icons.fitness_center),
             label: '',
             tooltip: 'Workout & Exercise Tracker',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.card_giftcard_outlined),
-            activeIcon: Icon(Icons.card_giftcard),
-            label: '',
-            tooltip: 'Rewards & Points',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),

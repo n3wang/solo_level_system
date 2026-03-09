@@ -4,7 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/habit_tracker_model.dart';
-import 'package:solo_level_system/models/user_progress_model.dart';
+import 'package:solo_level_system/screens/rewards_management_screen.dart';
 
 extension StringExtension on String {
   String capitalizeFirst() {
@@ -51,7 +51,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             Tab(text: 'Overview'),
             Tab(text: 'Focus'),
             Tab(text: 'Workouts'),
-            Tab(text: 'Features'),
+            Tab(text: 'Rewards'),
           ],
         ),
       ),
@@ -92,7 +92,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 _buildOverviewTab(),
                 _buildFocusTab(),
                 _buildWorkoutsTab(),
-                _buildFeaturesTab(),
+                RewardsManagementScreen(),
               ],
             ),
           ),
@@ -246,111 +246,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           },
         );
       },
-    );
-  }
-
-  Widget _buildFeaturesTab() {
-    return FutureBuilder(
-      future: _ensureBoxIsOpen<UserProgressModel>('userProgress'),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Error loading progress data: ${snapshot.error}'),
-          );
-        }
-
-        return ValueListenableBuilder(
-          valueListenable: Hive.box<UserProgressModel>(
-            'userProgress',
-          ).listenable(),
-          builder: (context, box, _) {
-            final userProgress = box.get('progress');
-
-            if (userProgress == null) {
-              return Center(child: Text('No progress data available'));
-            }
-
-            final featureRequirements =
-                ProgressConstants.FEATURE_UNLOCK_REQUIREMENTS;
-            final featureDescriptions = ProgressConstants.FEATURE_DESCRIPTIONS;
-
-            return ListView(
-              padding: EdgeInsets.all(16),
-              children: featureRequirements.entries.map((entry) {
-                final isUnlocked =
-                    userProgress.canUnlockFeature(entry.key, entry.value) ||
-                    userProgress.isFeatureUnlocked(entry.key);
-                final canUnlock = userProgress.canUnlockFeature(
-                  entry.key,
-                  entry.value,
-                );
-
-                return Card(
-                  child: ListTile(
-                    leading: Icon(
-                      isUnlocked ? Icons.lock_open : Icons.lock,
-                      color: isUnlocked ? Colors.green : Colors.grey,
-                    ),
-                    title: Text(
-                      entry.key.replaceAll('_', ' ').toUpperCase(),
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          featureDescriptions[entry.key] ??
-                              'Feature description',
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Requires ${entry.value} XP',
-                          style: TextStyle(
-                            color: isUnlocked ? Colors.green : Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                    trailing: isUnlocked
-                        ? Icon(Icons.check_circle, color: Colors.green)
-                        : canUnlock
-                        ? ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).primaryColor,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () =>
-                                _unlockFeature(entry.key, userProgress),
-                            child: Text('Unlock'),
-                          )
-                        : Text(
-                            '${entry.value - userProgress.totalExperience} XP needed',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                  ),
-                );
-              }).toList(),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _unlockFeature(String featureId, UserProgressModel userProgress) {
-    userProgress.unlockFeature(featureId);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('🎉 Feature unlocked! Check the app for new options.'),
-        backgroundColor: Colors.green,
-      ),
     );
   }
 
