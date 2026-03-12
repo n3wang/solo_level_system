@@ -1,10 +1,12 @@
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
+import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/models/reward_model.dart';
 
 class RewardSeedService {
   static const String _rewardsBoxName = 'rewards';
   static const String _sourceTag = 'default_boardgame_csv';
+  static const String _testSourceTag = 'test_sample_user_rewards';
   static const String _csvAssetPath = 'assets/icon/motivation_64.csv';
 
   static Future<void> ensureDefaultBoardgameRewards() async {
@@ -66,6 +68,60 @@ class RewardSeedService {
           },
         ),
       );
+    }
+
+    if (AppEnvironment.isTest) {
+      await _ensureTestSampleUserRewards(box);
+    }
+  }
+
+  static Future<void> _ensureTestSampleUserRewards(Box<RewardModel> box) async {
+    final samples = <RewardModel>[
+      RewardModel(
+        id: 'test_user_reward_ps5',
+        title: 'Buy PS5',
+        description: 'Redeem points toward a PlayStation 5 purchase.',
+        pointsCost: 25,
+        category: 'electronics',
+        iconName: 'sports_esports',
+        color: '#42A5F5',
+        isCustom: true,
+        createdAt: DateTime.now(),
+        tags: const ['test', 'sample', 'user-reward', _testSourceTag],
+        metadata: const {'source': _testSourceTag, 'isTestSeed': true},
+      ),
+      RewardModel(
+        id: 'test_user_reward_electronics_kit',
+        title: 'Electronics Kit Upgrade',
+        description: 'Treat yourself to a new electronics prototyping kit.',
+        pointsCost: 18,
+        category: 'tools',
+        iconName: 'memory',
+        color: '#26A69A',
+        isCustom: true,
+        createdAt: DateTime.now(),
+        tags: const ['test', 'sample', 'user-reward', _testSourceTag],
+        metadata: const {'source': _testSourceTag, 'isTestSeed': true},
+      ),
+      RewardModel(
+        id: 'test_user_reward_coffee_setup',
+        title: 'Premium Coffee Setup',
+        description: 'Redeem for a better home coffee setup.',
+        pointsCost: 12,
+        category: 'shopping',
+        iconName: 'coffee',
+        color: '#FFA726',
+        isCustom: true,
+        createdAt: DateTime.now(),
+        tags: const ['test', 'sample', 'user-reward', _testSourceTag],
+        metadata: const {'source': _testSourceTag, 'isTestSeed': true},
+      ),
+    ];
+
+    for (final sample in samples) {
+      final alreadySeeded = box.values.any((reward) => reward.id == sample.id);
+      if (alreadySeeded) continue;
+      await box.add(sample);
     }
   }
 

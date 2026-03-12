@@ -83,6 +83,7 @@ flutter:
     - assets/lofi/
     - assets/audio/
     - assets/album/
+    - assets/quotes.csv
     - assets/icon/workout_icons_128px.png
     - assets/icon/workout_icons_128px.csv
     - assets/icon/workout_icons_sliced/

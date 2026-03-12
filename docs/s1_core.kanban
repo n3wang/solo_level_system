@@ -187,8 +187,84 @@
       "title": "Doing",
       "cards": [
         {
-          "id": "2aeadd31-6b27-4cd5-8431-e77e3f7a8d38",
+          "id": "ac5b784b-6bcf-4275-b83d-eb95da82b7ba",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Large refactor of workout",
+          "description": "Refactor the workout screen so that only has threee tabs\n\nThe Sets tab\nHas the lists of workoutrows, and 6 sub tabs auto recomending automatically then 5 sets that work like tags to filter that sets workout tile.\n\n",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "c4313efd-592b-4275-b1d1-fc2022904b05",
+              "title": "Redesign Sets",
+              "checked": true
+            },
+            {
+              "id": "b3056a10-f492-4895-8f15-0733261b0ee7",
+              "title": "Redesign  Motivation -> due in anothe card",
+              "checked": false
+            },
+            {
+              "id": "e56ccda5-03f3-478e-ba5f-e4744dae6cdf",
+              "title": " Redesign  Timed -> due in another card",
+              "checked": false
+            },
+            {
+              "id": "7890ae4b-f7c4-4746-8ca7-6e5bf98aa35e",
+              "title": "Add both the default workout sessions and icons",
+              "checked": true
+            },
+            {
+              "id": "d1b32351-8c69-4af4-9e25-037263e2ad98",
+              "title": "Use the provided icons for the workout icons that can select aside of from acamera",
+              "checked": true
+            },
+            {
+              "id": "81df03b0-0404-4e0f-b312-350ded900f9c",
+              "title": "Have a previous days workout screen",
+              "checked": false
+            },
+            {
+              "id": "4ec828cd-1221-40f2-8153-f44acc03ef9a",
+              "title": "Save the completed workout onfiguratins",
+              "checked": true
+            },
+            {
+              "id": "9fc82ea8-c6fe-4cf2-aef8-de039875e8e5",
+              "title": "Workout screen list refinement",
+              "checked": true
+            },
+            {
+              "id": "5611ab2a-2f7e-4e68-8e7c-f6b9d3570721",
+              "title": "have different measure types",
+              "checked": true
+            },
+            {
+              "id": "acf10b78-6e1d-4b61-a43d-9e95cf813ccc",
+              "title": "change the default color palette into different grey colors, store the current palette as another palette",
+              "checked": true
+            },
+            {
+              "id": "41301d63-ae3c-471d-86be-835882b7a5e0",
+              "title": "quote and rewards systesm",
+              "checked": true
+            }
+          ],
+          "comments": [
+            {
+              "id": "d0efe1cc-9291-4a75-9bc0-2c78f345cc01",
+              "comment": "Redesigning motivation screen. Think about which are the options ansd usage as well as online insspirations as wella s in wchih is the hok that should be used. "
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+      "title": "Done",
+      "cards": [
+        {
+          "id": "2aeadd31-6b27-4cd5-8431-e77e3f7a8d38",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
           "title": "Create the Room Management Screen",
           "description": "",
           "labels": [],
@@ -252,73 +328,8 @@
           ]
         },
         {
-          "id": "ac5b784b-6bcf-4275-b83d-eb95da82b7ba",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Large refactor of workout",
-          "description": "Refactor the workout screen so that only has threee tabs\n\nThe Sets tab\nHas the lists of workoutrows, and 6 sub tabs auto recomending automatically then 5 sets that work like tags to filter that sets workout tile.\n\n",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "c4313efd-592b-4275-b1d1-fc2022904b05",
-              "title": "Redesign Sets",
-              "checked": true
-            },
-            {
-              "id": "b3056a10-f492-4895-8f15-0733261b0ee7",
-              "title": "Redesign  Motivation -> due in anothe rcard",
-              "checked": false
-            },
-            {
-              "id": "e56ccda5-03f3-478e-ba5f-e4744dae6cdf",
-              "title": " Redesign  Timed -> due in another card",
-              "checked": false
-            },
-            {
-              "id": "7890ae4b-f7c4-4746-8ca7-6e5bf98aa35e",
-              "title": "Add both the default workout sessions and icons",
-              "checked": true
-            },
-            {
-              "id": "d1b32351-8c69-4af4-9e25-037263e2ad98",
-              "title": "Use the provided icons for the workout icons that can select aside of from acamera",
-              "checked": true
-            },
-            {
-              "id": "81df03b0-0404-4e0f-b312-350ded900f9c",
-              "title": "Have a previous days workout screen",
-              "checked": false
-            },
-            {
-              "id": "4ec828cd-1221-40f2-8153-f44acc03ef9a",
-              "title": "Save the completed workout onfiguratins",
-              "checked": true
-            },
-            {
-              "id": "9fc82ea8-c6fe-4cf2-aef8-de039875e8e5",
-              "title": "Workout screen list refinement",
-              "checked": true
-            },
-            {
-              "id": "5611ab2a-2f7e-4e68-8e7c-f6b9d3570721",
-              "title": "have different measure types",
-              "checked": true
-            },
-            {
-              "id": "acf10b78-6e1d-4b61-a43d-9e95cf813ccc",
-              "title": "change the default color palette into different grey colors, store the current palette as another palette",
-              "checked": true
-            }
-          ],
-          "comments": [
-            {
-              "id": "d0efe1cc-9291-4a75-9bc0-2c78f345cc01",
-              "comment": "Redesigning motivation screen. Think about which are the options ansd usage as well as online insspirations as wella s in wchih is the hok that should be used. "
-            }
-          ]
-        },
-        {
           "id": "af9a53fb-1333-4af0-bdda-5867061a3208",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
           "title": "Project Screen refactor and habits and model schemas",
           "description": "",
           "labels": [],
@@ -331,17 +342,17 @@
             {
               "id": "15da03d0-0e3a-4037-a266-319f2bc81408",
               "title": "Refactor to simplify the exercise creation screen",
-              "checked": false
+              "checked": true
             },
             {
               "id": "ff175111-298e-4f42-b041-5e6bf1f97a93",
               "title": "Create a yml with the predefined workouts (already existing)",
-              "checked": false
+              "checked": true
             },
             {
               "id": "dd12a13a-4af2-44e5-a02b-85f31dba3cfc",
               "title": "Create a sample list 1 and list 2",
-              "checked": false
+              "checked": true
             }
           ],
           "comments": [
@@ -352,11 +363,6 @@
           ]
         }
       ]
-    },
-    {
-      "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-      "title": "Done",
-      "cards": []
     }
   ],
   "archive": {

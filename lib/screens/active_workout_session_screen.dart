@@ -9,7 +9,9 @@ import 'package:solo_level_system/models/workout_routine_model.dart';
 import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/utils/workout_service.dart';
+import 'package:solo_level_system/utils/workout_motivation_service.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
+import 'package:sprite_sheets/sprite_sheets.dart';
 
 class ActiveWorkoutSessionScreen extends StatefulWidget {
   final WorkoutSessionModel session;
@@ -37,6 +39,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
   bool _isResting = false;
   Timer? _restTimer;
   Duration _restDuration = Duration.zero;
+  WorkoutQuoteVm? _motivationQuote;
 
   late TabController _tabController;
   final Map<String, List<WorkoutSetModel>> _exerciseSets = {};
@@ -53,6 +56,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       vsync: this,
     );
     _initializeWorkout();
+    _motivationQuote = WorkoutMotivationService.randomAcquiredQuote();
     _startTimer();
   }
 
@@ -116,6 +120,12 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       if (!_isPaused) {
         setState(() {
           _workoutDuration = _workoutDuration + Duration(seconds: 1);
+          if (_workoutDuration.inSeconds % 45 == 0) {
+            _motivationQuote = WorkoutMotivationService.randomAcquiredQuote(
+              excludeQuote: _motivationQuote?.quote,
+              excludeItemId: _motivationQuote?.itemId,
+            );
+          }
         });
       }
     });
@@ -207,6 +217,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             body: Column(
               children: [
                 if (_isResting) _buildRestTimer(),
+                if (_motivationQuote != null &&
+                    _motivationQuote!.quote.trim().isNotEmpty)
+                  _buildMotivationQuoteBanner(),
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
@@ -296,6 +309,139 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMotivationQuoteBanner() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: _showMotivationQuoteDetails,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.format_quote,
+                color: Theme.of(context).colorScheme.primary,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _motivationQuote!.quote,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.casino_outlined,
+                size: 16,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showMotivationQuoteDetails() async {
+    if (_motivationQuote == null) return;
+    final scheme = Theme.of(context).colorScheme;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        WorkoutQuoteVm current = _motivationQuote!;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              contentPadding: const EdgeInsets.all(16),
+              content: SizedBox(
+                width: 340,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      current.author,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: current.imageIndex != null && current.imageIndex! > 0
+                          ? SpriteImage(
+                              sheet: 'motivation_64',
+                              index: current.imageIndex! - 1,
+                              size: 96,
+                            )
+                          : Icon(
+                              Icons.format_quote,
+                              size: 64,
+                              color: scheme.primary,
+                            ),
+                    ),
+                    if (current.aboutAuthor.trim().isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        current.aboutAuthor,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Text(
+                      current.quote,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            final next = WorkoutMotivationService.randomAcquiredQuote(
+                              excludeQuote: current.quote,
+                              excludeItemId: current.itemId,
+                            );
+                            if (next == null) return;
+                            setState(() {
+                              _motivationQuote = next;
+                            });
+                            setDialogState(() {
+                              current = next;
+                            });
+                          },
+                          icon: const Icon(Icons.casino_outlined),
+                          label: const Text('Random'),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

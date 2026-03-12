@@ -31,13 +31,16 @@ class MotivationItemModelAdapter extends TypeAdapter<MotivationItemModel> {
       quoteText: fields[11] as String?,
       imageIndex: fields[12] as int?,
       metadata: (fields[13] as Map).cast<String, dynamic>(),
+      acquisitionCount: (fields[14] as int?) ?? 0,
+      acquisitionHistory:
+          (fields[15] as List?)?.cast<DateTime>() ?? const <DateTime>[],
     );
   }
 
   @override
   void write(BinaryWriter writer, MotivationItemModel obj) {
     writer
-      ..writeByte(14)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -65,7 +68,11 @@ class MotivationItemModelAdapter extends TypeAdapter<MotivationItemModel> {
       ..writeByte(12)
       ..write(obj.imageIndex)
       ..writeByte(13)
-      ..write(obj.metadata);
+      ..write(obj.metadata)
+      ..writeByte(14)
+      ..write(obj.acquisitionCount)
+      ..writeByte(15)
+      ..write(obj.acquisitionHistory);
   }
 
   @override

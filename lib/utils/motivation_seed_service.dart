@@ -1,11 +1,13 @@
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
+import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/models/motivation_item_model.dart';
 
 class MotivationSeedService {
   static const String _boxName = 'motivationItems';
   static const String _csvPath = 'assets/icon/motivation_64.csv';
   static const String _quotesPath = 'assets/quotes.csv';
+  static const String _testSourceTag = 'test_sample_gym_quotes';
 
   static Future<void> ensureSeeded() async {
     if (!Hive.isBoxOpen(_boxName)) {
@@ -32,13 +34,42 @@ class MotivationSeedService {
 
       final type = _typeFromCategory(category);
       final id = 'motivation_catalog_$number';
-      final exists = box.values.any((item) => item.id == id);
-      if (exists) continue;
-
       final quotes = quoteMap[name] ?? _findQuotesByContains(quoteMap, name);
       final quoteText = type == 'quote' && quotes.isNotEmpty
-          ? quotes[number % quotes.length]
+          ? quotes.first
           : null;
+      MotivationItemModel? existing;
+      for (final item in box.values) {
+        if (item.id == id) {
+          existing = item;
+          break;
+        }
+      }
+      if (existing != null) {
+        if (type == 'quote' && quotes.isNotEmpty) {
+          var changed = false;
+          final metadata = Map<String, dynamic>.from(existing.metadata);
+          final existingQuotes = metadata['quotes'];
+          final hasQuotes = existingQuotes is List && existingQuotes.isNotEmpty;
+          if (!hasQuotes) {
+            metadata['quotes'] = quotes;
+            existing.metadata = metadata;
+            changed = true;
+          }
+          if ((existing.quoteText?.trim().isEmpty ?? true)) {
+            existing.quoteText = quotes.first;
+            changed = true;
+          }
+          if (existing.description.trim().isEmpty && description.isNotEmpty) {
+            existing.description = description;
+            changed = true;
+          }
+          if (changed) {
+            await existing.save();
+          }
+        }
+        continue;
+      }
 
       await box.add(
         MotivationItemModel(
@@ -53,15 +84,105 @@ class MotivationSeedService {
           quotePerson: type == 'quote' ? name : null,
           quoteText: quoteText,
           imageIndex: number,
-          metadata: {'source': 'motivation_64.csv'},
+          metadata: {
+            'source': 'motivation_64.csv',
+            if (type == 'quote' && quotes.isNotEmpty) 'quotes': quotes,
+          },
         ),
       );
+    }
+
+    if (AppEnvironment.isTest) {
+      await _ensureTestSampleGymQuotes(box);
+    }
+  }
+
+  static Future<void> _ensureTestSampleGymQuotes(
+    Box<MotivationItemModel> box,
+  ) async {
+    final now = DateTime.now();
+    final samples = <MotivationItemModel>[
+      MotivationItemModel(
+        id: 'test_quote_gym_1',
+        type: 'quote',
+        title: 'Gym Focus',
+        description: 'One more rep than yesterday. That is enough progress.',
+        category: 'quote',
+        pointsCost: 5,
+        createdAt: now,
+        isSystem: true,
+        quotePerson: 'Gym Focus',
+        quoteText: 'One more rep than yesterday. That is enough progress.',
+        metadata: const {
+          'source': _testSourceTag,
+          'isTestSeed': true,
+          'quotes': [
+            'One more rep than yesterday. That is enough progress.',
+            'Do the hard set first, then everything else feels lighter.',
+            'Consistency beats intensity when intensity is inconsistent.',
+          ],
+        },
+      ),
+      MotivationItemModel(
+        id: 'test_quote_gym_2',
+        type: 'quote',
+        title: 'Gym Discipline',
+        description: 'You do not need perfect energy. You need your next set.',
+        category: 'quote',
+        pointsCost: 5,
+        createdAt: now,
+        isSystem: true,
+        quotePerson: 'Gym Discipline',
+        quoteText: 'You do not need perfect energy. You need your next set.',
+        metadata: const {
+          'source': _testSourceTag,
+          'isTestSeed': true,
+          'quotes': [
+            'You do not need perfect energy. You need your next set.',
+            'Discipline is deciding before motivation shows up.',
+            'Small effort on low-energy days protects big goals.',
+          ],
+        },
+      ),
+      MotivationItemModel(
+        id: 'test_quote_gym_3',
+        type: 'quote',
+        title: 'Gym Momentum',
+        description: 'Show up. Warm up. Start small. Momentum handles the rest.',
+        category: 'quote',
+        pointsCost: 5,
+        createdAt: now,
+        isSystem: true,
+        quotePerson: 'Gym Momentum',
+        quoteText: 'Show up. Warm up. Start small. Momentum handles the rest.',
+        metadata: const {
+          'source': _testSourceTag,
+          'isTestSeed': true,
+          'quotes': [
+            'Show up. Warm up. Start small. Momentum handles the rest.',
+            'Action creates motivation more often than waiting does.',
+            'Finish today so tomorrow starts stronger.',
+          ],
+        },
+      ),
+    ];
+
+    for (final sample in samples) {
+      final alreadySeeded = box.values.any((item) => item.id == sample.id);
+      if (alreadySeeded) continue;
+      await box.add(sample);
     }
   }
 
   static Future<Map<String, List<String>>> _loadQuotesByPerson() async {
     final map = <String, List<String>>{};
-    final raw = await rootBundle.loadString(_quotesPath);
+    String raw;
+    try {
+      raw = await rootBundle.loadString(_quotesPath);
+    } catch (_) {
+      // Keep motivation seeding alive even if quotes asset is unavailable.
+      return map;
+    }
     final lines = raw.split('\n').where((line) => line.trim().isNotEmpty).toList();
     if (lines.length <= 1) return map;
     for (var i = 1; i < lines.length; i++) {
@@ -114,10 +235,10 @@ class MotivationSeedService {
   }
 
   static int _pointsCost({required int number, required String type}) {
-    if (number <= 3) return 20;
-    if (type == 'quote') return 15;
-    if (number <= 20) return 30;
-    return 45;
+    if (number <= 3) return AppEnvironment.seededMotivationStarterCost;
+    if (type == 'quote') return AppEnvironment.isTest ? 10 : 15;
+    if (number <= 20) return AppEnvironment.isTest ? 15 : 30;
+    return AppEnvironment.isTest ? 25 : 45;
   }
 }
 

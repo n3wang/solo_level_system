@@ -46,6 +46,12 @@ class MotivationItemModel extends HiveObject {
   @HiveField(13)
   Map<String, dynamic> metadata;
 
+  @HiveField(14)
+  int acquisitionCount;
+
+  @HiveField(15)
+  List<DateTime> acquisitionHistory;
+
   MotivationItemModel({
     required this.id,
     required this.type,
@@ -61,6 +67,18 @@ class MotivationItemModel extends HiveObject {
     this.quoteText,
     this.imageIndex,
     this.metadata = const {},
+    this.acquisitionCount = 0,
+    this.acquisitionHistory = const [],
   });
+
+  bool get hasAnyAcquisition => acquisitionCount > 0 || isAcquired;
+
+  void recordAcquisition() {
+    final now = DateTime.now();
+    acquisitionCount += 1;
+    isAcquired = true;
+    acquiredAt = now;
+    acquisitionHistory = [...acquisitionHistory, now];
+  }
 }
 

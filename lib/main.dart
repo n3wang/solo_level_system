@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'config/app_environment.dart';
 import 'constants/color_palette.dart';
 import 'screens/main_navigation_screen.dart';
 import 'models/pomodoro_model.dart';
@@ -22,6 +23,7 @@ import 'models/motivation_item_model.dart';
 import 'models/motivation_points_transaction_model.dart';
 import 'models/timed_workout_model.dart';
 import 'utils/default_workouts_service.dart';
+import 'utils/test_mode_bootstrap_service.dart';
 import 'utils/programs_service.dart';
 import 'utils/palette_notifier.dart';
 import 'package:sprite_sheets/sprite_sheets.dart';
@@ -37,6 +39,7 @@ bool _isNoisyWebEngineWindowAssertion(String text) {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  print('App environment: ${AppEnvironment.name} (test=${AppEnvironment.isTest})');
 
   // Suppress a known noisy Flutter web engine assertion spam in debug logs.
   // Keep all other framework/runtime errors visible.
@@ -383,6 +386,12 @@ void main() async {
       print('⚠️ Error loading spritesheets: $e');
     }
 
+    try {
+      await TestModeBootstrapService.ensureTestData();
+    } catch (e) {
+      print('⚠️ Error applying test bootstrap data: $e');
+    }
+
     runApp(MyApp());
   } catch (e, stackTrace) {
     print('❌ Critical Hive initialization error: $e');
@@ -545,7 +554,9 @@ class _MyAppState extends State<MyApp> {
     final scaffoldBackgroundColor = AppColorPalette.scaffoldBackground;
 
     return MaterialApp(
-      title: 'Solo Level System',
+      title: AppEnvironment.isTest
+          ? 'Solo Level System (TEST)'
+          : 'Solo Level System',
       theme: ThemeData(
         primarySwatch: primaryMaterialColor,
         primaryColor: AppColorPalette.primary,

@@ -6,7 +6,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/habit_tracker_model.dart';
-import 'package:solo_level_system/screens/rewards_management_screen.dart';
+import 'package:solo_level_system/screens/motivation_hub_screen.dart';
 
 extension StringExtension on String {
   String capitalizeFirst() {
@@ -100,7 +100,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 _buildOverviewTab(),
                 _buildFocusTab(),
                 _buildWorkoutsTab(),
-                RewardsManagementScreen(),
+                const MotivationHubScreen(),
               ],
             ),
           ),

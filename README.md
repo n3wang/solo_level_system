@@ -17,6 +17,22 @@ flutter packages pub run build_runner build --delete-conflicting-outputs
 flutter test
 ```
 
+### Running app in test environment
+
+Use compile-time flags to boot the app in test mode (with test-specific values):
+
+```bash
+flutter run --dart-define=APP_ENV=test
+```
+
+or:
+
+```bash
+flutter run --dart-define=APP_TEST_MODE=true
+```
+
+
+
 
 
 

@@ -9688,6 +9688,36 @@
       "locked": false
     },
     {
+      "id": "eqlGJTcazFdGPEyNCcqWg",
+      "type": "rectangle",
+      "x": 129.7563224103264,
+      "y": 2515.43947635896,
+      "width": 348.17351933239416,
+      "height": 257.55660378157387,
+      "angle": 0,
+      "strokeColor": "#343a40",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "index": "beAOo",
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1560069155,
+      "version": 765,
+      "versionNonce": 1350162147,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1773212321609,
+      "link": null,
+      "locked": false
+    },
+    {
       "id": "SmECgezkpHDA7Lz8s4ukj",
       "type": "rectangle",
       "x": 305.43894395036637,
