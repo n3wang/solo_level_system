@@ -51,6 +51,30 @@ class LofiTrack {
 
   String get fullPath => 'assets/lofi/$filename';
   String? get albumImagePath => albumImage != null ? 'assets/$albumImage' : null;
+
+  LofiTrack copyWith({
+    int? id,
+    String? filename,
+    String? originalName,
+    String? title,
+    String? author,
+    String? site,
+    String? duration,
+    int? fileSize,
+    String? albumImage,
+  }) {
+    return LofiTrack(
+      id: id ?? this.id,
+      filename: filename ?? this.filename,
+      originalName: originalName ?? this.originalName,
+      title: title ?? this.title,
+      author: author ?? this.author,
+      site: site ?? this.site,
+      duration: duration ?? this.duration,
+      fileSize: fileSize ?? this.fileSize,
+      albumImage: albumImage ?? this.albumImage,
+    );
+  }
 }
 
 class LofiMapping {

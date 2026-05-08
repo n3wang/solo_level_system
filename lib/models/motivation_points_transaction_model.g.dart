@@ -55,4 +55,3 @@ class MotivationPointsTransactionModelAdapter
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
-

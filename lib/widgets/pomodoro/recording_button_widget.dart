@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
+import 'package:solo_level_system/utils/audio_utils.dart';
 
 class RecordingButtonWidget extends StatefulWidget {
   final Function(EnhancedAudioModel) onRecordingComplete;
@@ -25,13 +28,12 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
   final _recorder = AudioRecorder();
 
   bool _isRecording = false;
+  bool _stopRecordingInProgress = false;
+  double _smoothedMicLevel = 0;
   Duration _recordingDuration = Duration.zero;
   Timer? _timer;
   Timer? _levelTimer;
 
-  // Audio levels for visualization
-  // ignore: unused_field
-  double _currentLevel = 0.0;
   final List<double> _audioLevels = [];
 
   late AnimationController _pulseController;
@@ -68,6 +70,7 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
         _isRecording = true;
         _recordingDuration = Duration.zero;
         _audioLevels.clear();
+        _smoothedMicLevel = 0;
       });
 
       _pulseController.repeat(reverse: true);
@@ -79,11 +82,13 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
   }
 
   Future<void> _stopRecording() async {
+    if (_stopRecordingInProgress || !_isRecording) return;
+    _stopRecordingInProgress = true;
+    _timer?.cancel();
+    _levelTimer?.cancel();
+    _pulseController.stop();
     try {
       final path = await _recorder.stop();
-      _timer?.cancel();
-      _levelTimer?.cancel();
-      _pulseController.stop();
 
       if (path != null) {
         final audioModel = EnhancedAudioModel(
@@ -105,12 +110,22 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
         widget.onRecordingComplete(audioModel);
       }
 
-      setState(() {
-        _isRecording = false;
-        _currentLevel = 0.0;
-      });
+      if (mounted) {
+        setState(() {
+          _isRecording = false;
+          _smoothedMicLevel = 0;
+        });
+      }
     } catch (e) {
       print('Error stopping recording: $e');
+      if (mounted) {
+        setState(() {
+          _isRecording = false;
+          _smoothedMicLevel = 0;
+        });
+      }
+    } finally {
+      _stopRecordingInProgress = false;
     }
   }
 
@@ -125,14 +140,17 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
   }
 
   void _startLevelMonitoring() {
-    _levelTimer = Timer.periodic(Duration(milliseconds: 100), (timer) async {
+    _levelTimer?.cancel();
+    _levelTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
+      if (!_isRecording || !mounted) return;
       try {
         final amplitude = await _recorder.getAmplitude();
-        final level = amplitude.current.clamp(0.0, 1.0);
+        final normalized = normalizeMicDb(amplitude.current);
 
+        if (!mounted || !_isRecording) return;
         setState(() {
-          _currentLevel = level;
-          _audioLevels.add(level);
+          _smoothedMicLevel = _smoothedMicLevel * 0.74 + normalized * 0.26;
+          _audioLevels.add(_smoothedMicLevel);
           if (_audioLevels.length > 50) {
             _audioLevels.removeAt(0);
           }
@@ -143,11 +161,15 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
     });
   }
 
-  Widget _buildAudioLevelsVisualization() {
+  Widget _buildAudioLevelsVisualization(Color waveformAccent) {
     if (!_isRecording) return SizedBox.shrink();
 
-    return Positioned.fill(
-      child: CustomPaint(painter: _AudioLevelsPainter(_audioLevels)),
+    return IgnorePointer(
+      child: Positioned.fill(
+        child: CustomPaint(
+          painter: _AudioLevelsPainter(_audioLevels, waveformAccent),
+        ),
+      ),
     );
   }
 
@@ -156,9 +178,30 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
+        final errorColor = AppColorPalette.error;
+        final successColor = AppColorPalette.success;
+        final infoColor = AppColorPalette.info;
+        final micHot = AppColorPalette.warning;
+        final rawLevel = _smoothedMicLevel.clamp(0.0, 1.0);
+        final intensity =
+            pow(rawLevel, 0.34).toDouble().clamp(0.0, 1.0);
+        final recordingAccent = _isRecording
+            ? Color.lerp(errorColor, micHot, intensity)!
+            : errorColor;
+        final recordingFill = _isRecording
+            ? Color.lerp(
+                errorColor.withValues(alpha: 0.03),
+                micHot.withValues(alpha: 0.12 + 0.38 * intensity),
+                intensity,
+              )!
+            : errorColor.withValues(alpha: 0.1);
+        final recordingBorder = _isRecording ? recordingAccent : errorColor;
+        final borderWidth = _isRecording ? 2.0 + 5.5 * intensity : 2.0;
+
         return Transform.scale(
           scale: _isRecording ? _pulseAnimation.value : 1.0,
           child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () {
               if (widget.hasRecording && !_isRecording) {
                 widget.onReset();
@@ -173,23 +216,34 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
               height: 80,
               decoration: BoxDecoration(
                 color: _isRecording
-                    ? Colors.red.withValues(alpha: 0.1)
+                    ? recordingFill
                     : widget.hasRecording
-                    ? Colors.green.withValues(alpha: 0.1)
-                    : Colors.blue.withValues(alpha: 0.1),
+                    ? successColor.withValues(alpha: 0.1)
+                    : infoColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
+                boxShadow: _isRecording && intensity > 0.12
+                    ? [
+                        BoxShadow(
+                          color: recordingAccent.withValues(
+                            alpha: 0.15 + 0.55 * intensity,
+                          ),
+                          blurRadius: 4 + 14 * intensity,
+                          spreadRadius: -0.5,
+                        ),
+                      ]
+                    : null,
                 border: Border.all(
                   color: _isRecording
-                      ? Colors.red
+                      ? recordingBorder
                       : widget.hasRecording
-                      ? Colors.green
-                      : Colors.blue,
-                  width: 2,
+                      ? successColor
+                      : infoColor,
+                  width: borderWidth,
                 ),
               ),
               child: Stack(
                 children: [
-                  _buildAudioLevelsVisualization(),
+                  _buildAudioLevelsVisualization(recordingAccent),
                   Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -202,10 +256,10 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
                               : Icons.mic,
                           size: 24,
                           color: _isRecording
-                              ? Colors.red
+                              ? recordingAccent
                               : widget.hasRecording
-                              ? Colors.green
-                              : Colors.blue,
+                                  ? successColor
+                                  : infoColor,
                         ),
                         if (_isRecording) ...[
                           SizedBox(height: 4),
@@ -213,7 +267,7 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
                             '${_recordingDuration.inMinutes}:${(_recordingDuration.inSeconds % 60).toString().padLeft(2, '0')}',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.red,
+                              color: recordingAccent,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -242,15 +296,16 @@ class _RecordingButtonWidgetState extends State<RecordingButtonWidget>
 
 class _AudioLevelsPainter extends CustomPainter {
   final List<double> levels;
+  final Color accent;
 
-  _AudioLevelsPainter(this.levels);
+  _AudioLevelsPainter(this.levels, this.accent);
 
   @override
   void paint(Canvas canvas, Size size) {
     if (levels.isEmpty) return;
 
     final paint = Paint()
-      ..color = Colors.red.withValues(alpha: 0.3)
+      ..color = accent.withValues(alpha: 0.35)
       ..strokeWidth = 2;
 
     final centerY = size.height / 2;

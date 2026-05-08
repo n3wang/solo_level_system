@@ -56,38 +56,12 @@
       "title": "To Do",
       "cards": [
         {
-          "id": "91dd0a36-c431-4123-bf4c-9e09c9d007de",
+          "id": "0c0ed0da-07e7-4b52-b42c-36f200957e85",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Improve the musics",
-          "description": "Search for youtube and add more musics based on the schedule. of musics. Open for copyright",
+          "title": "build core afk mechanic",
+          "description": "",
           "labels": [],
-          "checkboxes": [
-            {
-              "id": "745a19a1-accf-468e-be9e-0705959ba355",
-              "title": "Having some animated gifs on them",
-              "checked": false
-            },
-            {
-              "id": "a547b98e-5556-4fdf-b07b-ff8f5f6d5d62",
-              "title": "Edit music tracks (from the downloads)",
-              "checked": false
-            },
-            {
-              "id": "11a6adf5-6df1-4720-a70f-a3c16fed726a",
-              "title": "Not changing on pause",
-              "checked": true
-            },
-            {
-              "id": "6cf93d47-cf8e-45c2-9886-32edc836228c",
-              "title": "Not looping music behaviour please",
-              "checked": true
-            },
-            {
-              "id": "0305ff9e-db03-46a0-9c9f-1e3376dd764a",
-              "title": "Collect or add 2 or more styles",
-              "checked": false
-            }
-          ],
+          "checkboxes": [],
           "comments": []
         },
         {
@@ -154,27 +128,9 @@
           "comments": []
         },
         {
-          "id": "6f0953d6-e1b0-4bdc-9766-8f38132c4c9f",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "7 minutes workout screen",
-          "description": "Create a 7 minutes workout support screen for where it follows the popular workout which is mostly time based. Reuse the visuals and components from the pomodoro screens as you should pause and continue playing the workout. have some sound playing \n\n🕖 7-Minute Workout Routine Script\n\nIntro (10 sec)\nWarm up lightly — march in place, roll your shoulders, and get ready.\nEach move lasts 30 seconds, 10 seconds to transition.\n\n1️⃣ Jumping Jacks – 30 sec\n\nFull-body warm-up. Jump feet out and in while swinging arms overhead.\nTransition – 10 sec\n\n2️⃣ Wall Sit – 30 sec\n\nBack against the wall, knees at 90°, hold strong, core tight.\nTransition – 10 sec\n\n3️⃣ Push-Ups – 30 sec\n\nLower chest toward the floor, keep your body straight, press up.\nModify on knees if needed.\nTransition – 10 sec\n\n4️⃣ Ab Crunch – 30 sec\n\nLie back, knees bent, curl shoulders up, reach toward knees.\nEngage abs, don’t pull on your neck.\nTransition – 10 sec\n\n5️⃣ Step-Ups – 30 sec\n\nStep onto a sturdy chair or bench, switch legs each time.\nKeep chest up, drive through the heel.\nTransition – 10 sec\n\n6️⃣ Squats – 30 sec\n\nFeet shoulder-width apart, hips back like sitting, stand tall.\nKeep knees behind toes.\nTransition – 10 sec\n\n7️⃣ Triceps Dips (on Chair) – 30 sec\n\nHands on chair edge, lower elbows to 90°, press up.\nFor challenge, lift one leg.\nTransition – 10 sec\n\n8️⃣ Plank – 30 sec\n\nElbows under shoulders, body straight from head to heels.\nTighten your core.\nTransition – 10 sec\n\n9️⃣ High Knees – 30 sec\n\nRun in place, lift knees high to waist level, pump arms fast.\nTransition – 10 sec\n\n🔟 Lunges – 30 sec\n\nAlternate legs, step forward, both knees 90°, push back to stand.\nTransition – 10 sec\n\n11️⃣ Push-Up + Rotation – 30 sec\n\nDo one push-up, rotate to side plank, reach arm up, alternate sides.\nTransition – 10 sec\n\n12️⃣ Side Plank – 15 sec each side\n\nElbow under shoulder, lift hips, body straight. Switch sides halfway.\n\n\n\n",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
           "id": "e751cd0f-6225-4777-ab94-a40c8d2999b6",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "Revision and usefulness of settings",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "71281cfe-47d6-46c9-9ce2-3a23a2eddb8a",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Rewards overhaul",
           "description": "",
           "labels": [],
           "checkboxes": [],
@@ -187,8 +143,159 @@
       "title": "Doing",
       "cards": [
         {
-          "id": "ac5b784b-6bcf-4275-b83d-eb95da82b7ba",
+          "id": "6f0953d6-e1b0-4bdc-9766-8f38132c4c9f",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "7 minutes workout screen",
+          "description": "Create a 7 minutes workout support screen for where it follows the popular workout which is mostly time based. Reuse the visuals and components from the pomodoro screens as you should pause and continue playing the workout. have some sound playing \n\n🕖 7-Minute Workout Routine Script\n\nIntro (10 sec)\nWarm up lightly — march in place, roll your shoulders, and get ready.\nEach move lasts 30 seconds, 10 seconds to transition.\n\n1️⃣ Jumping Jacks – 30 sec\n\nFull-body warm-up. Jump feet out and in while swinging arms overhead.\nTransition – 10 sec\n\n2️⃣ Wall Sit – 30 sec\n\nBack against the wall, knees at 90°, hold strong, core tight.\nTransition – 10 sec\n\n3️⃣ Push-Ups – 30 sec\n\nLower chest toward the floor, keep your body straight, press up.\nModify on knees if needed.\nTransition – 10 sec\n\n4️⃣ Ab Crunch – 30 sec\n\nLie back, knees bent, curl shoulders up, reach toward knees.\nEngage abs, don’t pull on your neck.\nTransition – 10 sec\n\n5️⃣ Step-Ups – 30 sec\n\nStep onto a sturdy chair or bench, switch legs each time.\nKeep chest up, drive through the heel.\nTransition – 10 sec\n\n6️⃣ Squats – 30 sec\n\nFeet shoulder-width apart, hips back like sitting, stand tall.\nKeep knees behind toes.\nTransition – 10 sec\n\n7️⃣ Triceps Dips (on Chair) – 30 sec\n\nHands on chair edge, lower elbows to 90°, press up.\nFor challenge, lift one leg.\nTransition – 10 sec\n\n8️⃣ Plank – 30 sec\n\nElbows under shoulders, body straight from head to heels.\nTighten your core.\nTransition – 10 sec\n\n9️⃣ High Knees – 30 sec\n\nRun in place, lift knees high to waist level, pump arms fast.\nTransition – 10 sec\n\n🔟 Lunges – 30 sec\n\nAlternate legs, step forward, both knees 90°, push back to stand.\nTransition – 10 sec\n\n11️⃣ Push-Up + Rotation – 30 sec\n\nDo one push-up, rotate to side plank, reach arm up, alternate sides.\nTransition – 10 sec\n\n12️⃣ Side Plank – 15 sec each side\n\nElbow under shoulder, lift hips, body straight. Switch sides halfway.\n\n\n\n",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "fa6f29db-2b13-482e-b4cc-f9344225dd9b",
+              "title": "impemetation",
+              "checked": true
+            },
+            {
+              "id": "6a3c46d2-840d-4200-8f14-bc50107f47d5",
+              "title": "Test for a couple days ",
+              "checked": false
+            },
+            {
+              "id": "bdd3e33f-ff14-4184-b286-ce893b5477b3",
+              "title": "Solve pause note owkring",
+              "checked": false
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "53097caf-e235-4d54-9340-dc5b0e77ff53",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Improve visuals for audio recording",
+          "description": "",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "56a9fd0b-e3ed-423f-99d0-b15656e294f4",
+              "title": "aniamtion of the voice in the opacity and color of the mic button to react based on the pitch and volume of the recording",
+              "checked": false
+            }
+          ],
+          "comments": []
+        }
+      ]
+    },
+    {
+      "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+      "title": "Done",
+      "cards": [
+        {
+          "id": "7e766963-26d6-4c9a-bb54-66839a0395f1",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Research afk games",
+          "description": "",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "b1e23c9c-b9e6-43ed-9f3e-33eb005ee96f",
+              "title": "play one",
+              "checked": true
+            },
+            {
+              "id": "0e84dc96-c33f-4981-98ff-c52e797037c9",
+              "title": "Install a couple to think of ideas",
+              "checked": true
+            },
+            {
+              "id": "9ab927d5-2ced-4c2c-8fe9-05175ac15943",
+              "title": "Write something",
+              "checked": true
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "2ed35de0-f545-4258-8d3c-8f9bed66422d",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Lunch - Travel List",
+          "description": "When going to eat etc, you stop the pomodoro. The idea is that when stopping there should be a button saying going to take a long break? and something to put in the background. this could be things such as a mit playslit or even naruto. Would help you just place the links and automatically fetch the header of that link if possible (attempt) and use that as the title. \n",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "363086b8-180a-4333-86ee-9c155fb68986",
+              "title": "Design how this looks like",
+              "checked": true
+            },
+            {
+              "id": "82235fa1-ce1d-4a33-a147-c870b04c6284",
+              "title": "also allow for habits like doing flexiones antes de comer as thank ou",
+              "checked": true
+            },
+            {
+              "id": "5b6c4e04-e0cc-4e0f-ad51-003250b6ff32",
+              "title": "maybe just generic notes for that?",
+              "checked": true
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "91dd0a36-c431-4123-bf4c-9e09c9d007de",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Improve the musics",
+          "description": "Search for youtube and add more musics based on the schedule. of musics. Open for copyright\n\nCreated and added the following on the lofis, as well as its correpodning album images. \n\nalmbums gifs per each 90s jap, ghost, lab, like_a_dog\n\nCreate the proper rooms to have tby each and integrate their music regex search to identify what I am refering to. whitelist in yaml files configs to have these assets\n\nThey are listed like like_a_dog_1, like_a_dog_2 which would be for the room of like a dog have those audios and have those gifs or pngs in\n\nDo not allow for empty almbum images associate with a random one of those gifs of that collection.",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "0305ff9e-db03-46a0-9c9f-1e3376dd764a",
+              "title": "Collect or add 2 or more styles",
+              "checked": true
+            },
+            {
+              "id": "22f12836-c449-4759-949e-b52e211a4e77",
+              "title": "Inspect added styles and setup the moved backgorund",
+              "checked": true
+            },
+            {
+              "id": "745a19a1-accf-468e-be9e-0705959ba355",
+              "title": "Having some animated gifs on them",
+              "checked": false
+            },
+            {
+              "id": "a547b98e-5556-4fdf-b07b-ff8f5f6d5d62",
+              "title": "Edit music tracks (from the downloads)",
+              "checked": true
+            },
+            {
+              "id": "11a6adf5-6df1-4720-a70f-a3c16fed726a",
+              "title": "Not changing on pause",
+              "checked": true
+            },
+            {
+              "id": "6cf93d47-cf8e-45c2-9886-32edc836228c",
+              "title": "Not looping music behaviour please",
+              "checked": true
+            },
+            {
+              "id": "c02c1037-45d2-4b44-a704-69e9226b5bbb",
+              "title": "fix the slicer in mobile vs desktop reasons",
+              "checked": true
+            },
+            {
+              "id": "405e97b2-4c26-4a56-a007-ea71bafff0f2",
+              "title": "Check why some audios albusm have n images",
+              "checked": true
+            },
+            {
+              "id": "3a675fcb-e070-42e8-880d-dc9015cb05eb",
+              "title": "Is the last version also breaking?",
+              "checked": true
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "ac5b784b-6bcf-4275-b83d-eb95da82b7ba",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
           "title": "Large refactor of workout",
           "description": "Refactor the workout screen so that only has threee tabs\n\nThe Sets tab\nHas the lists of workoutrows, and 6 sub tabs auto recomending automatically then 5 sets that work like tags to filter that sets workout tile.\n\n",
           "labels": [],
@@ -201,12 +308,12 @@
             {
               "id": "b3056a10-f492-4895-8f15-0733261b0ee7",
               "title": "Redesign  Motivation -> due in anothe card",
-              "checked": false
+              "checked": true
             },
             {
               "id": "e56ccda5-03f3-478e-ba5f-e4744dae6cdf",
               "title": " Redesign  Timed -> due in another card",
-              "checked": false
+              "checked": true
             },
             {
               "id": "7890ae4b-f7c4-4746-8ca7-6e5bf98aa35e",
@@ -221,7 +328,7 @@
             {
               "id": "81df03b0-0404-4e0f-b312-350ded900f9c",
               "title": "Have a previous days workout screen",
-              "checked": false
+              "checked": true
             },
             {
               "id": "4ec828cd-1221-40f2-8153-f44acc03ef9a",
@@ -247,6 +354,11 @@
               "id": "41301d63-ae3c-471d-86be-835882b7a5e0",
               "title": "quote and rewards systesm",
               "checked": true
+            },
+            {
+              "id": "42862d15-f16e-474a-847c-e37a2846fc58",
+              "title": "fix mobile 7 minutes workout?",
+              "checked": true
             }
           ],
           "comments": [
@@ -255,13 +367,7 @@
               "comment": "Redesigning motivation screen. Think about which are the options ansd usage as well as online insspirations as wella s in wchih is the hok that should be used. "
             }
           ]
-        }
-      ]
-    },
-    {
-      "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": "2aeadd31-6b27-4cd5-8431-e77e3f7a8d38",
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
@@ -326,6 +432,15 @@
               "comment": "when clicking on the modal opened for the room alow for having a pencil icon on the top right corner to edit the basic info of the room . Have title, description, and a list of potential phrases (this is a list of string) important as if available can every so often show the phrases on the pomodoro when it is running. "
             }
           ]
+        },
+        {
+          "id": "71281cfe-47d6-46c9-9ce2-3a23a2eddb8a",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Rewards overhaul",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
         },
         {
           "id": "af9a53fb-1333-4af0-bdda-5867061a3208",

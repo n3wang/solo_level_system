@@ -39,6 +39,11 @@ class TimerController {
   bool get allowMusic => _allowMusic;
   DateTime? get sessionStartTime => _sessionStartTime;
 
+  /// Timer is idle (not running) but a work or break countdown is still active
+  /// (user paused mid-session). Distinct from completion (remaining 0 / submit log).
+  bool get isMidSessionPaused =>
+      !_isRunning && _remainingSeconds > 0 && (_sessionStartTime != null || _onBreak);
+
   // Add listener for UI updates
   void addListener(VoidCallback listener) {
     _listeners.add(listener);

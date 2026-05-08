@@ -24,6 +24,7 @@ import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:solo_level_system/utils/database_utils.dart';
 import 'package:solo_level_system/utils/background_music_service.dart';
 import 'package:solo_level_system/utils/sound_effects_service.dart';
+import 'package:solo_level_system/utils/audio_utils.dart';
 import 'package:solo_level_system/utils/notification_service.dart';
 import 'package:solo_level_system/utils/timer_controller.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
@@ -36,11 +37,13 @@ import 'package:solo_level_system/models/room_model.dart';
 import 'package:solo_level_system/utils/pomodoro_sizing.dart';
 import 'package:solo_level_system/widgets/pomodoro/compact_music_widget.dart';
 import 'package:solo_level_system/widgets/pomodoro/session_squares_widget.dart';
+import 'package:solo_level_system/widgets/pomodoro/session_recording_preview.dart';
 import 'package:solo_level_system/screens/room_management_screen.dart';
 import 'package:solo_level_system/screens/projects_management_screen.dart';
 import 'package:solo_level_system/utils/room_management_seed_service.dart';
 import 'package:solo_level_system/utils/project_seed_service.dart';
 import 'package:solo_level_system/models/room_management_model.dart';
+import 'package:solo_level_system/widgets/pomodoro/long_break_modal.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsChanged;
@@ -469,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return _roomVisuals[_currentRoomVisualIndex % _roomVisuals.length];
   }
 
-  Widget? _currentPomodoroMediaWidget() {
+  Widget? _currentPomodoroMediaWidget({required bool playing}) {
     final visual = _currentRoomVisual();
     if (visual != null) {
       if (visual.isGif) {
@@ -477,6 +480,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           sourcePath: visual.path,
           isAssetReference: _isAssetReference(visual.path),
           speed: visual.gifSpeed,
+          playing: playing,
           fit: BoxFit.cover,
           errorChild: Container(
             color: AppColorPalette.success.withValues(alpha: 0.1),
@@ -506,11 +510,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final albumImagePath = _backgroundMusicService.currentTrack?.albumImagePath;
     if (albumImagePath != null) {
-      return Image.asset(
+      final img = Image.asset(
         albumImagePath,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       );
+      if (albumImagePath.toLowerCase().endsWith('.gif')) {
+        return TickerMode(enabled: playing, child: img);
+      }
+      return img;
     }
     return null;
   }
@@ -569,7 +577,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (isRunning) {
       return onBreak ? 'Break Time - Tap to Stop' : 'Focus Time - Tap to Stop';
     }
-    if (canSubmitLog) return 'Session Complete - Tap to Submit!';
+    if (canSubmitLog) {
+      if (recordedAudio != null) {
+        return 'Session complete • Preview your note • Tap timer to submit';
+      }
+      return 'Session Complete - Tap to Submit!';
+    }
     return 'Tap to Start • ↑ Finish • ↓ Reset';
   }
 
@@ -739,14 +752,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final allowed = _allowedRoomTrackFilenames();
       if (selectedRoom != null) {
         if (allowed.isEmpty) {
-          await _backgroundMusicService.stop();
-          if (!mounted) return;
-          setState(() {
-            currentlyPlayingTrack = 'No room tracks';
-          });
-          return;
+          await _backgroundMusicService.playRandomTrack();
+        } else {
+          await _backgroundMusicService.playRandomTrackFromFilenames(allowed);
         }
-        await _backgroundMusicService.playRandomTrackFromFilenames(allowed);
       } else {
         await _backgroundMusicService.playRandomTrack();
       }
@@ -823,7 +832,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isCurrentTrackAllowedForRoom() {
     if (selectedRoom == null) return true;
     final allowed = _allowedRoomTrackFilenames();
-    if (allowed.isEmpty) return false;
+    if (allowed.isEmpty) return true;
     return _backgroundMusicService.isCurrentTrackAllowed(allowed);
   }
 
@@ -832,14 +841,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!_timerController.isRunning) return;
     if (selectedRoom == null) return;
     final allowed = _allowedRoomTrackFilenames();
-    if (allowed.isEmpty) {
-      await _backgroundMusicService.stop();
-      if (!mounted) return;
-      setState(() {
-        currentlyPlayingTrack = 'No room tracks';
-      });
-      return;
-    }
+    if (allowed.isEmpty) return;
     if (_backgroundMusicService.currentTrack == null) return;
     if (_backgroundMusicService.isCurrentTrackAllowed(allowed)) return;
     await _backgroundMusicService.playRandomTrackFromFilenames(allowed);
@@ -1353,8 +1355,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// Long-break queue (videos / playlists) while timer is paused mid work or break.
+  bool get _showLongBreakDuringPause =>
+      !canSubmitLog && _timerController.isMidSessionPaused;
+
+  void _openLongBreakSheet() => showLongBreakModal(context);
+
   Widget _buildGestureTimer() {
-    final mediaWidget = _currentPomodoroMediaWidget();
+    final mediaWidget = _currentPomodoroMediaWidget(playing: isRunning);
     return GestureDetector(
       onTap: () {
         print('[HOME] Timer tapped!');
@@ -1389,7 +1397,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       },
       child: Container(
         padding: EdgeInsets.only(left: 20, right: 20, bottom: 20),
-        child: MediaQuery.of(context).size.width > 600
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            MediaQuery.of(context).size.width > 600
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -1611,6 +1623,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ],
                 ],
               ),
+            if (_showLongBreakDuringPause) ...[
+              const SizedBox(height: AppUiSizes.sm),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _openLongBreakSheet,
+                  icon: const Icon(Icons.video_library_outlined, size: 20),
+                  label: const Text('Long break'),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -1700,6 +1725,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     Container(
                       margin: EdgeInsets.only(left: 20, bottom: 10),
                       child: _buildSquareEvidenceButton(),
+                    ),
+                  if (recordedAudio != null)
+                    Container(
+                      margin: const EdgeInsets.only(left: 20, top: 4, bottom: 8),
+                      constraints: const BoxConstraints(maxWidth: 300),
+                      child: SessionRecordingPreview(audio: recordedAudio!),
                     ),
                   if (isRunning || canSubmitLog)
                     Container(
@@ -1828,6 +1859,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ],
               ),
 
+              if (recordedAudio != null) ...[
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: SessionRecordingPreview(audio: recordedAudio!),
+                    ),
+                  ),
+                ),
+              ],
+
               // Music widget below recording buttons for vertical layout
               if (isRunning || canSubmitLog) ...[
                 SizedBox(height: 20),
@@ -1940,6 +1984,8 @@ class _HomeSpeedControlledGif extends StatefulWidget {
   final String sourcePath;
   final bool isAssetReference;
   final double speed;
+  /// When false, animation stops (timer paused — work or break).
+  final bool playing;
   final BoxFit fit;
   final Widget? errorChild;
 
@@ -1947,6 +1993,7 @@ class _HomeSpeedControlledGif extends StatefulWidget {
     required this.sourcePath,
     required this.isAssetReference,
     required this.speed,
+    this.playing = true,
     this.fit = BoxFit.contain,
     this.errorChild,
   });
@@ -1981,7 +2028,13 @@ class _HomeSpeedControlledGifState extends State<_HomeSpeedControlledGif> {
       _loadFrames();
       return;
     }
-    if (widget.speed != oldWidget.speed && _frames.isNotEmpty) {
+    if (widget.playing != oldWidget.playing) {
+      if (widget.playing) {
+        if (_frames.isNotEmpty) _scheduleNextFrame();
+      } else {
+        _frameTimer?.cancel();
+      }
+    } else if (widget.speed != oldWidget.speed && _frames.isNotEmpty) {
       _frameTimer?.cancel();
       _scheduleNextFrame();
     }
@@ -2001,7 +2054,7 @@ class _HomeSpeedControlledGifState extends State<_HomeSpeedControlledGif> {
         _frameIndex = 0;
         _failed = false;
       });
-      _scheduleNextFrame();
+      if (widget.playing) _scheduleNextFrame();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -2030,7 +2083,7 @@ class _HomeSpeedControlledGifState extends State<_HomeSpeedControlledGif> {
   }
 
   void _scheduleNextFrame() {
-    if (!mounted || _frames.isEmpty) return;
+    if (!mounted || _frames.isEmpty || !widget.playing) return;
     final current = _frames[_frameIndex];
     final baseMs = current.duration.inMilliseconds <= 0
         ? 100
@@ -2038,7 +2091,7 @@ class _HomeSpeedControlledGifState extends State<_HomeSpeedControlledGif> {
     final speed = widget.speed <= 0 ? 1.0 : widget.speed;
     final nextMs = (baseMs / speed).clamp(16, 1000).toInt();
     _frameTimer = Timer(Duration(milliseconds: nextMs), () {
-      if (!mounted || _frames.isEmpty) return;
+      if (!mounted || _frames.isEmpty || !widget.playing) return;
       setState(() {
         _frameIndex = (_frameIndex + 1) % _frames.length;
       });
@@ -2096,6 +2149,8 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
   final _recorder = AudioRecorder();
 
   bool _isRecording = false;
+  bool _stopRecordingInProgress = false;
+  double _smoothedMicLevel = 0;
   Duration _recordingDuration = Duration.zero;
   Timer? _timer;
   Timer? _levelTimer;
@@ -2136,6 +2191,7 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
         _isRecording = true;
         _recordingDuration = Duration.zero;
         _audioLevels.clear();
+        _smoothedMicLevel = 0;
       });
 
       _pulseController.repeat(reverse: true);
@@ -2147,11 +2203,13 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
   }
 
   Future<void> _stopRecording() async {
+    if (_stopRecordingInProgress || !_isRecording) return;
+    _stopRecordingInProgress = true;
+    _timer?.cancel();
+    _levelTimer?.cancel();
+    _pulseController.stop();
     try {
       final path = await _recorder.stop();
-      _timer?.cancel();
-      _levelTimer?.cancel();
-      _pulseController.stop();
 
       if (path != null) {
         final audioModel = EnhancedAudioModel(
@@ -2173,11 +2231,22 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
         widget.onRecordingComplete(audioModel);
       }
 
-      setState(() {
-        _isRecording = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isRecording = false;
+          _smoothedMicLevel = 0;
+        });
+      }
     } catch (e) {
       print('Error stopping recording: $e');
+      if (mounted) {
+        setState(() {
+          _isRecording = false;
+          _smoothedMicLevel = 0;
+        });
+      }
+    } finally {
+      _stopRecordingInProgress = false;
     }
   }
 
@@ -2192,13 +2261,17 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
   }
 
   void _startLevelMonitoring() {
-    _levelTimer = Timer.periodic(Duration(milliseconds: 100), (timer) async {
+    _levelTimer?.cancel();
+    _levelTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
+      if (!_isRecording || !mounted) return;
       try {
         final amplitude = await _recorder.getAmplitude();
-        final level = amplitude.current.clamp(0.0, 1.0);
+        final normalized = normalizeMicDb(amplitude.current);
 
+        if (!mounted || !_isRecording) return;
         setState(() {
-          _audioLevels.add(level);
+          _smoothedMicLevel = _smoothedMicLevel * 0.74 + normalized * 0.26;
+          _audioLevels.add(_smoothedMicLevel);
           if (_audioLevels.length > 50) {
             _audioLevels.removeAt(0);
           }
@@ -2209,11 +2282,15 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
     });
   }
 
-  Widget _buildAudioLevelsVisualization() {
+  Widget _buildAudioLevelsVisualization(Color waveformAccent) {
     if (!_isRecording) return SizedBox.shrink();
 
-    return Positioned.fill(
-      child: CustomPaint(painter: _AudioLevelsPainter(_audioLevels)),
+    return IgnorePointer(
+      child: Positioned.fill(
+        child: CustomPaint(
+          painter: _AudioLevelsPainter(_audioLevels, waveformAccent),
+        ),
+      ),
     );
   }
 
@@ -2225,9 +2302,29 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
         final errorColor = AppColorPalette.error;
         final successColor = AppColorPalette.success;
         final infoColor = AppColorPalette.info;
+        final micHot = AppColorPalette.warning;
+        final rawLevel = _smoothedMicLevel.clamp(0.0, 1.0);
+        final intensity =
+            pow(rawLevel, 0.34).toDouble().clamp(0.0, 1.0);
+        final recordingAccent = _isRecording
+            ? Color.lerp(errorColor, micHot, intensity)!
+            : errorColor;
+        final recordingFill = _isRecording
+            ? Color.lerp(
+                errorColor.withValues(alpha: 0.03),
+                micHot.withValues(alpha: 0.12 + 0.38 * intensity),
+                intensity,
+              )!
+            : errorColor.withValues(alpha: 0.1);
+        final recordingBorder = _isRecording ? recordingAccent : errorColor;
+        final recordingIconColor =
+            _isRecording ? recordingAccent : AppColorPalette.error;
+        final borderWidth = _isRecording ? 2.0 + 5.5 * intensity : 2.0;
+
         return Transform.scale(
           scale: _isRecording ? _pulseAnimation.value : 1.0,
           child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () {
               if (widget.hasRecording && !_isRecording) {
                 widget.onReset();
@@ -2242,23 +2339,34 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
               height: 80,
               decoration: BoxDecoration(
                 color: _isRecording
-                    ? errorColor.withValues(alpha: 0.1)
+                    ? recordingFill
                     : widget.hasRecording
                     ? successColor.withValues(alpha: 0.1)
                     : infoColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
+                boxShadow: _isRecording && intensity > 0.12
+                    ? [
+                        BoxShadow(
+                          color: recordingAccent.withValues(
+                            alpha: 0.15 + 0.55 * intensity,
+                          ),
+                          blurRadius: 4 + 14 * intensity,
+                          spreadRadius: -0.5,
+                        ),
+                      ]
+                    : null,
                 border: Border.all(
                   color: _isRecording
-                      ? errorColor
+                      ? recordingBorder
                       : widget.hasRecording
                       ? successColor
                       : infoColor,
-                  width: 2,
+                  width: borderWidth,
                 ),
               ),
               child: Stack(
                 children: [
-                  _buildAudioLevelsVisualization(),
+                  _buildAudioLevelsVisualization(recordingAccent),
                   Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -2271,7 +2379,7 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
                               : Icons.mic,
                           size: 24,
                           color: _isRecording
-                              ? AppColorPalette.error
+                              ? recordingIconColor
                               : widget.hasRecording
                               ? AppColorPalette.success
                               : AppColorPalette.info,
@@ -2282,7 +2390,7 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
                             '${_recordingDuration.inMinutes}:${(_recordingDuration.inSeconds % 60).toString().padLeft(2, '0')}',
                             style: TextStyle(
                               fontSize: AppColorPalette.fontSizeXSmall,
-                              color: AppColorPalette.error,
+                              color: recordingAccent,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -2311,15 +2419,16 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
 
 class _AudioLevelsPainter extends CustomPainter {
   final List<double> levels;
+  final Color accent;
 
-  _AudioLevelsPainter(this.levels);
+  _AudioLevelsPainter(this.levels, this.accent);
 
   @override
   void paint(Canvas canvas, Size size) {
     if (levels.isEmpty) return;
 
     final paint = Paint()
-      ..color = AppColorPalette.error.withValues(alpha: 0.3)
+      ..color = accent.withValues(alpha: 0.35)
       ..strokeWidth = 2;
 
     final centerY = size.height / 2;

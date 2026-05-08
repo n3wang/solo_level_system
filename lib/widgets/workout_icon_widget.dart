@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sprite_sheets/sprite_sheets.dart';
 
 /// Displays a workout icon from the `workout_icons_128px` spritesheet.
 ///
@@ -10,6 +9,8 @@ import 'package:sprite_sheets/sprite_sheets.dart';
 ///   `workout_sprite_N` → grid index N (old numbered format)
 ///   `workout_icon_N`   → grid index N (unnamed high-index sprites)
 class WorkoutIconWidget extends StatelessWidget {
+  static const String _slicedBasePath = 'assets/icon/workout_icons_sliced';
+
   /// Sprite slug or legacy index string. When null an icon placeholder is shown.
   final String? imageUrl;
   final double? size;
@@ -58,7 +59,7 @@ class WorkoutIconWidget extends StatelessWidget {
       return RepaintBoundary(
         child: ColoredBox(
           color: bgColor,
-          child: _sprite(resolved, size!),
+          child: _preSlicedOrPlaceholder(resolved, size!),
         ),
       );
     }
@@ -69,18 +70,48 @@ class WorkoutIconWidget extends StatelessWidget {
           final s = constraints.biggest.shortestSide;
           return ColoredBox(
             color: bgColor,
-            child: _sprite(resolved, s),
+            child: _preSlicedOrPlaceholder(resolved, s),
           );
         },
       ),
     );
   }
 
-  Widget _sprite(({String? name, int? index}) r, double s) {
-    if (r.index != null) {
-      return SpriteImage(sheet: 'workout_icons', index: r.index!, size: s);
+  Widget _preSlicedOrPlaceholder(({String? name, int? index}) r, double s) {
+    final candidates = _preSlicedCandidates(r);
+    final fallback = _buildPlaceholder(Colors.transparent);
+    if (candidates.isEmpty) return fallback;
+
+    Widget buildCandidate(int index) {
+      if (index >= candidates.length) return fallback;
+      return Image.asset(
+        candidates[index],
+        width: s,
+        height: s,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => buildCandidate(index + 1),
+      );
     }
-    return SpriteImage(sheet: 'workout_icons', name: r.name!, size: s);
+
+    return buildCandidate(0);
+  }
+
+  List<String> _preSlicedCandidates(({String? name, int? index}) r) {
+    if (r.index != null) {
+      return ['$_slicedBasePath/workout_icon_${r.index}.png'];
+    }
+
+    final raw = (r.name ?? '').trim().toLowerCase();
+    if (raw.isEmpty) return const [];
+    final underscore = raw.replaceAll(RegExp(r'\s+'), '_').replaceAll('-', '_');
+    final slug = underscore
+        .replaceAll(RegExp(r'[^a-z0-9_]'), '')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
+    final compact = slug.replaceAll('_', '');
+
+    final names = <String>{slug, underscore, compact}.where((n) => n.isNotEmpty);
+    return names.map((n) => '$_slicedBasePath/$n.png').toList();
   }
 
   Widget _buildPlaceholder(Color bgColor) {

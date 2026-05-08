@@ -57,19 +57,14 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
     super.dispose();
   }
 
-  void _startTimer() {
-    if (_isPaused) {
-      _resumeTimer();
-      return;
-    }
-
-    _hasStarted = true;
-    // Play audio for the first exercise
-    _loadCurrentExerciseAndPlayAudio();
-    
+  /// Periodic tick while a session is active. Pauses only gate countdown decrements,
+  /// but the timer must stay scheduled whenever [_hasStarted] — otherwise skip/next/restart
+  /// while paused cancel [_timer] and resume would play audio without ticking.
+  void _ensureTickTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!_isPaused) {
+        if (!mounted) return;
         setState(() {
           _remainingSeconds--;
           _totalElapsedSeconds++;
@@ -85,7 +80,7 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
             _hasPlayed5SecondWarning = true;
             _audioService.play5SecondsLeft();
             // Also play countdown 5 after a short delay
-            Future.delayed(Duration(milliseconds: 800), () {
+            Future.delayed(const Duration(milliseconds: 800), () {
               if (_remainingSeconds == 5 && !_playedCountdownNumbers.contains(5)) {
                 _playedCountdownNumbers.add(5);
                 _audioService.playCountdown(5);
@@ -110,6 +105,19 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
     });
   }
 
+  void _startTimer() {
+    if (_isPaused) {
+      _resumeTimer();
+      return;
+    }
+
+    _hasStarted = true;
+    // Play audio for the first exercise
+    _loadCurrentExerciseAndPlayAudio();
+
+    _ensureTickTimer();
+  }
+
   void _pauseTimer() {
     setState(() {
       _isPaused = true;
@@ -125,6 +133,9 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
     });
     // Play exercise audio when unpausing
     _loadCurrentExerciseAndPlayAudio();
+    if (_hasStarted) {
+      _ensureTickTimer();
+    }
   }
 
   void _moveToNextExercise() {
@@ -155,10 +166,10 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
 
     // Get current exercise to check if it's a break
     _loadCurrentExerciseAndPlayAudio();
-    
-    // Resume timer if it was running
-    if (_hasStarted && !_isPaused) {
-      _startTimer();
+
+    // Recreate tick timer whenever the session had started (including while paused).
+    if (_hasStarted) {
+      _ensureTickTimer();
     }
   }
 
@@ -333,8 +344,7 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
 
   void _restartWorkout() {
     _timer?.cancel();
-    final wasRunning = _hasStarted && !_isPaused;
-    
+
     setState(() {
       // Reset only the current exercise timer
       _remainingSeconds = _workoutItems[_currentIndex].time;
@@ -342,13 +352,12 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
       _hasPlayed5SecondWarning = false;
       _playedCountdownNumbers.clear();
     });
-    
+
     // Play audio for the current exercise
     _loadCurrentExerciseAndPlayAudio();
-    
-    // Restart timer if it was running
-    if (wasRunning) {
-      _startTimer();
+
+    if (_hasStarted) {
+      _ensureTickTimer();
     }
   }
 

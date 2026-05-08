@@ -20,7 +20,7 @@ class WorkoutSpriteSlicer {
     return name
         .toLowerCase()
         .trim()
-        .replaceAll(RegExp(r'[^a-z0-9\s]'), '') // Remove special characters
+        .replaceAll(RegExp(r'[^a-z0-9_\s]'), '') // Keep underscores
         .replaceAll(RegExp(r'\s+'), '_') // Replace spaces with underscores
         .replaceAll(RegExp(r'_+'), '_') // Collapse multiple underscores
         .replaceAll(RegExp(r'^_|_$'), ''); // Remove leading/trailing underscores

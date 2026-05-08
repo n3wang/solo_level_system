@@ -31,9 +31,8 @@ class MotivationItemModelAdapter extends TypeAdapter<MotivationItemModel> {
       quoteText: fields[11] as String?,
       imageIndex: fields[12] as int?,
       metadata: (fields[13] as Map).cast<String, dynamic>(),
-      acquisitionCount: (fields[14] as int?) ?? 0,
-      acquisitionHistory:
-          (fields[15] as List?)?.cast<DateTime>() ?? const <DateTime>[],
+      acquisitionCount: fields[14] as int,
+      acquisitionHistory: (fields[15] as List).cast<DateTime>(),
     );
   }
 
@@ -85,4 +84,3 @@ class MotivationItemModelAdapter extends TypeAdapter<MotivationItemModel> {
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
-

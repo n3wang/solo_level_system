@@ -221,9 +221,24 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   Future<void> _persistRoomConfiguration() async {
+    var tracksToPersist = _selectedTracks
+        .map((track) => track.trim())
+        .where((track) => track.isNotEmpty)
+        .toList();
+    if (tracksToPersist.isEmpty && _builtinTracks.isNotEmpty) {
+      tracksToPersist = ['asset:${_builtinTracks.first.fullPath}'];
+      if (mounted) {
+        setState(() {
+          _selectedTracks = tracksToPersist;
+        });
+      } else {
+        _selectedTracks = tracksToPersist;
+      }
+    }
+
     final box = await _openRoomBox();
     final model = RoomManagementModel(
-      selectedTracks: _selectedTracks,
+      selectedTracks: tracksToPersist,
       selectedVisuals: _selectedVisuals,
       volume: _volume,
       phrases: _roomPhrases,

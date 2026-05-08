@@ -381,18 +381,27 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  card.type,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurface.withValues(alpha: 0.72),
+                Expanded(
+                  child: Text(
+                    card.type,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurface.withValues(alpha: 0.72),
+                    ),
                   ),
                 ),
-                Text(
-                  card.category,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurface.withValues(alpha: 0.58),
+                const SizedBox(width: AppUiSizes.xs),
+                Expanded(
+                  child: Text(
+                    card.category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurface.withValues(alpha: 0.58),
+                    ),
                   ),
                 ),
               ],
@@ -404,7 +413,7 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
             ),
             Text(
               card.title,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(
                 context,

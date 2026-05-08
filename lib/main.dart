@@ -22,6 +22,7 @@ import 'models/motivational_card_model.dart';
 import 'models/motivation_item_model.dart';
 import 'models/motivation_points_transaction_model.dart';
 import 'models/timed_workout_model.dart';
+import 'models/long_break_queue_item_model.dart';
 import 'utils/default_workouts_service.dart';
 import 'utils/test_mode_bootstrap_service.dart';
 import 'utils/programs_service.dart';
@@ -98,6 +99,7 @@ void main() async {
     Hive.registerAdapter(MotivationPointsTransactionModelAdapter());
     Hive.registerAdapter(TimedWorkoutItemAdapter());
     Hive.registerAdapter(TimedWorkoutModelAdapter());
+    Hive.registerAdapter(LongBreakQueueItemModelAdapter());
 
     // Open all Hive boxes with detailed logging
     print('Opening Hive boxes...');
@@ -135,6 +137,22 @@ void main() async {
     // App initialization flags box (untyped, for simple boolean flags)
     await Hive.openBox('app_init_flags');
     print('✓ Opened app_init_flags box');
+
+    try {
+      await Hive.openBox<LongBreakQueueItemModel>('longBreakQueue');
+      print('✓ Opened longBreakQueue box');
+    } catch (e) {
+      print('⚠️ Error opening longBreakQueue box, clearing and recreating: $e');
+      try {
+        await Hive.deleteBoxFromDisk('longBreakQueue');
+      } catch (deleteError) {
+        print(
+          'Note: Could not delete longBreakQueue box (may not exist): $deleteError',
+        );
+      }
+      await Hive.openBox<LongBreakQueueItemModel>('longBreakQueue');
+      print('✓ Recreated longBreakQueue box');
+    }
 
     // Open workout-related boxes (with error recovery)
     try {
@@ -372,7 +390,12 @@ void main() async {
     try {
       await SpriteSheets.init(
         sheets: [
-          SheetSource.asset('assets/icon/workout_icons_128px.png'),
+          SheetSource.asset(
+            'assets/icon/workout_icons_128px.png',
+            tileWidth: 128,
+            tileHeight: 128,
+            csv: 'assets/icon/workout_icons_128px.csv',
+          ),
           SheetSource.asset(
             'assets/icon/motivation_64.png',
             tileWidth: 64,
