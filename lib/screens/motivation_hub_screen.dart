@@ -84,7 +84,8 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                 return ValueListenableBuilder(
                   valueListenable: progressBox.listenable(),
                   builder: (context, Box<UserProgressModel> userBox, __) {
-                    final userProgress = userBox.get('progress') ?? UserProgressModel();
+                    final userProgress =
+                        userBox.get('progress') ?? UserProgressModel();
                     final summary = MotivationPointsService.summary();
                     final cards = _buildCards(
                       motivationItems: itemBox.values.toList(),
@@ -107,7 +108,9 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                                     ? Center(
                                         child: Text(
                                           'No cards for this filter yet',
-                                          style: Theme.of(context).textTheme.bodyMedium,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium,
                                         ),
                                       )
                                     : LayoutBuilder(
@@ -119,12 +122,17 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                                               ? 4
                                               : 3;
                                           return GridView.builder(
-                                            padding: const EdgeInsets.all(AppUiSizes.lg),
+                                            padding: const EdgeInsets.all(
+                                              AppUiSizes.lg,
+                                            ),
                                             gridDelegate:
                                                 SliverGridDelegateWithFixedCrossAxisCount(
-                                                  crossAxisCount: crossAxisCount,
-                                                  crossAxisSpacing: AppUiSizes.md,
-                                                  mainAxisSpacing: AppUiSizes.md,
+                                                  crossAxisCount:
+                                                      crossAxisCount,
+                                                  crossAxisSpacing:
+                                                      AppUiSizes.md,
+                                                  mainAxisSpacing:
+                                                      AppUiSizes.md,
                                                   childAspectRatio: 0.84,
                                                 ),
                                             itemCount: visible.length,
@@ -202,7 +210,9 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
       }
       final metadata = reward.metadata;
       final boardgameNumber = metadata['boardgameNumber'];
-      final imageIndex = boardgameNumber is num ? boardgameNumber.toInt() : null;
+      final imageIndex = boardgameNumber is num
+          ? boardgameNumber.toInt()
+          : null;
       result.add(
         _MotivationCardVm(
           id: reward.id,
@@ -239,10 +249,7 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
     final quoteText = item.quoteText?.trim() ?? '';
     if (quoteText.isNotEmpty) {
       quotes.addAll(
-        quoteText
-            .split(';')
-            .map((q) => q.trim())
-            .where((q) => q.isNotEmpty),
+        quoteText.split(';').map((q) => q.trim()).where((q) => q.isNotEmpty),
       );
     }
     return quotes.toSet().toList();
@@ -289,12 +296,7 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
   }
 
   Widget _buildFilters() {
-    final typeOptions = const [
-      'all',
-      'quote',
-      'collection',
-      'reward',
-    ];
+    final typeOptions = const ['all', 'quote', 'collection', 'reward'];
     final scopeOptions = const ['all', 'acquired'];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppUiSizes.lg),
@@ -315,7 +317,9 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                     vertical: -3,
                   ),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  labelPadding: const EdgeInsets.symmetric(horizontal: AppUiSizes.xs),
+                  labelPadding: const EdgeInsets.symmetric(
+                    horizontal: AppUiSizes.xs,
+                  ),
                   padding: EdgeInsets.zero,
                   onSelected: (_) => setState(() => _typeFilter = option),
                 );
@@ -336,7 +340,9 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                   vertical: -3,
                 ),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                labelPadding: const EdgeInsets.symmetric(horizontal: AppUiSizes.xs),
+                labelPadding: const EdgeInsets.symmetric(
+                  horizontal: AppUiSizes.xs,
+                ),
                 padding: EdgeInsets.zero,
                 onSelected: (_) => setState(() {
                   _scopeFilter = _scopeFilter == 'all' ? 'acquired' : 'all';
@@ -451,11 +457,7 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
   }) {
     final index = card.imageIndex;
     if (index != null && index > 0) {
-      return SpriteImage(
-        sheet: 'motivation_64',
-        index: index - 1,
-        size: size,
-      );
+      return SpriteImage(sheet: 'motivation_64', index: index - 1, size: size);
     }
 
     return Icon(
@@ -493,9 +495,9 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
 
     if (!userProgress.spendPoints(card.pointsCost)) {
       if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Not enough points')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Not enough points')));
       return false;
     }
 
@@ -557,7 +559,8 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
         : card.sourceReward!.canBePurchased;
     final canAttemptAcquire = canAfford && canPurchaseReward;
     final scheme = Theme.of(context).colorScheme;
-    List<String> quoteOptions = (card.type == 'quote' && card.sourceItem != null)
+    List<String> quoteOptions =
+        (card.type == 'quote' && card.sourceItem != null)
         ? _quoteOptionsForItem(card.sourceItem!)
         : const <String>[];
     final quoteEditorController = TextEditingController(
@@ -569,8 +572,11 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
     await showDialog<void>(
       context: context,
       builder: (context) {
-        var currentQuote = quoteOptions.isNotEmpty ? quoteOptions.first : card.description;
-        var currentDescription = card.sourceItem?.description ?? card.description;
+        var currentQuote = quoteOptions.isNotEmpty
+            ? quoteOptions.first
+            : card.description;
+        var currentDescription =
+            card.sourceItem?.description ?? card.description;
         String activeQuotePanel = '';
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -591,16 +597,16 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                         Expanded(
                           child: Text(
                             card.title,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ),
                         Text(
                           card.type,
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurface.withValues(alpha: 0.7),
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: scheme.onSurface.withValues(alpha: 0.7),
+                              ),
                         ),
                       ],
                     ),
@@ -610,7 +616,11 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                         duration: const Duration(milliseconds: 220),
                         curve: Curves.easeOutCubic,
                         scale: 1.0,
-                        child: _buildCardArt(card: card, scheme: scheme, size: 116),
+                        child: _buildCardArt(
+                          card: card,
+                          scheme: scheme,
+                          size: 116,
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppUiSizes.md),
@@ -630,7 +640,8 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                             : scheme.error,
                       ),
                     ),
-                    if (isQuoteCard && currentDescription.trim().isNotEmpty) ...[
+                    if (isQuoteCard &&
+                        currentDescription.trim().isNotEmpty) ...[
                       const SizedBox(height: AppUiSizes.sm),
                       Text(
                         currentDescription,
@@ -654,7 +665,9 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                                 final random = Random();
                                 setDialogState(() {
                                   currentQuote =
-                                      candidates[random.nextInt(candidates.length)];
+                                      candidates[random.nextInt(
+                                        candidates.length,
+                                      )];
                                   activeQuotePanel = '';
                                 });
                               },
@@ -665,10 +678,13 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                             onPressed: quoteOptions.isEmpty
                                 ? null
                                 : () {
-                                    final currentIndex = quoteOptions.indexOf(currentQuote);
+                                    final currentIndex = quoteOptions.indexOf(
+                                      currentQuote,
+                                    );
                                     final nextIndex = currentIndex < 0
                                         ? 0
-                                        : (currentIndex + 1) % quoteOptions.length;
+                                        : (currentIndex + 1) %
+                                              quoteOptions.length;
                                     setDialogState(() {
                                       currentQuote = quoteOptions[nextIndex];
                                       activeQuotePanel = '';
@@ -682,7 +698,8 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                                 ? null
                                 : () {
                                     setDialogState(() {
-                                      activeQuotePanel = activeQuotePanel == 'show_all'
+                                      activeQuotePanel =
+                                          activeQuotePanel == 'show_all'
                                           ? ''
                                           : 'show_all';
                                     });
@@ -700,15 +717,17 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                                 ? null
                                 : () {
                                     setDialogState(() {
-                                      activeQuotePanel = activeQuotePanel == 'edit'
+                                      activeQuotePanel =
+                                          activeQuotePanel == 'edit'
                                           ? ''
                                           : 'edit';
                                     });
                                   },
                             icon: Icon(
                               Icons.edit_outlined,
-                              color:
-                                  activeQuotePanel == 'edit' ? scheme.primary : null,
+                              color: activeQuotePanel == 'edit'
+                                  ? scheme.primary
+                                  : null,
                             ),
                           ),
                         ],
@@ -723,7 +742,9 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                                   context,
                                 ).colorScheme.outline.withValues(alpha: 0.45),
                               ),
-                              borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
+                              borderRadius: BorderRadius.circular(
+                                AppUiSizes.radiusMd,
+                              ),
                             ),
                             child: ListView.separated(
                               padding: const EdgeInsets.symmetric(
@@ -745,7 +766,9 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                                   ),
                                   child: Text(
                                     '${index + 1}. ${quoteOptions[index]}',
-                                    style: Theme.of(context).textTheme.bodyMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
                                   ),
                                 );
                               },
@@ -783,14 +806,18 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                                     onPressed: card.sourceItem == null
                                         ? null
                                         : () async {
-                                            final lines = quoteEditorController.text
+                                            final lines = quoteEditorController
+                                                .text
                                                 .split('\n')
                                                 .map((line) => line.trim())
-                                                .where((line) => line.isNotEmpty)
+                                                .where(
+                                                  (line) => line.isNotEmpty,
+                                                )
                                                 .toList();
                                             if (lines.isEmpty) return;
                                             final editedDescription =
-                                                descriptionEditorController.text.trim();
+                                                descriptionEditorController.text
+                                                    .trim();
                                             await _saveQuoteContent(
                                               item: card.sourceItem!,
                                               lines: lines,
@@ -799,11 +826,13 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                                             setDialogState(() {
                                               quoteOptions = lines;
                                               currentQuote = lines.first;
-                                              if (editedDescription.isNotEmpty) {
-                                                currentDescription = editedDescription;
+                                              if (editedDescription
+                                                  .isNotEmpty) {
+                                                currentDescription =
+                                                    editedDescription;
                                               }
-                                              quoteEditorController.text =
-                                                  lines.join('\n');
+                                              quoteEditorController.text = lines
+                                                  .join('\n');
                                             });
                                           },
                                     child: const Text('Save quotes'),
@@ -837,7 +866,10 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                           onPressed: !canAttemptAcquire
                               ? null
                               : () async {
-                                  final ok = await _acquireCard(card, userProgress);
+                                  final ok = await _acquireCard(
+                                    card,
+                                    userProgress,
+                                  );
                                   if (!mounted || !ok) return;
                                   Navigator.of(context).pop();
                                 },
@@ -919,7 +951,9 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                     TextField(
                       controller: titleController,
                       decoration: InputDecoration(
-                        labelText: selectedType == 'quote' ? 'Person or Topic' : 'Title',
+                        labelText: selectedType == 'quote'
+                            ? 'Person or Topic'
+                            : 'Title',
                       ),
                     ),
                     const SizedBox(height: AppUiSizes.lg),
@@ -936,32 +970,37 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                     TextField(
                       controller: pointsController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Points cost'),
+                      decoration: const InputDecoration(
+                        labelText: 'Points cost',
+                      ),
                     ),
                     if (selectedType == 'reward') ...[
                       const SizedBox(height: AppUiSizes.lg),
                       DropdownButtonFormField<String>(
                         initialValue: rewardCategory,
-                        decoration: const InputDecoration(labelText: 'Category'),
-                        items: const [
-                          'general',
-                          'electronics',
-                          'entertainment',
-                          'food',
-                          'shopping',
-                          'activities',
-                          'tools',
-                          'books',
-                          'health',
-                          'travel',
-                        ]
-                            .map(
-                              (item) => DropdownMenuItem(
-                                value: item,
-                                child: Text(item),
-                              ),
-                            )
-                            .toList(),
+                        decoration: const InputDecoration(
+                          labelText: 'Category',
+                        ),
+                        items:
+                            const [
+                                  'general',
+                                  'electronics',
+                                  'entertainment',
+                                  'food',
+                                  'shopping',
+                                  'activities',
+                                  'tools',
+                                  'books',
+                                  'health',
+                                  'travel',
+                                ]
+                                .map(
+                                  (item) => DropdownMenuItem(
+                                    value: item,
+                                    child: Text(item),
+                                  ),
+                                )
+                                .toList(),
                         onChanged: (value) {
                           if (value == null) return;
                           setDialogState(() {
@@ -982,7 +1021,8 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                   onPressed: () async {
                     final title = titleController.text.trim();
                     final description = descriptionController.text.trim();
-                    final points = int.tryParse(pointsController.text.trim()) ?? 0;
+                    final points =
+                        int.tryParse(pointsController.text.trim()) ?? 0;
                     if (title.isEmpty || points <= 0) return;
 
                     if (selectedType == 'reward') {
@@ -1012,7 +1052,9 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                             ? (description.isEmpty ? title : description)
                             : null,
                       );
-                      await Hive.box<MotivationItemModel>('motivationItems').add(item);
+                      await Hive.box<MotivationItemModel>(
+                        'motivationItems',
+                      ).add(item);
                     }
 
                     if (!mounted) return;
@@ -1059,4 +1101,3 @@ class _MotivationCardVm {
     this.sourceReward,
   });
 }
-

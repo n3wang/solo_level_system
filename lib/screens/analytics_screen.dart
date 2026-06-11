@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
+import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/habit_tracker_model.dart';
 import 'package:solo_level_system/screens/motivation_hub_screen.dart';
+import 'package:solo_level_system/widgets/pomodoro/session_recording_preview.dart';
 
 extension StringExtension on String {
   String capitalizeFirst() {
@@ -115,6 +117,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         _ensureBoxIsOpen<PomodoroModel>('pomodoros'),
         _ensureBoxIsOpen<WorkoutSessionModel>('workoutSessions'),
         _ensureBoxIsOpen<HabitTrackerModel>('habits'),
+        _ensureBoxIsOpen<EnhancedAudioModel>('audioFiles'),
       ]),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -138,30 +141,40 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     'habits',
                   ).listenable(),
                   builder: (context, habitBox, _) {
-                    final pomodoros = _filterSessionsByPeriod(
-                      pomodoroBox.values.toList(),
-                    );
-                    final workouts = _filterWorkoutsByPeriod(
-                      workoutBox.values.toList(),
-                    );
-                    final habits = habitBox.values
-                        .where((h) => h.isActive)
-                        .toList();
+                    return ValueListenableBuilder(
+                      valueListenable: Hive.box<EnhancedAudioModel>(
+                        'audioFiles',
+                      ).listenable(),
+                      builder: (context, audioBox, _) {
+                        final pomodoros = _filterSessionsByPeriod(
+                          pomodoroBox.values.toList(),
+                        );
+                        final workouts = _filterWorkoutsByPeriod(
+                          workoutBox.values.toList(),
+                        );
+                        final habits = habitBox.values
+                            .where((h) => h.isActive)
+                            .toList();
+                        final sessionAudios = _filterAudioByPeriod(
+                          audioBox.values.toList(),
+                        );
 
-                    return SingleChildScrollView(
-                      padding: const EdgeInsets.all(AppUiSizes.lg),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildQuickStats(pomodoros, workouts, habits),
-                          // SizedBox(height: 24),
-                          // _buildProductivityScore(pomodoros, workouts, habits),
-                          const SizedBox(height: AppUiSizes.xxl),
-                          _buildWeeklyOverview(pomodoros),
-                          const SizedBox(height: AppUiSizes.xxl),
-                          _buildGoalsProgress(pomodoros, workouts, habits),
-                        ],
-                      ),
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.all(AppUiSizes.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildQuickStats(pomodoros, workouts, habits),
+                              const SizedBox(height: AppUiSizes.xxl),
+                              _buildWeeklyOverview(pomodoros),
+                              const SizedBox(height: AppUiSizes.xxl),
+                              _buildGoalsProgress(pomodoros, workouts, habits),
+                              const SizedBox(height: AppUiSizes.xxl),
+                              _buildSessionAudioRecordingsCard(sessionAudios),
+                            ],
+                          ),
+                        );
+                      },
                     );
                   },
                 );
@@ -474,6 +487,54 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               completedHabits,
               habits.isNotEmpty ? habits.length : 1,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSessionAudioRecordingsCard(List<EnhancedAudioModel> audios) {
+    final sorted = [...audios]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiSizes.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Session Audio Recordings',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: AppColorPalette.fontSizeSubtitle,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: AppUiSizes.sm),
+            Text(
+              '${sorted.length} recording${sorted.length == 1 ? '' : 's'} in $_selectedPeriod',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+              ),
+            ),
+            const SizedBox(height: AppUiSizes.md),
+            if (sorted.isEmpty)
+              Text(
+                'No session recordings for this period yet.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+                ),
+              )
+            else
+              Column(
+                children: sorted
+                    .map(
+                      (audio) => Padding(
+                        padding: const EdgeInsets.only(bottom: AppUiSizes.sm),
+                        child: SessionRecordingPreview(audio: audio),
+                      ),
+                    )
+                    .toList(),
+              ),
           ],
         ),
       ),
@@ -1019,6 +1080,38 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     return sessions
         .where((session) => session.startTime.isAfter(startDate))
+        .toList();
+  }
+
+  List<EnhancedAudioModel> _filterAudioByPeriod(
+    List<EnhancedAudioModel> audios,
+  ) {
+    final now = DateTime.now();
+    DateTime startDate;
+
+    switch (_selectedPeriod) {
+      case 'Today':
+        startDate = DateTime(now.year, now.month, now.day);
+        break;
+      case 'Week':
+        startDate = now.subtract(Duration(days: now.weekday - 1));
+        break;
+      case 'Month':
+        startDate = DateTime(now.year, now.month, 1);
+        break;
+      case 'Year':
+        startDate = DateTime(now.year, 1, 1);
+        break;
+      default:
+        startDate = now.subtract(Duration(days: 7));
+    }
+
+    return audios
+        .where(
+          (audio) =>
+              audio.createdAt.isAfter(startDate) &&
+              (audio.category == null || audio.category == 'session'),
+        )
         .toList();
   }
 

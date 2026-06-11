@@ -44,6 +44,8 @@ import 'package:solo_level_system/utils/room_management_seed_service.dart';
 import 'package:solo_level_system/utils/project_seed_service.dart';
 import 'package:solo_level_system/models/room_management_model.dart';
 import 'package:solo_level_system/widgets/pomodoro/long_break_modal.dart';
+import 'package:solo_level_system/utils/lofi_service.dart';
+import 'package:solo_level_system/models/lofi_track.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsChanged;
@@ -811,6 +813,148 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _openTrackPickerModal() async {
+    final allTracks = await LofiService.getAllTracks();
+    final allowedForRoom = _allowedRoomTrackFilenames();
+    final hasRoomScopedTracks = selectedRoom != null && allowedForRoom.isNotEmpty;
+
+    if (!mounted) return;
+
+    final picked = await showModalBottomSheet<LofiTrack>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        bool roomOnly = hasRoomScopedTracks;
+        String query = '';
+
+        List<LofiTrack> filteredTracks() {
+          final scoped = roomOnly
+              ? allTracks
+                    .where((track) => allowedForRoom.contains(track.filename))
+                    .toList()
+              : allTracks;
+          if (query.trim().isEmpty) return scoped;
+          final q = query.toLowerCase();
+          return scoped.where((track) {
+            return track.title.toLowerCase().contains(q) ||
+                track.author.toLowerCase().contains(q) ||
+                track.filename.toLowerCase().contains(q);
+          }).toList();
+        }
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final visibleTracks = filteredTracks();
+            final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.72,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Select track',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          ChoiceChip(
+                            label: const Text('Room'),
+                            selected: roomOnly,
+                            onSelected: hasRoomScopedTracks
+                                ? (_) => setModalState(() => roomOnly = true)
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          ChoiceChip(
+                            label: const Text('All'),
+                            selected: !roomOnly,
+                            onSelected: (_) => setModalState(() => roomOnly = false),
+                          ),
+                        ],
+                      ),
+                      if (!hasRoomScopedTracks) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'No room-specific tracks set. Showing all tracks.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(
+                                  alpha: 0.7,
+                                ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.search),
+                          hintText: 'Search track, author, or filename',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        onChanged: (value) =>
+                            setModalState(() => query = value),
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: visibleTracks.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No tracks found',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              )
+                            : ListView.separated(
+                                itemCount: visibleTracks.length,
+                                separatorBuilder: (_, __) => const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final track = visibleTracks[index];
+                                  final isCurrent =
+                                      track.title == currentlyPlayingTrack;
+                                  return ListTile(
+                                    dense: true,
+                                    leading: Icon(
+                                      isCurrent
+                                          ? Icons.equalizer_rounded
+                                          : Icons.music_note,
+                                    ),
+                                    title: Text(
+                                      track.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    subtitle: Text(
+                                      '${track.author} • ${track.duration}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    onTap: () => Navigator.of(context).pop(track),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (picked == null || !mounted) return;
+    await _backgroundMusicService.playTrackById(picked.id);
+    setState(() {
+      allowMusic = true;
+      currentlyPlayingTrack = picked.title;
+    });
+  }
+
   Set<String> _allowedRoomTrackFilenames() {
     final result = <String>{};
     for (final raw in _roomSelectedTracks) {
@@ -949,6 +1093,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       imagePath = null;
       showPlayer = false;
       sessionStartTime = null;
+    }
+  }
+
+  Future<void> _persistSessionRecording(EnhancedAudioModel audioModel) async {
+    try {
+      if (!Hive.isBoxOpen('audioFiles')) {
+        await Hive.openBox<EnhancedAudioModel>('audioFiles');
+      }
+      final box = Hive.box<EnhancedAudioModel>('audioFiles');
+      await box.add(audioModel);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save recording to library: $e')),
+      );
     }
   }
 
@@ -1507,6 +1666,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             _playLofi(); // This plays a random track
                           }
                         },
+                        onLongPressTrackPicker: _openTrackPickerModal,
                       ),
                     ),
                 ],
@@ -1618,6 +1778,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             _playLofi(); // This plays a random track
                           }
                         },
+                        onLongPressTrackPicker: _openTrackPickerModal,
                       ),
                     ),
                   ],
@@ -1765,6 +1926,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             _playLofi(); // This plays a random track
                           }
                         },
+                        onLongPressTrackPicker: _openTrackPickerModal,
                       ),
                     ),
                 ],
@@ -1908,6 +2070,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         _playLofi(); // This plays a random track
                       }
                     },
+                    onLongPressTrackPicker: _openTrackPickerModal,
                   ),
                 ),
               ],
@@ -1946,6 +2109,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return _SimplifiedRecordingWidget(
       onRecordingComplete: (audioModel) {
         _soundEffectsService.playAudioRecordSubmitted();
+        _persistSessionRecording(audioModel);
         setState(() {
           audioPath = audioModel.filePath;
           recordedAudio = audioModel;

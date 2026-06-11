@@ -59,7 +59,7 @@
           "id": "0c0ed0da-07e7-4b52-b42c-36f200957e85",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "build core afk mechanic",
-          "description": "",
+          "description": "The core mechanic can be just done with a few icons characters and a couple skills. ",
           "labels": [],
           "checkboxes": [],
           "comments": []
@@ -110,15 +110,6 @@
           ]
         },
         {
-          "id": "26b305e6-64e3-461c-805f-75c81987c4b4",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Long hold on audio to have a selector of what song audio to play.",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
           "id": "641883aa-e179-4abc-a590-0c61fad393cc",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "have an almbum manager on the configurations to toggle which musics to allow and which not ot.",
@@ -130,7 +121,7 @@
         {
           "id": "e751cd0f-6225-4777-ab94-a40c8d2999b6",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Revision and usefulness of settings",
+          "title": "Revision and usefulsenes of settings",
           "description": "",
           "labels": [],
           "checkboxes": [],
@@ -141,10 +132,39 @@
     {
       "id": "125bd6ab-d32d-460e-9159-9c34b027ef62",
       "title": "Doing",
+      "cards": []
+    },
+    {
+      "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+      "title": "Done",
       "cards": [
         {
+          "id": "26b305e6-64e3-461c-805f-75c81987c4b4",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Long hold on audio to have a selector of what song audio to play.",
+          "description": "Long hold on audio to have a selector of what song audio to play. The selectable options should be depending on the room  or all. Have search filter textbox for selecting which audio. \nMake the display from a modal",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "53097caf-e235-4d54-9340-dc5b0e77ff53",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Improve visuals for audio recording",
+          "description": "",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "56a9fd0b-e3ed-423f-99d0-b15656e294f4",
+              "title": "aniamtion of the voice in the opacity and color of the mic button to react based on the pitch and volume of the recording",
+              "checked": true
+            }
+          ],
+          "comments": []
+        },
+        {
           "id": "6f0953d6-e1b0-4bdc-9766-8f38132c4c9f",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
           "title": "7 minutes workout screen",
           "description": "Create a 7 minutes workout support screen for where it follows the popular workout which is mostly time based. Reuse the visuals and components from the pomodoro screens as you should pause and continue playing the workout. have some sound playing \n\n🕖 7-Minute Workout Routine Script\n\nIntro (10 sec)\nWarm up lightly — march in place, roll your shoulders, and get ready.\nEach move lasts 30 seconds, 10 seconds to transition.\n\n1️⃣ Jumping Jacks – 30 sec\n\nFull-body warm-up. Jump feet out and in while swinging arms overhead.\nTransition – 10 sec\n\n2️⃣ Wall Sit – 30 sec\n\nBack against the wall, knees at 90°, hold strong, core tight.\nTransition – 10 sec\n\n3️⃣ Push-Ups – 30 sec\n\nLower chest toward the floor, keep your body straight, press up.\nModify on knees if needed.\nTransition – 10 sec\n\n4️⃣ Ab Crunch – 30 sec\n\nLie back, knees bent, curl shoulders up, reach toward knees.\nEngage abs, don’t pull on your neck.\nTransition – 10 sec\n\n5️⃣ Step-Ups – 30 sec\n\nStep onto a sturdy chair or bench, switch legs each time.\nKeep chest up, drive through the heel.\nTransition – 10 sec\n\n6️⃣ Squats – 30 sec\n\nFeet shoulder-width apart, hips back like sitting, stand tall.\nKeep knees behind toes.\nTransition – 10 sec\n\n7️⃣ Triceps Dips (on Chair) – 30 sec\n\nHands on chair edge, lower elbows to 90°, press up.\nFor challenge, lift one leg.\nTransition – 10 sec\n\n8️⃣ Plank – 30 sec\n\nElbows under shoulders, body straight from head to heels.\nTighten your core.\nTransition – 10 sec\n\n9️⃣ High Knees – 30 sec\n\nRun in place, lift knees high to waist level, pump arms fast.\nTransition – 10 sec\n\n🔟 Lunges – 30 sec\n\nAlternate legs, step forward, both knees 90°, push back to stand.\nTransition – 10 sec\n\n11️⃣ Push-Up + Rotation – 30 sec\n\nDo one push-up, rotate to side plank, reach arm up, alternate sides.\nTransition – 10 sec\n\n12️⃣ Side Plank – 15 sec each side\n\nElbow under shoulder, lift hips, body straight. Switch sides halfway.\n\n\n\n",
           "labels": [],
@@ -157,37 +177,16 @@
             {
               "id": "6a3c46d2-840d-4200-8f14-bc50107f47d5",
               "title": "Test for a couple days ",
-              "checked": false
+              "checked": true
             },
             {
               "id": "bdd3e33f-ff14-4184-b286-ce893b5477b3",
               "title": "Solve pause note owkring",
-              "checked": false
+              "checked": true
             }
           ],
           "comments": []
         },
-        {
-          "id": "53097caf-e235-4d54-9340-dc5b0e77ff53",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Improve visuals for audio recording",
-          "description": "",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "56a9fd0b-e3ed-423f-99d0-b15656e294f4",
-              "title": "aniamtion of the voice in the opacity and color of the mic button to react based on the pitch and volume of the recording",
-              "checked": false
-            }
-          ],
-          "comments": []
-        }
-      ]
-    },
-    {
-      "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-      "title": "Done",
-      "cards": [
         {
           "id": "7e766963-26d6-4c9a-bb54-66839a0395f1",
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",

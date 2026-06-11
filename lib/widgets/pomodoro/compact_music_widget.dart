@@ -6,12 +6,14 @@ class CompactMusicWidget extends StatefulWidget {
   final String? currentlyPlayingTrack;
   final VoidCallback onToggleMusic;
   final VoidCallback onChangeTrack;
+  final VoidCallback? onLongPressTrackPicker;
 
   const CompactMusicWidget({
     super.key,
     required this.allowMusic,
     required this.onToggleMusic,
     required this.onChangeTrack,
+    this.onLongPressTrackPicker,
     this.currentlyPlayingTrack,
   });
 
@@ -82,6 +84,7 @@ class _CompactMusicWidgetState extends State<CompactMusicWidget>
 
     return GestureDetector(
       onTap: widget.onToggleMusic,
+      onLongPress: widget.onLongPressTrackPicker,
       onHorizontalDragEnd: (details) {
         // Swipe left/right to change track
         if (details.velocity.pixelsPerSecond.dx.abs() >
@@ -148,7 +151,7 @@ class _CompactMusicWidgetState extends State<CompactMusicWidget>
               ),
               const SizedBox(height: 4),
               Text(
-                'Tap to ${widget.allowMusic ? 'Mute' : 'Unmute'} • ← → Swipe for Random Track',
+                'Tap to ${widget.allowMusic ? 'Mute' : 'Unmute'} • Long press to pick • ← → Swipe random',
                 style: TextStyle(
                   fontSize: PomodoroConstants.musicInstructionFontSize,
                   color: Colors.grey[600],
