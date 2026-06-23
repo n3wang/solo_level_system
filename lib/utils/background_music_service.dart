@@ -141,6 +141,23 @@ class BackgroundMusicService {
     print('[BG_SERVICE] After resume - isPlaying: $_isPlaying');
   }
 
+  /// Resumes after [pause], or replays from the start after [stop]/session end.
+  Future<void> ensurePlaying() async {
+    if (_currentTrack == null) {
+      await playRandomTrack();
+      return;
+    }
+    if (_isPlaying) return;
+
+    final state = _audioPlayer.state;
+    if (state == PlayerState.paused) {
+      await resume();
+      return;
+    }
+
+    await _playCurrentTrack();
+  }
+
   Future<void> stop() async {
     print('[BG_SERVICE] stop() called');
     await _audioPlayer.stop();

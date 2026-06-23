@@ -71,6 +71,18 @@ class SoundEffectsService {
     await playSound(SoundEvent.breakTimeEnds);
   }
 
+  /// Waits for a short sfx to finish so lofi can take audio focus again.
+  Future<void> waitUntilIdle({
+    Duration maxWait = const Duration(seconds: 4),
+  }) async {
+    if (_soundPlayer.state != PlayerState.playing) return;
+    try {
+      await _soundPlayer.onPlayerComplete.first.timeout(maxWait);
+    } catch (_) {
+      // Timeout or platform quirk — proceed with music anyway.
+    }
+  }
+
   void dispose() {
     _soundPlayer.dispose();
   }

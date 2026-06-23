@@ -78,7 +78,7 @@ class TimerController {
   }
 
   // Start timer
-  void startTimer() async {
+  void startTimer({bool manageMusic = true}) async {
     if (_isRunning || _isStarting) return;
     _isStarting = true;
 
@@ -94,13 +94,11 @@ class TimerController {
     _notifyListeners();
 
     try {
-      if (_allowMusic) {
-        // If there is an existing track, keep it (or resume if paused).
-        // Only pick random when there is no current track loaded.
+      if (manageMusic && _allowMusic) {
+        // Sfx (e.g. break ended) can hold audio focus; wait briefly before lofi.
+        await _soundEffectsService.waitUntilIdle();
         if (_backgroundMusicService.currentTrack != null) {
-          if (!_backgroundMusicService.isPlaying) {
-            await _backgroundMusicService.resume();
-          }
+          await _backgroundMusicService.ensurePlaying();
         } else {
           await _playLofi();
         }
@@ -179,8 +177,8 @@ class TimerController {
       // Resume current track if available, otherwise play a random one
       if (_backgroundMusicService.currentTrack != null &&
           !_backgroundMusicService.isPlaying) {
-        _backgroundMusicService.resume();
-      } else {
+        _backgroundMusicService.ensurePlaying();
+      } else if (_backgroundMusicService.currentTrack == null) {
         _playLofi();
       }
     } else if (!_allowMusic) {

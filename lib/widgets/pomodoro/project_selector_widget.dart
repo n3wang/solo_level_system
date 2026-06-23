@@ -318,13 +318,14 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
               )
             else
               Text(
-                project.shortName,
+                isSelected ? project.name : project.initials,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: compact ? 11 : 12,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                   color: primaryTextColor,
+                  letterSpacing: isSelected ? 0 : 0.4,
                 ),
               ),
             if (!widget.isCollapsed) ...[
@@ -621,7 +622,7 @@ class CompactProjectSelectorWidget extends StatelessWidget {
                           color: isSelected ? Colors.white : color,
                         )
                       : Text(
-                          project.name[0].toUpperCase(),
+                          project.initials,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,

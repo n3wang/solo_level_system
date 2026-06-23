@@ -803,9 +803,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_backgroundMusicService.currentTrack != null &&
         !_backgroundMusicService.isPlaying &&
         _isCurrentTrackAllowedForRoom()) {
-      print('[MUSIC] Resuming from current position...');
-      await _backgroundMusicService.resume();
-      print('[MUSIC] Resume complete');
+      print('[MUSIC] Resuming or replaying current track...');
+      await _backgroundMusicService.ensurePlaying();
+      print('[MUSIC] Resume/replay complete');
     } else {
       print('[MUSIC] No track loaded or already playing, playing new track...');
       // If no track is loaded, play a random one
@@ -1004,11 +1004,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void startTimer() {
     setState(() {
       if (!_timerController.onBreak) {
-        sessionStartTime = DateTime.now();
+        // New work block after break (or first start), not a mid-session resume.
+        if (sessionStartTime == null ||
+            _timerController.remainingSeconds >= workMinutes * 60) {
+          sessionStartTime = DateTime.now();
+        }
       }
     });
-    _playLofi(); // This now checks settings internally
-    _timerController.startTimer();
+    unawaited(_startTimerWithMusic());
+  }
+
+  Future<void> _startTimerWithMusic() async {
+    await _soundEffectsService.waitUntilIdle();
+    if (_backgroundMusicService.currentTrack != null &&
+        !_backgroundMusicService.isPlaying &&
+        _isCurrentTrackAllowedForRoom()) {
+      await _backgroundMusicService.ensurePlaying();
+    } else if (!_backgroundMusicService.isPlaying) {
+      await _playLofi();
+    }
+    _timerController.startTimer(manageMusic: false);
   }
 
   void submitLog() {
@@ -1537,7 +1552,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           submitLog();
         } else {
           print('[HOME] Calling startTimer()');
-          _timerController.startTimer();
+          startTimer();
         }
       },
       onVerticalDragEnd: (details) {

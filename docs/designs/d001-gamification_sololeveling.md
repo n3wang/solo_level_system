@@ -1,6 +1,6 @@
 # True Solo Leveling mode (gamified / AFK RPG)
 
-Making this a true piece of media. And even horror. Since it would be an unmoderated mechanically wise. and the unexpected complexity int he game. 
+Making this a true piece of media. And even some thriller. Since it would be an unmoderated mechanically wise. and the unexpected complexity in the game. 
 
 ## Vision
 
@@ -13,12 +13,23 @@ These are highly opinionated. and can switch back to the regular use - mode anyt
 
 ---
 
+### First Visuals Storyline
+
+
+- An apparison of an invite letter to join the beta True-Leveling mode.
+
+
+- Lets just make it a lone adventurer, pixel art is ok. 
+- "Hey I saw you studying here, can I accompany you?"
+
+
+---
 
 ## Lore wise:
 
-- The idea woudl be to that you are invited as a hero to defeat and travel around the world. I need help sort of thing
-- Then you go into the place. and fight and actually imrpvoe the word by doing something interesting.
-- I mean there has to be some emotion and seeying places you explored in afk with allt hese. 
+- The idea would be to that you are invited as a hero to defeat and travel around the world. I need help sort to focus.
+- Then you go into the place. and fight and actually improve the word by doing something interesting.
+- I mean there has to be some emotion and seeying places you explored in afk with all these. 
 
 
 ### Combat mechanics

@@ -105,6 +105,20 @@ class ProjectModel extends HiveObject {
     return '${name.substring(0, 7)}…';
   }
 
+  /// Compact label for unselected project chips (e.g. "My Cat Videos" → "MCV").
+  String get initials {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return '?';
+    final words =
+        trimmed.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.length > 1) {
+      return words.map((w) => w[0].toUpperCase()).take(4).join();
+    }
+    final word = words.first;
+    if (word.length >= 2) return word.substring(0, 2).toUpperCase();
+    return word[0].toUpperCase();
+  }
+
   bool get isActiveToday {
     final today = DateTime.now().weekday;
     return isActive && activeDays.contains(today);
