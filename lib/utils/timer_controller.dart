@@ -172,19 +172,28 @@ class TimerController {
 
   // Toggle mute
   void toggleMute() {
-    _allowMusic = !_allowMusic;
-    if (_allowMusic && _isRunning) {
-      // Resume current track if available, otherwise play a random one
-      if (_backgroundMusicService.currentTrack != null &&
-          !_backgroundMusicService.isPlaying) {
-        _backgroundMusicService.ensurePlaying();
-      } else if (_backgroundMusicService.currentTrack == null) {
-        _playLofi();
-      }
-    } else if (!_allowMusic) {
+    setMusicAllowed(!_allowMusic, resumeIfRunning: true);
+  }
+
+  void setMusicAllowed(bool allowed, {bool resumeIfRunning = false}) {
+    if (_allowMusic == allowed) return;
+    _allowMusic = allowed;
+    if (!_allowMusic) {
       _stopLofi();
+    } else if (resumeIfRunning && _isRunning) {
+      _resumeMusicIfRunning();
     }
     _notifyListeners();
+  }
+
+  void _resumeMusicIfRunning() {
+    if (!_allowMusic || !_isRunning) return;
+    if (_backgroundMusicService.currentTrack != null &&
+        !_backgroundMusicService.isPlaying) {
+      _backgroundMusicService.ensurePlaying();
+    } else if (_backgroundMusicService.currentTrack == null) {
+      _playLofi();
+    }
   }
 
   // Complete session

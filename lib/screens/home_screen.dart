@@ -66,7 +66,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? audioPath;
   EnhancedAudioModel? recordedAudio;
   String logStateMessage = "State: ";
-  bool allowMusic = true;
   int countCompletedToday = 0;
   bool canSubmitLog = false;
   String? imagePath;
@@ -794,6 +793,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _resumeLofi() async {
+    if (!_timerController.allowMusic) {
+      print('[MUSIC] Resume skipped - music muted');
+      return;
+    }
     print('[MUSIC] Resume called...');
     print(
       '[MUSIC] Current track: ${_backgroundMusicService.currentTrack?.title}',
@@ -950,7 +953,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (picked == null || !mounted) return;
     await _backgroundMusicService.playTrackById(picked.id);
     setState(() {
-      allowMusic = true;
+      _timerController.setMusicAllowed(true);
       currentlyPlayingTrack = picked.title;
     });
   }
@@ -1015,6 +1018,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _startTimerWithMusic() async {
+    if (!_timerController.allowMusic) {
+      _timerController.startTimer(manageMusic: false);
+      return;
+    }
+
     await _soundEffectsService.waitUntilIdle();
     if (_backgroundMusicService.currentTrack != null &&
         !_backgroundMusicService.isPlaying &&
@@ -1024,6 +1032,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await _playLofi();
     }
     _timerController.startTimer(manageMusic: false);
+  }
+
+  void _toggleMusicPlayback() {
+    setState(() {
+      if (_timerController.allowMusic) {
+        _pauseLofi();
+        _timerController.setMusicAllowed(false);
+      } else {
+        _timerController.setMusicAllowed(true);
+        if (_timerController.isRunning) {
+          _resumeLofi();
+        }
+      }
+    });
   }
 
   void submitLog() {
@@ -1653,32 +1675,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     SizedBox(
                       width: PomodoroSizing.getMusicWidgetWidth(context),
                       child: CompactMusicWidget(
-                        allowMusic: allowMusic,
+                        allowMusic: _timerController.allowMusic,
                         currentlyPlayingTrack: currentlyPlayingTrack,
-                        onToggleMusic: () {
-                          print('[TOGGLE] Music toggle tapped');
-                          print(
-                            '[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning',
-                          );
-                          setState(() {
-                            if (allowMusic) {
-                              print(
-                                '[TOGGLE] Pausing music and setting allowMusic to false',
-                              );
-                              _pauseLofi();
-                              allowMusic = false;
-                            } else {
-                              print(
-                                '[TOGGLE] Setting allowMusic to true and resuming',
-                              );
-                              allowMusic = true;
-                              _resumeLofi();
-                            }
-                          });
-                        },
+                        onToggleMusic: _toggleMusicPlayback,
                         onChangeTrack: () {
-                          if (allowMusic) {
-                            _playLofi(); // This plays a random track
+                          if (_timerController.allowMusic) {
+                            _playLofi();
                           }
                         },
                         onLongPressTrackPicker: _openTrackPickerModal,
@@ -1765,32 +1767,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         context,
                       ).clamp(150.0, 400.0),
                       child: CompactMusicWidget(
-                        allowMusic: allowMusic,
+                        allowMusic: _timerController.allowMusic,
                         currentlyPlayingTrack: currentlyPlayingTrack,
-                        onToggleMusic: () {
-                          print('[TOGGLE] Music toggle tapped');
-                          print(
-                            '[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning',
-                          );
-                          setState(() {
-                            if (allowMusic) {
-                              print(
-                                '[TOGGLE] Pausing music and setting allowMusic to false',
-                              );
-                              _pauseLofi();
-                              allowMusic = false;
-                            } else {
-                              print(
-                                '[TOGGLE] Setting allowMusic to true and resuming',
-                              );
-                              allowMusic = true;
-                              _resumeLofi();
-                            }
-                          });
-                        },
+                        onToggleMusic: _toggleMusicPlayback,
                         onChangeTrack: () {
-                          if (allowMusic) {
-                            _playLofi(); // This plays a random track
+                          if (_timerController.allowMusic) {
+                            _playLofi();
                           }
                         },
                         onLongPressTrackPicker: _openTrackPickerModal,
@@ -1913,32 +1895,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       width: PomodoroSizing.getMusicWidgetWidth(context),
                       margin: EdgeInsets.only(left: 20, top: 10),
                       child: CompactMusicWidget(
-                        allowMusic: allowMusic,
+                        allowMusic: _timerController.allowMusic,
                         currentlyPlayingTrack: currentlyPlayingTrack,
-                        onToggleMusic: () {
-                          print('[TOGGLE] Music toggle tapped');
-                          print(
-                            '[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning',
-                          );
-                          setState(() {
-                            if (allowMusic) {
-                              print(
-                                '[TOGGLE] Pausing music and setting allowMusic to false',
-                              );
-                              _pauseLofi();
-                              allowMusic = false;
-                            } else {
-                              print(
-                                '[TOGGLE] Setting allowMusic to true and resuming',
-                              );
-                              allowMusic = true;
-                              _resumeLofi();
-                            }
-                          });
-                        },
+                        onToggleMusic: _toggleMusicPlayback,
                         onChangeTrack: () {
-                          if (allowMusic) {
-                            _playLofi(); // This plays a random track
+                          if (_timerController.allowMusic) {
+                            _playLofi();
                           }
                         },
                         onLongPressTrackPicker: _openTrackPickerModal,
@@ -2057,32 +2019,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     context,
                   ).clamp(150.0, 400.0),
                   child: CompactMusicWidget(
-                    allowMusic: allowMusic,
+                    allowMusic: _timerController.allowMusic,
                     currentlyPlayingTrack: currentlyPlayingTrack,
-                    onToggleMusic: () {
-                      print('[TOGGLE] Music toggle tapped');
-                      print(
-                        '[TOGGLE] allowMusic: $allowMusic, isRunning: $isRunning',
-                      );
-                      setState(() {
-                        if (allowMusic) {
-                          print(
-                            '[TOGGLE] Pausing music and setting allowMusic to false',
-                          );
-                          _pauseLofi();
-                          allowMusic = false;
-                        } else {
-                          print(
-                            '[TOGGLE] Setting allowMusic to true and resuming',
-                          );
-                          allowMusic = true;
-                          _resumeLofi();
-                        }
-                      });
-                    },
+                    onToggleMusic: _toggleMusicPlayback,
                     onChangeTrack: () {
-                      if (allowMusic) {
-                        _playLofi(); // This plays a random track
+                      if (_timerController.allowMusic) {
+                        _playLofi();
                       }
                     },
                     onLongPressTrackPicker: _openTrackPickerModal,
