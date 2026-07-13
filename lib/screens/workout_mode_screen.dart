@@ -10,6 +10,7 @@ import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
 import 'package:solo_level_system/screens/active_workout_session_screen.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class WorkoutModeScreen extends StatefulWidget {
   const WorkoutModeScreen({super.key});
@@ -889,11 +890,9 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
         });
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error starting routine: $e'),
-          backgroundColor: Colors.red,
-        ),
+      showAppSnack(
+        context,
+        text: 'Error starting routine: $e',
       );
     }
   }
@@ -1089,17 +1088,16 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
 
       await exercisesBox.add(exercise);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exercise "$name" added successfully')),
+      showAppSnack(
+        context,
+        text: 'Exercise "$name" added successfully',
       );
 
       setState(() {});
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating exercise: $e'),
-          backgroundColor: Colors.red,
-        ),
+      showAppSnack(
+        context,
+        text: 'Error creating exercise: $e',
       );
     }
   }
@@ -1157,9 +1155,10 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
   void _navigateToActiveWorkout() {
     if (_activeSession != null) {
       // Navigate to active workout screen with current session
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Resuming active workout...')));
+      showAppSnack(
+      context,
+      text: 'Resuming active workout...',
+    );
     }
   }
 
@@ -1220,17 +1219,16 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
 
       await routinesBox.add(newRoutine);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Routine duplicated successfully')),
+      showAppSnack(
+        context,
+        text: 'Routine duplicated successfully',
       );
 
       setState(() {});
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error duplicating routine: $e'),
-          backgroundColor: Colors.red,
-        ),
+      showAppSnack(
+        context,
+        text: 'Error duplicating routine: $e',
       );
     }
   }
@@ -1252,16 +1250,15 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                 await routine.delete();
                 Navigator.pop(context);
                 setState(() {});
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('Routine deleted')));
+                showAppSnack(
+      context,
+      text: 'Routine deleted',
+    );
               } catch (e) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error deleting routine: $e'),
-                    backgroundColor: Colors.red,
-                  ),
+                showAppSnack(
+                  context,
+                  text: 'Error deleting routine: $e',
                 );
               }
             },

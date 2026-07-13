@@ -6,6 +6,7 @@ import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_routine_model.dart';
 import 'package:solo_level_system/models/workout_set_model.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class AddEditRoutineScreen extends StatefulWidget {
   final WorkoutRoutineModel? routine; // null for adding, non-null for editing
@@ -903,8 +904,9 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
     }
 
     if (_selectedExercises.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please add at least one exercise')),
+      showAppSnack(
+        context,
+        text: 'Please add at least one exercise',
       );
       return;
     }
@@ -958,21 +960,16 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
 
       Navigator.pop(context, true); // Return true to indicate success
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.routine != null
+      showAppSnack(
+        context,
+        text: widget.routine != null
                 ? 'Routine updated successfully'
-                : 'Routine created successfully',
-          ),
-        ),
+                : 'Routine created successfully',,
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving routine: $e'),
-          backgroundColor: Colors.red,
-        ),
+      showAppSnack(
+        context,
+        text: 'Error saving routine: $e',
       );
     } finally {
       setState(() => _isLoading = false);
@@ -995,12 +992,9 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
       _restoreRoutineState(routineState);
       _loadAvailableExercises();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Exercise created! You can now add it to your routine.',
-          ),
-        ),
+      showAppSnack(
+        context,
+        text: 'Exercise created! You can now add it to your routine.',
       );
 
       // Reopen exercise selection with new exercise available

@@ -15,6 +15,7 @@ import 'package:solo_level_system/widgets/common/standard_tab_app_bar.dart';
 import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
 import 'package:solo_level_system/widgets/common/on_off_toggle.dart';
 import 'package:solo_level_system/widgets/common/settings_slider.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -215,11 +216,10 @@ class _SettingsScreenState extends State<SettingsScreen>
               
               // Show feedback
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Color palette changed to ${PaletteSelectorWidget.paletteNames[paletteName]}'),
-                    duration: Duration(seconds: 1),
-                  ),
+                showAppSnack(
+                  context,
+                  text: 'Color palette changed to ${PaletteSelectorWidget.paletteNames[paletteName]}',
+                  duration: const Duration(seconds: 1),
                 );
               }
             },
@@ -626,54 +626,52 @@ class _SettingsScreenState extends State<SettingsScreen>
         onPlay: () {
           _timerController.startTimer();
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Timer started!')));
+            showAppSnack(
+      context,
+      text: 'Timer started!',
+    );
           }
         },
         onPause: () {
           _timerController.pauseTimer();
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Timer paused!')));
+            showAppSnack(
+      context,
+      text: 'Timer paused!',
+    );
           }
         },
         onReset: () {
           _timerController.resetTimer();
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Timer reset!')));
+            showAppSnack(
+      context,
+      text: 'Timer reset!',
+    );
           }
         },
         onMute: () {
           _timerController.toggleMute();
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Audio toggled!')));
+            showAppSnack(
+      context,
+      text: 'Audio toggled!',
+    );
           }
         },
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Test notification sent! Check your notification panel.',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        showAppSnack(
+          context,
+          text: 'Test notification sent! Check your notification panel.',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send notification: $e'),
-            backgroundColor: Colors.red,
-          ),
+        showAppSnack(
+          context,
+          text: 'Failed to send notification: $e',
         );
       }
     }

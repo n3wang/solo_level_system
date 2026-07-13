@@ -5,6 +5,7 @@ import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class WorkoutQuickStartScreen extends StatefulWidget {
   final Function(WorkoutSessionModel?)? onActiveSessionChanged;
@@ -427,21 +428,19 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
       _estimatedDuration = template.duration;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Selected template: ${template.name}'),
-        duration: Duration(seconds: 2),
-      ),
+    showAppSnack(
+      context,
+      text: 'Selected template: ${template.name}',
+      duration: const Duration(seconds: 2),
     );
   }
 
   void _showExercisePicker() {
     // TODO: Implement exercise picker dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Exercise picker coming soon'),
-        duration: Duration(seconds: 2),
-      ),
+    showAppSnack(
+      context,
+      text: 'Exercise picker coming soon',
+      duration: const Duration(seconds: 2),
     );
   }
 
@@ -449,11 +448,10 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
     // TODO: Implement workout start logic
     final sessionId = 'session_${DateTime.now().millisecondsSinceEpoch}';
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Starting workout session: $sessionId'),
-        duration: Duration(seconds: 2),
-      ),
+    showAppSnack(
+      context,
+      text: 'Starting workout session: $sessionId',
+      duration: const Duration(seconds: 2),
     );
 
     // Simulate creating a workout session

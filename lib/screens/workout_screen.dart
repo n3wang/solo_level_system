@@ -18,6 +18,7 @@ import 'package:solo_level_system/screens/set_session_summary_screen.dart';
 import 'package:solo_level_system/screens/active_workout_session_screen.dart';
 import 'package:solo_level_system/screens/workout_summary_screen.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -359,9 +360,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
     final exercises = _getOrderedExercisesForSet(selectedSet);
     if (exercises.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Add an exercise first')));
+      showAppSnack(
+      context,
+      text: 'Add an exercise first',
+    );
       return;
     }
 

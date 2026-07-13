@@ -8,6 +8,7 @@ import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
 import 'package:solo_level_system/screens/active_workout_session_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class WorkoutRoutinesScreen extends StatefulWidget {
   final Function(WorkoutSessionModel?)? onActiveSessionChanged;
@@ -279,11 +280,9 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error starting routine: $e'),
-          backgroundColor: Colors.red,
-        ),
+      showAppSnack(
+        context,
+        text: 'Error starting routine: $e',
       );
     }
   }
@@ -337,11 +336,10 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
 
   void _duplicateRoutine(WorkoutRoutineModel routine) {
     // TODO: Implement routine duplication logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Duplicating routine: ${routine.name}'),
-        duration: Duration(seconds: 2),
-      ),
+    showAppSnack(
+      context,
+      text: 'Duplicating routine: ${routine.name}',
+      duration: const Duration(seconds: 2),
     );
   }
 
@@ -356,9 +354,10 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
         isDestructive: true,
         onConfirm: () {
           routine.delete();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Routine deleted')));
+          showAppSnack(
+      context,
+      text: 'Routine deleted',
+    );
         },
       ),
     );
@@ -368,11 +367,10 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
     if (widget.activeSession != null) {
       // TODO: Implement end session logic
       widget.onActiveSessionChanged?.call(null);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Workout session ended'),
-          duration: Duration(seconds: 2),
-        ),
+      showAppSnack(
+        context,
+        text: 'Workout session ended',
+        duration: const Duration(seconds: 2),
       );
     }
   }

@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/utils/unlock_service.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class ProjectsManagementScreen extends StatefulWidget {
   final String? initialSelectedProjectId;
@@ -1116,8 +1117,9 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
               onPressed: () async {
                 final title = titleController.text.trim();
                 if (title.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Title cannot be empty')),
+                  showAppSnack(
+                    context,
+                    text: 'Title cannot be empty',
                   );
                   return;
                 }
@@ -1212,12 +1214,9 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     final extension = _extensionOf(sourcePath).toLowerCase();
     if (!_supportedVisualExtensions.contains(extension)) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Unsupported format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
-          ),
-        ),
+      showAppSnack(
+        context,
+        text: 'Unsupported format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
       );
       return;
     }
@@ -1431,12 +1430,9 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
       base: 0,
     );
     if (maxProjects > 0 && projects.length >= maxProjects) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Project limit reached ($maxProjects). Unlock more Project Slot cards in Motivation.',
-          ),
-        ),
+      showAppSnack(
+        context,
+        text: 'Project limit reached ($maxProjects). Unlock more Project Slot cards in Motivation.',
       );
       return;
     }
@@ -1516,16 +1512,15 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
 
       print('UI updated with new project');
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('🎉 Project created!')));
+      showAppSnack(
+      context,
+      text: '🎉 Project created!',
+    );
     } catch (e) {
       print('Error creating project: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating project: $e'),
-          backgroundColor: Colors.red,
-        ),
+      showAppSnack(
+        context,
+        text: 'Error creating project: $e',
       );
     }
   }

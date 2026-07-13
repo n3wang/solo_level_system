@@ -11,6 +11,7 @@ import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/utils/card_acquisition_service.dart';
 import 'package:solo_level_system/utils/card_repository.dart';
 import 'package:sprite_sheets/sprite_sheets.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 /// Icon for a card type wire string (or [CardType]).
 IconData collectibleTypeIcon(String type) {
@@ -453,9 +454,10 @@ class _CollectibleCardDetailDialogState
           );
 
     if (!mounted) return false;
-    ScaffoldMessenger.of(
+    showAppSnack(
       context,
-    ).showSnackBar(SnackBar(content: Text(result.message)));
+      text: result.message,
+    );
     return result.success;
   }
 

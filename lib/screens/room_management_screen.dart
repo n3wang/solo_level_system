@@ -21,6 +21,7 @@ import 'package:solo_level_system/models/room_management_model.dart';
 import 'package:solo_level_system/utils/lofi_service.dart';
 import 'package:solo_level_system/widgets/common/segment_bar.dart';
 import 'package:solo_level_system/widgets/common/on_off_toggle.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class RoomManagementResult {
   final String? selectedRoomId;
@@ -168,10 +169,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       await _loadRoomConfiguration();
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load room management data: $error'),
-          ),
+        showAppSnack(
+          context,
+          text: 'Failed to load room management data: $error',
         );
       }
     } finally {
@@ -374,8 +374,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               onPressed: () async {
                 final title = titleController.text.trim();
                 if (title.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Title cannot be empty')),
+                  showAppSnack(
+                    context,
+                    text: 'Title cannot be empty',
                   );
                   return;
                 }
@@ -469,9 +470,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       _startPreviewAutoStopTimer();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Cannot preview track: $error')));
+      showAppSnack(
+      context,
+      text: 'Cannot preview track: $error',
+    );
     }
   }
 
@@ -612,9 +614,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
     if (_selectedTracks.contains(trackKey)) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Track already added')));
+      showAppSnack(
+      context,
+      text: 'Track already added',
+    );
       return;
     }
 
@@ -681,8 +684,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       final bytes = file.bytes;
       if (bytes == null || bytes.isEmpty) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to read selected file')),
+        showAppSnack(
+          context,
+          text: 'Unable to read selected file',
         );
         return;
       }
@@ -698,12 +702,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     final extension = _extensionOf(sourcePath).toLowerCase();
     if (!_supportedVisualExtensions.contains(extension)) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Unsupported visual format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
-          ),
-        ),
+      showAppSnack(
+        context,
+        text: 'Unsupported visual format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
       );
       return;
     }
@@ -715,9 +716,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
     if (_selectedVisuals.any((visual) => visual.path == copiedPath)) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Visual already added')));
+      showAppSnack(
+      context,
+      text: 'Visual already added',
+    );
       return;
     }
 
@@ -733,12 +735,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     final extension = _extensionOf(fileName).toLowerCase();
     if (!_supportedVisualExtensions.contains(extension)) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Unsupported visual format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
-          ),
-        ),
+      showAppSnack(
+        context,
+        text: 'Unsupported visual format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
       );
       return;
     }
@@ -746,9 +745,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     final dataUri = _dataUriForBytes(bytes, extension);
     if (_selectedVisuals.any((visual) => visual.path == dataUri)) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Visual already added')));
+      showAppSnack(
+      context,
+      text: 'Visual already added',
+    );
       return;
     }
 
@@ -1298,8 +1298,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               onPressed: () async {
                 final title = titleController.text.trim();
                 if (title.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Title cannot be empty')),
+                  showAppSnack(
+                    context,
+                    text: 'Title cannot be empty',
                   );
                   return;
                 }

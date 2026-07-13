@@ -4,6 +4,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 /// Progression is points + cards only (no XP / levels). This screen shows the
 /// points wallet + session stats and lets the user manage custom rewards.
@@ -409,11 +410,9 @@ class _RewardsScreenState extends State<RewardsScreen>
                 reward.purchase();
                 setState(() {});
                 Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('🎉 Reward purchased! Enjoy your treat!'),
-                    backgroundColor: Colors.green,
-                  ),
+                showAppSnack(
+                  context,
+                  text: '🎉 Reward purchased! Enjoy your treat!',
                 );
               }
             },
@@ -545,8 +544,9 @@ class _RewardsScreenState extends State<RewardsScreen>
     });
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('🎉 Your reward has been created!')),
+    showAppSnack(
+      context,
+      text: '🎉 Your reward has been created!',
     );
   }
 

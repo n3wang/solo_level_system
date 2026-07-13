@@ -7,6 +7,7 @@ import '../models/motivational_card_model.dart';
 import '../utils/motivational_card_service.dart';
 import 'add_edit_motivational_card_screen.dart';
 import 'motivational_card_detail_screen.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class MotivationalCardsScreen extends StatefulWidget {
   const MotivationalCardsScreen({super.key});
@@ -81,15 +82,17 @@ class _MotivationalCardsScreenState extends State<MotivationalCardsScreen> {
         await _service.deleteCard(card.id);
         if (mounted) {
           setState(() {});
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Card deleted')));
+          showAppSnack(
+      context,
+      text: 'Card deleted',
+    );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error deleting card: $e')));
+          showAppSnack(
+      context,
+      text: 'Error deleting card: $e',
+    );
         }
       }
     }

@@ -65,8 +65,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         labels: const ['Overview', 'Cards', 'Focus', 'Workouts'],
         isScrollable: false,
       ),
-      floatingActionButton: (_tabController.index == 0 ||
-              _tabController.index == 1)
+      floatingActionButton:
+          (_tabController.index == 0 || _tabController.index == 1)
           ? FloatingActionButton.extended(
               onPressed: () => showCreateRewardDialog(context),
               icon: const Icon(Icons.add),
@@ -527,7 +527,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Acquired Collectibles:',
+          'New Cards:',
           style: Theme.of(
             context,
           ).textTheme.bodySmall?.copyWith(color: AppColorPalette.textSecondary),

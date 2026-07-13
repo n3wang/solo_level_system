@@ -9,6 +9,7 @@ import 'package:solo_level_system/models/reward_model.dart';
 import 'package:solo_level_system/screens/cards_hub_screen.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class RewardsManagementScreen extends StatefulWidget {
   const RewardsManagementScreen({super.key});
@@ -462,9 +463,10 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                   reward.save();
                   setState(() {});
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('Reward updated!')));
+                  showAppSnack(
+      context,
+      text: 'Reward updated!',
+    );
                 }
               }
             },
@@ -498,9 +500,10 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 rewards.remove(reward);
               });
               Navigator.pop(context);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Reward deleted')));
+              showAppSnack(
+      context,
+      text: 'Reward deleted',
+    );
             },
             child: Text(
               'Delete',
@@ -536,11 +539,9 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                 setState(() {});
                 Navigator.of(context).pop();
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('🎉 Reward purchased! Enjoy your treat!'),
-                    backgroundColor: Theme.of(context).colorScheme.tertiary,
-                  ),
+                showAppSnack(
+                  context,
+                  text: '🎉 Reward purchased! Enjoy your treat!',
                 );
               }
             },
@@ -697,8 +698,9 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                     }
                     if (!mounted) return;
                     Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('$selectedType card created')),
+                    showAppSnack(
+                      context,
+                      text: '$selectedType card created',
                     );
                   },
                   child: const Text('Create'),
@@ -834,9 +836,10 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
       rewards.add(reward);
     });
 
-    ScaffoldMessenger.of(
+    showAppSnack(
       context,
-    ).showSnackBar(SnackBar(content: Text('🎉 Your reward has been created!')));
+      text: '🎉 Your reward has been created!',
+    );
   }
 
   Color? _parseColor(String? colorHex) {

@@ -7,6 +7,7 @@ import 'package:solo_level_system/screens/workout_quick_start_screen.dart';
 import 'package:solo_level_system/screens/workout_history_screen.dart';
 import 'package:solo_level_system/screens/motivational_cards_screen.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class WorkoutNavigationScreen extends StatefulWidget {
   const WorkoutNavigationScreen({super.key});
@@ -196,11 +197,10 @@ class _WorkoutNavigationScreenState extends State<WorkoutNavigationScreen> {
     if (_activeSession != null) {
       // TODO: Navigate to active workout session screen
       // This will be implemented when integrating with existing active session logic
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Navigate to active session: ${_activeSession!.id}'),
-          duration: Duration(seconds: 2),
-        ),
+      showAppSnack(
+        context,
+        text: 'Navigate to active session: ${_activeSession!.id}',
+        duration: const Duration(seconds: 2),
       );
     }
   }

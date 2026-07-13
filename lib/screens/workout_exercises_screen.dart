@@ -9,6 +9,7 @@ import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/screens/exercise_details_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class WorkoutExercisesScreen extends StatefulWidget {
   final String? filterSetId;
@@ -537,11 +538,10 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
 
   void _duplicateExercise(ExerciseModel exercise) {
     // TODO: Implement exercise duplication logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Duplicating exercise: ${exercise.name}'),
-        duration: Duration(seconds: 2),
-      ),
+    showAppSnack(
+      context,
+      text: 'Duplicating exercise: ${exercise.name}',
+      duration: const Duration(seconds: 2),
     );
   }
 
@@ -556,9 +556,10 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
         isDestructive: true,
         onConfirm: () {
           exercise.delete();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Exercise deleted')));
+          showAppSnack(
+      context,
+      text: 'Exercise deleted',
+    );
         },
       ),
     );

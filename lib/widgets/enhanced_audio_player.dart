@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:solo_level_system/models/audio_settings_model.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class EnhancedAudioPlayer extends StatefulWidget {
   final EnhancedAudioModel audioModel;
@@ -448,9 +449,10 @@ class _EnhancedAudioPlayerState extends State<EnhancedAudioPlayer>
 
   void _shareAudio() {
     // Implement sharing functionality
-    ScaffoldMessenger.of(
+    showAppSnack(
       context,
-    ).showSnackBar(SnackBar(content: Text('Share functionality coming soon!')));
+      text: 'Share functionality coming soon!',
+    );
   }
 }
 

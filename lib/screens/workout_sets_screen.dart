@@ -8,6 +8,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/screens/add_edit_workout_set_screen.dart';
 import 'package:solo_level_system/screens/workout_exercises_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class WorkoutSetsScreen extends StatefulWidget {
   final Function(WorkoutSessionModel?)? onActiveSessionChanged;
@@ -350,11 +351,9 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
     final activeSetsCount = box.values.where((set) => set.isActive).length;
 
     if (activeSetsCount >= MAX_SETS) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Maximum of $MAX_SETS workout sets allowed'),
-          backgroundColor: Colors.orange,
-        ),
+      showAppSnack(
+        context,
+        text: 'Maximum of $MAX_SETS workout sets allowed',
       );
       return;
     }
@@ -382,11 +381,9 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
     final activeSetsCount = box.values.where((set) => set.isActive).length;
 
     if (activeSetsCount >= MAX_SETS) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Maximum of $MAX_SETS workout sets allowed'),
-          backgroundColor: Colors.orange,
-        ),
+      showAppSnack(
+        context,
+        text: 'Maximum of $MAX_SETS workout sets allowed',
       );
       return;
     }
@@ -403,11 +400,10 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
 
     box.add(newSet);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Set duplicated successfully'),
-        duration: Duration(seconds: 2),
-      ),
+    showAppSnack(
+      context,
+      text: 'Set duplicated successfully',
+      duration: const Duration(seconds: 2),
     );
   }
 
@@ -432,9 +428,10 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
             remainingSets[i].updatePosition(i);
           }
 
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Set deleted')));
+          showAppSnack(
+      context,
+      text: 'Set deleted',
+    );
         },
       ),
     );
@@ -443,11 +440,10 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
   void _endWorkoutSession() {
     if (widget.activeSession != null) {
       widget.onActiveSessionChanged?.call(null);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Workout session ended'),
-          duration: Duration(seconds: 2),
-        ),
+      showAppSnack(
+        context,
+        text: 'Workout session ended',
+        duration: const Duration(seconds: 2),
       );
     }
   }

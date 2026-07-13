@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:solo_level_system/models/audio_settings_model.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class EnhancedAudioRecorder extends StatefulWidget {
   final Function(EnhancedAudioModel) onRecordingComplete;
@@ -213,9 +214,10 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
 
     // Show success message
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Recording saved successfully!')));
+      showAppSnack(
+      context,
+      text: 'Recording saved successfully!',
+    );
     }
   }
 

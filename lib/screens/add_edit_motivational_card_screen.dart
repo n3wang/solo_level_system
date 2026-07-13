@@ -5,6 +5,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/motivational_card_model.dart';
 import '../utils/motivational_card_service.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class AddEditMotivationalCardScreen extends StatefulWidget {
   final MotivationalCardModel? card;
@@ -58,9 +59,10 @@ class _AddEditMotivationalCardScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+        showAppSnack(
+      context,
+      text: 'Error picking image: $e',
+    );
       }
     } finally {
       setState(() => _isLoading = false);
@@ -116,8 +118,9 @@ class _AddEditMotivationalCardScreenState
           imagePath: _imagePath,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Motivational card created!')),
+          showAppSnack(
+            context,
+            text: 'Motivational card created!',
           );
         }
       } else {
@@ -128,8 +131,9 @@ class _AddEditMotivationalCardScreenState
           imagePath: _imagePath,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Motivational card updated!')),
+          showAppSnack(
+            context,
+            text: 'Motivational card updated!',
           );
         }
       }
@@ -139,9 +143,10 @@ class _AddEditMotivationalCardScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error saving card: $e')));
+        showAppSnack(
+      context,
+      text: 'Error saving card: $e',
+    );
       }
     } finally {
       if (mounted) {

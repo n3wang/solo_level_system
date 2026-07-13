@@ -10,6 +10,7 @@ import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/utils/workout_service.dart';
 import 'package:solo_level_system/widgets/common/centered_app_modal.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class ExerciseDetailsScreen extends StatefulWidget {
   final ExerciseModel exercise;
@@ -931,9 +932,10 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               exercise.delete();
               Navigator.pop(context); // Close dialog
               Navigator.pop(context); // Close detail
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Exercise deleted')));
+              showAppSnack(
+      context,
+      text: 'Exercise deleted',
+    );
             },
             child: Text(
               'Delete',
@@ -972,8 +974,9 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   }
 
   void _viewFullHistory() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Full history view not implemented yet')),
+    showAppSnack(
+      context,
+      text: 'Full history view not implemented yet',
     );
   }
 }

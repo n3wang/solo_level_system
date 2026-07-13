@@ -30,6 +30,7 @@ import 'package:solo_level_system/utils/timer_controller.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/utils/session_reward_service.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 import 'package:solo_level_system/widgets/common/session_loot_dialog.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -102,6 +103,67 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _soundEffectsService = SoundEffectsService();
   final _notificationService = NotificationService();
   final _timerController = TimerController();
+
+  static const List<String> _breakPhaseMessages = [
+    'Break time',
+    'Rest a bit',
+    'Stretch & breathe',
+    'Step away for a minute',
+    'Eyes off the screen',
+    'Hydrate',
+    'Reset your mind',
+    'Short pause earned',
+  ];
+
+  static const List<String> _workPhaseMessages = [
+    'Focus time',
+    'Back to work',
+    'Deep work',
+    'Let\'s go',
+    'One more block',
+    'Heads down',
+    'Make it count',
+    'Time to build',
+  ];
+
+  void _showSessionPhaseSnack(List<String> messages) {
+    if (!mounted) return;
+    showAppSnackMessage(context, messages: messages, random: _random);
+  }
+
+  bool _isSameCalendarDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  /// Latest completed focus session date (Hive, then progress fallback).
+  DateTime? _lastCompletedSessionDate() {
+    DateTime? latest;
+    if (Hive.isBoxOpen('pomodoros')) {
+      final box = Hive.box<PomodoroModel>('pomodoros');
+      for (final session in box.values) {
+        if (latest == null || session.startTime.isAfter(latest)) {
+          latest = session.startTime;
+        }
+      }
+    }
+    final progressDate = userProgress?.lastSessionDate;
+    if (progressDate != null &&
+        (latest == null || progressDate.isAfter(latest))) {
+      latest = progressDate;
+    }
+    return latest;
+  }
+
+  /// Clears under-timer squares when a new calendar day begins.
+  Future<void> _flushSessionSquaresIfNewDay() async {
+    final now = DateTime.now();
+    final last = _lastCompletedSessionDate();
+    if (last != null && _isSameCalendarDay(last, now)) return;
+
+    final count = await getTodayCompletedSessions();
+    if (!mounted) return;
+    if (countCompletedToday == count) return;
+    setState(() => countCompletedToday = count);
+  }
 
   void _onTimerStateChanged() {
     final wasRunning = isRunning;
@@ -382,7 +444,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ? ((totalCount * 42) + ((totalCount - 1) * 8) + 12)
         : 0.0;
     const double roomFabSize = 40;
-    const double railStartOffset = 52; // Keep expanded icons clearly to the right.
+    const double railStartOffset =
+        52; // Keep expanded icons clearly to the right.
 
     return SizedBox(
       width: roomFabSize + railWidth + 16,
@@ -406,9 +469,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             child: GestureDetector(
               onTap: _handleRoomFabTap,
               child: Tooltip(
-                message: isOpen
-                    ? 'Open room management'
-                    : 'Open quick rooms',
+                message: isOpen ? 'Open room management' : 'Open quick rooms',
                 child: Material(
                   color: Theme.of(context).colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(12),
@@ -726,10 +787,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildAnimatedTimerText() {
     final scheme = Theme.of(context).colorScheme;
     final bool isUrgencyWindow =
-        _timerController.isRunning && remainingSeconds > 0 && remainingSeconds <= 30;
+        _timerController.isRunning &&
+        remainingSeconds > 0 &&
+        remainingSeconds <= 30;
     final double amplitude = remainingSeconds <= 10 ? 3.2 : 2.0;
-    final double targetOffset =
-        isUrgencyWindow ? (remainingSeconds.isEven ? -amplitude : amplitude) : 0.0;
+    final double targetOffset = isUrgencyWindow
+        ? (remainingSeconds.isEven ? -amplitude : amplitude)
+        : 0.0;
 
     return TweenAnimationBuilder<double>(
       key: ValueKey(
@@ -864,7 +928,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _openTrackPickerModal() async {
     final allTracks = await LofiService.getAllTracks();
     final allowedForRoom = _allowedRoomTrackFilenames();
-    final hasRoomScopedTracks = selectedRoom != null && allowedForRoom.isNotEmpty;
+    final hasRoomScopedTracks =
+        selectedRoom != null && allowedForRoom.isNotEmpty;
 
     if (!mounted) return;
 
@@ -921,7 +986,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ChoiceChip(
                             label: const Text('All'),
                             selected: !roomOnly,
-                            onSelected: (_) => setModalState(() => roomOnly = false),
+                            onSelected: (_) =>
+                                setModalState(() => roomOnly = false),
                           ),
                         ],
                       ),
@@ -929,11 +995,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         const SizedBox(height: 8),
                         Text(
                           'No room-specific tracks set. Showing all tracks.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(
-                                  alpha: 0.7,
-                                ),
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.7),
+                              ),
                         ),
                       ],
                       const SizedBox(height: 10),
@@ -958,7 +1025,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               )
                             : ListView.separated(
                                 itemCount: visibleTracks.length,
-                                separatorBuilder: (_, __) => const Divider(height: 1),
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final track = visibleTracks[index];
                                   final isCurrent =
@@ -980,7 +1048,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    onTap: () => Navigator.of(context).pop(track),
+                                    onTap: () =>
+                                        Navigator.of(context).pop(track),
                                   );
                                 },
                               ),
@@ -1050,6 +1119,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void startTimer() {
+    final startingFreshWork =
+        !_timerController.onBreak &&
+        (sessionStartTime == null ||
+            _timerController.remainingSeconds >= workMinutes * 60);
+    if (startingFreshWork) {
+      unawaited(_flushSessionSquaresIfNewDay());
+    }
     setState(() {
       if (!_timerController.onBreak) {
         // New work block after break (or first start), not a mid-session resume.
@@ -1060,6 +1136,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
     });
     unawaited(_startTimerWithMusic());
+    if (startingFreshWork) {
+      _showSessionPhaseSnack(_workPhaseMessages);
+    }
   }
 
   Future<void> _startTimerWithMusic() async {
@@ -1104,9 +1183,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
 
     _timerController.startBreak();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Break Time!')));
+    _showSessionPhaseSnack(_breakPhaseMessages);
   }
 
   void saveSession({cleanVariables = true}) async {
@@ -1173,9 +1250,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await box.add(audioModel);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save recording to library: $e')),
-      );
+      showAppSnack(context, text: 'Could not save recording to library: $e');
     }
   }
 
@@ -1541,7 +1616,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             selectedProject: selectedProject,
             isRunning: _timerController.isRunning,
             canSubmitLog: canSubmitLog,
-            selectedExpandedWidth: PomodoroSizing.getAlbumContainerSize(context),
+            selectedExpandedWidth: PomodoroSizing.getAlbumContainerSize(
+              context,
+            ),
             onProjectSelected: (project) {
               setState(() {
                 selectedProject = project;
@@ -1613,189 +1690,209 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             MediaQuery.of(context).size.width > 600
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Album image with timer overlay
-                  SizedBox(
-                    width: PomodoroSizing.getAlbumContainerSize(context),
-                    height: PomodoroSizing.getAlbumContainerSize(context),
-                    child: Stack(
-                      children: [
-                        // Album background image
-                        Container(
-                          width: PomodoroSizing.getAlbumContainerSize(context),
-                          height: PomodoroSizing.getAlbumContainerSize(context),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppColorPalette.success,
-                              width: 2,
-                            ),
-                            color: mediaWidget == null
-                                ? AppColorPalette.success.withValues(alpha: 0.1)
-                                : null,
-                          ),
-                          child: mediaWidget == null
-                              ? null
-                              : ClipRRect(
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: mediaWidget,
-                                ),
-                        ),
-                        // Timer overlay with semi-transparent background
-                        Container(
-                          width: PomodoroSizing.getAlbumContainerSize(context),
-                          height: PomodoroSizing.getAlbumContainerSize(context),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.shadow.withValues(alpha: 0.3),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _buildAnimatedTimerText(),
-                              const SizedBox(height: AppUiSizes.sm),
-                              _buildTimerOverlayText(),
-                              const SizedBox(height: AppUiSizes.sm),
-                              SessionSquaresWidget(
-                                completedSessions: countCompletedToday,
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Album image with timer overlay
+                      SizedBox(
+                        width: PomodoroSizing.getAlbumContainerSize(context),
+                        height: PomodoroSizing.getAlbumContainerSize(context),
+                        child: Stack(
+                          children: [
+                            // Album background image
+                            Container(
+                              width: PomodoroSizing.getAlbumContainerSize(
+                                context,
                               ),
-                            ],
-                          ),
-                        ),
-                        if (selectedProject != null)
-                          Positioned(
-                            top: 8,
-                            right: 10,
-                            child: _buildSelectedProjectOverlayText(),
-                          ),
-                        if (selectedRoom != null)
-                          Positioned(
-                            top: 8,
-                            left: 10,
-                            child: _buildSelectedRoomOverlayText(),
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(width: 20),
-
-                  // Music widget next to album (hidden when paused)
-                  if (isRunning || canSubmitLog)
-                    SizedBox(
-                      width: PomodoroSizing.getMusicWidgetWidth(context),
-                      child: CompactMusicWidget(
-                        allowMusic: _timerController.allowMusic,
-                        currentlyPlayingTrack: currentlyPlayingTrack,
-                        onToggleMusic: _toggleMusicPlayback,
-                        onChangeTrack: () {
-                          if (_timerController.allowMusic) {
-                            _playLofi();
-                          }
-                        },
-                        onLongPressTrackPicker: _openTrackPickerModal,
-                      ),
-                    ),
-                ],
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Top padding to match bottom spacing
-                  SizedBox(height: 20),
-                  // Album image with timer overlay
-                  SizedBox(
-                    width: PomodoroSizing.getAlbumContainerSize(context),
-                    height: PomodoroSizing.getAlbumContainerSize(context),
-                    child: Stack(
-                      children: [
-                        // Album background image
-                        Container(
-                          width: PomodoroSizing.getAlbumContainerSize(context),
-                          height: PomodoroSizing.getAlbumContainerSize(context),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppColorPalette.success,
-                              width: 2,
-                            ),
-                            color: mediaWidget == null
-                                ? AppColorPalette.success.withValues(alpha: 0.1)
-                                : null,
-                          ),
-                          child: mediaWidget == null
-                              ? null
-                              : ClipRRect(
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: mediaWidget,
-                                ),
-                        ),
-                        // Timer overlay with semi-transparent background
-                        Container(
-                          width: PomodoroSizing.getAlbumContainerSize(context),
-                          height: PomodoroSizing.getAlbumContainerSize(context),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.shadow.withValues(alpha: 0.3),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _buildAnimatedTimerText(),
-                              const SizedBox(height: AppUiSizes.sm),
-                              _buildTimerOverlayText(),
-                              const SizedBox(height: AppUiSizes.sm),
-                              SessionSquaresWidget(
-                                completedSessions: countCompletedToday,
+                              height: PomodoroSizing.getAlbumContainerSize(
+                                context,
                               ),
-                            ],
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: AppColorPalette.success,
+                                  width: 2,
+                                ),
+                                color: mediaWidget == null
+                                    ? AppColorPalette.success.withValues(
+                                        alpha: 0.1,
+                                      )
+                                    : null,
+                              ),
+                              child: mediaWidget == null
+                                  ? null
+                                  : ClipRRect(
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: mediaWidget,
+                                    ),
+                            ),
+                            // Timer overlay with semi-transparent background
+                            Container(
+                              width: PomodoroSizing.getAlbumContainerSize(
+                                context,
+                              ),
+                              height: PomodoroSizing.getAlbumContainerSize(
+                                context,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.shadow.withValues(alpha: 0.3),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildAnimatedTimerText(),
+                                  const SizedBox(height: AppUiSizes.sm),
+                                  _buildTimerOverlayText(),
+                                  const SizedBox(height: AppUiSizes.sm),
+                                  SessionSquaresWidget(
+                                    completedSessions: countCompletedToday,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (selectedProject != null)
+                              Positioned(
+                                top: 8,
+                                right: 10,
+                                child: _buildSelectedProjectOverlayText(),
+                              ),
+                            if (selectedRoom != null)
+                              Positioned(
+                                top: 8,
+                                left: 10,
+                                child: _buildSelectedRoomOverlayText(),
+                              ),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(width: 20),
+
+                      // Music widget next to album (hidden when paused)
+                      if (isRunning || canSubmitLog)
+                        SizedBox(
+                          width: PomodoroSizing.getMusicWidgetWidth(context),
+                          child: CompactMusicWidget(
+                            allowMusic: _timerController.allowMusic,
+                            currentlyPlayingTrack: currentlyPlayingTrack,
+                            onToggleMusic: _toggleMusicPlayback,
+                            onChangeTrack: () {
+                              if (_timerController.allowMusic) {
+                                _playLofi();
+                              }
+                            },
+                            onLongPressTrackPicker: _openTrackPickerModal,
                           ),
                         ),
-                        if (selectedProject != null)
-                          Positioned(
-                            top: 8,
-                            right: 10,
-                            child: _buildSelectedProjectOverlayText(),
-                          ),
-                        if (selectedRoom != null)
-                          Positioned(
-                            top: 8,
-                            left: 10,
-                            child: _buildSelectedRoomOverlayText(),
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  // Music widget below album for small screens (hidden when paused)
-                  if (isRunning || canSubmitLog) ...[
-                    SizedBox(height: 20),
-                    SizedBox(
-                      width: PomodoroSizing.getAlbumContainerSize(
-                        context,
-                      ).clamp(150.0, 400.0),
-                      child: CompactMusicWidget(
-                        allowMusic: _timerController.allowMusic,
-                        currentlyPlayingTrack: currentlyPlayingTrack,
-                        onToggleMusic: _toggleMusicPlayback,
-                        onChangeTrack: () {
-                          if (_timerController.allowMusic) {
-                            _playLofi();
-                          }
-                        },
-                        onLongPressTrackPicker: _openTrackPickerModal,
+                    ],
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Top padding to match bottom spacing
+                      SizedBox(height: 20),
+                      // Album image with timer overlay
+                      SizedBox(
+                        width: PomodoroSizing.getAlbumContainerSize(context),
+                        height: PomodoroSizing.getAlbumContainerSize(context),
+                        child: Stack(
+                          children: [
+                            // Album background image
+                            Container(
+                              width: PomodoroSizing.getAlbumContainerSize(
+                                context,
+                              ),
+                              height: PomodoroSizing.getAlbumContainerSize(
+                                context,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: AppColorPalette.success,
+                                  width: 2,
+                                ),
+                                color: mediaWidget == null
+                                    ? AppColorPalette.success.withValues(
+                                        alpha: 0.1,
+                                      )
+                                    : null,
+                              ),
+                              child: mediaWidget == null
+                                  ? null
+                                  : ClipRRect(
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: mediaWidget,
+                                    ),
+                            ),
+                            // Timer overlay with semi-transparent background
+                            Container(
+                              width: PomodoroSizing.getAlbumContainerSize(
+                                context,
+                              ),
+                              height: PomodoroSizing.getAlbumContainerSize(
+                                context,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.shadow.withValues(alpha: 0.3),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildAnimatedTimerText(),
+                                  const SizedBox(height: AppUiSizes.sm),
+                                  _buildTimerOverlayText(),
+                                  const SizedBox(height: AppUiSizes.sm),
+                                  SessionSquaresWidget(
+                                    completedSessions: countCompletedToday,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (selectedProject != null)
+                              Positioned(
+                                top: 8,
+                                right: 10,
+                                child: _buildSelectedProjectOverlayText(),
+                              ),
+                            if (selectedRoom != null)
+                              Positioned(
+                                top: 8,
+                                left: 10,
+                                child: _buildSelectedRoomOverlayText(),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ],
-              ),
+
+                      // Music widget below album for small screens (hidden when paused)
+                      if (isRunning || canSubmitLog) ...[
+                        SizedBox(height: 20),
+                        SizedBox(
+                          width: PomodoroSizing.getAlbumContainerSize(
+                            context,
+                          ).clamp(150.0, 400.0),
+                          child: CompactMusicWidget(
+                            allowMusic: _timerController.allowMusic,
+                            currentlyPlayingTrack: currentlyPlayingTrack,
+                            onToggleMusic: _toggleMusicPlayback,
+                            onChangeTrack: () {
+                              if (_timerController.allowMusic) {
+                                _playLofi();
+                              }
+                            },
+                            onLongPressTrackPicker: _openTrackPickerModal,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
             if (_showLongBreakDuringPause) ...[
               const SizedBox(height: AppUiSizes.sm),
               Align(
@@ -1901,7 +1998,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                   if (recordedAudio != null)
                     Container(
-                      margin: const EdgeInsets.only(left: 20, top: 4, bottom: 8),
+                      margin: const EdgeInsets.only(
+                        left: 20,
+                        top: 4,
+                        bottom: 8,
+                      ),
                       constraints: const BoxConstraints(maxWidth: 300),
                       child: SessionRecordingPreview(audio: recordedAudio!),
                     ),
@@ -2088,9 +2189,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           showPlayer = true;
           canSubmitLog = true;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Recording completed successfully!')),
-        );
+        showAppSnack(context, text: 'Recording completed successfully!');
       },
       onReset: () {
         setState(() {
@@ -2120,6 +2219,7 @@ class _HomeSpeedControlledGif extends StatefulWidget {
   final String sourcePath;
   final bool isAssetReference;
   final double speed;
+
   /// When false, animation stops (timer paused — work or break).
   final bool playing;
   final BoxFit fit;
@@ -2135,7 +2235,8 @@ class _HomeSpeedControlledGif extends StatefulWidget {
   });
 
   @override
-  State<_HomeSpeedControlledGif> createState() => _HomeSpeedControlledGifState();
+  State<_HomeSpeedControlledGif> createState() =>
+      _HomeSpeedControlledGifState();
 }
 
 class _HomeSpeedControlledGifState extends State<_HomeSpeedControlledGif> {
@@ -2398,7 +2499,9 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
 
   void _startLevelMonitoring() {
     _levelTimer?.cancel();
-    _levelTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
+    _levelTimer = Timer.periodic(const Duration(milliseconds: 100), (
+      timer,
+    ) async {
       if (!_isRecording || !mounted) return;
       try {
         final amplitude = await _recorder.getAmplitude();
@@ -2440,8 +2543,7 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
         final infoColor = AppColorPalette.info;
         final micHot = AppColorPalette.warning;
         final rawLevel = _smoothedMicLevel.clamp(0.0, 1.0);
-        final intensity =
-            pow(rawLevel, 0.34).toDouble().clamp(0.0, 1.0);
+        final intensity = pow(rawLevel, 0.34).toDouble().clamp(0.0, 1.0);
         final recordingAccent = _isRecording
             ? Color.lerp(errorColor, micHot, intensity)!
             : errorColor;
@@ -2453,8 +2555,9 @@ class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
               )!
             : errorColor.withValues(alpha: 0.1);
         final recordingBorder = _isRecording ? recordingAccent : errorColor;
-        final recordingIconColor =
-            _isRecording ? recordingAccent : AppColorPalette.error;
+        final recordingIconColor = _isRecording
+            ? recordingAccent
+            : AppColorPalette.error;
         final borderWidth = _isRecording ? 2.0 + 5.5 * intensity : 2.0;
 
         return Transform.scale(

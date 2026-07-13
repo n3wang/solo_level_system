@@ -5,6 +5,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/timed_workout_model.dart';
 import 'package:solo_level_system/widgets/common/on_off_toggle.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class AddEditTimedProgramScreen extends StatefulWidget {
   final TimedWorkoutModel? program;
@@ -68,8 +69,9 @@ class _AddEditTimedProgramScreenState extends State<AddEditTimedProgramScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_steps.isEmpty || _steps.every((s) => s.exerciseId == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add at least one exercise')),
+      showAppSnack(
+        context,
+        text: 'Add at least one exercise',
       );
       return;
     }
@@ -111,8 +113,9 @@ class _AddEditTimedProgramScreenState extends State<AddEditTimedProgramScreen> {
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save program: $e')),
+      showAppSnack(
+        context,
+        text: 'Could not save program: $e',
       );
     } finally {
       if (mounted) setState(() => _saving = false);

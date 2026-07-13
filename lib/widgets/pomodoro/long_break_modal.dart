@@ -6,6 +6,7 @@ import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/models/long_break_queue_item_model.dart';
 import 'package:solo_level_system/utils/long_break_queue_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 Future<void> showLongBreakModal(BuildContext context) {
   return showModalBottomSheet<void>(
@@ -91,8 +92,9 @@ class _LongBreakSheetBodyState extends State<_LongBreakSheetBody> {
   Future<void> _addItem() async {
     final url = _urlController.text.trim();
     if (url.isEmpty) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        const SnackBar(content: Text('Add a playlist or video link first.')),
+      showAppSnack(
+        context,
+        text: 'Add a playlist or video link first.',
       );
       return;
     }
@@ -141,8 +143,9 @@ class _LongBreakSheetBodyState extends State<_LongBreakSheetBody> {
     if (uri == null) return;
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open link: $u')),
+      showAppSnack(
+        context,
+        text: 'Could not open link: $u',
       );
     }
   }
@@ -150,8 +153,9 @@ class _LongBreakSheetBodyState extends State<_LongBreakSheetBody> {
   Future<void> _copyUrl(String raw) async {
     await Clipboard.setData(ClipboardData(text: raw));
     if (!mounted) return;
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      const SnackBar(content: Text('Link copied')),
+    showAppSnack(
+      context,
+      text: 'Link copied',
     );
   }
 

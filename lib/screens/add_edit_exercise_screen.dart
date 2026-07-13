@@ -15,6 +15,7 @@ import 'package:solo_level_system/widgets/exercise_image_library_picker.dart';
 import 'package:solo_level_system/widgets/exercise_set_membership_toggle.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/widgets/common/centered_app_modal.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class AddEditExerciseScreen extends StatefulWidget {
   final ExerciseModel? exercise; // null for adding, non-null for editing
@@ -536,8 +537,9 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
 
   Future<void> _pickFromPhoneLibrary() async {
     if (kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Phone library is not available on web')),
+      showAppSnack(
+        context,
+        text: 'Phone library is not available on web',
       );
       return;
     }
@@ -570,9 +572,10 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
       setState(() => _imageUrl = saved.path);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Could not pick image: $e')));
+      showAppSnack(
+      context,
+      text: 'Could not pick image: $e',
+    );
     }
   }
 
@@ -671,23 +674,18 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            wasUpdate
+      showAppSnack(
+        context,
+        text: wasUpdate
                 ? 'Exercise updated successfully'
-                : 'Exercise created successfully',
-          ),
-        ),
+                : 'Exercise created successfully',,
       );
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving exercise: $e'),
-          backgroundColor: AppColorPalette.error,
-        ),
+      showAppSnack(
+        context,
+        text: 'Error saving exercise: $e',
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -751,17 +749,16 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Exercise duplicated — editing copy')),
+      showAppSnack(
+        context,
+        text: 'Exercise duplicated — editing copy',
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error duplicating exercise: $e'),
-          backgroundColor: AppColorPalette.error,
-        ),
+      showAppSnack(
+        context,
+        text: 'Error duplicating exercise: $e',
       );
     }
   }

@@ -4,6 +4,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class AddEditWorkoutSetScreen extends StatefulWidget {
   final WorkoutSetCategoryModel? setCategory;
@@ -281,25 +282,19 @@ class _AddEditWorkoutSetScreenState extends State<AddEditWorkoutSetScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.setCategory != null
+        showAppSnack(
+          context,
+          text: widget.setCategory != null
                   ? 'Set updated successfully'
                   : 'Set created successfully',
-            ),
-            backgroundColor: Colors.green,
-          ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving set: $e'),
-            backgroundColor: Colors.red,
-          ),
+        showAppSnack(
+          context,
+          text: 'Error saving set: $e',
         );
       }
     } finally {

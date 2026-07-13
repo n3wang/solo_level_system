@@ -12,6 +12,7 @@ import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
 import 'package:solo_level_system/utils/card_repository.dart';
 import 'package:solo_level_system/widgets/cards/collectible_card.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 /// Shared Create Reward dialog (Cards hub + Stats Overview FAB).
 Future<void> showCreateRewardDialog(BuildContext context) async {
@@ -208,8 +209,9 @@ Future<void> showCreateRewardDialog(BuildContext context) async {
 
                   if (!dialogContext.mounted) return;
                   Navigator.of(dialogContext).pop();
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('Reward card created')),
+                  showAppSnack(
+                    dialogContext,
+                    text: 'Reward card created',
                   );
                 },
                 child: const Text('Create'),

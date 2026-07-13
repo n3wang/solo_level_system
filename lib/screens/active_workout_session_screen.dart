@@ -14,6 +14,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/widgets/common/settings_slider.dart';
 import 'package:sprite_sheets/sprite_sheets.dart';
+import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class ActiveWorkoutSessionScreen extends StatefulWidget {
   final WorkoutSessionModel session;
@@ -1609,19 +1610,15 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       });
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Routine updated! New sets have been added if any.'),
-          backgroundColor: AppColorPalette.success,
-        ),
+      showAppSnack(
+        context,
+        text: 'Routine updated! New sets have been added if any.',
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating routine: $e'),
-          backgroundColor: AppColorPalette.error,
-        ),
+      showAppSnack(
+        context,
+        text: 'Error updating routine: $e',
       );
     }
   }
@@ -2187,12 +2184,10 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             .where((ex) => newPersonalRecords.contains(ex.id))
             .map((ex) => ex.name)
             .join(', ');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🎉 New Personal Records: $exerciseNames'),
-            backgroundColor: AppColorPalette.success,
-            duration: Duration(seconds: 4),
-          ),
+        showAppSnack(
+          context,
+          text: '🎉 New Personal Records: $exerciseNames',
+          duration: const Duration(seconds: 4),
         );
       }
 
