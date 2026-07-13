@@ -12,6 +12,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/utils/palette_notifier.dart';
 import 'package:solo_level_system/screens/workout_settings_screen.dart';
 import 'package:solo_level_system/widgets/common/standard_tab_app_bar.dart';
+import 'package:solo_level_system/widgets/common/on_off_toggle.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -310,7 +311,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         ),
         Divider(),
         _buildSectionHeader('Automation'),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Auto-start Breaks'),
           subtitle: Text('Automatically start break timer after work session'),
           value: userSettings.autoStartBreaks,
@@ -321,7 +322,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             await _saveUserSettings();
           },
         ),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Auto-start Work'),
           subtitle: Text('Automatically start work timer after break'),
           value: userSettings.autoStartWork,
@@ -341,7 +342,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       padding: EdgeInsets.all(16),
       children: [
         _buildSectionHeader('Notifications'),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Enable Notifications'),
           subtitle: Text('Receive session completion notifications'),
           value: userSettings.enableNotifications,
@@ -352,7 +353,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             await _saveUserSettings();
           },
         ),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Enable Sounds'),
           subtitle: Text('Play notification sounds'),
           value: userSettings.enableSounds,
@@ -397,7 +398,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         ),
         Divider(),
         _buildSectionHeader('Privacy'),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Enable Analytics'),
           subtitle: Text('Help improve the app by sharing usage data'),
           value: userSettings.enableAnalytics,
@@ -408,7 +409,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             await _saveUserSettings();
           },
         ),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Auto Backup'),
           subtitle: Text('Automatically backup your data'),
           value: userSettings.autoBackup,
@@ -428,7 +429,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       padding: EdgeInsets.all(16),
       children: [
         _buildSectionHeader('Background Audio'),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Play Audio on Repeat'),
           subtitle: Text('Loop background music continuously'),
           value: config.playAudioOnRepeat,
@@ -439,7 +440,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             await _saveConfig();
           },
         ),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Randomize Audio'),
           subtitle: Text('Play tracks in random order instead of sequential'),
           value: config.randomizeAudio,
@@ -452,7 +453,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         ),
         Divider(),
         _buildSectionHeader('Background Music Control'),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Play Audio During Work Sessions'),
           subtitle: Text(
             'Enable background music during pomodoro work sessions',
@@ -465,7 +466,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             await _saveUserSettings();
           },
         ),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Play Audio During Breaks'),
           subtitle: Text('Enable background music during break sessions'),
           value: userSettings.playAudioDuringBreaks,
@@ -478,7 +479,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         ),
         Divider(),
         _buildSectionHeader('Session Recording'),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Show Photo Button'),
           subtitle: Text('Allow taking photos after sessions'),
           value: config.showPhotoButton,
@@ -489,7 +490,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             await _saveConfig();
           },
         ),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Show Audio Recording Button'),
           subtitle: Text('Allow recording voice notes after sessions'),
           value: config.showAudioRecordButton,
@@ -567,7 +568,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             },
           ),
         ),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Stereo Recording'),
           subtitle: Text('Record in stereo (2 channels) instead of mono'),
           value: audioSettings.channels == 2,
@@ -598,7 +599,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
           ),
         ),
-        SwitchListTile(
+        OnOffToggleListTile(
           title: Text('Enable Noise Reduction'),
           subtitle: Text('Reduce background noise in recordings'),
           value: audioSettings.enableNoiseReduction,

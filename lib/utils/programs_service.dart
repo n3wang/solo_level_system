@@ -551,55 +551,393 @@ class ProgramsService {
       {'name': 'Side Plank', 'time': 30},
     ];
 
-    // Create 2 programs with the same sequence
-    for (int i = 0; i < 2; i++) {
-      final workoutOrder = <TimedWorkoutItem>[];
+    // Create the classic 7-minute program with a stable id
+    final workoutOrder = <TimedWorkoutItem>[];
 
-      for (final item in workoutSequence) {
-        final exerciseName = item['name'] as String;
-        final time = item['time'] as int;
+    for (final item in workoutSequence) {
+      final exerciseName = item['name'] as String;
+      final time = item['time'] as int;
 
-        ExerciseModel? exercise;
-        if (exerciseName == 'Break') {
-          exercise = breakExercise;
-        } else {
-          // Try multiple variations of the name for matching
-          exercise =
-              exerciseMap[exerciseName.toLowerCase()] ??
-              exerciseMap[exerciseName] ??
-              exerciseMap[exerciseName.toLowerCase().replaceAll(' ', '-')] ??
-              exerciseMap[exerciseName
-                  .toLowerCase()
-                  .replaceAll('+', ' ')
-                  .trim()];
-        }
-
-        if (exercise != null) {
-          workoutOrder.add(
-            TimedWorkoutItem(
-              workoutId: exercise.id,
-              time: time,
-              useTimed: true,
-            ),
-          );
-        }
+      ExerciseModel? exercise;
+      if (exerciseName == 'Break') {
+        exercise = breakExercise;
+      } else {
+        exercise =
+            exerciseMap[exerciseName.toLowerCase()] ??
+            exerciseMap[exerciseName] ??
+            exerciseMap[exerciseName.toLowerCase().replaceAll(' ', '-')] ??
+            exerciseMap[exerciseName
+                .toLowerCase()
+                .replaceAll('+', ' ')
+                .trim()];
       }
 
-      final program = TimedWorkoutModel(
-        id: 'program_7min_${i + 1}_${now.millisecondsSinceEpoch}',
-        name: i == 0 ? '7 Minutes Workout' : '7 Minutes Workout 2',
+      if (exercise != null) {
+        workoutOrder.add(
+          TimedWorkoutItem(
+            workoutId: exercise.id,
+            time: time,
+            useTimed: true,
+          ),
+        );
+      }
+    }
+
+    programs.add(
+      TimedWorkoutModel(
+        id: 'program_7min_classic',
+        name: '7 Minutes Workout',
         workoutOrder: workoutOrder,
         createdAt: now,
         isCustom: false,
-        imageUrl: null, // Will use first exercise image
+        imageUrl: null,
         isBookmarked: false,
         timesPerformed: 0,
         completionDates: [],
-      );
-
-      programs.add(program);
-    }
+        isSubscribed: true,
+      ),
+    );
 
     return programs;
+  }
+
+  static const String _extraProgramsKey = 'extra_programs_v1';
+
+  /// Ensures catalog programs (20-min aerobics, core express) exist and
+  /// subscription defaults are applied. Safe to call on every launch.
+  static Future<void> ensureCatalogPrograms() async {
+    try {
+      if (!Hive.isBoxOpen('exercises')) {
+        await Hive.openBox<ExerciseModel>('exercises');
+      }
+      if (!Hive.isBoxOpen('timedWorkouts')) {
+        await Hive.openBox<TimedWorkoutModel>('timedWorkouts');
+      }
+      if (!Hive.isBoxOpen(_appFlagsBoxName)) {
+        await Hive.openBox(_appFlagsBoxName);
+      }
+
+      final exercisesBox = Hive.box<ExerciseModel>('exercises');
+      final programsBox = Hive.box<TimedWorkoutModel>('timedWorkouts');
+      final flagsBox = Hive.box(_appFlagsBoxName);
+      final now = DateTime.now();
+
+      ExerciseModel breakExercise = _ensureBreakExercise(exercisesBox, now);
+      final created = _ensureAerobicsExercises(exercisesBox, now);
+      final byName = <String, ExerciseModel>{
+        for (final ex in exercisesBox.values) ex.name.toLowerCase(): ex,
+      };
+
+      if (programsBox.get('program_7min_classic') == null) {
+        // Prefer renaming an existing 7-min program to the stable id.
+        TimedWorkoutModel? legacy;
+        for (final p in programsBox.values) {
+          if (p.name == '7 Minutes Workout') {
+            legacy = p;
+            break;
+          }
+        }
+        if (legacy != null && legacy.id != 'program_7min_classic') {
+          final migrated = TimedWorkoutModel(
+            id: 'program_7min_classic',
+            name: legacy.name,
+            workoutOrder: List.from(legacy.workoutOrder),
+            createdAt: legacy.createdAt,
+            modifiedAt: DateTime.now(),
+            isCustom: false,
+            imageUrl: legacy.imageUrl,
+            isBookmarked: legacy.isBookmarked,
+            timesPerformed: legacy.timesPerformed,
+            completionDates: List.from(legacy.completionDates),
+            isSubscribed: true,
+          );
+          await programsBox.put(migrated.id, migrated);
+        }
+      }
+
+      if (programsBox.get('program_20min_aerobics') == null) {
+        final aerobics = _build20MinAerobicsProgram(now, byName, breakExercise);
+        if (aerobics.workoutOrder.isNotEmpty) {
+          await programsBox.put(aerobics.id, aerobics);
+        }
+      }
+
+      if (programsBox.get('program_15min_core') == null) {
+        final core = _build15MinCoreProgram(now, byName, breakExercise);
+        if (core.workoutOrder.isNotEmpty) {
+          await programsBox.put(core.id, core);
+        }
+      }
+
+      // One-time subscription defaults: only 7 Minutes subscribed.
+      if (flagsBox.get(_extraProgramsKey, defaultValue: false) != true) {
+        for (final program in programsBox.values) {
+          final shouldSub =
+              program.id == 'program_7min_classic' ||
+              program.name == '7 Minutes Workout';
+          if (program.isSubscribed != shouldSub) {
+            program.isSubscribed = shouldSub;
+            await program.save();
+          }
+        }
+        // Unsubscribe duplicate "7 Minutes Workout 2" if present
+        for (final program in programsBox.values) {
+          if (program.name == '7 Minutes Workout 2') {
+            program.isSubscribed = false;
+            await program.save();
+          }
+        }
+        await flagsBox.put(_extraProgramsKey, true);
+      }
+
+      // ignore: unused_local_variable
+      final _ = created;
+    } catch (e) {
+      print('Error ensuring catalog programs: $e');
+    }
+  }
+
+  static ExerciseModel _ensureBreakExercise(
+    Box<ExerciseModel> exercisesBox,
+    DateTime now,
+  ) {
+    for (final existing in exercisesBox.values) {
+      if (existing.name.toLowerCase() == 'break') {
+        if (existing.audioFile == null || existing.audioFile!.isEmpty) {
+          existing.audioFile = 'audio/break_time.mp3';
+          existing.save();
+        }
+        return existing;
+      }
+    }
+    final breakExercise = _createBreakExercise(now);
+    exercisesBox.put(breakExercise.id, breakExercise);
+    return breakExercise;
+  }
+
+  static int _ensureAerobicsExercises(
+    Box<ExerciseModel> box,
+    DateTime now,
+  ) {
+    final defs = <Map<String, dynamic>>[
+      {
+        'name': 'Squat Jumps',
+        'description':
+            'Explosive squat into a vertical jump for lower-body power',
+        'tags': ['legs', 'cardio', 'bodyweight', 'intermediate'],
+        'icon': 'bodyweight_squats',
+        'instructions': [
+          'Feet shoulder-width apart, hands behind head',
+          'Squat until thighs are parallel to the floor',
+          'Jump as high as possible with a tight core',
+          'Land softly into a squat and repeat',
+        ],
+      },
+      {
+        'name': 'Burpees',
+        'description': 'Full-body high-intensity squat, plank, and jump',
+        'tags': ['full_body', 'cardio', 'bodyweight', 'intermediate'],
+        'icon': 'burpees',
+        'instructions': [
+          'Squat and place hands on the ground',
+          'Jump feet back into a plank',
+          'Jump feet forward to squat',
+          'Explode upward with arms overhead',
+        ],
+      },
+      {
+        'name': 'Mountain Climbers',
+        'description': 'Alternating knee drives from a plank position',
+        'tags': ['core', 'cardio', 'bodyweight', 'intermediate'],
+        'icon': 'high_knees',
+        'instructions': [
+          'Start in a push-up plank',
+          'Drive one knee forward under the body',
+          'Quickly switch legs',
+          'Keep hips level and move as fast as possible',
+        ],
+      },
+      {
+        'name': 'Vertical Leg Crunches',
+        'description': 'Abdominal crunch with legs raised toward the ceiling',
+        'tags': ['core', 'bodyweight', 'beginner', 'strength'],
+        'icon': 'abdominal_crunch',
+        'instructions': [
+          'Lie on your back with legs straight up',
+          'Reach fingers toward toes',
+          'Lift the upper body using your abs',
+          'Lower with control and repeat',
+        ],
+      },
+      {
+        'name': 'Russian Twists',
+        'description': 'Seated torso rotations for oblique strength',
+        'tags': ['core', 'bodyweight', 'intermediate', 'strength'],
+        'icon': 'abdominal_crunch',
+        'instructions': [
+          'Sit with knees bent and lean back slightly',
+          'Form a V with torso and thighs',
+          'Twist left, center, then right',
+          'Keep legs steady and core engaged',
+        ],
+      },
+      {
+        'name': 'Flutter Kicks',
+        'description': 'Alternating leg kicks while lying on your back',
+        'tags': ['core', 'bodyweight', 'beginner', 'strength'],
+        'icon': 'hanging_leg_raises',
+        'instructions': [
+          'Lie on your back, legs ~30cm off the ground',
+          'Hands on the floor for support',
+          'Kick legs up and down in opposite directions',
+          'Keep your lower back flat',
+        ],
+      },
+    ];
+
+    var created = 0;
+    for (final def in defs) {
+      final name = def['name'] as String;
+      final exists = box.values.any(
+        (e) => e.name.toLowerCase() == name.toLowerCase(),
+      );
+      if (exists) continue;
+
+      final resolved = ExerciseTagSemantics.resolve(
+        List<String>.from(def['tags'] as List),
+      );
+      final exercise = ExerciseModel(
+        id: 'program_ex_${name.toLowerCase().replaceAll(' ', '_')}',
+        name: name,
+        description: def['description'] as String,
+        category: resolved.category,
+        muscleGroup: resolved.muscleGroup,
+        equipment: resolved.equipment,
+        difficulty: resolved.difficulty,
+        instructions: List<String>.from(def['instructions'] as List),
+        imageUrl: def['icon'] as String?,
+        isCustom: false,
+        createdAt: now,
+        tags: resolved.tags,
+        measurementUnit: 'none',
+      );
+      box.put(exercise.id, exercise);
+      created++;
+    }
+    return created;
+  }
+
+  static TimedWorkoutItem? _item(
+    Map<String, ExerciseModel> byName,
+    ExerciseModel breakExercise,
+    String name,
+    int seconds,
+  ) {
+    if (name.toLowerCase() == 'break') {
+      return TimedWorkoutItem(
+        workoutId: breakExercise.id,
+        time: seconds,
+        useTimed: true,
+      );
+    }
+    final exercise = byName[name.toLowerCase()];
+    if (exercise == null) return null;
+    return TimedWorkoutItem(
+      workoutId: exercise.id,
+      time: seconds,
+      useTimed: true,
+    );
+  }
+
+  static TimedWorkoutModel _build20MinAerobicsProgram(
+    DateTime now,
+    Map<String, ExerciseModel> byName,
+    ExerciseModel breakExercise,
+  ) {
+    final sequence = <(String, int)>[
+      ('Jumping Jacks', 120),
+      ('Break', 30),
+      ('Lunges', 60),
+      ('Break', 30),
+      ('Squat Jumps', 60),
+      ('Break', 30),
+      ('Burpees', 120),
+      ('Break', 30),
+      ('Lunges', 60),
+      ('Break', 30),
+      ('Push-Ups', 30),
+      ('Break', 30),
+      ('Mountain Climbers', 60),
+      ('Break', 30),
+      ('Vertical Leg Crunches', 30),
+      ('Break', 30),
+      ('Mountain Climbers', 60),
+      ('Break', 30),
+      ('Russian Twists', 30),
+      ('Break', 30),
+      ('Flutter Kicks', 60),
+      ('Break', 30),
+      ('Push-Ups', 30),
+      ('Break', 30),
+      ('Jumping Jacks', 120),
+    ];
+
+    final order = <TimedWorkoutItem>[];
+    for (final (name, secs) in sequence) {
+      final item = _item(byName, breakExercise, name, secs);
+      if (item != null) order.add(item);
+    }
+
+    return TimedWorkoutModel(
+      id: 'program_20min_aerobics',
+      name: '20 Min Aerobics',
+      workoutOrder: order,
+      createdAt: now,
+      isCustom: false,
+      isSubscribed: false,
+    );
+  }
+
+  static TimedWorkoutModel _build15MinCoreProgram(
+    DateTime now,
+    Map<String, ExerciseModel> byName,
+    ExerciseModel breakExercise,
+  ) {
+    final sequence = <(String, int)>[
+      ('Jumping Jacks', 45),
+      ('Break', 15),
+      ('Plank', 45),
+      ('Break', 15),
+      ('Mountain Climbers', 45),
+      ('Break', 15),
+      ('Russian Twists', 45),
+      ('Break', 15),
+      ('Flutter Kicks', 45),
+      ('Break', 15),
+      ('Vertical Leg Crunches', 45),
+      ('Break', 15),
+      ('Side Plank', 30),
+      ('Break', 10),
+      ('Side Plank', 30),
+      ('Break', 15),
+      ('Plank', 45),
+      ('Break', 15),
+      ('Mountain Climbers', 45),
+    ];
+
+    final order = <TimedWorkoutItem>[];
+    for (final (name, secs) in sequence) {
+      final item = _item(byName, breakExercise, name, secs);
+      if (item != null) order.add(item);
+    }
+
+    return TimedWorkoutModel(
+      id: 'program_15min_core',
+      name: '15 Min Core Express',
+      workoutOrder: order,
+      createdAt: now,
+      isCustom: false,
+      isSubscribed: false,
+    );
   }
 }

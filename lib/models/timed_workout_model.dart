@@ -53,6 +53,10 @@ class TimedWorkoutModel extends HiveObject {
   @HiveField(9)
   List<DateTime> completionDates; // Dates when program was completed
 
+  /// Whether this program appears in the Programs tab subscription strip.
+  @HiveField(10)
+  bool isSubscribed;
+
   TimedWorkoutModel({
     required this.id,
     required this.name,
@@ -64,6 +68,7 @@ class TimedWorkoutModel extends HiveObject {
     this.isBookmarked = false,
     this.timesPerformed = 0,
     this.completionDates = const [],
+    this.isSubscribed = false,
   });
 
   /// Get total duration in seconds
@@ -86,6 +91,16 @@ class TimedWorkoutModel extends HiveObject {
 
   void toggleBookmark() {
     isBookmarked = !isBookmarked;
+    save();
+  }
+
+  void setSubscribed(bool value) {
+    isSubscribed = value;
+    save();
+  }
+
+  void toggleSubscribed() {
+    isSubscribed = !isSubscribed;
     save();
   }
 

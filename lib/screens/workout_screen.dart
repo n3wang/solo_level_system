@@ -916,179 +916,220 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     ExerciseModel exercise,
     List<WorkoutSetCategoryModel> sets,
   ) {
-    return BaseCard(
-      margin: EdgeInsets.only(bottom: 12),
-      onTap: () => _viewExerciseDetails(exercise),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // Exercise image/icon on the left
-              Builder(
-                builder: (context) {
-                  final isDark =
-                      Theme.of(context).brightness == Brightness.dark;
-                  final iconBgColor = isDark
-                      ? AppColorPalette.backgroundDarkSurface
-                      : AppColorPalette.white;
-                  return Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: iconBgColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: WorkoutIconWidget(
-                        key: ValueKey(
-                          'workout_list_icon_${exercise.id}_${exercise.imageUrl}',
-                        ),
-                        imageUrl: exercise.imageUrl,
-                        size: 50,
-                        backgroundColor: iconBgColor,
-                        placeholder: Icon(
-                          _getCategoryIcon(exercise.category),
-                          color: _getCategoryColor(exercise.category),
-                          size: 28,
-                        ),
+    final accent = AppColorPalette.color2;
+    // Match Sets filter chip aspect: width = height * 0.8 (portrait mini cards).
+    const setChipHeight = 12.0;
+    const setChipWidth = setChipHeight * 0.8;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _viewExerciseDetails(exercise),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColorPalette.grey300),
+            ),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        children: [
+                          Builder(
+                            builder: (context) {
+                              final isDark =
+                                  Theme.of(context).brightness ==
+                                  Brightness.dark;
+                              final iconBgColor = isDark
+                                  ? AppColorPalette.backgroundDarkSurface
+                                  : AppColorPalette.white;
+                              return Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: iconBgColor,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: AppColorPalette.grey300,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: WorkoutIconWidget(
+                                    key: ValueKey(
+                                      'workout_list_icon_${exercise.id}_${exercise.imageUrl}',
+                                    ),
+                                    imageUrl: exercise.imageUrl,
+                                    size: 50,
+                                    backgroundColor: iconBgColor,
+                                    placeholder: Icon(
+                                      _getCategoryIcon(exercise.category),
+                                      color: _getCategoryColor(
+                                        exercise.category,
+                                      ),
+                                      size: 28,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: List.generate(5, (index) {
+                              final set =
+                                  sets.length > index ? sets[index] : null;
+                              final belongsToSet =
+                                  set != null &&
+                                  set.exerciseIds.contains(exercise.id);
+                              final setColor = set != null
+                                  ? _getSetColor(set)
+                                  : AppColorPalette.grey800;
+
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  right: index < 4 ? 3 : 0,
+                                ),
+                                child: Container(
+                                  width: setChipWidth,
+                                  height: setChipHeight,
+                                  decoration: BoxDecoration(
+                                    color: belongsToSet
+                                        ? setColor
+                                        : Colors.transparent,
+                                    border: Border.all(
+                                      color: belongsToSet
+                                          ? setColor
+                                          : AppColorPalette.grey400,
+                                      width: 1.2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(2.5),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ],
                       ),
-                    ),
-                  );
-                },
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      exercise.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (exercise.description.isNotEmpty)
-                      Padding(
-                        padding: EdgeInsets.only(top: 4),
-                        child: Builder(
-                          builder: (context) {
-                            final isDark =
-                                Theme.of(context).brightness == Brightness.dark;
-                            return Text(
-                              exercise.description,
-                              style: TextStyle(
-                                color: isDark
-                                    ? AppColorPalette.grey400
-                                    : AppColorPalette.grey600,
-                                fontSize: 14,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    exercise.name,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                _buildLastWorkoutInfo(exercise),
+                                // Space for bookmark in the top-right
+                                const SizedBox(width: 28),
+                              ],
+                            ),
+                            if (exercise.description.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Builder(
+                                  builder: (context) {
+                                    final isDark =
+                                        Theme.of(context).brightness ==
+                                        Brightness.dark;
+                                    return Text(
+                                      exercise.description,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? AppColorPalette.grey400
+                                            : AppColorPalette.grey600,
+                                        fontSize: 14,
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                    if (exercise.tags.isNotEmpty)
-                      Padding(
-                        padding: EdgeInsets.only(top: 4),
-                        child: Builder(
-                          builder: (context) {
-                            final isDark =
-                                Theme.of(context).brightness == Brightness.dark;
-                            return Text(
-                              "t:${exercise.tags.join(', ')}",
-                              style: TextStyle(
-                                color: isDark
-                                    ? AppColorPalette.grey400
-                                    : AppColorPalette.grey600,
-                                fontSize: 14,
+                            if (exercise.tags.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Builder(
+                                  builder: (context) {
+                                    final isDark =
+                                        Theme.of(context).brightness ==
+                                        Brightness.dark;
+                                    return Text(
+                                      't:${exercise.tags.join(', ')}',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? AppColorPalette.grey400
+                                            : AppColorPalette.grey600,
+                                        fontSize: 14,
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
-                            );
-                          },
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                exercise.lastWorkoutDate != null
+                                    ? _formatLastPerformanceDate(
+                                        exercise.lastWorkoutDate!,
+                                      )
+                                    : 'Never performed',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: exercise.lastWorkoutDate != null
+                                      ? AppColorPalette.textSecondary
+                                      : AppColorPalette.grey,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Bookmark icon (clickable)
-                  GestureDetector(
-                    onTap: () {
-                      exercise.toggleBookmark();
-                    },
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: GestureDetector(
+                    onTap: () => exercise.toggleBookmark(),
+                    behavior: HitTestBehavior.opaque,
                     child: Padding(
-                      padding: EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.all(6),
                       child: Icon(
                         exercise.isBookmarked
                             ? Icons.bookmark
                             : Icons.bookmark_border,
-                        size: 16,
+                        size: 18,
                         color: exercise.isBookmarked
-                            ? AppColorPalette.warning
+                            ? accent
                             : AppColorPalette.grey400,
                       ),
                     ),
                   ),
-                  _buildLastWorkoutInfo(exercise),
-                ],
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-          Row(
-            children: [
-              // Show 5 set rectangles
-              ...List.generate(5, (index) {
-                final set = sets.length > index ? sets[index] : null;
-                final belongsToSet =
-                    set != null && set.exerciseIds.contains(exercise.id);
-                final setColor = set != null
-                    ? _getSetColor(set)
-                    : AppColorPalette.grey300;
-
-                return Padding(
-                  padding: EdgeInsets.only(right: 3),
-                  child: Container(
-                    width: 18,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: belongsToSet ? setColor : Colors.transparent,
-                      border: Border.all(
-                        color: belongsToSet
-                            ? setColor
-                            : AppColorPalette.grey300,
-                        width: 1.2,
-                      ),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                );
-              }),
-              Spacer(),
-              if (exercise.lastWorkoutDate != null)
-                Text(
-                  _formatLastPerformanceDate(exercise.lastWorkoutDate!),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppColorPalette.textSecondary,
-                    fontStyle: FontStyle.italic,
-                  ),
-                )
-              else
-                Text(
-                  'Never performed',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppColorPalette.grey,
-                    fontStyle: FontStyle.italic,
-                  ),
                 ),
-            ],
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1366,3 +1407,5 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     );
   }
 }
+
+

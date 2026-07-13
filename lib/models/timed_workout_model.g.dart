@@ -62,18 +62,21 @@ class TimedWorkoutModelAdapter extends TypeAdapter<TimedWorkoutModel> {
       workoutOrder: (fields[2] as List).cast<TimedWorkoutItem>(),
       createdAt: fields[3] as DateTime,
       modifiedAt: fields[4] as DateTime?,
-      isCustom: fields[5] as bool,
+      isCustom: fields[5] as bool? ?? true,
       imageUrl: fields[6] as String?,
-      isBookmarked: fields[7] as bool,
-      timesPerformed: fields[8] as int,
-      completionDates: (fields[9] as List).cast<DateTime>(),
+      isBookmarked: fields[7] as bool? ?? false,
+      timesPerformed: fields[8] as int? ?? 0,
+      completionDates: fields[9] == null
+          ? const <DateTime>[]
+          : (fields[9] as List).cast<DateTime>(),
+      isSubscribed: fields[10] as bool? ?? false,
     );
   }
 
   @override
   void write(BinaryWriter writer, TimedWorkoutModel obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -93,7 +96,9 @@ class TimedWorkoutModelAdapter extends TypeAdapter<TimedWorkoutModel> {
       ..writeByte(8)
       ..write(obj.timesPerformed)
       ..writeByte(9)
-      ..write(obj.completionDates);
+      ..write(obj.completionDates)
+      ..writeByte(10)
+      ..write(obj.isSubscribed);
   }
 
   @override

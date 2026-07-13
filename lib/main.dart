@@ -374,6 +374,7 @@ void main() async {
     // Initialize programs (7-minute workouts) on first install
     try {
       await ProgramsService.initializePrograms();
+      await ProgramsService.ensureCatalogPrograms();
     } catch (e) {
       print('⚠️ Error initializing programs: $e');
       // Continue app startup even if programs fail
