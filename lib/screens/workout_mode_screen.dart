@@ -1,5 +1,6 @@
 // lib/screens/workout_mode_screen.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_routine_model.dart';
@@ -152,7 +153,7 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                           Text(
                             routine.description,
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: AppColorPalette.textSecondary,
                               fontSize: 14,
                             ),
                           ),
@@ -326,7 +327,7 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                         Text(
                           exercise.muscleGroup,
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: AppColorPalette.textSecondary,
                             fontSize: 14,
                           ),
                         ),
@@ -349,7 +350,7 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                                   : exercise.equipment,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[600],
+                                color: AppColorPalette.textSecondary,
                               ),
                             ),
                           ],
@@ -518,7 +519,7 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
               SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12, color: AppColorPalette.textSecondary),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -641,7 +642,7 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
                         Text(
                           _formatDate(session.startTime),
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: AppColorPalette.textSecondary,
                             fontSize: 14,
                           ),
                         ),
@@ -705,20 +706,20 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: Colors.grey[400]),
+            Icon(icon, size: 64, color: AppColorPalette.textSecondary),
             SizedBox(height: 16),
             Text(
               title,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+                color: AppColorPalette.textSecondary,
               ),
             ),
             SizedBox(height: 8),
             Text(
               subtitle,
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 14, color: AppColorPalette.textSecondary),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 24),
@@ -743,9 +744,9 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.grey[600]),
+          Icon(icon, size: 14, color: AppColorPalette.textSecondary),
           SizedBox(width: 4),
-          Text(text, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          Text(text, style: TextStyle(fontSize: 12, color: AppColorPalette.textSecondary)),
         ],
       ),
     );

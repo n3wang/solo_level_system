@@ -155,7 +155,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
       children: [
         Row(
           children: [
-            Icon(Icons.grid_view, size: 20, color: AppColorPalette.grey600),
+            Icon(Icons.grid_view, size: 20, color: AppColorPalette.textSecondary),
             SizedBox(width: 8),
             Text(
               'Sets',
@@ -222,7 +222,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
           SizedBox(height: 8),
           Text(
             'Toggled on set names: ${_getSelectedSetNames(sets)}',
-            style: TextStyle(fontSize: 11, color: AppColorPalette.grey600),
+            style: TextStyle(fontSize: 11, color: AppColorPalette.textSecondary),
           ),
         ],
       ],
@@ -261,7 +261,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
             Spacer(),
             Icon(
               _showOptionalFields ? Icons.expand_less : Icons.expand_more,
-              color: AppColorPalette.grey600,
+              color: AppColorPalette.textSecondary,
             ),
           ],
         ),
@@ -285,12 +285,12 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.image, size: 32, color: AppColorPalette.grey400),
+                Icon(Icons.image, size: 32, color: AppColorPalette.textSecondary),
                 SizedBox(height: 4),
                 Text(
                   'Image',
                   style: TextStyle(
-                    color: AppColorPalette.grey600,
+                    color: AppColorPalette.textSecondary,
                     fontSize: 12,
                   ),
                 ),

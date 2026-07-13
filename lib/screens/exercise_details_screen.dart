@@ -340,7 +340,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
           SizedBox(height: 2),
           Text(
             title,
-            style: TextStyle(fontSize: 10, color: AppColorPalette.grey600),
+            style: TextStyle(fontSize: 10, color: AppColorPalette.textSecondary),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -384,7 +384,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               Text(
                 'No instructions provided.',
                 style: TextStyle(
-                  color: AppColorPalette.grey600,
+                  color: AppColorPalette.textSecondary,
                   fontStyle: FontStyle.italic,
                 ),
               )
@@ -540,7 +540,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                 Text(
                   _formatDate(session.startTime),
                   style: TextStyle(
-                    color: AppColorPalette.grey600,
+                    color: AppColorPalette.textSecondary,
                     fontSize: 12,
                   ),
                 ),

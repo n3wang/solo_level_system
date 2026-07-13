@@ -1,5 +1,6 @@
 // lib/screens/workout_history_screen.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
@@ -183,7 +184,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
                     SizedBox(height: 4),
                     Text(
                       _formatSessionDate(session.startTime),
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
                     ),
                   ],
                 ),
@@ -212,7 +213,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
                     SizedBox(height: 4),
                     Text(
                       _formatDuration(duration),
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 12),
                     ),
                   ],
                 ],
@@ -398,12 +399,12 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
             SizedBox(height: 8),
             Text(
               'Started: ${_formatSessionDate(session.startTime)}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
             ),
             if (session.endTime != null) ...[
               Text(
                 'Duration: ${_formatDuration(session.endTime!.difference(session.startTime))}',
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
               ),
             ],
             SizedBox(height: 16),
@@ -436,7 +437,7 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
             label,
             style: TextStyle(
               fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
+              color: AppColorPalette.textSecondary,
             ),
           ),
           Text(value, style: TextStyle(fontWeight: FontWeight.w500)),

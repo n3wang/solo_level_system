@@ -547,7 +547,7 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
                                           placeholder: Icon(
                                             Icons.fitness_center,
                                             size: 80,
-                                            color: AppColorPalette.grey400,
+                                            color: AppColorPalette.textSecondary,
                                           ),
                                         ),
                                       ),
@@ -620,7 +620,7 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
                             _isPaused ? 'Tap to Resume' : 'Tap to Pause',
                             style: TextStyle(
                               fontSize: 16,
-                              color: AppColorPalette.grey600,
+                              color: AppColorPalette.textSecondary,
                             ),
                           ),
                       ],
@@ -737,7 +737,7 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
                 child: Center(
                   child: Icon(
                     Icons.remove,
-                    color: AppColorPalette.grey400,
+                    color: AppColorPalette.textSecondary,
                     size: 24,
                   ),
                 ),
@@ -748,7 +748,7 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
               '',
               style: TextStyle(
                 fontSize: 10,
-                color: AppColorPalette.grey600,
+                color: AppColorPalette.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -756,7 +756,7 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
               '',
               style: TextStyle(
                 fontSize: 8,
-                color: AppColorPalette.grey500,
+                color: AppColorPalette.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -798,7 +798,7 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
                         placeholder: Icon(
                           Icons.fitness_center,
                           size: 24,
-                          color: AppColorPalette.grey400,
+                          color: AppColorPalette.textSecondary,
                         ),
                       ),
                     ),
@@ -817,7 +817,7 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
                 '${time}s',
                 style: TextStyle(
                   fontSize: 10,
-                  color: AppColorPalette.grey600,
+                  color: AppColorPalette.textSecondary,
                 ),
               ),
             ],

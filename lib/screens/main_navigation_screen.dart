@@ -1,5 +1,6 @@
 // lib/screens/main_navigation_screen.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/screens/home_screen.dart';
 import 'package:solo_level_system/screens/analytics_screen.dart';
 import 'package:solo_level_system/screens/settings_screen.dart';
@@ -42,7 +43,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey[600],
+        unselectedItemColor: AppColorPalette.textSecondary,
         backgroundColor: Colors.transparent,
         elevation: 0,
         showSelectedLabels: false,

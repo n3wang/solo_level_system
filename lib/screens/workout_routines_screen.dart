@@ -1,5 +1,6 @@
 // lib/screens/workout_routines_screen.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/workout_routine_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
@@ -584,7 +585,7 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade600,
+                color: AppColorPalette.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),

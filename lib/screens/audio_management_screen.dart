@@ -1,6 +1,7 @@
 // lib/screens/audio_management_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
@@ -237,7 +238,7 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
             Text('${audio.durationFormatted} • ${audio.fileSizeFormatted}'),
             Text(
               DateFormat.yMMMd().add_jm().format(audio.createdAt),
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12, color: AppColorPalette.textSecondary),
             ),
             if (audio.tags.isNotEmpty)
               Wrap(
@@ -332,12 +333,12 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
           SizedBox(height: 16),
           Text(
             'No audio files found',
-            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 18, color: AppColorPalette.textSecondary),
           ),
           SizedBox(height: 8),
           Text(
             'Start recording to create your first audio file',
-            style: TextStyle(color: Colors.grey[500]),
+            style: TextStyle(color: AppColorPalette.textSecondary),
           ),
           SizedBox(height: 24),
           ElevatedButton(
@@ -453,7 +454,7 @@ class _AudioManagementScreenState extends State<AudioManagementScreen>
             ),
             Text(
               title,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12, color: AppColorPalette.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],

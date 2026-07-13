@@ -1,5 +1,6 @@
 // lib/screens/add_edit_routine_screen.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_routine_model.dart';
@@ -266,7 +267,7 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
             SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.timer, color: Colors.grey[600], size: 20),
+                Icon(Icons.timer, color: AppColorPalette.textSecondary, size: 20),
                 SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -338,17 +339,17 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                     Icon(
                       Icons.fitness_center,
                       size: 48,
-                      color: Colors.grey[400],
+                      color: AppColorPalette.textSecondary,
                     ),
                     SizedBox(height: 8),
                     Text(
                       'No exercises added yet',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                      style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 16),
                     ),
                     SizedBox(height: 4),
                     Text(
                       'Tap "Add Exercise" to get started',
-                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                      style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
                     ),
                   ],
                 ),
@@ -383,7 +384,7 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.drag_handle, color: Colors.grey[400]),
+                Icon(Icons.drag_handle, color: AppColorPalette.textSecondary),
                 SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -398,7 +399,7 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                       ),
                       Text(
                         '${exercise.muscleGroup} • ${exercise.equipment}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -435,7 +436,7 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
               Text(
                 'No sets configured - tap settings to add sets',
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: AppColorPalette.textSecondary,
                   fontSize: 12,
                   fontStyle: FontStyle.italic,
                 ),
@@ -467,7 +468,7 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
             SizedBox(height: 8),
             Text(
               'Separate tags with commas (e.g., upper body, strength, beginner)',
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 12),
             ),
             SizedBox(height: 16),
             TextFormField(
@@ -515,7 +516,7 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
   ) {
     return Row(
       children: [
-        Icon(icon, color: Colors.grey[600], size: 20),
+        Icon(icon, color: AppColorPalette.textSecondary, size: 20),
         SizedBox(width: 12),
         Expanded(
           child: DropdownButtonFormField<String>(
@@ -610,20 +611,20 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
                         Icon(
                           Icons.fitness_center,
                           size: 64,
-                          color: Colors.grey[400],
+                          color: AppColorPalette.textSecondary,
                         ),
                         SizedBox(height: 16),
                         Text(
                           'No exercises found',
                           style: TextStyle(
                             fontSize: 18,
-                            color: Colors.grey[600],
+                            color: AppColorPalette.textSecondary,
                           ),
                         ),
                         SizedBox(height: 8),
                         Text(
                           'Create your first exercise to get started',
-                          style: TextStyle(color: Colors.grey[500]),
+                          style: TextStyle(color: AppColorPalette.textSecondary),
                         ),
                       ],
                     ),

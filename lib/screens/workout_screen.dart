@@ -13,6 +13,10 @@ import 'package:solo_level_system/utils/workout_service.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/utils/default_workouts_service.dart';
 import 'package:solo_level_system/screens/programs_screen.dart';
+import 'package:solo_level_system/screens/set_session_summary_screen.dart';
+import 'package:solo_level_system/screens/active_workout_session_screen.dart';
+import 'package:solo_level_system/screens/workout_summary_screen.dart';
+import 'package:solo_level_system/models/workout_session_model.dart';
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -32,10 +36,21 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   bool _isSearchVisible = false;
   static const int MAX_SETS = 5;
 
+  // In-progress set session (resume support)
+  WorkoutSessionModel? _pausedSetSession;
+  List<ExerciseModel>? _pausedSetExercises;
+  String? _pausedSetCategoryId;
+  int _pausedExerciseIndex = 0;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
     _searchController = TextEditingController();
     _searchFocusNode = FocusNode();
     _initializeData();
@@ -271,14 +286,203 @@ class _WorkoutScreenState extends State<WorkoutScreen>
               children: [_buildSetsTab(), _buildTimedTab()],
             ),
       floatingActionButton: _tabController.index == 0
-          ? CustomFloatingActionButton(
-              heroTag: "workout_new_exercise",
-              label: 'New Exercise',
-              icon: Icons.add,
-              onPressed: _createNewExercise,
-            )
+          ? _buildSetsFloatingActions()
           : null,
     );
+  }
+
+  Widget _buildSetsFloatingActions() {
+    final selectedSet = _getSelectedSet();
+    final hasExercises =
+        selectedSet != null && selectedSet.exerciseIds.isNotEmpty;
+    final canResume =
+        _pausedSetSession != null &&
+        _pausedSetCategoryId == _selectedSetId &&
+        _pausedSetExercises != null &&
+        _pausedSetExercises!.isNotEmpty;
+    final setLabel = _getSelectedSetLabel();
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (selectedSet != null && (hasExercises || canResume)) ...[
+          CustomFloatingActionButton(
+            heroTag: 'workout_start_set_session',
+            label: canResume ? 'Resume Set $setLabel' : 'Start Set $setLabel',
+            icon: canResume ? Icons.play_arrow : Icons.fitness_center,
+            onPressed: canResume ? _resumeSetSession : _startSetSession,
+          ),
+          const SizedBox(height: 12),
+        ],
+        CustomFloatingActionButton(
+          heroTag: 'workout_new_exercise',
+          label: 'New Exercise',
+          icon: Icons.add,
+          onPressed: _createNewExercise,
+        ),
+      ],
+    );
+  }
+
+  WorkoutSetCategoryModel? _getSelectedSet() {
+    if (_selectedSetId == null || !Hive.isBoxOpen('workoutSetCategories')) {
+      return null;
+    }
+    final box = Hive.box<WorkoutSetCategoryModel>('workoutSetCategories');
+    try {
+      return box.values.firstWhere((set) => set.id == _selectedSetId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _getSelectedSetLabel() {
+    final selectedSet = _getSelectedSet();
+    if (selectedSet == null) return '';
+    final box = Hive.box<WorkoutSetCategoryModel>('workoutSetCategories');
+    final activeSets = box.values.where((set) => set.isActive).toList()
+      ..sort((a, b) => a.position.compareTo(b.position));
+    final index = activeSets.indexWhere((set) => set.id == selectedSet.id);
+    return index >= 0 ? '${index + 1}' : '${selectedSet.position + 1}';
+  }
+
+  List<ExerciseModel> _getOrderedExercisesForSet(
+    WorkoutSetCategoryModel setCategory,
+  ) {
+    if (!Hive.isBoxOpen('exercises')) return [];
+    final box = Hive.box<ExerciseModel>('exercises');
+    final byId = {for (final e in box.values) e.id: e};
+    return setCategory.exerciseIds
+        .map((id) => byId[id])
+        .whereType<ExerciseModel>()
+        .where((e) => !e.isArchived)
+        .toList();
+  }
+
+  void _startSetSession() {
+    final selectedSet = _getSelectedSet();
+    if (selectedSet == null) return;
+
+    final exercises = _getOrderedExercisesForSet(selectedSet);
+    if (exercises.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add an exercise first')),
+      );
+      return;
+    }
+
+    _openSetSessionSummary(selectedSet, exercises);
+  }
+
+  Future<void> _openSetSessionSummary(
+    WorkoutSetCategoryModel selectedSet,
+    List<ExerciseModel> exercises, {
+    int initialExerciseIndex = 0,
+  }) async {
+    final result = await Navigator.push<Object?>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SetSessionSummaryScreen(
+          setCategory: selectedSet,
+          setLabel: _getSelectedSetLabel(),
+          exercises: exercises,
+          initialExerciseIndex: initialExerciseIndex,
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (result is Map<String, dynamic> && result['paused'] == true) {
+      setState(() {
+        _pausedSetSession = result['session'] as WorkoutSessionModel?;
+        _pausedSetExercises =
+            (result['exercises'] as List<ExerciseModel>?) ?? exercises;
+        _pausedSetCategoryId =
+            result['setCategoryId'] as String? ?? selectedSet.id;
+        _pausedExerciseIndex = result['exerciseIndex'] as int? ?? 0;
+      });
+      return;
+    }
+
+    // Completed, discarded, or cancelled — clear any pause state
+    if (_pausedSetCategoryId == selectedSet.id) {
+      setState(() {
+        _pausedSetSession = null;
+        _pausedSetExercises = null;
+        _pausedSetCategoryId = null;
+        _pausedExerciseIndex = 0;
+      });
+    }
+  }
+
+  Future<void> _resumeSetSession() async {
+    final selectedSet = _getSelectedSet();
+    if (selectedSet == null ||
+        _pausedSetSession == null ||
+        _pausedSetExercises == null) {
+      return;
+    }
+
+    final result = await Navigator.push<Object?>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ActiveWorkoutSessionScreen(
+          session: _pausedSetSession!,
+          exercises: _pausedSetExercises!,
+          sequentialMode: true,
+          initialExerciseIndex: _pausedExerciseIndex,
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (result is Map<String, dynamic> && result['paused'] == true) {
+      setState(() {
+        _pausedExerciseIndex = result['exerciseIndex'] as int? ?? 0;
+      });
+      return;
+    }
+
+    if (result is Map<String, dynamic> && result['session'] != null) {
+      try {
+        selectedSet.lastPerformanceDate = DateTime.now();
+        selectedSet.modifiedAt = DateTime.now();
+        await selectedSet.save();
+      } catch (_) {}
+
+      setState(() {
+        _pausedSetSession = null;
+        _pausedSetExercises = null;
+        _pausedSetCategoryId = null;
+        _pausedExerciseIndex = 0;
+      });
+
+      if (!mounted) return;
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WorkoutSummaryScreen(
+            session: result['session'] as WorkoutSessionModel,
+            exercises: result['exercises'] as List<ExerciseModel>,
+            totalSetsCompleted: result['totalSetsCompleted'] as int,
+            totalSets: result['totalSets'] as int,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Discarded
+    setState(() {
+      _pausedSetSession = null;
+      _pausedSetExercises = null;
+      _pausedSetCategoryId = null;
+      _pausedExerciseIndex = 0;
+    });
   }
 
   Widget _buildSetsTab() {
@@ -879,7 +1083,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                   _formatLastPerformanceDate(exercise.lastWorkoutDate!),
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColorPalette.grey600,
+                    color: AppColorPalette.textSecondary,
                     fontStyle: FontStyle.italic,
                   ),
                 )

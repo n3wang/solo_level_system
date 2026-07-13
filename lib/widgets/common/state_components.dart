@@ -22,7 +22,7 @@ class LoadingIndicator extends StatelessWidget {
             SizedBox(height: 16),
             Text(
               message!,
-              style: TextStyle(color: AppColorPalette.grey600, fontSize: 16),
+              style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 16),
             ),
           ],
         ],
@@ -59,7 +59,7 @@ class EmptyState extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              color: AppColorPalette.grey600,
+              color: AppColorPalette.textSecondary,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -69,7 +69,7 @@ class EmptyState extends StatelessWidget {
             Text(
               subtitle!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColorPalette.grey500, fontSize: 14),
+              style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
             ),
           ],
           if (action != null) ...[SizedBox(height: 16), action!],
@@ -115,7 +115,7 @@ class ErrorState extends StatelessWidget {
             Text(
               message!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColorPalette.grey500, fontSize: 14),
+              style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
             ),
           ],
           if (onRetry != null) ...[

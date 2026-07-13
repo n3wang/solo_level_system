@@ -80,7 +80,7 @@ class CardHeader extends StatelessWidget {
                 SizedBox(height: 4),
                 Text(
                   description!,
-                  style: TextStyle(color: AppColorPalette.grey600, fontSize: 14),
+                  style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

@@ -12,4 +12,8 @@ class AppUiSizes {
   static const double radiusSm = 8;
   static const double radiusMd = 12;
   static const double radiusLg = 16;
+
+  /// Shared corner radius for buttons and compact controls.
+  /// Keep low for a minimal look; change this one value to retune app controls.
+  static const double buttonRadius = 6;
 }

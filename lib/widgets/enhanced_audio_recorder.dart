@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:hive/hive.dart';
@@ -416,7 +417,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
               if (_audioSettings != null)
                 Text(
                   '${_audioSettings!.qualityDescription} • ${_audioSettings!.codec.toUpperCase()}',
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(color: AppColorPalette.textSecondary),
                 ),
             ],
           ),
@@ -470,7 +471,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: _isRecording ? Colors.red : Colors.grey[600],
+              color: _isRecording ? Colors.red : AppColorPalette.textSecondary,
             ),
           ),
         ),
@@ -480,7 +481,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
           children: [
             Text(
               'Level',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12, color: AppColorPalette.textSecondary),
             ),
             SizedBox(height: 4),
             Container(
@@ -585,7 +586,7 @@ class _EnhancedAudioRecorderState extends State<EnhancedAudioRecorder>
             Text(
               'Tap the edit icon to add title, description, and tags',
               style: TextStyle(
-                color: Colors.grey[600],
+                color: AppColorPalette.textSecondary,
                 fontStyle: FontStyle.italic,
               ),
             ),

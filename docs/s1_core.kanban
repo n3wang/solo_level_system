@@ -59,7 +59,7 @@
           "id": "0c0ed0da-07e7-4b52-b42c-36f200957e85",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "build core afk mechanic",
-          "description": "The core mechanic can be just done with a few icons characters and a couple skills. ",
+          "description": "The core mechanic can be just done with a few icons characters and a couple skills. The core mechanic refers to one single character working out and improving stats\n",
           "labels": [],
           "checkboxes": [],
           "comments": []
@@ -87,7 +87,7 @@
         {
           "id": "f1d9bc53-96d5-4f9b-9e86-536aeee5fb3f",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Motivational cards for workout",
+          "title": "Motivational cards for workout -> collectibles",
           "description": "On the One should be able to create motivational cards and ",
           "labels": [],
           "checkboxes": [
@@ -99,6 +99,11 @@
             {
               "id": "c4ddb2d9-aa69-4d9d-9b47-8a079ee650c1",
               "title": "Clean the top screen",
+              "checked": false
+            },
+            {
+              "id": "09bb8b4d-3b4a-42d0-b9b4-a71bd274129d",
+              "title": "Add zombies and fighting motivation packs for workout (unlockeable)",
               "checked": false
             }
           ],
@@ -132,7 +137,17 @@
     {
       "id": "125bd6ab-d32d-460e-9159-9c34b027ef62",
       "title": "Doing",
-      "cards": []
+      "cards": [
+        {
+          "id": "20f34882-5aed-44b4-bd5f-892c781b67e2",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Adding cleaning or push ups for break + 1",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        }
+      ]
     },
     {
       "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",

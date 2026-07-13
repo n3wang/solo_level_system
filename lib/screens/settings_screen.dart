@@ -694,7 +694,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
+              color: AppColorPalette.textSecondary,
             ),
           ),
         ),

@@ -1,6 +1,7 @@
 // lib/screens/add_edit_motivational_card_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/motivational_card_model.dart';
 import '../utils/motivational_card_service.dart';
@@ -221,12 +222,12 @@ class _AddEditMotivationalCardScreenState
                             Icon(
                               Icons.image_outlined,
                               size: 64,
-                              color: Colors.grey[400],
+                              color: AppColorPalette.textSecondary,
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'No image selected (optional)',
-                              style: TextStyle(color: Colors.grey[600]),
+                              style: TextStyle(color: AppColorPalette.textSecondary),
                             ),
                           ],
                         ),

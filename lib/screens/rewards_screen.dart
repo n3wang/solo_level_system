@@ -1,5 +1,6 @@
 // lib/screens/rewards_screen.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
@@ -162,7 +163,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                       SizedBox(height: 4),
                       Text(
                         '${userProgress!.totalExperience} XP • ${userProgress!.availablePoints} Points',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                        style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 16),
                       ),
                     ],
                   ),
@@ -210,7 +211,7 @@ class _RewardsScreenState extends State<RewardsScreen>
             value,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+          Text(title, style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 12)),
         ],
       ),
     );
@@ -280,7 +281,7 @@ class _RewardsScreenState extends State<RewardsScreen>
               Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
               Text(
                 description,
-                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 13),
               ),
             ],
           ),
@@ -319,7 +320,7 @@ class _RewardsScreenState extends State<RewardsScreen>
             SizedBox(height: 8),
             Text(
               '${userProgress!.experienceNeededForNextLevel} XP needed for next level',
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: AppColorPalette.textSecondary),
             ),
           ],
         ),
@@ -457,7 +458,7 @@ class _RewardsScreenState extends State<RewardsScreen>
             Icon(
               canPurchase ? Icons.add_circle_outline : Icons.history,
               size: 64,
-              color: Colors.grey[400],
+              color: AppColorPalette.textSecondary,
             ),
             SizedBox(height: 16),
             Text(
@@ -465,7 +466,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                   ? 'No rewards created yet'
                   : 'No rewards purchased yet',
               style: TextStyle(
-                color: Colors.grey[600],
+                color: AppColorPalette.textSecondary,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -475,7 +476,7 @@ class _RewardsScreenState extends State<RewardsScreen>
               Text(
                 'Tap the + button to create your first reward!\nSet your own point costs for treats you want.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
               ),
             ],
           ],
@@ -599,7 +600,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                 Text(
                   'Requires ${entry.value} XP',
                   style: TextStyle(
-                    color: isUnlocked ? Colors.green : Colors.grey[600],
+                    color: isUnlocked ? Colors.green : AppColorPalette.textSecondary,
                   ),
                 ),
               ],
@@ -617,7 +618,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                   )
                 : Text(
                     '${entry.value - userProgress!.totalExperience} XP needed',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 12, color: AppColorPalette.textSecondary),
                   ),
           ),
         );

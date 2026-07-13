@@ -242,6 +242,17 @@ class AppColorPalette {
   /// Text color from active palette
   static Color get textColor => _getSemanticColor('text');
 
+  /// Readable secondary text/icons on light surfaces.
+  /// Prefer this over pale greys (grey400–grey600) for labels.
+  static Color get textSecondary => color2;
+
+  /// Strong muted text on light surfaces when color2 is too strong.
+  static Color get textMuted => grey800;
+
+  /// Secondary text/icons on primary-colored surfaces (app bars, headers).
+  /// Always high-contrast white — never pale grey on primary.
+  static Color get onPrimarySecondary => white;
+
   /// Colors for states and feedback (mapped from palette colors)
   static Color get success => color3; // Typically green
   static Color get error => color5; // Typically red
@@ -573,49 +584,50 @@ class CreativePalette {
   static const Color textColor = Color(0xFF212121); // Dark grey text
 
   // Grey shades - Updated to cooler, more neutral grey tones
-  static const Color grey = Color(0xFF8E8E93);
+  // Mid greys darkened for readable secondary text on white
+  static const Color grey = Color(0xFF6C757D);
   static const Color grey50 = Color(0xFFF8F9FA);
   static const Color grey100 = Color(0xFFF1F3F5);
   static const Color grey200 = Color(0xFFE9ECEF);
   static const Color grey300 = Color(0xFFDEE2E6);
-  static const Color grey400 = Color(0xFFCED4DA);
-  static const Color grey500 = Color(0xFF8E8E93);
-  static const Color grey600 = Color(0xFF6C757D);
-  static const Color grey700 = Color(0xFF5A6268);
-  static const Color grey800 = Color(0xFF495057);
-  static const Color grey900 = Color(0xFF343A40);
+  static const Color grey400 = Color(0xFFADB5BD);
+  static const Color grey500 = Color(0xFF6C757D);
+  static const Color grey600 = Color(0xFF495057);
+  static const Color grey700 = Color(0xFF343A40);
+  static const Color grey800 = Color(0xFF212529);
+  static const Color grey900 = Color(0xFF121417);
 }
 
 /// Pastel color palette
-/// Soft, muted colors for a gentle look
+/// Soft hues, darkened enough for white icons/text contrast
 class PastelPalette {
-  // Primary colors
-  static const Color color1 = Color(0xFFEF9A9A); // Light Red // Light Purple
-  static const Color color2 = Color(0xFF90CAF9); // Light Blue
-  static const Color color3 = Color(0xFFA5D6A7); // Light Green
-  static const Color color4 = Color(0xFFFFCC80); // Light Orange
-  static const Color color5 = Color(0xFFCE93D8);
+  // Primary colors (≈ Material 600 — pastel family, white-icon safe)
+  static const Color color1 = Color(0xFFE57373); // Soft red
+  static const Color color2 = Color(0xFF5C9BC7); // Soft blue (secondary)
+  static const Color color3 = Color(0xFF66A86E); // Soft green
+  static const Color color4 = Color(0xFFE0A04A); // Soft orange
+  static const Color color5 = Color(0xFFB07CC6); // Soft purple
 
   // Semantic colors
-  static const Color primary = Color(0xFFEF9A9A); // Light Purple as primary
-  static const Color accent = Color(0xFF90CAF9); // Light Blue as accent
+  static const Color primary = Color(0xFFC75B5B); // Darker rose primary
+  static const Color accent = Color(0xFF5C9BC7); // Soft blue accent
   static const Color background = Color(
     0xFFFFFBFE,
   ); // Very light pink/white background
   static const Color textColor = Color(
-    0xFF4A4A4A,
-  ); // Medium grey text for readability
+    0xFF3D3D3D,
+  ); // Darker text for readability
 
-  // Grey shades - Softer, warmer greys for pastel theme
-  static const Color grey = Color(0xFFB0B0B0);
+  // Grey shades - readable mid tones for secondary text on white
+  static const Color grey = Color(0xFF757575);
   static const Color grey50 = Color(0xFFFAFAFA);
   static const Color grey100 = Color(0xFFF5F5F5);
   static const Color grey200 = Color(0xFFEEEEEE);
   static const Color grey300 = Color(0xFFE0E0E0);
   static const Color grey400 = Color(0xFFBDBDBD);
-  static const Color grey500 = Color(0xFFB0B0B0);
-  static const Color grey600 = Color(0xFF9E9E9E);
-  static const Color grey700 = Color(0xFF757575);
-  static const Color grey800 = Color(0xFF616161);
-  static const Color grey900 = Color(0xFF424242);
+  static const Color grey500 = Color(0xFF757575);
+  static const Color grey600 = Color(0xFF616161);
+  static const Color grey700 = Color(0xFF424242);
+  static const Color grey800 = Color(0xFF303030);
+  static const Color grey900 = Color(0xFF212121);
 }

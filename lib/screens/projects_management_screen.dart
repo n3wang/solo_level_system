@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -353,7 +354,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: Colors.grey[700],
+                                      color: AppColorPalette.textMuted,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -552,7 +553,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
         height: 24,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(3),
-          border: Border.all(color: Colors.grey.shade600, width: 1.5),
+          border: Border.all(color: AppColorPalette.textSecondary, width: 1.5),
           color: selected
               ? Theme.of(context).colorScheme.primary
               : Colors.transparent,
@@ -691,7 +692,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                       _activeDaysSummaryText(),
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[700],
+                        color: AppColorPalette.textMuted,
                         height: 1.2,
                       ),
                     ),
@@ -1602,7 +1603,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
   }
 
   Widget _buildDayStateRect(int state) {
-    final borderColor = Colors.grey.shade600;
+    final borderColor = AppColorPalette.textSecondary;
     Widget fillFor(double top, double height) {
       return Positioned(
         top: top,

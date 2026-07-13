@@ -1,5 +1,6 @@
 // lib/screens/add_edit_workout_set_screen.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
@@ -223,7 +224,7 @@ class _AddEditWorkoutSetScreenState extends State<AddEditWorkoutSetScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
         ),
         Text(
           value,

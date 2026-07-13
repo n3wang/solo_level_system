@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import '../../constants/pomodoro_constants.dart';
 
 class CompactMusicWidget extends StatefulWidget {
@@ -154,7 +155,7 @@ class _CompactMusicWidgetState extends State<CompactMusicWidget>
                 'Tap to ${widget.allowMusic ? 'Mute' : 'Unmute'} • Long press to pick • ← → Swipe random',
                 style: TextStyle(
                   fontSize: PomodoroConstants.musicInstructionFontSize,
-                  color: Colors.grey[600],
+                  color: AppColorPalette.textSecondary,
                   fontStyle: FontStyle.italic,
                 ),
                 textAlign: TextAlign.center,

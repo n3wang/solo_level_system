@@ -217,23 +217,23 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
                 // Duration and times performed
                 Row(
                   children: [
-                    Icon(Icons.timer, size: 16, color: AppColorPalette.grey600),
+                    Icon(Icons.timer, size: 16, color: AppColorPalette.textSecondary),
                     SizedBox(width: 4),
                     Text(
                       'Duration: ${program.formattedDuration}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColorPalette.grey600,
+                        color: AppColorPalette.textSecondary,
                       ),
                     ),
                     SizedBox(width: 16),
-                    Icon(Icons.repeat, size: 16, color: AppColorPalette.grey600),
+                    Icon(Icons.repeat, size: 16, color: AppColorPalette.textSecondary),
                     SizedBox(width: 4),
                     Text(
                       'Performed: ${program.timesPerformed}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColorPalette.grey600,
+                        color: AppColorPalette.textSecondary,
                       ),
                     ),
                   ],
@@ -264,7 +264,7 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
                             backgroundColor: AppColorPalette.white,
                             placeholder: Icon(
                               Icons.fitness_center,
-                              color: AppColorPalette.grey400,
+                              color: AppColorPalette.textSecondary,
                               size: 24,
                             ),
                           ),

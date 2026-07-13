@@ -1,5 +1,6 @@
 // lib/screens/workout_navigation_screen.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/screens/workout_sets_screen.dart';
 import 'package:solo_level_system/screens/workout_exercises_screen.dart';
 import 'package:solo_level_system/screens/workout_quick_start_screen.dart';
@@ -170,7 +171,7 @@ class _WorkoutNavigationScreenState extends State<WorkoutNavigationScreen> {
                 isSelected ? item.activeIcon : item.icon,
                 color: isSelected
                     ? Theme.of(context).primaryColor
-                    : Colors.grey[600],
+                    : AppColorPalette.textSecondary,
                 size: 28,
               ),
             ),

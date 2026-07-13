@@ -1,6 +1,7 @@
 // lib/screens/motivational_cards_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/motivational_card_model.dart';
 import '../utils/motivational_card_service.dart';
@@ -109,16 +110,16 @@ class _MotivationalCardsScreenState extends State<MotivationalCardsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.auto_awesome, size: 64, color: Colors.grey[400]),
+                  Icon(Icons.auto_awesome, size: 64, color: AppColorPalette.textSecondary),
                   const SizedBox(height: 16),
                   Text(
                     'No motivational cards yet',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 18, color: AppColorPalette.textSecondary),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Tap the + button to create your first card',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    style: TextStyle(fontSize: 14, color: AppColorPalette.textSecondary),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(

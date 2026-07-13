@@ -1,5 +1,6 @@
 // lib/screens/workout_quick_start_screen.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
@@ -176,7 +177,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? color : Colors.grey[600], size: 32),
+            Icon(icon, color: isSelected ? color : AppColorPalette.textSecondary, size: 32),
             SizedBox(height: 8),
             Text(
               title,
@@ -189,7 +190,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
             SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12, color: AppColorPalette.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -241,7 +242,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
                 SizedBox(height: 4),
                 Text(
                   template.description,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
                 ),
                 SizedBox(height: 8),
                 Row(
@@ -263,7 +264,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
               ],
             ),
           ),
-          Icon(Icons.arrow_forward_ios, color: Colors.grey[400]),
+          Icon(Icons.arrow_forward_ios, color: AppColorPalette.textSecondary),
         ],
       ),
     );
@@ -365,7 +366,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
                 ),
                 Text(
                   exercise.muscleGroup.replaceAll('_', ' '),
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 12),
                 ),
               ],
             ),
@@ -399,7 +400,7 @@ class _WorkoutQuickStartScreenState extends State<WorkoutQuickStartScreen> {
           SizedBox(height: 8),
           Text(
             'Select a template or add exercises to start your workout',
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ],

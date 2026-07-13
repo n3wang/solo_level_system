@@ -9,6 +9,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
@@ -822,7 +823,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                     const SizedBox(height: 12),
                     Text(
                       visual.isGif ? 'GIF playback speed' : '',
-                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      style: TextStyle(color: AppColorPalette.textMuted, fontSize: 12),
                     ),
                     if (visual.isGif) ...[
                       const SizedBox(height: 6),
@@ -1209,7 +1210,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'GIF visual supports speed controls in Visuals section.',
-                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                    style: TextStyle(color: AppColorPalette.textMuted, fontSize: 12),
                   ),
                 ],
               ],
@@ -1498,7 +1499,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
-                                                color: Colors.grey[700],
+                                                color: AppColorPalette.textMuted,
                                                 fontSize: 12,
                                               ),
                                             ),
@@ -1647,7 +1648,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(3),
                                     border: Border.all(
-                                      color: Colors.grey.shade600,
+                                      color: AppColorPalette.textSecondary,
                                       width: 1.5,
                                     ),
                                     color: selected
@@ -1688,7 +1689,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(3),
                                 border: Border.all(
-                                  color: Colors.grey.shade600,
+                                  color: AppColorPalette.textSecondary,
                                   width: 1.5,
                                 ),
                                 color: selected
@@ -1755,7 +1756,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   child: Text(
                     _tracksAggregateSummary(),
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                    style: TextStyle(color: AppColorPalette.textMuted, fontSize: 12),
                   ),
                 ),
               )
@@ -1764,7 +1765,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'No tracks added yet.',
-                  style: TextStyle(color: Colors.grey[700]),
+                  style: TextStyle(color: AppColorPalette.textMuted),
                 ),
               )
             else
@@ -1848,7 +1849,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   child: Text(
                     '${_selectedVisuals.length} visuals',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                    style: TextStyle(color: AppColorPalette.textMuted, fontSize: 12),
                   ),
                 ),
               )
@@ -1857,7 +1858,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'No visuals added yet.',
-                  style: TextStyle(color: Colors.grey[700]),
+                  style: TextStyle(color: AppColorPalette.textMuted),
                 ),
               )
             else ...[

@@ -71,7 +71,7 @@ class ThemeModeSelectorWidget extends StatelessWidget {
                         color: themeColors['background'],
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: AppColorPalette.grey400,
+                          color: AppColorPalette.textSecondary,
                           width: 0.5,
                         ),
                       ),
@@ -87,7 +87,7 @@ class ThemeModeSelectorWidget extends StatelessWidget {
                               color: themeColors['background'],
                               borderRadius: BorderRadius.circular(3),
                               border: Border.all(
-                                color: AppColorPalette.grey400,
+                                color: AppColorPalette.textSecondary,
                                 width: 0.5,
                               ),
                             ),
@@ -100,7 +100,7 @@ class ThemeModeSelectorWidget extends StatelessWidget {
                               color: themeColors['text'],
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: AppColorPalette.grey400,
+                                color: AppColorPalette.textSecondary,
                                 width: 0.5,
                               ),
                             ),

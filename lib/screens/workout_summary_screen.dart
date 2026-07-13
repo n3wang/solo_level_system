@@ -1,5 +1,6 @@
 // lib/screens/workout_summary_screen.dart
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 
@@ -182,7 +183,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade600,
+                color: AppColorPalette.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
