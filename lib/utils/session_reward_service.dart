@@ -54,7 +54,10 @@ class SessionRewardService {
     );
 
     final cardCount = (safeMinutes ~/ minutesPerCard).clamp(1, 1 << 20);
-    final drops = CardDropService.draw(cardCount);
+    // Defense in depth: never grant reward cards from session loot.
+    final drops = CardDropService.draw(cardCount)
+        .where(CardDropService.isDroppable)
+        .toList();
     for (final card in drops) {
       card.recordAcquisition();
       card.save();

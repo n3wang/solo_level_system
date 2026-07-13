@@ -30,7 +30,7 @@ Future<void> showCreateRewardDialog(BuildContext context) async {
   );
   var rewardCategory = 'general';
   String? localImagePath;
-  var isBookmarked = false;
+  var isBookmarked = true;
 
   if (!context.mounted) return;
   await showDialog<void>(
@@ -68,8 +68,7 @@ Future<void> showCreateRewardDialog(BuildContext context) async {
 
             final reward = RewardTemplates.createCustomReward(
               title: title,
-              description:
-                  description.isEmpty ? 'Custom reward' : description,
+              description: description.isEmpty ? 'Custom reward' : description,
               pointsCost: points,
               category: rewardCategory,
             );
@@ -127,12 +126,9 @@ Future<void> showCreateRewardDialog(BuildContext context) async {
                         ),
                       ),
                       IconButton(
-                        tooltip:
-                            isBookmarked ? 'Remove bookmark' : 'Bookmark',
+                        tooltip: isBookmarked ? 'Remove bookmark' : 'Bookmark',
                         icon: Icon(
-                          isBookmarked
-                              ? Icons.bookmark
-                              : Icons.bookmark_border,
+                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                         ),
                         onPressed: () {
                           setDialogState(() => isBookmarked = !isBookmarked);
@@ -165,8 +161,8 @@ Future<void> showCreateRewardDialog(BuildContext context) async {
                               onLongPress: localImagePath == null
                                   ? null
                                   : () => setDialogState(
-                                        () => localImagePath = null,
-                                      ),
+                                      () => localImagePath = null,
+                                    ),
                               borderRadius: BorderRadius.circular(
                                 AppUiSizes.radiusMd,
                               ),
@@ -255,7 +251,7 @@ Future<void> showCreateRewardDialog(BuildContext context) async {
                                     style: IconButton.styleFrom(
                                       backgroundColor: rewardCategory == cat
                                           ? theme.colorScheme.primary
-                                              .withValues(alpha: 0.15)
+                                                .withValues(alpha: 0.15)
                                           : null,
                                     ),
                                   ),

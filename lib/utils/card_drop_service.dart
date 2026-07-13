@@ -6,8 +6,10 @@ import 'package:solo_level_system/models/card_model.dart';
 /// Rarity-weighted random draw over the card catalog for session loot.
 ///
 /// Draws can repeat; repeats stack (`acquisitionCount`), re-applying unlock
-/// semantics on the drawn card. `reward` cards are excluded — those are
-/// user-authored goals, not loot.
+/// semantics on the drawn card.
+///
+/// **Never drops [CardType.reward]** — rewards are purchase-only (Create Reward
+/// / shop), never session loot.
 class CardDropService {
   CardDropService._();
 
@@ -27,7 +29,7 @@ class CardDropService {
   static List<CardModel> draw(int count) {
     if (count <= 0 || !Hive.isBoxOpen(boxName)) return const [];
     final pool =
-        Hive.box<CardModel>(boxName).values.where(_isDroppable).toList();
+        Hive.box<CardModel>(boxName).values.where(isDroppable).toList();
     if (pool.isEmpty) return const [];
 
     final result = <CardModel>[];
@@ -38,7 +40,20 @@ class CardDropService {
     return result;
   }
 
-  static bool _isDroppable(CardModel card) => card.cardType != CardType.reward;
+  /// Rewards must be purchased — never included in session loot.
+  static bool isDroppable(CardModel card) {
+    final wire = card.type.trim().toLowerCase();
+    if (wire == CardType.reward.wire || wire.startsWith('reward')) {
+      return false;
+    }
+    if (card.cardType == CardType.reward) return false;
+    // Explicit purchase-only flags (custom / shop goals).
+    final meta = card.metadata;
+    if (meta['purchaseOnly'] == true || meta['isReward'] == true) {
+      return false;
+    }
+    return true;
+  }
 
   static CardModel? _weightedPick(List<CardModel> pool) {
     var total = 0.0;

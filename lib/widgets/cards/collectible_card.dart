@@ -12,6 +12,7 @@ import 'package:solo_level_system/utils/card_acquisition_service.dart';
 import 'package:solo_level_system/utils/card_repository.dart';
 import 'package:sprite_sheets/sprite_sheets.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
+import 'package:solo_level_system/widgets/common/button_components.dart';
 
 /// Icon for a card type wire string (or [CardType]).
 IconData collectibleTypeIcon(String type) {
@@ -206,87 +207,83 @@ class CollectibleCardTile extends StatelessWidget {
               ? scheme.tertiary.withValues(alpha: 0.08)
               : scheme.surface,
         ),
-        child: Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      collectibleTypeIcon(card.typeWire),
-                      size: 16,
-                      color: scheme.onSurface.withValues(alpha: 0.72),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      collectibleCategoryIcon(card.category),
-                      size: 16,
-                      color: scheme.onSurface.withValues(alpha: 0.45),
-                    ),
-                    if (card.isAcquired) ...[
-                      const SizedBox(width: AppUiSizes.xs),
-                      Icon(
-                        Icons.check_circle,
-                        size: 14,
-                        color: scheme.tertiary,
-                      ),
-                    ] else
-                      Icon(
-                        Icons.lock_outline,
-                        size: 14,
-                        color: scheme.onSurface.withValues(alpha: 0.35),
-                      ),
-                  ],
+                Icon(
+                  collectibleTypeIcon(card.typeWire),
+                  size: 16,
+                  color: scheme.onSurface.withValues(alpha: 0.72),
                 ),
-                Expanded(
-                  child: Center(
-                    child: CollectibleCardArt(
-                      card: card,
-                      size: CollectibleCardLayout.tileArtSize,
-                      overrideLocalImagePath: overrideLocalImagePath,
-                    ),
+                const Spacer(),
+                Icon(
+                  collectibleCategoryIcon(card.category),
+                  size: 16,
+                  color: scheme.onSurface.withValues(alpha: 0.45),
+                ),
+                if (card.isAcquired) ...[
+                  const SizedBox(width: AppUiSizes.xs),
+                  Icon(
+                    Icons.check_circle,
+                    size: 14,
+                    color: scheme.tertiary,
                   ),
-                ),
-                Text(
-                  card.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                ] else ...[
+                  const SizedBox(width: AppUiSizes.xs),
+                  Icon(
+                    Icons.lock_outline,
+                    size: 14,
+                    color: scheme.onSurface.withValues(alpha: 0.35),
                   ),
-                ),
-                const SizedBox(height: AppUiSizes.xxs),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    card.isAcquired
-                        ? (card.acquisitionCount > 1
-                              ? 'owned x${card.acquisitionCount}'
-                              : 'owned')
-                        : '${card.pointsCost}',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: card.isAcquired
-                          ? scheme.tertiary
-                          : canAfford
-                          ? scheme.primary
-                          : scheme.error,
-                      fontWeight: FontWeight.w700,
-                    ),
+                ],
+                if (card.isBookmarked) ...[
+                  const SizedBox(width: AppUiSizes.xs),
+                  Icon(
+                    Icons.bookmark,
+                    size: 14,
+                    color: scheme.primary,
                   ),
-                ),
+                ],
               ],
             ),
-            if (card.isBookmarked)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Icon(
-                  Icons.bookmark,
-                  size: 18,
-                  color: scheme.primary,
+            Expanded(
+              child: Center(
+                child: CollectibleCardArt(
+                  card: card,
+                  size: CollectibleCardLayout.tileArtSize,
+                  overrideLocalImagePath: overrideLocalImagePath,
                 ),
               ),
+            ),
+            Text(
+              card.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: AppUiSizes.xxs),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                card.isAcquired
+                    ? (card.acquisitionCount > 1
+                          ? 'owned x${card.acquisitionCount}'
+                          : 'owned')
+                    : '${card.pointsCost}',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: card.isAcquired
+                      ? scheme.tertiary
+                      : canAfford
+                      ? scheme.primary
+                      : scheme.error,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -763,43 +760,74 @@ class _CollectibleCardDetailDialogState
             ),
           ],
           const SizedBox(height: AppUiSizes.lg),
-          Row(
-            children: [
-              TextButton(
-                onPressed: () async {
-                  await _stopPreview();
-                  if (!mounted) return;
-                  Navigator.of(context).pop();
-                },
-                child: Text(widget.acquiredReveal ? 'Continue' : 'Close'),
-              ),
-              const Spacer(),
-              if (widget.allowAcquire)
-                ElevatedButton(
-                  onPressed: !canAttemptAcquire
-                      ? null
-                      : () async {
-                          final ok = await _acquire();
-                          if (!mounted || !ok) return;
-                          await _stopPreview();
-                          if (!mounted) return;
-                          Navigator.of(context).pop();
-                        },
-                  child: Text(
-                    !canAfford
+          if (widget.allowAcquire ||
+              (card.type == CardType.reward && !widget.acquiredReveal))
+            Row(
+              children: [
+                if (card.type == CardType.reward && !widget.acquiredReveal)
+                  DestructiveActionButton(
+                    text: 'Delete',
+                    onPressed: _deleteRewardCard,
+                  ),
+                const Spacer(),
+                if (widget.allowAcquire)
+                  PrimaryActionButton(
+                    text: !canAfford
                         ? 'Not enough'
                         : !canPurchaseReward
                         ? 'Unavailable'
-                        : card.isAcquired
-                        ? 'Acquire again'
-                        : (card.type == CardType.reward ? 'Buy' : 'Acquire'),
+                        : 'acquire [${card.pointsCost}pts]',
+                    onPressed: !canAttemptAcquire
+                        ? null
+                        : () async {
+                            final ok = await _acquire();
+                            if (!mounted || !ok) return;
+                            await _stopPreview();
+                            if (!mounted) return;
+                            Navigator.of(context).pop();
+                          },
                   ),
-                ),
-            ],
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteRewardCard() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete reward?'),
+        content: Text('Delete "${card.title}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
+    if (confirmed != true || !mounted) return;
+
+    if (card.sourceReward != null) {
+      await card.sourceReward!.delete();
+    } else if (card.sourceItem != null) {
+      await card.sourceItem!.delete();
+    }
+
+    await _stopPreview();
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    showAppSnack(context, text: 'Reward deleted');
   }
 
   Widget _buildRoomVisualPreview(List<String> visuals, ColorScheme scheme) {

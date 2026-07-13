@@ -39,8 +39,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   StatsPeriod _selectedPeriod = StatsPeriod.week;
-  String _collectibleFilter = 'all'; // type chips
-  StatsPeriod _collectiblePeriod = StatsPeriod.week;
+  late final Future<void> _overviewBoxesFuture;
 
   @override
   void initState() {
@@ -49,6 +48,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
+    _overviewBoxesFuture = Future.wait([
+      _ensureBoxIsOpen<PomodoroModel>('pomodoros'),
+      _ensureBoxIsOpen<WorkoutSessionModel>('workoutSessions'),
+      _ensureBoxIsOpen<CardModel>('motivationItems'),
+      _ensureBoxIsOpen<RewardModel>('rewards'),
+      _ensureBoxIsOpen<UserProgressModel>('userProgress'),
+    ]);
   }
 
   @override
@@ -160,13 +166,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   Widget _buildOverviewTab() {
     return FutureBuilder(
-      future: Future.wait([
-        _ensureBoxIsOpen<PomodoroModel>('pomodoros'),
-        _ensureBoxIsOpen<WorkoutSessionModel>('workoutSessions'),
-        _ensureBoxIsOpen<CardModel>('motivationItems'),
-        _ensureBoxIsOpen<RewardModel>('rewards'),
-        _ensureBoxIsOpen<UserProgressModel>('userProgress'),
-      ]),
+      future: _overviewBoxesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
@@ -209,7 +209,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                                 workoutBox.values.toList(),
                               ),
                               const SizedBox(height: AppUiSizes.xxl),
-                              _buildAcquiredCollectibles(catalog),
+                              _OverviewNewCardsSection(catalog: catalog),
                               // Extra space so FAB does not cover the last row.
                               const SizedBox(height: 72),
                             ],
@@ -471,154 +471,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           fontWeight: FontWeight.w700,
         ),
       ),
-    );
-  }
-
-  DateTime _collectibleAcquiredAt(CatalogCard card) {
-    final item = card.sourceItem;
-    if (item != null) {
-      if (item.acquiredAt != null) return item.acquiredAt!;
-      if (item.acquisitionHistory.isNotEmpty) {
-        return item.acquisitionHistory.last;
-      }
-      return item.createdAt;
-    }
-    final reward = card.sourceReward;
-    if (reward != null) {
-      return reward.purchasedAt ?? reward.createdAt;
-    }
-    return DateTime.fromMillisecondsSinceEpoch(0);
-  }
-
-  /// Seeded / first-run unlocks — not player-earned drops or purchases.
-  bool _isDefaultStarterCollectible(CatalogCard card) {
-    final item = card.sourceItem;
-    if (item == null) return false;
-    if (!item.isStarter) return false;
-    // Still show if the player stacked more copies after the free starter.
-    return item.acquisitionCount <= 1;
-  }
-
-  Widget _buildAcquiredCollectibles(List<CatalogCard> catalog) {
-    final range = StatsPeriodRange.forPeriod(_collectiblePeriod);
-    final inPeriod = <CatalogCard>[];
-    for (final c in catalog) {
-      if (!c.isAcquired) continue;
-      if (_isDefaultStarterCollectible(c)) continue;
-      if (!range.contains(_collectibleAcquiredAt(c))) continue;
-      inPeriod.add(c);
-    }
-
-    final presentTypes = <String>{for (final c in inPeriod) c.typeWire};
-    if (_collectibleFilter != 'all' &&
-        _collectibleFilter != kCollectibleBookmarkFilter &&
-        !presentTypes.contains(_collectibleFilter)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        if (_collectibleFilter == 'all' ||
-            _collectibleFilter == kCollectibleBookmarkFilter ||
-            presentTypes.contains(_collectibleFilter)) {
-          return;
-        }
-        setState(() => _collectibleFilter = 'all');
-      });
-    }
-
-    final acquired = inPeriod.where((c) {
-      if (_collectibleFilter == kCollectibleBookmarkFilter) {
-        return c.isBookmarked;
-      }
-      if (_collectibleFilter != 'all' && c.typeWire != _collectibleFilter) {
-        return false;
-      }
-      return true;
-    }).toList()
-      ..sort((a, b) {
-        final byBookmark = CardRepository.compareBookmarkedFirst(a, b);
-        if (byBookmark != 0) return byBookmark;
-        return _collectibleAcquiredAt(b).compareTo(_collectibleAcquiredAt(a));
-      });
-
-    UserProgressModel progress = UserProgressModel();
-    if (Hive.isBoxOpen('userProgress')) {
-      progress =
-          Hive.box<UserProgressModel>('userProgress').get('progress') ??
-          progress;
-    }
-
-    final typeOptions = <SettingsRectChipOption<String>>[
-      const SettingsRectChipOption(value: 'all', label: 'all'),
-      const SettingsRectChipOption(
-        value: kCollectibleBookmarkFilter,
-        label: '',
-        icon: Icons.bookmark,
-      ),
-      for (final t in kCollectibleTypeFilters)
-        if (presentTypes.contains(t))
-          SettingsRectChipOption(value: t, label: t),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'New Cards:',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColorPalette.textSecondary),
-        ),
-        const SizedBox(height: AppUiSizes.sm),
-        StatsPeriodChips(
-          value: _collectiblePeriod,
-          onChanged: (period) => setState(() => _collectiblePeriod = period),
-        ),
-        const SizedBox(height: AppUiSizes.sm),
-        SettingsRectChipGroup<String>(
-          size: SettingsRectChipSize.compact,
-          spacing: AppUiSizes.xs,
-          runSpacing: AppUiSizes.xs,
-          value: _collectibleFilter,
-          onChanged: (v) => setState(() => _collectibleFilter = v),
-          options: typeOptions,
-        ),
-        const SizedBox(height: AppUiSizes.md),
-        if (acquired.isEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppUiSizes.lg),
-              child: Text(
-                'No collectibles acquired ${StatsPeriodRange.emptyLabel(_collectiblePeriod)}',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColorPalette.textSecondary,
-                ),
-              ),
-            ),
-          )
-        else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: acquired.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: AppUiSizes.md,
-              mainAxisSpacing: AppUiSizes.md,
-              childAspectRatio: CollectibleCardLayout.aspectRatio,
-            ),
-            itemBuilder: (context, index) {
-              final card = acquired[index];
-              return CollectibleCardTile(
-                card: card,
-                availablePoints: progress.availablePoints,
-                onTap: () => showCollectibleCardDetail(
-                  context: context,
-                  card: card,
-                  userProgress: progress,
-                ),
-              );
-            },
-          ),
-      ],
     );
   }
 
@@ -1210,5 +1062,172 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       print('Error opening box $boxName: $e');
       rethrow;
     }
+  }
+}
+
+/// New Cards filters + grid. Own [State] so period/type changes only blank
+/// this section — not the whole Overview (avoids FutureBuilder reload flash).
+class _OverviewNewCardsSection extends StatefulWidget {
+  final List<CatalogCard> catalog;
+
+  const _OverviewNewCardsSection({required this.catalog});
+
+  @override
+  State<_OverviewNewCardsSection> createState() =>
+      _OverviewNewCardsSectionState();
+}
+
+class _OverviewNewCardsSectionState extends State<_OverviewNewCardsSection> {
+  String _filter = 'all';
+  StatsPeriod _period = StatsPeriod.week;
+
+  DateTime _acquiredAt(CatalogCard card) {
+    final item = card.sourceItem;
+    if (item != null) {
+      if (item.acquiredAt != null) return item.acquiredAt!;
+      if (item.acquisitionHistory.isNotEmpty) {
+        return item.acquisitionHistory.last;
+      }
+      return item.createdAt;
+    }
+    final reward = card.sourceReward;
+    if (reward != null) {
+      return reward.purchasedAt ?? reward.createdAt;
+    }
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  bool _isDefaultStarter(CatalogCard card) {
+    final item = card.sourceItem;
+    if (item == null) return false;
+    if (!item.isStarter) return false;
+    return item.acquisitionCount <= 1;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final range = StatsPeriodRange.forPeriod(_period);
+    final inPeriod = <CatalogCard>[];
+    for (final c in widget.catalog) {
+      if (!c.isAcquired) continue;
+      if (_isDefaultStarter(c)) continue;
+      if (!range.contains(_acquiredAt(c))) continue;
+      inPeriod.add(c);
+    }
+
+    final presentTypes = <String>{for (final c in inPeriod) c.typeWire};
+    // Keep chips stable; if current type isn't present, show empty grid under
+    // that filter without a parent rebuild / filter snap (user can pick another).
+    final effectiveFilter =
+        (_filter != 'all' &&
+            _filter != kCollectibleBookmarkFilter &&
+            !presentTypes.contains(_filter))
+        ? 'all'
+        : _filter;
+    if (effectiveFilter != _filter) {
+      // Sync quietly after this frame without cascading Overview reloads.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _filter == effectiveFilter) return;
+        setState(() => _filter = effectiveFilter);
+      });
+    }
+
+    final acquired = inPeriod.where((c) {
+      if (effectiveFilter == kCollectibleBookmarkFilter) {
+        return c.isBookmarked;
+      }
+      if (effectiveFilter != 'all' && c.typeWire != effectiveFilter) {
+        return false;
+      }
+      return true;
+    }).toList()
+      ..sort((a, b) {
+        final byBookmark = CardRepository.compareBookmarkedFirst(a, b);
+        if (byBookmark != 0) return byBookmark;
+        return _acquiredAt(b).compareTo(_acquiredAt(a));
+      });
+
+    UserProgressModel progress = UserProgressModel();
+    if (Hive.isBoxOpen('userProgress')) {
+      progress =
+          Hive.box<UserProgressModel>('userProgress').get('progress') ??
+          progress;
+    }
+
+    final typeOptions = <SettingsRectChipOption<String>>[
+      const SettingsRectChipOption(value: 'all', label: 'all'),
+      const SettingsRectChipOption(
+        value: kCollectibleBookmarkFilter,
+        label: '',
+        icon: Icons.bookmark,
+      ),
+      for (final t in kCollectibleTypeFilters)
+        if (presentTypes.contains(t))
+          SettingsRectChipOption(value: t, label: t),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'New Cards:',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColorPalette.textSecondary),
+        ),
+        const SizedBox(height: AppUiSizes.sm),
+        StatsPeriodChips(
+          value: _period,
+          onChanged: (period) => setState(() => _period = period),
+        ),
+        const SizedBox(height: AppUiSizes.sm),
+        SettingsRectChipGroup<String>(
+          size: SettingsRectChipSize.compact,
+          spacing: AppUiSizes.xs,
+          runSpacing: AppUiSizes.xs,
+          value: effectiveFilter,
+          onChanged: (v) => setState(() => _filter = v),
+          options: typeOptions,
+        ),
+        const SizedBox(height: AppUiSizes.md),
+        if (acquired.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppUiSizes.lg),
+              child: Text(
+                'No collectibles acquired ${StatsPeriodRange.emptyLabel(_period)}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColorPalette.textSecondary,
+                ),
+              ),
+            ),
+          )
+        else
+          GridView.builder(
+            key: ValueKey('new-cards-$_period-$effectiveFilter'),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: acquired.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: AppUiSizes.md,
+              mainAxisSpacing: AppUiSizes.md,
+              childAspectRatio: CollectibleCardLayout.aspectRatio,
+            ),
+            itemBuilder: (context, index) {
+              final card = acquired[index];
+              return CollectibleCardTile(
+                card: card,
+                availablePoints: progress.availablePoints,
+                onTap: () => showCollectibleCardDetail(
+                  context: context,
+                  card: card,
+                  userProgress: progress,
+                ),
+              );
+            },
+          ),
+      ],
+    );
   }
 }
