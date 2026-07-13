@@ -19,6 +19,8 @@ import 'package:solo_level_system/models/lofi_track.dart';
 import 'package:solo_level_system/models/room_model.dart';
 import 'package:solo_level_system/models/room_management_model.dart';
 import 'package:solo_level_system/utils/lofi_service.dart';
+import 'package:solo_level_system/widgets/common/segment_bar.dart';
+import 'package:solo_level_system/widgets/common/on_off_toggle.dart';
 
 class RoomManagementResult {
   final String? selectedRoomId;
@@ -104,6 +106,12 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       ? _rooms.where((room) => !room.isActive).toList()
       : _rooms.where((room) => room.isActive).toList();
 
+  int get _selectedRoomSegmentIndex {
+    if (_selectedRoom == null) return 0;
+    final i = _filteredRooms.indexWhere((r) => r.id == _selectedRoom!.id);
+    return i < 0 ? 0 : i + 1;
+  }
+
   bool get _canRandomRoomRoll => _filteredRooms.length > 1;
 
   @override
@@ -175,10 +183,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
   Future<void> _loadRoomsFromStorage() async {
     final box = await _openRoomsBox();
-    final loaded = box.values
-        .whereType<Map>()
-        .map(RoomModel.fromMap)
-        .toList();
+    final loaded = box.values.whereType<Map>().map(RoomModel.fromMap).toList();
     if (!mounted) return;
     setState(() {
       _rooms = loaded.isEmpty ? List<RoomModel>.from(widget.rooms) : loaded;
@@ -823,7 +828,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                     const SizedBox(height: 12),
                     Text(
                       visual.isGif ? 'GIF playback speed' : '',
-                      style: TextStyle(color: AppColorPalette.textMuted, fontSize: 12),
+                      style: TextStyle(
+                        color: AppColorPalette.textMuted,
+                        fontSize: 12,
+                      ),
                     ),
                     if (visual.isGif) ...[
                       const SizedBox(height: 6),
@@ -841,7 +849,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                               horizontal: -3,
                               vertical: -3,
                             ),
-                            labelPadding: const EdgeInsets.symmetric(horizontal: 5),
+                            labelPadding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                            ),
                             padding: EdgeInsets.zero,
                             materialTapTargetSize:
                                 MaterialTapTargetSize.shrinkWrap,
@@ -862,7 +872,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     );
 
     if (!mounted || !visual.isGif || selectedSpeed == visual.gifSpeed) return;
-    final index = _selectedVisuals.indexWhere((item) => item.path == visual.path);
+    final index = _selectedVisuals.indexWhere(
+      (item) => item.path == visual.path,
+    );
     if (index < 0) return;
     setState(() {
       _selectedVisuals[index] = _selectedVisuals[index].copyWith(
@@ -1210,7 +1222,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'GIF visual supports speed controls in Visuals section.',
-                    style: TextStyle(color: AppColorPalette.textMuted, fontSize: 12),
+                    style: TextStyle(
+                      color: AppColorPalette.textMuted,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ],
@@ -1342,10 +1357,15 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
           ),
           title: Row(
             children: [
-              TextButton.icon(
-                onPressed: () {
+              OnOffToggle(
+                value: !_showArchived,
+                onLabel: 'Active Room',
+                offLabel: 'Archived Room',
+                onIcon: Icons.folder_open,
+                offIcon: Icons.archive,
+                onChanged: (active) {
                   setState(() {
-                    _showArchived = !_showArchived;
+                    _showArchived = !active;
                     final filtered = _filteredRooms;
                     if (_selectedRoom != null &&
                         !filtered.any((room) => room.id == _selectedRoom!.id)) {
@@ -1357,17 +1377,6 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   });
                   _centerSelectedRoomCard(_selectedRoom);
                 },
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.onSurface,
-                  backgroundColor: Colors.transparent,
-                  side: const BorderSide(color: Colors.black26),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                ),
-                icon: Icon(_showArchived ? Icons.archive : Icons.folder_open),
-                label: Text(_showArchived ? 'Archived Room' : 'Active Room'),
               ),
             ],
           ),
@@ -1406,11 +1415,15 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                     itemCount: _filteredRooms.length + 1,
                     controller: _roomPageController,
                     onPageChanged: (index) async {
-                      final room = index == 0 ? null : _filteredRooms[index - 1];
+                      final room = index == 0
+                          ? null
+                          : _filteredRooms[index - 1];
                       await _selectRoom(room, centerCard: false);
                     },
                     itemBuilder: (context, index) {
-                      final room = index == 0 ? null : _filteredRooms[index - 1];
+                      final room = index == 0
+                          ? null
+                          : _filteredRooms[index - 1];
                       final selected =
                           room?.id == _selectedRoom?.id ||
                           (room == null && _selectedRoom == null);
@@ -1499,7 +1512,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
-                                                color: AppColorPalette.textMuted,
+                                                color:
+                                                    AppColorPalette.textMuted,
                                                 fontSize: 12,
                                               ),
                                             ),
@@ -1622,86 +1636,33 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                     runSpacing: 8,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Room',
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 6,
-                            children: List.generate(_filteredRooms.length + 1, (index) {
-                              final room = index == 0
-                                  ? null
-                                  : _filteredRooms[index - 1];
-                              final selected =
-                                  (room?.id == _selectedRoom?.id) ||
-                                  (room == null && _selectedRoom == null);
-                              return GestureDetector(
-                                onTap: () async => _selectRoom(room),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 140),
-                                  width: 12,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(3),
-                                    border: Border.all(
-                                      color: AppColorPalette.textSecondary,
-                                      width: 1.5,
-                                    ),
-                                    color: selected
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Colors.transparent,
-                                  ),
-                                ),
-                              );
-                            }),
-                          ),
-                        ],
+                      LabeledSegmentBar(
+                        label: 'Room',
+                        bar: SegmentBar(
+                          count: _filteredRooms.length + 1,
+                          selectedIndex: _selectedRoomSegmentIndex,
+                          onSelected: (index) async {
+                            final room = index == 0
+                                ? null
+                                : _filteredRooms[index - 1];
+                            await _selectRoom(room);
+                          },
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Volume',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(3, (index) {
-                        final level = index + 1;
-                        final selected = _volumeLevel >= level;
-                        return Padding(
-                          padding: EdgeInsets.only(right: index == 2 ? 0 : 6),
-                          child: GestureDetector(
-                            onTap: () async => _setVolumeLevel(level),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 140),
-                              width: 12,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(3),
-                                border: Border.all(
-                                  color: AppColorPalette.textSecondary,
-                                  width: 1.5,
-                                ),
-                                color: selected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.transparent,
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                  ],
+                LabeledSegmentBar(
+                  label: 'Volume',
+                  alignment: CrossAxisAlignment.end,
+                  bar: SegmentBar(
+                    count: 3,
+                    selectedIndex: _volumeLevel - 1,
+                    fillToSelected: true,
+                    spacing: 6,
+                    onSelected: (index) async => _setVolumeLevel(index + 1),
+                  ),
                 ),
               ],
             ),
@@ -1756,7 +1717,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   child: Text(
                     _tracksAggregateSummary(),
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColorPalette.textMuted, fontSize: 12),
+                    style: TextStyle(
+                      color: AppColorPalette.textMuted,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               )
@@ -1849,7 +1813,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   child: Text(
                     '${_selectedVisuals.length} visuals',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColorPalette.textMuted, fontSize: 12),
+                    style: TextStyle(
+                      color: AppColorPalette.textMuted,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               )

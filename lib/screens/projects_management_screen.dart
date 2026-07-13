@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
+import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -13,10 +14,7 @@ import 'package:solo_level_system/widgets/common/index.dart';
 class ProjectsManagementScreen extends StatefulWidget {
   final String? initialSelectedProjectId;
 
-  const ProjectsManagementScreen({
-    super.key,
-    this.initialSelectedProjectId,
-  });
+  const ProjectsManagementScreen({super.key, this.initialSelectedProjectId});
 
   @override
   _ProjectsManagementScreenState createState() =>
@@ -75,7 +73,8 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
 
       setState(() {
         final filtered = _filteredProjects;
-        if (_selectedProject == null && widget.initialSelectedProjectId != null) {
+        if (_selectedProject == null &&
+            widget.initialSelectedProjectId != null) {
           for (final project in filtered) {
             if (project.id == widget.initialSelectedProjectId) {
               _selectedProject = project;
@@ -138,10 +137,15 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
         ),
         title: Row(
           children: [
-            TextButton.icon(
-              onPressed: () {
+            OnOffToggle(
+              value: !_showArchived,
+              onLabel: 'Active Project',
+              offLabel: 'Archived Project',
+              onIcon: Icons.folder_open,
+              offIcon: Icons.archive,
+              onChanged: (active) {
                 setState(() {
-                  _showArchived = !_showArchived;
+                  _showArchived = !active;
                   final filtered = _filteredProjects;
                   if (_selectedProject != null &&
                       !filtered.any((p) => p.id == _selectedProject!.id)) {
@@ -154,17 +158,6 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                 });
                 _centerSelectedProjectCard(_selectedProject);
               },
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.onSurface,
-                backgroundColor: Colors.transparent,
-                side: const BorderSide(color: Colors.black26),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              ),
-              icon: Icon(_showArchived ? Icons.archive : Icons.folder_open),
-              label: Text(_showArchived ? 'Archived Project' : 'Active Project'),
             ),
           ],
         ),
@@ -176,6 +169,12 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
   List<ProjectModel> get _filteredProjects => _showArchived
       ? projects.where((p) => !p.isActive).toList()
       : projects.where((p) => p.isActive).toList();
+
+  int get _selectedProjectSegmentIndex {
+    if (_selectedProject == null) return 0;
+    final i = _filteredProjects.indexWhere((p) => p.id == _selectedProject!.id);
+    return i < 0 ? 0 : i + 1;
+  }
 
   bool get _canRandomProjectRoll => _filteredProjects.length > 1;
 
@@ -203,7 +202,8 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     _breakDuration = p.breakDurationMinutes;
     final meta = _projectMeta(project: p);
     final preferred = p.preferredWorkHour ?? 9;
-    _morningStart = _timeFromMeta(meta['morning_start']) ??
+    _morningStart =
+        _timeFromMeta(meta['morning_start']) ??
         TimeOfDay(hour: preferred, minute: 0);
     _afternoonStart =
         _timeFromMeta(meta['afternoon_start']) ??
@@ -495,22 +495,21 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                     runSpacing: 8,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Project',
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 6,
-                            children: [
-                              for (int i = 0; i <= _filteredProjects.length; i++)
-                                _buildProjectIndicator(i),
-                            ],
-                          ),
-                        ],
+                      LabeledSegmentBar(
+                        label: 'Project',
+                        bar: SegmentBar(
+                          count: _filteredProjects.length + 1,
+                          selectedIndex: _selectedProjectSegmentIndex,
+                          onSelected: (index) {
+                            final project = index == 0
+                                ? null
+                                : _filteredProjects[index - 1];
+                            setState(() {
+                              _selectedProject = project;
+                              _syncEditorFromSelectedProject();
+                            });
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -530,33 +529,6 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProjectIndicator(int index) {
-    final project = index == 0 ? null : _filteredProjects[index - 1];
-    final selected =
-        (project == null && _selectedProject == null) ||
-        (project?.id == _selectedProject?.id);
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedProject = project;
-          _syncEditorFromSelectedProject();
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        width: 12,
-        height: 24,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(3),
-          border: Border.all(color: AppColorPalette.textSecondary, width: 1.5),
-          color: selected
-              ? Theme.of(context).colorScheme.primary
-              : Colors.transparent,
         ),
       ),
     );
@@ -666,26 +638,30 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      'Active Days',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (int day = 1; day <= 7; day++)
-                          GestureDetector(
-                            onTap: () async {
-                              setState(() {
-                                _dayStates[day] = _nextDayState(_dayStates[day] ?? 0);
-                              });
-                              await _persistSelectedProject();
-                            },
-                            child: _buildDayStateRect(_dayStates[day] ?? 0),
-                          ),
-                      ],
+                    LabeledSegmentBar(
+                      label: 'Active Days',
+                      bar: SegmentBar(
+                        count: 7,
+                        segmentStates: [
+                          for (int day = 1; day <= 7; day++)
+                            _dayStates[day] ?? 0,
+                        ],
+                        partialBandCount: 3,
+                        segmentWidth: 20,
+                        segmentHeight: 36,
+                        spacing: 8,
+                        borderWidth: AppUiSizes.mediumBorderWidth,
+                        borderRadius: 4,
+                        onSelected: (index) async {
+                          final day = index + 1;
+                          setState(() {
+                            _dayStates[day] = _nextDayState(
+                              _dayStates[day] ?? 0,
+                            );
+                          });
+                          await _persistSelectedProject();
+                        },
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -705,68 +681,62 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildTimeField('Morning', _morningStart, (v) async {
+                          child: _buildTimeField('Morning', _morningStart, (
+                            v,
+                          ) async {
                             setState(() => _morningStart = v);
                             await _persistSelectedProject();
                           }),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: _buildTimeField(
-                            'Afternoon',
-                            _afternoonStart,
-                            (v) async {
-                              setState(() => _afternoonStart = v);
-                              await _persistSelectedProject();
-                            },
-                          ),
+                          child: _buildTimeField('Afternoon', _afternoonStart, (
+                            v,
+                          ) async {
+                            setState(() => _afternoonStart = v);
+                            await _persistSelectedProject();
+                          }),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: _buildTimeField(
-                            'Evening',
-                            _eveningStart,
-                            (v) async {
-                              setState(() => _eveningStart = v);
-                              await _persistSelectedProject();
-                            },
-                          ),
+                          child: _buildTimeField('Evening', _eveningStart, (
+                            v,
+                          ) async {
+                            setState(() => _eveningStart = v);
+                            await _persistSelectedProject();
+                          }),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    CheckboxListTile(
+                    OnOffToggleListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Create Notification'),
                       value: _sendNotification,
                       onChanged: (v) async {
-                        setState(() => _sendNotification = v ?? false);
+                        setState(() => _sendNotification = v);
                         await _persistSelectedProject();
                       },
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      title: const Text('Create Notification'),
                     ),
-                    CheckboxListTile(
+                    OnOffToggleListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Show only within 1 hour of target'),
                       value: _showOnlyWithinHour,
                       onChanged: (v) async {
-                        setState(() => _showOnlyWithinHour = v ?? false);
+                        setState(() => _showOnlyWithinHour = v);
                         await _persistSelectedProject();
                       },
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      title: const Text('Show only within 1 hour of target'),
                     ),
-                    CheckboxListTile(
+                    OnOffToggleListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Dont Score project if outside of hour range',
+                      ),
                       value: _dontScoreOutside,
                       onChanged: (v) async {
-                        setState(() => _dontScoreOutside = v ?? false);
+                        setState(() => _dontScoreOutside = v);
                         await _persistSelectedProject();
                       },
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      title: const Text('Dont Score project if outside of hour range'),
                     ),
                   ],
                 ),
@@ -842,10 +812,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelLarge,
-        ),
+        Text(label, style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1345,8 +1312,10 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     return map;
   }
 
-  String _dayStatesToMeta() =>
-      List.generate(7, (index) => (_dayStates[index + 1] ?? 0).toString()).join(',');
+  String _dayStatesToMeta() => List.generate(
+    7,
+    (index) => (_dayStates[index + 1] ?? 0).toString(),
+  ).join(',');
 
   Map<String, String> _projectMetaForPersistence() {
     return {
@@ -1601,42 +1570,4 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     if (entries.isEmpty) return 'No active days';
     return entries.join(', ');
   }
-
-  Widget _buildDayStateRect(int state) {
-    final borderColor = AppColorPalette.textSecondary;
-    Widget fillFor(double top, double height) {
-      return Positioned(
-        top: top,
-        left: 0,
-        right: 0,
-        height: height,
-        child: Container(color: Theme.of(context).colorScheme.primary),
-      );
-    }
-
-    return SizedBox(
-      width: 20,
-      height: 36,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: borderColor, width: 1.4),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ),
-            if (state == 0) fillFor(0, 36),
-            if (state == 2) fillFor(0, 12),
-            if (state == 3) fillFor(12, 12),
-            if (state == 4) fillFor(24, 12),
-          ],
-        ),
-      ),
-    );
-  }
 }
-

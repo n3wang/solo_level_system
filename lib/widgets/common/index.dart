@@ -10,3 +10,4 @@ export 'standard_tab_app_bar.dart';
 export 'centered_app_modal.dart';
 export 'on_off_toggle.dart';
 export 'settings_slider.dart';
+export 'segment_bar.dart';

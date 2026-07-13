@@ -19,4 +19,8 @@ class AppUiSizes {
 
   /// Corner radius for centered app modals (exercise detail / edit).
   static const double modalRadius = 20;
+
+  static const double smallBorderWidth = .6;
+  static const double mediumBorderWidth = 1;
+  static const double largeBorderWidth = 1.2;
 }
