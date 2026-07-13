@@ -266,7 +266,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
   Widget _buildProjectPreviewCard() {
     final isActiveList = !_showArchived;
 
-    return Card(
+    return SizedBox(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -572,7 +572,60 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
         ignoring: !enabled,
         child: Column(
           children: [
-            Card(
+            SizedBox(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.timer_outlined, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Session Duration',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildCounterField(
+                            label: 'Work Duration',
+                            value: _workDuration,
+                            min: 5,
+                            max: 180,
+                            step: 5,
+                            onChanged: (v) async {
+                              setState(() => _workDuration = v);
+                              await _persistSelectedProject();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildCounterField(
+                            label: 'Break',
+                            value: _breakDuration,
+                            min: 5,
+                            max: 60,
+                            step: 5,
+                            onChanged: (v) async {
+                              setState(() => _breakDuration = v);
+                              await _persistSelectedProject();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -623,7 +676,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Card(
+            SizedBox(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -739,59 +792,6 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                         setState(() => _dontScoreOutside = v);
                         await _persistSelectedProject();
                       },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.timer_outlined, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Session Duration',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildCounterField(
-                            label: 'Work Duration',
-                            value: _workDuration,
-                            min: 5,
-                            max: 180,
-                            step: 5,
-                            onChanged: (v) async {
-                              setState(() => _workDuration = v);
-                              await _persistSelectedProject();
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildCounterField(
-                            label: 'Break',
-                            value: _breakDuration,
-                            min: 5,
-                            max: 60,
-                            step: 5,
-                            onChanged: (v) async {
-                              setState(() => _breakDuration = v);
-                              await _persistSelectedProject();
-                            },
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -1117,10 +1117,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
               onPressed: () async {
                 final title = titleController.text.trim();
                 if (title.isEmpty) {
-                  showAppSnack(
-                    context,
-                    text: 'Title cannot be empty',
-                  );
+                  showAppSnack(context, text: 'Title cannot be empty');
                   return;
                 }
                 final milestones = milestonesController.text
@@ -1216,7 +1213,8 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
       if (!mounted) return;
       showAppSnack(
         context,
-        text: 'Unsupported format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
+        text:
+            'Unsupported format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
       );
       return;
     }
@@ -1432,7 +1430,8 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
     if (maxProjects > 0 && projects.length >= maxProjects) {
       showAppSnack(
         context,
-        text: 'Project limit reached ($maxProjects). Unlock more Project Slot cards in Motivation.',
+        text:
+            'Project limit reached ($maxProjects). Unlock more Project Slot cards in Motivation.',
       );
       return;
     }
@@ -1512,16 +1511,10 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
 
       print('UI updated with new project');
 
-      showAppSnack(
-      context,
-      text: '🎉 Project created!',
-    );
+      showAppSnack(context, text: '🎉 Project created!');
     } catch (e) {
       print('Error creating project: $e');
-      showAppSnack(
-        context,
-        text: 'Error creating project: $e',
-      );
+      showAppSnack(context, text: 'Error creating project: $e');
     }
   }
 

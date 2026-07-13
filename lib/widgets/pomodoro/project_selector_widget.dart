@@ -103,10 +103,7 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: showSingleSelectedChip ? 0 : 8,
-            vertical: 12,
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -1607,36 +1607,45 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildTimerSection() {
+    // Same horizontal inset as the album block in `_buildGestureTimer`.
+    const albumHorizontalInset = 20.0;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Timer with recording buttons when session complete
         if (projects.isNotEmpty)
-          ProjectSelectorWidget(
-            projects: projects,
-            selectedProject: selectedProject,
-            isRunning: _timerController.isRunning,
-            canSubmitLog: canSubmitLog,
-            selectedExpandedWidth: PomodoroSizing.getAlbumContainerSize(
-              context,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: albumHorizontalInset),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ProjectSelectorWidget(
+                projects: projects,
+                selectedProject: selectedProject,
+                isRunning: _timerController.isRunning,
+                canSubmitLog: canSubmitLog,
+                selectedExpandedWidth: PomodoroSizing.getAlbumContainerSize(
+                  context,
+                ),
+                onProjectSelected: (project) {
+                  setState(() {
+                    selectedProject = project;
+                    // Update timer durations based on selected project
+                    if (project != null) {
+                      workMinutes = project.workDurationMinutes;
+                      breakMinutes = project.breakDurationMinutes;
+                      _timerController.updateDurations(workMinutes, breakMinutes);
+                    } else {
+                      // No project selected, use user default settings
+                      workMinutes = userSettings?.defaultWorkMinutes ?? 25;
+                      breakMinutes = userSettings?.defaultBreakMinutes ?? 5;
+                      _timerController.updateDurations(workMinutes, breakMinutes);
+                    }
+                  });
+                  _loadSelectedRoomPhrases();
+                },
+                isCollapsed: false, // Always show full project info when visible
+              ),
             ),
-            onProjectSelected: (project) {
-              setState(() {
-                selectedProject = project;
-                // Update timer durations based on selected project
-                if (project != null) {
-                  workMinutes = project.workDurationMinutes;
-                  breakMinutes = project.breakDurationMinutes;
-                  _timerController.updateDurations(workMinutes, breakMinutes);
-                } else {
-                  // No project selected, use user default settings
-                  workMinutes = userSettings?.defaultWorkMinutes ?? 25;
-                  breakMinutes = userSettings?.defaultBreakMinutes ?? 5;
-                  _timerController.updateDurations(workMinutes, breakMinutes);
-                }
-              });
-              _loadSelectedRoomPhrases();
-            },
-            isCollapsed: false, // Always show full project info when visible
           ),
         canSubmitLog ? _buildTimerWithRecordingButtons() : _buildGestureTimer(),
       ],
@@ -1792,6 +1801,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   )
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Top padding to match bottom spacing
                       SizedBox(height: 20),
@@ -2028,6 +2038,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           )
         : Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Top padding to match bottom spacing
               SizedBox(height: 20),

@@ -374,10 +374,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               onPressed: () async {
                 final title = titleController.text.trim();
                 if (title.isEmpty) {
-                  showAppSnack(
-                    context,
-                    text: 'Title cannot be empty',
-                  );
+                  showAppSnack(context, text: 'Title cannot be empty');
                   return;
                 }
 
@@ -470,10 +467,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       _startPreviewAutoStopTimer();
     } catch (error) {
       if (!mounted) return;
-      showAppSnack(
-      context,
-      text: 'Cannot preview track: $error',
-    );
+      showAppSnack(context, text: 'Cannot preview track: $error');
     }
   }
 
@@ -614,10 +608,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
     if (_selectedTracks.contains(trackKey)) {
       if (!mounted) return;
-      showAppSnack(
-      context,
-      text: 'Track already added',
-    );
+      showAppSnack(context, text: 'Track already added');
       return;
     }
 
@@ -684,10 +675,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       final bytes = file.bytes;
       if (bytes == null || bytes.isEmpty) {
         if (!mounted) return;
-        showAppSnack(
-          context,
-          text: 'Unable to read selected file',
-        );
+        showAppSnack(context, text: 'Unable to read selected file');
         return;
       }
       await _addVisualFromBytes(bytes, file.name);
@@ -704,7 +692,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       if (!mounted) return;
       showAppSnack(
         context,
-        text: 'Unsupported visual format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
+        text:
+            'Unsupported visual format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
       );
       return;
     }
@@ -716,10 +705,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
     if (_selectedVisuals.any((visual) => visual.path == copiedPath)) {
       if (!mounted) return;
-      showAppSnack(
-      context,
-      text: 'Visual already added',
-    );
+      showAppSnack(context, text: 'Visual already added');
       return;
     }
 
@@ -737,7 +723,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       if (!mounted) return;
       showAppSnack(
         context,
-        text: 'Unsupported visual format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
+        text:
+            'Unsupported visual format .$extension. Allowed: ${_supportedVisualExtensions.join(', ')}',
       );
       return;
     }
@@ -745,10 +732,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     final dataUri = _dataUriForBytes(bytes, extension);
     if (_selectedVisuals.any((visual) => visual.path == dataUri)) {
       if (!mounted) return;
-      showAppSnack(
-      context,
-      text: 'Visual already added',
-    );
+      showAppSnack(context, text: 'Visual already added');
       return;
     }
 
@@ -1298,10 +1282,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               onPressed: () async {
                 final title = titleController.text.trim();
                 if (title.isEmpty) {
-                  showAppSnack(
-                    context,
-                    text: 'Title cannot be empty',
-                  );
+                  showAppSnack(context, text: 'Title cannot be empty');
                   return;
                 }
 
@@ -1402,7 +1383,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   Widget _buildRoomSelectionCard() {
-    return Card(
+    return SizedBox(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1674,7 +1655,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   Widget _buildTracksCard() {
-    return Card(
+    return SizedBox(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

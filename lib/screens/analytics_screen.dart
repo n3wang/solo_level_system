@@ -1132,20 +1132,20 @@ class _OverviewNewCardsSectionState extends State<_OverviewNewCardsSection> {
       });
     }
 
-    final acquired = inPeriod.where((c) {
-      if (effectiveFilter == kCollectibleBookmarkFilter) {
-        return c.isBookmarked;
-      }
-      if (effectiveFilter != 'all' && c.typeWire != effectiveFilter) {
-        return false;
-      }
-      return true;
-    }).toList()
-      ..sort((a, b) {
-        final byBookmark = CardRepository.compareBookmarkedFirst(a, b);
-        if (byBookmark != 0) return byBookmark;
-        return _acquiredAt(b).compareTo(_acquiredAt(a));
-      });
+    final acquired =
+        inPeriod.where((c) {
+          if (effectiveFilter == kCollectibleBookmarkFilter) {
+            return c.isBookmarked;
+          }
+          if (effectiveFilter != 'all' && c.typeWire != effectiveFilter) {
+            return false;
+          }
+          return true;
+        }).toList()..sort((a, b) {
+          final byBookmark = CardRepository.compareBookmarkedFirst(a, b);
+          if (byBookmark != 0) return byBookmark;
+          return _acquiredAt(b).compareTo(_acquiredAt(a));
+        });
 
     UserProgressModel progress = UserProgressModel();
     if (Hive.isBoxOpen('userProgress')) {
