@@ -9,6 +9,7 @@ import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/habit_tracker_model.dart';
 import 'package:solo_level_system/screens/motivation_hub_screen.dart';
 import 'package:solo_level_system/widgets/pomodoro/session_recording_preview.dart';
+import 'package:solo_level_system/widgets/common/standard_tab_app_bar.dart';
 
 extension StringExtension on String {
   String capitalizeFirst() {
@@ -45,19 +46,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: SizedBox.shrink(),
-        toolbarHeight: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: [
-            Tab(text: 'Overview'),
-            Tab(text: 'Focus'),
-            Tab(text: 'Workouts'),
-            Tab(text: 'Motivation'),
-          ],
-        ),
+      appBar: StandardTabAppBar(
+        controller: _tabController,
+        labels: const ['Overview', 'Focus', 'Workouts', 'Motivation'],
       ),
       body: Column(
         children: [

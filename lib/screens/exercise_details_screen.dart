@@ -1,59 +1,106 @@
 // lib/screens/exercise_details_screen.dart
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/screens/active_workout_session_screen.dart';
+import 'package:solo_level_system/widgets/exercise_set_membership_toggle.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
+import 'package:solo_level_system/utils/workout_service.dart';
+import 'package:solo_level_system/widgets/common/centered_app_modal.dart';
 
 class ExerciseDetailsScreen extends StatefulWidget {
   final ExerciseModel exercise;
+  final bool presentedAsModal;
 
-  const ExerciseDetailsScreen({super.key, required this.exercise});
+  const ExerciseDetailsScreen({
+    super.key,
+    required this.exercise,
+    this.presentedAsModal = false,
+  });
+
+  /// Centered modal used when tapping an exercise from listing screens.
+  static Future<void> show(BuildContext context, ExerciseModel exercise) {
+    return showCenteredAppModal<void>(
+      context: context,
+      builder: (ctx) => ExerciseDetailsScreen(
+        exercise: exercise,
+        presentedAsModal: true,
+      ),
+    );
+  }
 
   @override
   _ExerciseDetailsScreenState createState() => _ExerciseDetailsScreenState();
 }
 
 class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
-  late Box<WorkoutSessionModel> _sessionsBox;
   List<WorkoutSessionModel> _exerciseHistory = [];
+  late ExerciseModel _exercise;
 
   @override
   void initState() {
     super.initState();
+    _exercise = widget.exercise;
     _loadExerciseHistory();
   }
 
-  void _loadExerciseHistory() async {
-    _sessionsBox = await Hive.openBox<WorkoutSessionModel>('workoutSessions');
-    final allSessions = _sessionsBox.values.toList();
+  ExerciseModel get _liveExercise {
+    if (!Hive.isBoxOpen('exercises')) return _exercise;
+    final box = Hive.box<ExerciseModel>('exercises');
+    return box.get(_exercise.id) ??
+        box.values.cast<ExerciseModel?>().firstWhere(
+              (ex) => ex?.id == _exercise.id,
+              orElse: () => null,
+            ) ??
+        _exercise;
+  }
 
+  void _loadExerciseHistory() async {
+    await Hive.openBox<WorkoutSessionModel>('workoutSessions');
     setState(() {
-      _exerciseHistory =
-          allSessions
-              .where(
-                (session) =>
-                    session.completedExerciseIds.contains(widget.exercise.id),
-              )
-              .toList()
-            ..sort((a, b) => b.startTime.compareTo(a.startTime));
+      _exerciseHistory = WorkoutService.sessionsForExercise(_exercise.id);
     });
+  }
+
+  /// Fallback when sessions weren't linked but last-workout fields were updated.
+  bool get _hasLastWorkoutFallback {
+    final ex = _liveExercise;
+    return _exerciseHistory.isEmpty &&
+        ex.lastWorkoutDate != null &&
+        (ex.lastWorkoutReps?.isNotEmpty ?? false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: widget.presentedAsModal
+          ? Theme.of(context).scaffoldBackgroundColor
+          : null,
       appBar: AppBar(
-        title: Text(widget.exercise.name),
+        title: widget.presentedAsModal ? null : Text(_liveExercise.name),
+        backgroundColor: widget.presentedAsModal
+            ? Theme.of(context).scaffoldBackgroundColor
+            : null,
+        foregroundColor: widget.presentedAsModal
+            ? Theme.of(context).colorScheme.onSurface
+            : null,
+        elevation: widget.presentedAsModal ? 0 : null,
+        scrolledUnderElevation: widget.presentedAsModal ? 0 : null,
+        leading: widget.presentedAsModal
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: 'Close',
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         actions: [
           ValueListenableBuilder(
             valueListenable: Hive.box<ExerciseModel>('exercises').listenable(),
             builder: (context, Box<ExerciseModel> box, _) {
-              final exercise = box.get(widget.exercise.id) ?? widget.exercise;
+              final exercise = box.get(_exercise.id) ?? _exercise;
               return IconButton(
                 icon: Icon(
                   exercise.isBookmarked
@@ -70,19 +117,9 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               );
             },
           ),
-          IconButton(icon: Icon(Icons.edit), onPressed: _editExercise),
+          IconButton(icon: const Icon(Icons.edit), onPressed: _editExercise),
           PopupMenuButton(
             itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'duplicate',
-                child: Row(
-                  children: [
-                    Icon(Icons.copy),
-                    SizedBox(width: 8),
-                    Text('Duplicate'),
-                  ],
-                ),
-              ),
               PopupMenuItem(
                 value: 'delete',
                 child: Row(
@@ -102,16 +139,16 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildExerciseHeader(),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             _buildPersonalRecords(),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             _buildInstructions(),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             _buildExerciseHistory(),
           ],
         ),
@@ -119,8 +156,8 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: "exercise_details_quick_start",
         onPressed: _startQuickWorkout,
-        icon: Icon(Icons.play_arrow),
-        label: Text('Quick Start'),
+        icon: const Icon(Icons.play_arrow),
+        label: const Text('Quick Start'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: AppColorPalette.white,
       ),
@@ -128,6 +165,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   }
 
   Widget _buildExerciseHeader() {
+    final exercise = _liveExercise;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBgColor = isDark
         ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
@@ -136,7 +174,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
     return Card(
       color: cardBgColor,
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -146,51 +184,51 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: _getMuscleGroupColor(widget.exercise.muscleGroup),
+                    color: _getMuscleGroupColor(exercise.muscleGroup),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: WorkoutIconWidget(
-                      imageUrl: widget.exercise.imageUrl,
+                      imageUrl: exercise.imageUrl,
                       size: 80,
                       placeholder: Icon(
-                        _getMuscleGroupIcon(widget.exercise.muscleGroup),
+                        _getMuscleGroupIcon(exercise.muscleGroup),
                         color: AppColorPalette.white,
                         size: 40,
                       ),
                     ),
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.exercise.name,
+                        exercise.name,
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: isDark
                               ? AppColorPalette.white
                               : AppColorPalette.grey900,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        widget.exercise.muscleGroup.toUpperCase(),
+                        exercise.muscleGroup.toUpperCase(),
                         style: TextStyle(
                           color: isDark
                               ? AppColorPalette.grey400
                               : AppColorPalette.grey600,
                           fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
-                        widget.exercise.difficulty.toUpperCase(),
+                        exercise.difficulty.toUpperCase(),
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark
@@ -204,32 +242,32 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                 ),
               ],
             ),
-            if (widget.exercise.description.isNotEmpty) ...[
-              SizedBox(height: 16),
+            if (exercise.description.isNotEmpty) ...[
+              const SizedBox(height: 16),
               Text(
-                widget.exercise.description,
+                exercise.description,
                 style: TextStyle(fontSize: 16, color: AppColorPalette.grey700),
               ),
             ],
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 _buildInfoChip(
-                  widget.exercise.category.toUpperCase(),
+                  exercise.category.toUpperCase(),
                   Icons.category,
                   AppColorPalette.info,
                 ),
                 _buildInfoChip(
-                  widget.exercise.equipment == 'bodyweight'
+                  exercise.equipment == 'bodyweight'
                       ? 'BODYWEIGHT'
-                      : widget.exercise.equipment.toUpperCase(),
+                      : exercise.equipment.toUpperCase(),
                   Icons.fitness_center,
                   AppColorPalette.primary,
                 ),
-                if (widget.exercise.tags.isNotEmpty)
-                  ...widget.exercise.tags.map(
+                if (exercise.tags.isNotEmpty)
+                  ...exercise.tags.map(
                     (tag) => _buildInfoChip(
                       tag.toUpperCase(),
                       Icons.tag,
@@ -238,6 +276,11 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                   ),
               ],
             ),
+            const SizedBox(height: 20),
+            ExerciseSetMembershipToggle(
+              exerciseId: exercise.id,
+              persistImmediately: true,
+            ),
           ],
         ),
       ),
@@ -245,6 +288,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   }
 
   Widget _buildPersonalRecords() {
+    final exercise = _liveExercise;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBgColor = isDark
         ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
@@ -263,8 +307,8 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                 Expanded(
                   child: _buildRecordCard(
                     'Best Weight',
-                    widget.exercise.personalRecord?.toString() ?? '-',
-                    widget.exercise.personalRecordUnit ?? 'kg',
+                    exercise.personalRecord?.toString() ?? '-',
+                    exercise.personalRecordUnit ?? 'kg',
                     Icons.fitness_center,
                     AppColorPalette.error,
                   ),
@@ -380,7 +424,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               ],
             ),
             SizedBox(height: 16),
-            if (widget.exercise.instructions.isEmpty)
+            if (_liveExercise.instructions.isEmpty)
               Text(
                 'No instructions provided.',
                 style: TextStyle(
@@ -389,7 +433,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                 ),
               )
             else
-              ...widget.exercise.instructions.asMap().entries.map(
+              ..._liveExercise.instructions.asMap().entries.map(
                 (entry) => Padding(
                   padding: EdgeInsets.only(bottom: 8),
                   child: Row(
@@ -471,7 +515,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               ],
             ),
             SizedBox(height: 16),
-            if (_exerciseHistory.isEmpty)
+            if (_exerciseHistory.isEmpty && !_hasLastWorkoutFallback)
               Builder(
                 builder: (context) {
                   final isDark =
@@ -487,6 +531,8 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                   );
                 },
               )
+            else if (_hasLastWorkoutFallback)
+              _buildLastWorkoutFallbackItem()
             else
               ...(_exerciseHistory
                   .take(5)
@@ -502,7 +548,55 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
     );
   }
 
-  Widget _buildHistoryItem(WorkoutSessionModel session) {
+  Widget _buildLastWorkoutFallbackItem() {
+    final exercise = _liveExercise;
+    final reps = exercise.lastWorkoutReps ?? [];
+    final weights = exercise.lastWorkoutWeights ?? [];
+    final completed = reps.length;
+    final totalReps = reps.fold(0, (a, b) => a + b);
+    final positiveWeights =
+        weights.whereType<double>().where((w) => w > 0).toList();
+    final showWeight =
+        exercise.measurementUnit == 'kg' || exercise.measurementUnit == 'lbs';
+    final avg = positiveWeights.isEmpty
+        ? null
+        : positiveWeights.reduce((a, b) => a + b) / positiveWeights.length;
+    final maxW = positiveWeights.isEmpty
+        ? null
+        : positiveWeights.reduce((a, b) => a > b ? a : b);
+    final maxR = reps.isEmpty ? null : reps.reduce((a, b) => a > b ? a : b);
+    final unit = exercise.measurementUnit;
+
+    String fmt(double? v) {
+      if (v == null) return '—';
+      return v == v.roundToDouble()
+          ? '${v.toInt()} $unit'
+          : '${v.toStringAsFixed(1)} $unit';
+    }
+
+    return _historyCardShell(
+      title: 'Last workout',
+      subtitle: _formatDate(exercise.lastWorkoutDate!),
+      trailing: null,
+      stats: [
+        _historyStatChip('Reps', '$totalReps', Icons.repeat),
+        if (showWeight && avg != null)
+          _historyStatChip('Avg', fmt(avg), Icons.balance),
+        if (maxR != null)
+          _historyStatChip('Max reps', '$maxR', Icons.arrow_upward),
+        if (showWeight && maxW != null)
+          _historyStatChip('Max wt', fmt(maxW), Icons.fitness_center),
+        _historyStatChip('Sets', '$completed', Icons.layers_outlined),
+      ],
+    );
+  }
+
+  Widget _historyCardShell({
+    required String title,
+    required String subtitle,
+    required String? trailing,
+    required List<Widget> stats,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final itemBgColor = isDark
         ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.4)
@@ -512,45 +606,119 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
         : AppColorPalette.grey200;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 8),
-      padding: EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: itemBgColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borderColor),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            session.isCompleted ? Icons.check_circle : Icons.cancel,
-            color: session.isCompleted
-                ? AppColorPalette.success
-                : AppColorPalette.error,
-            size: 20,
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  session.routineName,
-                  style: TextStyle(fontWeight: FontWeight.w500),
+          Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: AppColorPalette.success,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: AppColorPalette.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              if (trailing != null)
                 Text(
-                  _formatDate(session.startTime),
+                  trailing,
                   style: TextStyle(
-                    color: AppColorPalette.textSecondary,
+                    color: isDark
+                        ? AppColorPalette.grey400
+                        : AppColorPalette.grey600,
                     fontSize: 12,
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
-          Builder(
-            builder: (context) {
-              final isDark = Theme.of(context).brightness == Brightness.dark;
-              return Text(
+          if (stats.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 6, children: stats),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(WorkoutSessionModel session) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final itemBgColor = isDark
+        ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.4)
+        : AppColorPalette.grey50;
+    final borderColor = isDark
+        ? AppColorPalette.grey700
+        : AppColorPalette.grey200;
+    final exercise = _liveExercise;
+    final stats = WorkoutService.statsForExerciseInSession(
+      session,
+      exercise.id,
+      measurementUnit: exercise.measurementUnit,
+    );
+    final showWeight = exercise.measurementUnit == 'kg' ||
+        exercise.measurementUnit == 'lbs';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: itemBgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                session.isCompleted || (stats?.completedSets ?? 0) > 0
+                    ? Icons.check_circle
+                    : Icons.cancel,
+                color: session.isCompleted || (stats?.completedSets ?? 0) > 0
+                    ? AppColorPalette.success
+                    : AppColorPalette.error,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      session.routineName,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      _formatDate(session.startTime),
+                      style: TextStyle(
+                        color: AppColorPalette.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
                 '${session.durationMinutes} min',
                 style: TextStyle(
                   color: isDark
@@ -558,8 +726,70 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                       : AppColorPalette.grey600,
                   fontSize: 12,
                 ),
-              );
-            },
+              ),
+            ],
+          ),
+          if (stats != null) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                _historyStatChip(
+                  'Reps',
+                  '${stats.totalReps}',
+                  Icons.repeat,
+                ),
+                if (showWeight && stats.averageWeight != null)
+                  _historyStatChip(
+                    'Avg',
+                    stats.averageWeightLabel,
+                    Icons.balance,
+                  ),
+                if (stats.maxReps != null)
+                  _historyStatChip(
+                    'Max reps',
+                    '${stats.maxReps}',
+                    Icons.arrow_upward,
+                  ),
+                if (showWeight && stats.maxWeight != null)
+                  _historyStatChip(
+                    'Max wt',
+                    stats.maxWeightLabel,
+                    Icons.fitness_center,
+                  ),
+                _historyStatChip(
+                  'Sets',
+                  '${stats.completedSets}',
+                  Icons.layers_outlined,
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _historyStatChip(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColorPalette.grey200.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: AppColorPalette.textSecondary),
+          const SizedBox(width: 4),
+          Text(
+            '$label $value',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColorPalette.grey800,
+            ),
           ),
         ],
       ),
@@ -645,63 +875,48 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
     }
   }
 
-  void _editExercise() {
-    Navigator.push(
+  void _editExercise() async {
+    final result = await AddEditExerciseScreen.showAsModal(
       context,
-      MaterialPageRoute(
-        builder: (context) => AddEditExerciseScreen(exercise: widget.exercise),
-      ),
-    ).then((result) {
-      if (result == true) {
-        setState(() {
-          // Refresh the screen
-        });
-      }
+      exercise: _liveExercise,
+    );
+
+    if (!mounted) return;
+
+    // Tap outside dismisses edit AND detail
+    if (result == null) {
+      Navigator.pop(context);
+      return;
+    }
+
+    // Back / discard returns to this detail modal without saving
+    if (result == 'discard') {
+      return;
+    }
+
+    // Saved or duplicated — refresh from Hive
+    setState(() {
+      _exercise = _liveExercise;
     });
+    _loadExerciseHistory();
   }
 
   void _handleMenuAction(String action) {
     switch (action) {
-      case 'duplicate':
-        _duplicateExercise();
-        break;
       case 'delete':
         _deleteExercise();
         break;
     }
   }
 
-  void _duplicateExercise() async {
-    final exercisesBox = await Hive.openBox<ExerciseModel>('exercises');
-    final newExercise = ExerciseModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: '${widget.exercise.name} (Copy)',
-      description: widget.exercise.description,
-      category: widget.exercise.category,
-      muscleGroup: widget.exercise.muscleGroup,
-      equipment: widget.exercise.equipment,
-      difficulty: widget.exercise.difficulty,
-      instructions: List.from(widget.exercise.instructions),
-      isCustom: true,
-      createdAt: DateTime.now(),
-      tags: List.from(widget.exercise.tags),
-      isArchived: false,
-    );
-
-    await exercisesBox.add(newExercise);
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Exercise duplicated successfully')));
-  }
-
   void _deleteExercise() {
+    final exercise = _liveExercise;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete Exercise'),
         content: Text(
-          'Are you sure you want to delete "${widget.exercise.name}"?',
+          'Are you sure you want to delete "${exercise.name}"?',
         ),
         actions: [
           TextButton(
@@ -710,9 +925,9 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
           ),
           TextButton(
             onPressed: () {
-              widget.exercise.delete();
+              exercise.delete();
               Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to previous screen
+              Navigator.pop(context); // Close detail
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text('Exercise deleted')));
@@ -728,11 +943,11 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   }
 
   void _startQuickWorkout() {
-    // Create a quick workout session with just this exercise
+    final exercise = _liveExercise;
     final session = WorkoutSessionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      routineId: 'quick_${widget.exercise.id}',
-      routineName: 'Quick: ${widget.exercise.name}',
+      routineId: 'quick_${exercise.id}',
+      routineName: 'Quick: ${exercise.name}',
       startTime: DateTime.now(),
       durationMinutes: 0,
       completedExerciseIds: [],
@@ -749,15 +964,13 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
       MaterialPageRoute(
         builder: (context) => ActiveWorkoutSessionScreen(
           session: session,
-          exercises: [widget.exercise],
+          exercises: [exercise],
         ),
       ),
     );
   }
 
   void _viewFullHistory() {
-    // Navigate to a full history screen
-    // This would be implemented as a separate screen
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Full history view not implemented yet')),
     );

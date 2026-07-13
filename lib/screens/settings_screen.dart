@@ -11,6 +11,7 @@ import 'package:solo_level_system/widgets/theme_mode_selector_widget.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/utils/palette_notifier.dart';
 import 'package:solo_level_system/screens/workout_settings_screen.dart';
+import 'package:solo_level_system/widgets/common/standard_tab_app_bar.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -151,19 +152,16 @@ class _SettingsScreenState extends State<SettingsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: [
-            Tab(icon: Icon(Icons.palette), text: 'Appearance'),
-            Tab(icon: Icon(Icons.timer), text: 'Sessions'),
-            Tab(icon: Icon(Icons.notifications), text: 'Notifications'),
-            Tab(icon: Icon(Icons.fitness_center), text: 'Workout'),
-            Tab(icon: Icon(Icons.tune), text: 'Audio Config'),
-            Tab(icon: Icon(Icons.audiotrack), text: 'Audio Quality'),
-          ],
-        ),
+      appBar: StandardTabAppBar(
+        controller: _tabController,
+        labels: const [
+          'Appearance',
+          'Sessions',
+          'Notifications',
+          'Workout',
+          'Audio Config',
+          'Audio Quality',
+        ],
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())

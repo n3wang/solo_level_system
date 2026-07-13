@@ -16,4 +16,7 @@ class AppUiSizes {
   /// Shared corner radius for buttons and compact controls.
   /// Keep low for a minimal look; change this one value to retune app controls.
   static const double buttonRadius = 6;
+
+  /// Corner radius for centered app modals (exercise detail / edit).
+  static const double modalRadius = 20;
 }

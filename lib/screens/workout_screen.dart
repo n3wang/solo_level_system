@@ -264,20 +264,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: SizedBox.shrink(),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: AppColorPalette.white,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColorPalette.white,
-          labelColor: AppColorPalette.white,
-          unselectedLabelColor: AppColorPalette.white.withValues(alpha: 0.7),
-          tabs: [
-            Tab(text: 'Sets'),
-            Tab(text: 'Programs'),
-          ],
-        ),
+      appBar: StandardTabAppBar(
+        controller: _tabController,
+        labels: const ['Sets', 'Programs'],
+        isScrollable: false,
       ),
       body: _isLoading
           ? LoadingIndicator(message: 'Loading...')
@@ -1250,19 +1240,11 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   }
 
   void _createNewExercise() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => AddEditExerciseScreen()),
-    );
+    AddEditExerciseScreen.showAsModal(context);
   }
 
   void _viewExerciseDetails(ExerciseModel exercise) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ExerciseDetailsScreen(exercise: exercise),
-      ),
-    );
+    ExerciseDetailsScreen.show(context, exercise);
   }
 
   Widget _buildLastWorkoutInfo(ExerciseModel exercise) {

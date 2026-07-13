@@ -1,14 +1,48 @@
 // lib/screens/add_edit_exercise_screen.dart
+import 'dart:io';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
+import 'package:solo_level_system/widgets/exercise_image_library_picker.dart';
+import 'package:solo_level_system/widgets/exercise_set_membership_toggle.dart';
+import 'package:solo_level_system/widgets/workout_icon_widget.dart';
+import 'package:solo_level_system/widgets/common/centered_app_modal.dart';
 
 class AddEditExerciseScreen extends StatefulWidget {
   final ExerciseModel? exercise; // null for adding, non-null for editing
+  final bool presentedAsModal;
 
-  const AddEditExerciseScreen({super.key, this.exercise});
+  const AddEditExerciseScreen({
+    super.key,
+    this.exercise,
+    this.presentedAsModal = false,
+  });
+
+  /// Centered modal. Returns:
+  /// - `true` on save
+  /// - `'discard'` on back
+  /// - `'duplicated'` after duplicate
+  /// - `null` when dismissed by tapping outside
+  static Future<Object?> showAsModal(
+    BuildContext context, {
+    ExerciseModel? exercise,
+  }) {
+    return showCenteredAppModal<Object?>(
+      context: context,
+      builder: (ctx) => AddEditExerciseScreen(
+        exercise: exercise,
+        presentedAsModal: true,
+      ),
+    );
+  }
 
   @override
   _AddEditExerciseScreenState createState() => _AddEditExerciseScreenState();
@@ -20,35 +54,58 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
   final _nameController = TextEditingController();
   final _tagsController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _instructionsController = TextEditingController();
 
   late TabController _tabController;
+
+  /// Exercise currently being edited (may switch after duplicate).
+  ExerciseModel? _workingExercise;
 
   final Set<String> _selectedSetIds = {};
 
   List<String> _tags = [];
   bool _isLoading = false;
-  bool _showOptionalFields = false;
+  bool _showOptionalFields = true;
   bool _isBookmarked = false;
-  String _measurementUnit = 'kg'; // 'kg', 'lbs', 'seconds', 'none'
+  String _measurementUnit = 'kg';
+  String? _imageUrl;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    if (widget.exercise != null) {
+    _workingExercise = widget.exercise;
+    if (_workingExercise != null) {
       _populateFields();
     }
   }
 
   void _populateFields() {
-    final exercise = widget.exercise!;
+    final exercise = _workingExercise!;
     _nameController.text = exercise.name;
     _descriptionController.text = exercise.description;
+    _instructionsController.text = exercise.instructions.join('\n');
     _tags = List.from(exercise.tags);
     _tagsController.text = _tags.join(', ');
     _measurementUnit = exercise.measurementUnit;
-    // Note: ExerciseModel doesn't have isBookmarked field yet
-    // _isBookmarked = exercise.isBookmarked ?? false;
+    _isBookmarked = exercise.isBookmarked;
+    _imageUrl = exercise.imageUrl;
+
+    _selectedSetIds.clear();
+    if (Hive.isBoxOpen('workoutSetCategories')) {
+      final sets = Hive.box<WorkoutSetCategoryModel>('workoutSetCategories')
+          .values
+          .where((s) => s.isActive && s.exerciseIds.contains(exercise.id));
+      _selectedSetIds.addAll(sets.map((s) => s.id));
+    }
+  }
+
+  List<String> _parseInstructions() {
+    return _instructionsController.text
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
   }
 
   @override
@@ -56,19 +113,36 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
     _nameController.dispose();
     _tagsController.dispose();
     _descriptionController.dispose();
+    _instructionsController.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
+  void _discard() {
+    Navigator.pop(context, 'discard');
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isEditing = widget.exercise != null;
+    final isEditing = _workingExercise != null;
 
-    return Scaffold(
+    final scaffold = Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Exercise' : 'Create Exercise'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: AppColorPalette.white,
+        title: Text(isEditing ? 'Edit' : 'Create'),
+        backgroundColor: widget.presentedAsModal
+            ? Theme.of(context).scaffoldBackgroundColor
+            : Theme.of(context).primaryColor,
+        foregroundColor: widget.presentedAsModal
+            ? Theme.of(context).colorScheme.onSurface
+            : AppColorPalette.white,
+        elevation: widget.presentedAsModal ? 0 : null,
+        scrolledUnderElevation: widget.presentedAsModal ? 0 : null,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Discard',
+          onPressed: _isLoading ? null : _discard,
+        ),
         actions: [
           IconButton(
             icon: Icon(_isBookmarked ? Icons.bookmark : Icons.bookmark_border),
@@ -81,39 +155,51 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
                   },
             tooltip: _isBookmarked ? 'Remove bookmark' : 'Bookmark',
           ),
-          TextButton(
-            onPressed: _isLoading ? null : _saveExercise,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
+          if (isEditing)
+            TextButton.icon(
+              onPressed: _isLoading ? null : _duplicateExercise,
+              icon: Icon(
+                Icons.copy_outlined,
+                color: widget.presentedAsModal
+                    ? Theme.of(context).colorScheme.onSurface
+                    : AppColorPalette.white,
               ),
-              child: Text(
-                'Save',
+              label: Text(
+                'Duplicate',
                 style: TextStyle(
-                  color: AppColorPalette.white,
-                  fontWeight: FontWeight.bold,
+                  color: widget.presentedAsModal
+                      ? Theme.of(context).colorScheme.onSurface
+                      : AppColorPalette.white,
                 ),
               ),
             ),
+          TextButton(
+            onPressed: _isLoading ? null : _saveExercise,
+            child: Text(
+              'Save',
+              style: TextStyle(
+                color: widget.presentedAsModal
+                    ? Theme.of(context).primaryColor
+                    : AppColorPalette.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 4),
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : Form(
               key: _formKey,
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Exercise Name
                     TextFormField(
                       controller: _nameController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Exercise Name*',
                         hintText: 'e.g., Pushups, Bench Press',
                         border: OutlineInputBorder(),
@@ -125,17 +211,21 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
                         return null;
                       },
                     ),
-                    SizedBox(height: 16),
-
-                    // Sets Selection
-                    _buildSetsSelectionSection(),
-                    SizedBox(height: 24),
-
-                    // Optional Section Toggle
+                    const SizedBox(height: 16),
+                    ExerciseSetMembershipToggle(
+                      selectedSetIds: _selectedSetIds,
+                      onChanged: (next) {
+                        setState(() {
+                          _selectedSetIds
+                            ..clear()
+                            ..addAll(next);
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 24),
                     _buildOptionalSectionToggle(),
-
                     if (_showOptionalFields) ...[
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       _buildOptionalFields(),
                     ],
                   ],
@@ -143,99 +233,8 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
               ),
             ),
     );
-  }
 
-  Widget _buildSetsSelectionSection() {
-    final box = Hive.box<WorkoutSetCategoryModel>('workoutSetCategories');
-    final sets = box.values.where((s) => s.isActive).toList();
-    sets.sort((a, b) => a.position.compareTo(b.position));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.grid_view, size: 20, color: AppColorPalette.textSecondary),
-            SizedBox(width: 8),
-            Text(
-              'Sets',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColorPalette.grey700,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            SizedBox(width: 8),
-          ],
-        ),
-        SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: sets.asMap().entries.map((entry) {
-            final index = entry.key;
-            final set = entry.value;
-            final isSelected = _selectedSetIds.contains(set.id);
-
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (isSelected) {
-                    _selectedSetIds.remove(set.id);
-                  } else {
-                    _selectedSetIds.add(set.id);
-                  }
-                });
-              },
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColorPalette.grey800
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColorPalette.grey800
-                        : AppColorPalette.grey400,
-                    width: 2,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    '${index + 1}',
-                    style: TextStyle(
-                      color: isSelected
-                          ? AppColorPalette.white
-                          : AppColorPalette.grey800,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-        if (_selectedSetIds.isNotEmpty) ...[
-          SizedBox(height: 8),
-          Text(
-            'Toggled on set names: ${_getSelectedSetNames(sets)}',
-            style: TextStyle(fontSize: 11, color: AppColorPalette.textSecondary),
-          ),
-        ],
-      ],
-    );
-  }
-
-  String _getSelectedSetNames(List<WorkoutSetCategoryModel> sets) {
-    return _selectedSetIds
-        .map((id) {
-          final set = sets.firstWhere((s) => s.id == id);
-          return set.name;
-        })
-        .join(', ');
+    return scaffold;
   }
 
   Widget _buildOptionalSectionToggle() {
@@ -246,7 +245,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
         });
       },
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
         child: Row(
           children: [
@@ -258,7 +257,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
                 color: AppColorPalette.grey700,
               ),
             ),
-            Spacer(),
+            const Spacer(),
             Icon(
               _showOptionalFields ? Icons.expand_less : Icons.expand_more,
               color: AppColorPalette.textSecondary,
@@ -273,37 +272,11 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Image placeholder
-        Container(
-          height: 100,
-          decoration: BoxDecoration(
-            color: AppColorPalette.grey100,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColorPalette.grey300),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.image, size: 32, color: AppColorPalette.textSecondary),
-                SizedBox(height: 4),
-                Text(
-                  'Image',
-                  style: TextStyle(
-                    color: AppColorPalette.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        SizedBox(height: 16),
-
-        // Tags (Category, Muscle Group, and Tags combined)
+        _buildImageSection(),
+        const SizedBox(height: 16),
         TextFormField(
           controller: _tagsController,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             labelText: 'Category, Muscle Group, and Tags',
             hintText: 'e.g., strength, chest, compound, beginner',
             border: OutlineInputBorder(),
@@ -317,9 +290,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
                 .toList();
           },
         ),
-        SizedBox(height: 16),
-
-        // Description / Instructions Tabs
+        const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: AppColorPalette.grey300),
@@ -332,29 +303,31 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
                 labelColor: AppColorPalette.info,
                 unselectedLabelColor: AppColorPalette.grey,
                 indicatorColor: AppColorPalette.info,
-                tabs: [
+                tabs: const [
                   Tab(text: 'Description'),
                   Tab(text: 'Instructions'),
                 ],
               ),
               Container(
                 height: 200,
-                padding: EdgeInsets.all(12),
+                padding: const EdgeInsets.all(12),
                 child: TabBarView(
                   controller: _tabController,
                   children: [
                     TextField(
                       controller: _descriptionController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: 'Enter exercise description...',
                       ),
                       maxLines: null,
                     ),
                     TextField(
-                      decoration: InputDecoration(
+                      controller: _instructionsController,
+                      decoration: const InputDecoration(
                         border: InputBorder.none,
-                        hintText: 'Enter step-by-step instructions...',
+                        hintText:
+                            'Enter step-by-step instructions (one per line)...',
                       ),
                       maxLines: null,
                     ),
@@ -368,7 +341,238 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
     );
   }
 
-  void _saveExercise() async {
+  Widget _buildImageSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Image',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColorPalette.grey700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: AppColorPalette.grey100,
+                borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+                border: Border.all(color: AppColorPalette.grey300),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: _imageUrl == null || _imageUrl!.isEmpty
+                  ? Icon(
+                      Icons.image_outlined,
+                      size: 36,
+                      color: AppColorPalette.textSecondary,
+                    )
+                  : WorkoutIconWidget(imageUrl: _imageUrl, size: 96),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _pickFromPhoneLibrary,
+                      icon: const Icon(Icons.photo_library_outlined, size: 18),
+                      label: const Text('Phone library'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _pickFromExerciseLibrary,
+                      icon: const Icon(Icons.fitness_center, size: 18),
+                      label: const Text('Exercise images'),
+                    ),
+                  ),
+                  if (_imageUrl != null && _imageUrl!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () => setState(() => _imageUrl = null),
+                        child: const Text('Remove image'),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickFromPhoneLibrary() async {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Phone library is not available on web')),
+      );
+      return;
+    }
+
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        final status = await Permission.photos.request();
+        if (!status.isGranted && !status.isLimited) {
+          // Fall through — image_picker may still work via system picker
+        }
+      }
+
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      final dir = await getApplicationDocumentsDirectory();
+      final exerciseDir = Directory('${dir.path}/exercise_images');
+      if (!await exerciseDir.exists()) {
+        await exerciseDir.create(recursive: true);
+      }
+      final fileName =
+          'exercise_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final saved = await File(picked.path).copy('${exerciseDir.path}/$fileName');
+
+      if (!mounted) return;
+      setState(() => _imageUrl = saved.path);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not pick image: $e')),
+      );
+    }
+  }
+
+  Future<void> _pickFromExerciseLibrary() async {
+    final slug = await ExerciseImageLibraryPicker.show(context);
+    if (slug == null || !mounted) return;
+    setState(() => _imageUrl = slug);
+  }
+
+  Future<void> _syncSetMembership(String exerciseId) async {
+    final setsBox = await Hive.openBox<WorkoutSetCategoryModel>(
+      'workoutSetCategories',
+    );
+
+    for (final set in setsBox.values) {
+      final shouldBelong = _selectedSetIds.contains(set.id);
+      final belongs = set.exerciseIds.contains(exerciseId);
+      if (shouldBelong && !belongs) {
+        set.addExercise(exerciseId);
+      } else if (!shouldBelong && belongs) {
+        set.removeExercise(exerciseId);
+      }
+    }
+  }
+
+  Future<void> _saveExercise() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final wasUpdate = _workingExercise != null;
+
+    try {
+      final exercisesBox = await Hive.openBox<ExerciseModel>('exercises');
+      final instructions = _parseInstructions();
+      final name = _nameController.text.trim();
+      final description = _descriptionController.text.trim();
+
+      String exerciseId;
+
+      if (_workingExercise != null) {
+        ExerciseModel boxed = _workingExercise!;
+        if (!boxed.isInBox) {
+          boxed = exercisesBox.values.firstWhere(
+            (ex) => ex.id == boxed.id,
+            orElse: () => boxed,
+          );
+        }
+
+        boxed.name = name;
+        boxed.description = description;
+        boxed.category = _tags.isNotEmpty ? _tags.first : boxed.category;
+        boxed.muscleGroup = _tags.length > 1 ? _tags[1] : boxed.muscleGroup;
+        boxed.instructions = instructions;
+        boxed.modifiedAt = DateTime.now();
+        boxed.tags = _tags;
+        boxed.measurementUnit = _measurementUnit;
+        boxed.isBookmarked = _isBookmarked;
+        boxed.imageUrl = _imageUrl;
+
+        if (boxed.isInBox) {
+          await boxed.save();
+        } else {
+          await exercisesBox.put(boxed.id, boxed);
+        }
+        exerciseId = boxed.id;
+        _workingExercise = boxed;
+      } else {
+        final exerciseData = ExerciseModel(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          name: name,
+          description: description,
+          category: _tags.isNotEmpty ? _tags.first : 'other',
+          muscleGroup: _tags.length > 1 ? _tags[1] : 'other',
+          equipment: 'other',
+          difficulty: 'intermediate',
+          instructions: instructions,
+          isCustom: true,
+          createdAt: DateTime.now(),
+          tags: _tags,
+          isArchived: false,
+          measurementUnit: _measurementUnit,
+          isBookmarked: _isBookmarked,
+          imageUrl: _imageUrl,
+        );
+        await exercisesBox.put(exerciseData.id, exerciseData);
+        exerciseId = exerciseData.id;
+        _workingExercise = exerciseData;
+      }
+
+      await _syncSetMembership(exerciseId);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            wasUpdate
+                ? 'Exercise updated successfully'
+                : 'Exercise created successfully',
+          ),
+        ),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving exercise: $e'),
+          backgroundColor: AppColorPalette.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _duplicateExercise() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -377,76 +581,65 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
 
     try {
       final exercisesBox = await Hive.openBox<ExerciseModel>('exercises');
+      final source = _workingExercise!;
+      final baseName = _nameController.text.trim();
+      final copyName = baseName.endsWith('(Copy)')
+          ? baseName
+          : '$baseName (Copy)';
+
+      final duplicate = ExerciseModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: copyName,
+        description: _descriptionController.text.trim(),
+        category: _tags.isNotEmpty ? _tags.first : source.category,
+        muscleGroup: _tags.length > 1 ? _tags[1] : source.muscleGroup,
+        equipment: source.equipment,
+        difficulty: source.difficulty,
+        instructions: _parseInstructions(),
+        videoUrl: source.videoUrl,
+        imageUrl: _imageUrl ?? source.imageUrl,
+        isCustom: true,
+        createdAt: DateTime.now(),
+        tags: List.from(_tags),
+        isArchived: false,
+        measurementUnit: _measurementUnit,
+        isBookmarked: false,
+        audioFile: source.audioFile,
+      );
+
+      await exercisesBox.put(duplicate.id, duplicate);
+
+      // Copy current set selection onto the duplicate
       final setsBox = await Hive.openBox<WorkoutSetCategoryModel>(
         'workoutSetCategories',
       );
-
-      final exerciseData = ExerciseModel(
-        id:
-            widget.exercise?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
-        category: _tags.isNotEmpty ? _tags.first : 'other',
-        muscleGroup: _tags.length > 1 ? _tags[1] : 'other',
-        equipment: 'other',
-        difficulty: 'intermediate',
-        instructions: [],
-        isCustom: true,
-        createdAt: widget.exercise?.createdAt ?? DateTime.now(),
-        modifiedAt: widget.exercise != null ? DateTime.now() : null,
-        tags: _tags,
-        isArchived: widget.exercise?.isArchived ?? false,
-        measurementUnit: _measurementUnit,
-        audioFile: widget.exercise?.audioFile,
-      );
-
-      String exerciseId;
-      if (widget.exercise != null) {
-        // Update existing exercise
-        final index = exercisesBox.values.toList().indexWhere(
-          (ex) => ex.id == widget.exercise!.id,
-        );
-        if (index != -1) {
-          await exercisesBox.putAt(index, exerciseData);
-          exerciseId = widget.exercise!.id;
-        } else {
-          exerciseId = exerciseData.id;
-        }
-      } else {
-        // Add new exercise
-        await exercisesBox.add(exerciseData);
-        exerciseId = exerciseData.id;
-      }
-
-      // Add exercise to selected sets
-      for (var setId in _selectedSetIds) {
-        final set = setsBox.values.firstWhere((s) => s.id == setId);
-        if (!set.exerciseIds.contains(exerciseId)) {
-          set.addExercise(exerciseId);
+      for (final setId in _selectedSetIds) {
+        final match = setsBox.values.where((s) => s.id == setId);
+        if (match.isNotEmpty) {
+          match.first.addExercise(duplicate.id);
         }
       }
 
-      Navigator.pop(context, true);
+      if (!mounted) return;
+      setState(() {
+        _workingExercise = duplicate;
+        _nameController.text = duplicate.name;
+        _imageUrl = duplicate.imageUrl;
+        _isLoading = false;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.exercise != null
-                ? 'Exercise updated successfully'
-                : 'Exercise created successfully',
-          ),
-        ),
+        const SnackBar(content: Text('Exercise duplicated — editing copy')),
       );
     } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error saving exercise: $e'),
+          content: Text('Error duplicating exercise: $e'),
           backgroundColor: AppColorPalette.error,
         ),
       );
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 }

@@ -55,11 +55,15 @@ class WorkoutService {
 
         if (hasNewPR) {
           newPersonalRecords.add(exercise.id);
-          session.addPersonalRecord(exercise.id);
+          // Mutate only — session is not in a box yet; caller persists via put().
+          // addPersonalRecord() calls Hive save() and fails on first exit.
+          if (!session.personalRecordsSet.contains(exercise.id)) {
+            session.personalRecordsSet.add(exercise.id);
+          }
         }
       }
 
-      // Save exercise updates (always save, even if no sets were completed)
+      // Persist exercise updates (models may call save() only when already in-box)
       await exercisesBox.put(exercise.id, exercise);
     }
 
@@ -118,6 +122,100 @@ class WorkoutService {
     }
 
     return hasNewPR;
+  }
+
+  /// Sessions where this exercise had at least one completed set.
+  static List<WorkoutSessionModel> sessionsForExercise(String exerciseId) {
+    if (!Hive.isBoxOpen('workoutSessions')) return [];
+    final sessions = Hive.box<WorkoutSessionModel>('workoutSessions').values
+        .where((session) => sessionContainsExercise(session, exerciseId))
+        .toList();
+    sessions.sort((a, b) => b.startTime.compareTo(a.startTime));
+    return sessions;
+  }
+
+  static bool sessionContainsExercise(
+    WorkoutSessionModel session,
+    String exerciseId,
+  ) {
+    if (session.completedExerciseIds.contains(exerciseId)) return true;
+    if ((session.exerciseCompletedSets[exerciseId] ?? 0) > 0) return true;
+
+    final sets = exerciseSetsFromSession(session, exerciseId);
+    if (sets == null) return false;
+    return sets.any((s) => s['isCompleted'] == true);
+  }
+
+  /// Raw set maps for an exercise from session.additionalData['exerciseSets'].
+  static List<Map<String, dynamic>>? exerciseSetsFromSession(
+    WorkoutSessionModel session,
+    String exerciseId,
+  ) {
+    final raw = session.additionalData['exerciseSets'];
+    if (raw is! Map) return null;
+    final entry = raw[exerciseId];
+    if (entry is! List) return null;
+
+    return entry
+        .whereType<Map>()
+        .map((m) => Map<String, dynamic>.from(m))
+        .toList();
+  }
+
+  /// Stats for one exercise within a session (completed sets only).
+  static ExerciseSessionStats? statsForExerciseInSession(
+    WorkoutSessionModel session,
+    String exerciseId, {
+    String measurementUnit = 'kg',
+  }) {
+    final sets = exerciseSetsFromSession(session, exerciseId);
+    if (sets == null || sets.isEmpty) {
+      if (!session.completedExerciseIds.contains(exerciseId) &&
+          (session.exerciseCompletedSets[exerciseId] ?? 0) <= 0) {
+        return null;
+      }
+      return ExerciseSessionStats(
+        completedSets: session.exerciseCompletedSets[exerciseId] ?? 0,
+        totalReps: 0,
+        averageWeight: null,
+        maxReps: null,
+        maxWeight: null,
+        unit: measurementUnit,
+      );
+    }
+
+    final completed = sets.where((s) => s['isCompleted'] == true).toList();
+    if (completed.isEmpty) return null;
+
+    final reps = completed
+        .map((s) => (s['reps'] as num?)?.toInt() ?? 0)
+        .toList();
+    final weights = completed
+        .map((s) => (s['value'] as num?)?.toDouble())
+        .whereType<double>()
+        .where((w) => w > 0)
+        .toList();
+
+    final showWeight =
+        measurementUnit == 'kg' ||
+        measurementUnit == 'lbs' ||
+        completed.any((s) {
+          final t = s['measurementType']?.toString();
+          return t == 'kg' || t == 'lbs';
+        });
+
+    return ExerciseSessionStats(
+      completedSets: completed.length,
+      totalReps: reps.fold(0, (a, b) => a + b),
+      averageWeight: showWeight && weights.isNotEmpty
+          ? weights.reduce((a, b) => a + b) / weights.length
+          : null,
+      maxReps: reps.isEmpty ? null : reps.reduce((a, b) => a > b ? a : b),
+      maxWeight: showWeight && weights.isNotEmpty
+          ? weights.reduce((a, b) => a > b ? a : b)
+          : null,
+      unit: measurementUnit,
+    );
   }
 
   /// Get last workout data for an exercise (for pre-filling next workout)
@@ -209,4 +307,37 @@ class WorkoutData {
   final DateTime? date;
 
   WorkoutData({required this.reps, required this.weights, this.date});
+}
+
+/// Aggregated stats for one exercise inside a saved session.
+class ExerciseSessionStats {
+  final int completedSets;
+  final int totalReps;
+  final double? averageWeight;
+  final int? maxReps;
+  final double? maxWeight;
+  final String unit;
+
+  ExerciseSessionStats({
+    required this.completedSets,
+    required this.totalReps,
+    required this.averageWeight,
+    required this.maxReps,
+    required this.maxWeight,
+    required this.unit,
+  });
+
+  String get averageWeightLabel {
+    if (averageWeight == null) return '—';
+    final v = averageWeight!;
+    final rounded = v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+    return '$rounded $unit';
+  }
+
+  String get maxWeightLabel {
+    if (maxWeight == null) return '—';
+    final v = maxWeight!;
+    final rounded = v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+    return '$rounded $unit';
+  }
 }

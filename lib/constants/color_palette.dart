@@ -250,8 +250,15 @@ class AppColorPalette {
   static Color get textMuted => grey800;
 
   /// Secondary text/icons on primary-colored surfaces (app bars, headers).
-  /// Always high-contrast white — never pale grey on primary.
-  static Color get onPrimarySecondary => white;
+  /// Picks white or dark text from primary luminance so pastel themes stay readable.
+  static Color get onPrimarySecondary {
+    return primary.computeLuminance() > 0.55 ? textColor : white;
+  }
+
+  /// Strong on-primary text (titles / key labels on app bars).
+  static Color get onPrimary {
+    return primary.computeLuminance() > 0.55 ? textColor : white;
+  }
 
   /// Colors for states and feedback (mapped from palette colors)
   static Color get success => color3; // Typically green

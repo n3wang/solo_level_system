@@ -1,9 +1,15 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'dart:io';
 
 /// Displays a workout icon from the `workout_icons_128px` spritesheet.
 ///
 /// The [imageUrl] is the sprite slug (e.g. `"back_squat"`, `"jumping_jacks"`).
 /// Sprites are cut at render time from a single GPU texture — no per-file loads.
+///
+/// Also supports:
+///   absolute / `file:` paths from the phone library
+///   `assets/...` paths
 ///
 /// Legacy formats handled transparently:
 ///   `workout_sprite_N` → grid index N (old numbered format)
@@ -11,7 +17,7 @@ import 'package:flutter/material.dart';
 class WorkoutIconWidget extends StatelessWidget {
   static const String _slicedBasePath = 'assets/icon/workout_icons_sliced';
 
-  /// Sprite slug or legacy index string. When null an icon placeholder is shown.
+  /// Sprite slug, asset path, or file path. When null an icon placeholder is shown.
   final String? imageUrl;
   final double? size;
   final Widget? placeholder;
@@ -25,10 +31,26 @@ class WorkoutIconWidget extends StatelessWidget {
     this.backgroundColor,
   });
 
+  static bool isFileImagePath(String? url) {
+    if (url == null || url.isEmpty) return false;
+    if (url.startsWith('file:')) return true;
+    if (url.startsWith('assets/')) return false;
+    if (url.startsWith('/') || url.contains('\\')) return true;
+    if (RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(url)) return true;
+    return false;
+  }
+
+  static String? filePathFromImageUrl(String url) {
+    if (url.startsWith('file://')) return Uri.parse(url).toFilePath();
+    if (url.startsWith('file:')) return url.substring(5);
+    return url;
+  }
+
   /// Resolve [imageUrl] into either a named slug or a numeric index.
-  ({String? name, int? index})? _resolve() {
+  ({String? name, int? index})? _resolveSlug() {
     final url = imageUrl;
     if (url == null || url.isEmpty) return null;
+    if (isFileImagePath(url) || url.startsWith('assets/')) return null;
 
     // Legacy: "workout_sprite_N" → index N
     if (url.startsWith('workout_sprite_')) {
@@ -48,9 +70,38 @@ class WorkoutIconWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolved = _resolve();
     final bgColor = backgroundColor ?? Colors.white;
+    final url = imageUrl;
 
+    if (url == null || url.isEmpty) {
+      return _buildPlaceholder(bgColor);
+    }
+
+    if (!kIsWeb && isFileImagePath(url)) {
+      final path = filePathFromImageUrl(url)!;
+      final file = File(path);
+      return _sized(
+        bgColor,
+        Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildPlaceholder(Colors.transparent),
+        ),
+      );
+    }
+
+    if (url.startsWith('assets/')) {
+      return _sized(
+        bgColor,
+        Image.asset(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildPlaceholder(Colors.transparent),
+        ),
+      );
+    }
+
+    final resolved = _resolveSlug();
     if (resolved == null) {
       return _buildPlaceholder(bgColor);
     }
@@ -71,6 +122,33 @@ class WorkoutIconWidget extends StatelessWidget {
           return ColoredBox(
             color: bgColor,
             child: _preSlicedOrPlaceholder(resolved, s),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _sized(Color bgColor, Widget child) {
+    if (size != null) {
+      return RepaintBoundary(
+        child: ColoredBox(
+          color: bgColor,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: child,
+          ),
+        ),
+      );
+    }
+
+    return RepaintBoundary(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final s = constraints.biggest.shortestSide;
+          return ColoredBox(
+            color: bgColor,
+            child: SizedBox(width: s, height: s, child: child),
           );
         },
       ),
@@ -120,7 +198,10 @@ class WorkoutIconWidget extends StatelessWidget {
       return SizedBox(
         width: size,
         height: size,
-        child: Icon(Icons.fitness_center, size: size! * 0.6),
+        child: ColoredBox(
+          color: bgColor,
+          child: Icon(Icons.fitness_center, size: size! * 0.6),
+        ),
       );
     }
     return LayoutBuilder(
@@ -129,7 +210,10 @@ class WorkoutIconWidget extends StatelessWidget {
         return SizedBox(
           width: s,
           height: s,
-          child: Icon(Icons.fitness_center, size: s * 0.6),
+          child: ColoredBox(
+            color: bgColor,
+            child: Icon(Icons.fitness_center, size: s * 0.6),
+          ),
         );
       },
     );

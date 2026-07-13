@@ -494,12 +494,7 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
   }
 
   void _viewExerciseDetails(ExerciseModel exercise) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ExerciseDetailsScreen(exercise: exercise),
-      ),
-    );
+    ExerciseDetailsScreen.show(context, exercise);
   }
 
   void _showExerciseOptions(ExerciseModel exercise) {
@@ -534,19 +529,11 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
   }
 
   void _createNewExercise() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => AddEditExerciseScreen()),
-    );
+    AddEditExerciseScreen.showAsModal(context);
   }
 
   void _editExercise(ExerciseModel exercise) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddEditExerciseScreen(exercise: exercise),
-      ),
-    );
+    AddEditExerciseScreen.showAsModal(context, exercise: exercise);
   }
 
   void _duplicateExercise(ExerciseModel exercise) {

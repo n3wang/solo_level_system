@@ -809,12 +809,8 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
   }
 
   void _createNewExercise() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => AddEditExerciseScreen()),
-    ).then((result) {
-      if (result == true) {
-        // Refresh exercises list
+    AddEditExerciseScreen.showAsModal(context).then((result) {
+      if (result == true && mounted) {
         setState(() {});
       }
     });
@@ -1148,16 +1144,8 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
   }
 
   void _viewExerciseDetails(ExerciseModel exercise) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ExerciseDetailsScreen(exercise: exercise),
-      ),
-    ).then((result) {
-      if (result == true) {
-        // Refresh if exercise was updated
-        setState(() {});
-      }
+    ExerciseDetailsScreen.show(context, exercise).then((_) {
+      if (mounted) setState(() {});
     });
   }
 

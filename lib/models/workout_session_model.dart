@@ -189,7 +189,7 @@ class WorkoutSessionModel extends HiveObject {
   void addPersonalRecord(String exerciseId) {
     if (!personalRecordsSet.contains(exerciseId)) {
       personalRecordsSet.add(exerciseId);
-      save();
+      if (isInBox) save();
     }
   }
 

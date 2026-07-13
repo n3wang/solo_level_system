@@ -117,7 +117,7 @@ class ExerciseModel extends HiveObject {
   // Methods
   void incrementUsage() {
     timesPerformed++;
-    save();
+    if (isInBox) save();
   }
 
   void updatePersonalRecord(double value, String unit) {
@@ -126,7 +126,7 @@ class ExerciseModel extends HiveObject {
       personalRecordUnit = unit;
       personalRecordDate = DateTime.now();
       modifiedAt = DateTime.now();
-      save();
+      if (isInBox) save();
     }
   }
 
@@ -163,6 +163,6 @@ class ExerciseModel extends HiveObject {
     lastWorkoutWeights = List<double?>.from(weights);
     lastWorkoutDate = DateTime.now();
     modifiedAt = DateTime.now();
-    save();
+    if (isInBox) save();
   }
 }

@@ -50,6 +50,12 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
   Duration _restDuration = Duration.zero;
   WorkoutQuoteVm? _motivationQuote;
 
+  /// Default rest between sets (seconds). Editable from rest settings.
+  int _defaultRestSeconds = 60;
+
+  /// When true, set rows show A, B, C… instead of 1, 2, 3…
+  bool _useLetterSetLabels = false;
+
   late TabController _tabController;
   final Map<String, List<WorkoutSetModel>> _exerciseSets = {};
   final Map<String, int> _completedSets = {};
@@ -225,8 +231,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                                 : _formatDuration(_workoutDuration),
                             style: TextStyle(
                               fontSize: 14,
-                              color: AppColorPalette.onPrimarySecondary,
-                              fontWeight: FontWeight.w500,
+                              color: AppColorPalette.onPrimary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -235,7 +241,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                           Icon(
                             Icons.unfold_more,
                             size: 16,
-                            color: AppColorPalette.onPrimarySecondary,
+                            color: AppColorPalette.onPrimary,
                           ),
                         ],
                       ],
@@ -250,6 +256,11 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                     onPressed: _editRoutine,
                     tooltip: 'Edit Routine',
                   ),
+                IconButton(
+                  icon: Icon(Icons.settings),
+                  onPressed: _showSessionSettingsModal,
+                  tooltip: 'Session settings',
+                ),
                 IconButton(
                   icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
                   onPressed: _togglePause,
@@ -312,7 +323,6 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
               children: [
                 if (widget.sequentialMode && widget.exercises.length > 1)
                   _buildExerciseSwapBar(),
-                if (_isResting) _buildRestTimer(),
                 if (_motivationQuote != null &&
                     _motivationQuote!.quote.trim().isNotEmpty)
                   _buildMotivationQuoteBanner(),
@@ -341,7 +351,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                           }).toList(),
                         ),
                 ),
-                if (widget.sequentialMode) _buildSequentialNavControls(),
+                if (widget.sequentialMode && !_isResting)
+                  _buildSequentialNavControls(),
                 _buildBottomControls(),
               ],
             ),
@@ -376,53 +387,74 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     );
   }
 
-  Widget _buildRestTimer() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(16),
-      color: AppColorPalette.color2.withValues(alpha: 0.1),
-      child: Column(
-        children: [
-          Text(
-            'Rest Time',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColorPalette.color2,
+  Widget _buildCompactRestBar() {
+    final radius = AppUiSizes.buttonRadius;
+    final accent = AppColorPalette.color2;
+
+    return Row(
+      children: [
+        Icon(Icons.hourglass_top, color: accent, size: 18),
+        const SizedBox(width: 6),
+        Text(
+          'REST',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.8,
+            color: accent,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          _formatDuration(_restDuration),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: accent,
+          ),
+        ),
+        const Spacer(),
+        SizedBox(
+          height: 40,
+          child: OutlinedButton(
+            onPressed: _skipRest,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: accent,
+              side: BorderSide(color: accent),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(radius),
+              ),
             ),
+            child: const Text('Skip'),
           ),
-          Text(
-            _formatDuration(_restDuration),
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: AppColorPalette.color2,
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          height: 40,
+          child: ElevatedButton(
+            onPressed: () => _adjustRestTime(60),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accent,
+              foregroundColor: AppColorPalette.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(radius),
+              ),
             ),
+            child: const Text('+60s'),
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
-                onPressed: () => _adjustRestTime(-10),
-                child: Text('-10s'),
-              ),
-              TextButton(
-                onPressed: () => _adjustRestTime(-30),
-                child: Text('-30s'),
-              ),
-              TextButton(onPressed: _skipRest, child: Text('Skip')),
-              TextButton(
-                onPressed: () => _adjustRestTime(30),
-                child: Text('+30s'),
-              ),
-              TextButton(
-                onPressed: () => _adjustRestTime(60),
-                child: Text('+60s'),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+        IconButton(
+          tooltip: 'Rest & set settings',
+          onPressed: _showSessionSettingsModal,
+          icon: Icon(Icons.settings, color: accent, size: 20),
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          padding: EdgeInsets.zero,
+        ),
+      ],
     );
   }
 
@@ -918,7 +950,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         SizedBox(
           width: 36,
           child: Text(
-            '${index + 1}',
+            _setLabelForIndex(index),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontWeight: FontWeight.w600,
@@ -1066,64 +1098,26 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
 
   Widget _buildBottomControls() {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
-        color: AppColorPalette.white,
+        color: _isResting
+            ? AppColorPalette.color2.withValues(alpha: 0.08)
+            : AppColorPalette.white,
         boxShadow: [
           BoxShadow(
             color: AppColorPalette.grey.withValues(alpha: 0.3),
             spreadRadius: 1,
             blurRadius: 3,
-            offset: Offset(0, -1),
+            offset: const Offset(0, -1),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Workout Time',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColorPalette.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  _formatDuration(_workoutDuration),
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-          VerticalDivider(),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Sets Completed',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColorPalette.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  '${_getTotalCompletedSets()}/${_getTotalSets()}',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-          VerticalDivider(),
-          Flexible(
-            child: _buildPrimarySessionAction(),
-          ),
-        ],
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: _isResting
+            ? _buildCompactRestBar()
+            : _buildPrimarySessionAction(),
       ),
     );
   }
@@ -1133,15 +1127,19 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
     );
 
+    ButtonStyle styleFor(Color bg) => ElevatedButton.styleFrom(
+      backgroundColor: bg,
+      foregroundColor: AppColorPalette.white,
+      minimumSize: const Size.fromHeight(48),
+      elevation: 0,
+      shape: shape,
+    );
+
     if (widget.exercises.isEmpty) {
       return ElevatedButton(
         onPressed: _showEndWorkoutDialog,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColorPalette.color2,
-          foregroundColor: AppColorPalette.white,
-          shape: shape,
-        ),
-        child: Text('Finish'),
+        style: styleFor(AppColorPalette.color2),
+        child: const Text('Finish'),
       );
     }
 
@@ -1155,35 +1153,23 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     if (workoutDone) {
       return ElevatedButton(
         onPressed: () => _endWorkout(),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColorPalette.color2,
-          foregroundColor: AppColorPalette.white,
-          shape: shape,
-        ),
-        child: Text('Finish Workout'),
+        style: styleFor(AppColorPalette.color2),
+        child: const Text('Finish Workout'),
       );
     }
 
     if (exerciseDone) {
       return ElevatedButton(
         onPressed: _goToNextIncompleteExercise,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColorPalette.color2,
-          foregroundColor: AppColorPalette.white,
-          shape: shape,
-        ),
-        child: Text('Next Exercise'),
+        style: styleFor(AppColorPalette.color2),
+        child: const Text('Next Exercise'),
       );
     }
 
     return ElevatedButton(
       onPressed: () => _completeSelectedSet(exercise),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColorPalette.color3,
-        foregroundColor: AppColorPalette.white,
-        shape: shape,
-      ),
-      child: Text('Set Complete'),
+      style: styleFor(AppColorPalette.color3),
+      child: const Text('Set Complete'),
     );
   }
 
@@ -1205,7 +1191,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         set.completedAt = DateTime.now();
         _completedSets[exercise.id] = (_completedSets[exercise.id] ?? 0) + 1;
         startRest = true;
-        restSeconds = set.restTimeSeconds;
+        restSeconds = _defaultRestSeconds;
         _selectFirstIncompleteSet(exercise.id);
       } else {
         set.completedAt = null;
@@ -1228,7 +1214,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     }
     if (idx < 0 || sets[idx].isCompleted) return;
 
-    final restSeconds = sets[idx].restTimeSeconds;
+    final restSeconds = _defaultRestSeconds;
     setState(() {
       final set = sets[idx];
       set.isCompleted = true;
@@ -1327,6 +1313,178 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       _isResting = false;
       _restDuration = Duration.zero;
     });
+  }
+
+  String _setLabelForIndex(int index) {
+    if (!_useLetterSetLabels) return '${index + 1}';
+    if (index < 26) return String.fromCharCode(65 + index); // A-Z
+    // AA, AB… after Z
+    final first = index ~/ 26 - 1;
+    final second = index % 26;
+    return '${String.fromCharCode(65 + first)}${String.fromCharCode(65 + second)}';
+  }
+
+  void _showSessionSettingsModal() {
+    var draftRest = _defaultRestSeconds;
+    var draftLetters = _useLetterSetLabels;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppUiSizes.radiusMd),
+        ),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 12,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            ),
+            child: StatefulBuilder(
+              builder: (context, setModalState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColorPalette.grey300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Session settings',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColorPalette.grey800,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Default rest time',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppColorPalette.grey800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setModalState(() {
+                              draftRest = (draftRest - 15).clamp(15, 600);
+                            });
+                          },
+                          icon: const Icon(Icons.remove_circle_outline),
+                        ),
+                        Expanded(
+                          child: Text(
+                            '${draftRest}s',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setModalState(() {
+                              draftRest = (draftRest + 15).clamp(15, 600);
+                            });
+                          },
+                          icon: const Icon(Icons.add_circle_outline),
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: draftRest.toDouble(),
+                      min: 15,
+                      max: 180,
+                      divisions: 11,
+                      label: '${draftRest}s',
+                      onChanged: (v) {
+                        setModalState(() {
+                          draftRest = v.round();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Set labels',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppColorPalette.grey800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(
+                          value: false,
+                          label: Text('1, 2, 3'),
+                          icon: Icon(Icons.pin_outlined),
+                        ),
+                        ButtonSegment(
+                          value: true,
+                          label: Text('A, B, C'),
+                          icon: Icon(Icons.sort_by_alpha),
+                        ),
+                      ],
+                      selected: {draftLetters},
+                      onSelectionChanged: (next) {
+                        setModalState(() {
+                          draftLetters = next.first;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _defaultRestSeconds = draftRest;
+                          _useLetterSetLabels = draftLetters;
+                          // Keep in-progress rest using the new default only when
+                          // remaining time is still at/above previous default.
+                          for (final sets in _exerciseSets.values) {
+                            for (final set in sets) {
+                              set.restTimeSeconds = draftRest;
+                            }
+                          }
+                        });
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColorPalette.color2,
+                        foregroundColor: AppColorPalette.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppUiSizes.buttonRadius,
+                          ),
+                        ),
+                      ),
+                      child: const Text('Save'),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _addSet(ExerciseModel exercise, {bool bumpVersion = false}) {
@@ -1955,10 +2113,19 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       // This ensures all workouts are saved and tracked
       widget.session.status = 'completed';
       widget.session.totalSetsCompleted = _getTotalCompletedSets();
+      widget.session.exerciseCompletedSets = {
+        for (final ex in widget.exercises)
+          ex.id: (_exerciseSets[ex.id] ?? [])
+              .where((set) => set.isCompleted)
+              .length,
+      };
+      // Fully finished exercises
       widget.session.completedExerciseIds = widget.exercises
           .where((ex) => _allSetsCompleted(ex))
           .map((ex) => ex.id)
           .toList();
+      // Also keep any exercise with completed sets discoverable via completed ids
+      // when all sets were finished; history also reads exerciseSets / completed sets.
 
       // Save the current sets data to additionalData
       final setsData = <String, dynamic>{};
