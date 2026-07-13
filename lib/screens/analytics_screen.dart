@@ -19,6 +19,7 @@ import 'package:solo_level_system/widgets/cards/create_reward_dialog.dart';
 import 'package:solo_level_system/widgets/pomodoro/session_recording_preview.dart';
 import 'package:solo_level_system/widgets/common/standard_tab_app_bar.dart';
 import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
+import 'package:solo_level_system/widgets/common/stats_period_chips.dart';
 
 extension StringExtension on String {
   String capitalizeFirst() {
@@ -37,9 +38,9 @@ class AnalyticsScreen extends StatefulWidget {
 class _AnalyticsScreenState extends State<AnalyticsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String _selectedPeriod = 'Week';
-  final List<String> _periods = ['Today', 'Week', 'Month', 'Year'];
-  String _collectibleFilter = 'all'; // all | quote | collection | reward
+  StatsPeriod _selectedPeriod = StatsPeriod.week;
+  String _collectibleFilter = 'all'; // type chips
+  StatsPeriod _collectiblePeriod = StatsPeriod.week;
 
   @override
   void initState() {
@@ -64,7 +65,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         labels: const ['Overview', 'Cards', 'Focus', 'Workouts'],
         isScrollable: false,
       ),
-      floatingActionButton: _tabController.index == 0
+      floatingActionButton: (_tabController.index == 0 ||
+              _tabController.index == 1)
           ? FloatingActionButton.extended(
               onPressed: () => showCreateRewardDialog(context),
               icon: const Icon(Icons.add),
@@ -91,18 +93,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 horizontal: AppUiSizes.lg,
                 vertical: AppUiSizes.sm,
               ),
-              child: SettingsRectChipGroup<String>(
-                size: SettingsRectChipSize.compact,
-                spacing: AppUiSizes.sm,
-                runSpacing: AppUiSizes.xs,
+              child: StatsPeriodChips(
                 value: _selectedPeriod,
                 onChanged: (period) => setState(() => _selectedPeriod = period),
-                options: _periods
-                    .map(
-                      (period) =>
-                          SettingsRectChipOption(value: period, label: period),
-                    )
-                    .toList(),
               ),
             ),
           // Tab content
@@ -205,19 +198,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                           cards: motivationBox.values.toList(),
                           rewards: rewardsBox.values.toList(),
                         );
-                        final weekStart = _collectiblesWeekStart();
-                        final acquired = catalog
-                            .where(
-                              (c) =>
-                                  c.isAcquired &&
-                                  _isAcquiredInCollectiblesWeek(c, weekStart),
-                            )
-                            .toList()
-                          ..sort((a, b) {
-                            final aAt = _collectibleAcquiredAt(a);
-                            final bAt = _collectibleAcquiredAt(b);
-                            return bAt.compareTo(aAt);
-                          });
 
                         return SingleChildScrollView(
                           padding: const EdgeInsets.all(AppUiSizes.lg),
@@ -229,7 +209,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                                 workoutBox.values.toList(),
                               ),
                               const SizedBox(height: AppUiSizes.xxl),
-                              _buildAcquiredCollectibles(acquired),
+                              _buildAcquiredCollectibles(catalog),
                               // Extra space so FAB does not cover the last row.
                               const SizedBox(height: 72),
                             ],
@@ -275,9 +255,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 final sessions = box.values.toList();
                 final filteredSessions = _filterSessionsByPeriod(sessions);
                 final sessionAudios = _filterAudiosByPeriod(
-                  audioBox.values
-                      .where(_isSessionRecording)
-                      .toList(),
+                  audioBox.values.where(_isSessionRecording).toList(),
                 );
 
                 return SingleChildScrollView(
@@ -353,8 +331,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     List<WorkoutSessionModel> workouts,
   ) {
     final now = DateTime.now();
-    final startOfWeek = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
+    final startOfWeek = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
     final focusMinutes = List.generate(7, (index) {
       final day = startOfWeek.add(Duration(days: index));
       return pomodoros
@@ -493,13 +474,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  /// Start of "today and past 6 days" window (inclusive local calendar days).
-  DateTime _collectiblesWeekStart() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return today.subtract(const Duration(days: 6));
-  }
-
   DateTime _collectibleAcquiredAt(CatalogCard card) {
     final item = card.sourceItem;
     if (item != null) {
@@ -516,16 +490,31 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     return DateTime.fromMillisecondsSinceEpoch(0);
   }
 
-  bool _isAcquiredInCollectiblesWeek(CatalogCard card, DateTime weekStart) {
-    final at = _collectibleAcquiredAt(card);
-    return !at.isBefore(weekStart);
+  /// Seeded / first-run unlocks — not player-earned drops or purchases.
+  bool _isDefaultStarterCollectible(CatalogCard card) {
+    final item = card.sourceItem;
+    if (item == null) return false;
+    if (!item.isStarter) return false;
+    // Still show if the player stacked more copies after the free starter.
+    return item.acquisitionCount <= 1;
   }
 
-  Widget _buildAcquiredCollectibles(List<CatalogCard> acquired) {
-    final visible = acquired.where((item) {
-      if (_collectibleFilter == 'all') return true;
-      return item.typeWire == _collectibleFilter;
-    }).toList();
+  Widget _buildAcquiredCollectibles(List<CatalogCard> catalog) {
+    // Lazy: only evaluate the active period range when this section builds.
+    final range = StatsPeriodRange.forPeriod(_collectiblePeriod);
+    final acquired = <CatalogCard>[];
+    for (final c in catalog) {
+      if (!c.isAcquired) continue;
+      if (_isDefaultStarterCollectible(c)) continue;
+      if (_collectibleFilter != 'all' && c.typeWire != _collectibleFilter) {
+        continue;
+      }
+      if (!range.contains(_collectibleAcquiredAt(c))) continue;
+      acquired.add(c);
+    }
+    acquired.sort(
+      (a, b) => _collectibleAcquiredAt(b).compareTo(_collectibleAcquiredAt(a)),
+    );
 
     UserProgressModel progress = UserProgressModel();
     if (Hive.isBoxOpen('userProgress')) {
@@ -538,18 +527,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Acquired Collectibles',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontSize: AppColorPalette.fontSizeSubtitle,
-            fontWeight: FontWeight.bold,
-          ),
+          'Acquired Collectibles:',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColorPalette.textSecondary),
         ),
-        const SizedBox(height: AppUiSizes.xxs),
-        Text(
-          'Today and the past 6 days',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppColorPalette.textSecondary,
-          ),
+        const SizedBox(height: AppUiSizes.sm),
+        StatsPeriodChips(
+          value: _collectiblePeriod,
+          onChanged: (period) => setState(() => _collectiblePeriod = period),
         ),
         const SizedBox(height: AppUiSizes.sm),
         SettingsRectChipGroup<String>(
@@ -564,12 +550,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           ],
         ),
         const SizedBox(height: AppUiSizes.md),
-        if (visible.isEmpty)
+        if (acquired.isEmpty)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(AppUiSizes.lg),
               child: Text(
-                'No collectibles acquired in the past week',
+                'No collectibles acquired ${StatsPeriodRange.emptyLabel(_collectiblePeriod)}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColorPalette.textSecondary,
                 ),
@@ -580,7 +566,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: visible.length,
+            itemCount: acquired.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               crossAxisSpacing: AppUiSizes.md,
@@ -588,7 +574,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               childAspectRatio: CollectibleCardLayout.aspectRatio,
             ),
             itemBuilder: (context, index) {
-              final card = visible[index];
+              final card = acquired[index];
               return CollectibleCardTile(
                 card: card,
                 availablePoints: progress.availablePoints,
@@ -1148,22 +1134,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   // Helper methods
-  DateTime _periodStartDate() {
-    final now = DateTime.now();
-    switch (_selectedPeriod) {
-      case 'Today':
-        return DateTime(now.year, now.month, now.day);
-      case 'Week':
-        return now.subtract(Duration(days: now.weekday - 1));
-      case 'Month':
-        return DateTime(now.year, now.month, 1);
-      case 'Year':
-        return DateTime(now.year, 1, 1);
-      default:
-        return now.subtract(Duration(days: 7));
-    }
-  }
-
   bool _isSessionRecording(EnhancedAudioModel audio) {
     return audio.category == null ||
         audio.category == 'session' ||
@@ -1180,28 +1150,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   List<PomodoroModel> _filterSessionsByPeriod(List<PomodoroModel> sessions) {
-    final startDate = _periodStartDate();
-    return sessions
-        .where((session) => session.startTime.isAfter(startDate))
-        .toList();
+    final range = StatsPeriodRange.forPeriod(_selectedPeriod);
+    return sessions.where((s) => range.contains(s.startTime)).toList();
   }
 
   List<EnhancedAudioModel> _filterAudiosByPeriod(
     List<EnhancedAudioModel> audios,
   ) {
-    final startDate = _periodStartDate();
-    return audios
-        .where((audio) => audio.createdAt.isAfter(startDate))
-        .toList();
+    final range = StatsPeriodRange.forPeriod(_selectedPeriod);
+    return audios.where((a) => range.contains(a.createdAt)).toList();
   }
 
   List<WorkoutSessionModel> _filterWorkoutsByPeriod(
     List<WorkoutSessionModel> sessions,
   ) {
-    final startDate = _periodStartDate();
-    return sessions
-        .where((session) => session.startTime.isAfter(startDate))
-        .toList();
+    final range = StatsPeriodRange.forPeriod(_selectedPeriod);
+    return sessions.where((s) => range.contains(s.startTime)).toList();
   }
 
   // Helper method to ensure Hive boxes are opened

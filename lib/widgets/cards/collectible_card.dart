@@ -284,7 +284,7 @@ Future<void> showCollectibleCardDetail({
 }) {
   return showDialog<void>(
     context: context,
-    barrierDismissible: !acquiredReveal,
+    barrierDismissible: true,
     builder: (context) => CollectibleCardDetailDialog(
       card: card,
       userProgress: userProgress,
@@ -295,6 +295,9 @@ Future<void> showCollectibleCardDetail({
 }
 
 /// Shows each dropped card with the acquired-reveal presentation, in order.
+///
+/// Prefer [showAcquiredCardToasts] for session loot (non-blocking). This full
+/// modal sequence remains for callers that want an immediate reveal.
 Future<void> showAcquiredCardReveals({
   required BuildContext context,
   required List<CatalogCard> cards,
@@ -523,14 +526,10 @@ class _CollectibleCardDetailDialogState
             context,
             child: Text(
               'Acquired',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontStyle: FontStyle.italic,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'serif',
-              ),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
-          const SizedBox(height: AppUiSizes.md),
+          const SizedBox(height: AppUiSizes.sm),
           Material(
             color: scheme.surface,
             elevation: 6,
@@ -541,16 +540,12 @@ class _CollectibleCardDetailDialogState
               child: cardBody,
             ),
           ),
-          const SizedBox(height: AppUiSizes.md),
+          const SizedBox(height: AppUiSizes.sm),
           _revealBanner(
             context,
             child: Text(
               '${card.rarity.wire} [${card.acquisitionCount.clamp(1, 1 << 20)}]',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
         ],
@@ -562,19 +557,19 @@ class _CollectibleCardDetailDialogState
     final scheme = Theme.of(context).colorScheme;
     return Material(
       color: scheme.surface,
-      elevation: 3,
-      borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
+      elevation: 2,
+      borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
       child: Container(
-        width: CollectibleCardLayout.detailModalWidth * 0.72,
+        width: CollectibleCardLayout.detailModalWidth * 0.55,
         padding: const EdgeInsets.symmetric(
-          horizontal: AppUiSizes.lg,
-          vertical: AppUiSizes.md,
+          horizontal: AppUiSizes.md,
+          vertical: AppUiSizes.xs,
         ),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
+          borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
           border: Border.all(
-            color: scheme.outline.withValues(alpha: 0.65),
+            color: scheme.outline.withValues(alpha: 0.55),
           ),
         ),
         child: child,

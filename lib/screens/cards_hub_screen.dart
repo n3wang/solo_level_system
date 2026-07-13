@@ -11,7 +11,6 @@ import 'package:solo_level_system/utils/card_repository.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
 import 'package:solo_level_system/widgets/cards/collectible_card.dart';
-import 'package:solo_level_system/widgets/cards/create_reward_dialog.dart';
 import 'package:solo_level_system/widgets/common/help_button.dart';
 import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
 
@@ -161,20 +160,13 @@ class _CardsHubScreenState extends State<CardsHubScreen> {
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    const HelpButton(
-                                      screenKey: 'motivation_hub',
-                                    ),
-                                    const SizedBox(width: AppUiSizes.xs),
-                                    OutlinedButton.icon(
-                                      onPressed: () =>
-                                          showCreateRewardDialog(context),
-                                      icon: const Icon(Icons.add),
-                                      label: const Text('Create'),
-                                    ),
+                                  children: const [
+                                    HelpButton(screenKey: 'motivation_hub'),
                                   ],
                                 ),
                               ),
+                              // Room for the shared Stats Create FAB.
+                              const SizedBox(height: 72),
                             ],
                           ),
                         ),

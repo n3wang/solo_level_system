@@ -120,6 +120,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         canSubmitLog = true;
         logStateMessage = "State: Finished – Submit Log";
       }
+
+      // Hide room quick rail when a session starts.
+      if (!wasRunning && _timerController.isRunning) {
+        _isRoomQuickPickerOpen = false;
+      }
     });
 
     if (previousTrack != null &&
@@ -421,6 +426,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Project + room FABs: slide in from the left when the timer is paused,
+  /// slide back out when a pomodoro is running.
+  Widget _buildSideActionFabs() {
+    final show = !_timerController.isRunning;
+
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+      offset: show ? Offset.zero : const Offset(-1.35, 0),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 220),
+        opacity: show ? 1 : 0,
+        child: IgnorePointer(
+          ignoring: !show,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FloatingActionButton.small(
+                heroTag: 'project-management-fab',
+                tooltip: 'Open project management',
+                elevation: 0,
+                hoverElevation: 0,
+                focusElevation: 0,
+                highlightElevation: 0,
+                onPressed: _openProjectManagement,
+                child: const Icon(Icons.folder_open_outlined),
+              ),
+              const SizedBox(height: 8),
+              _buildRoomFabWithPicker(),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1460,26 +1502,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: !_timerController.isRunning
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                FloatingActionButton.small(
-                  heroTag: 'project-management-fab',
-                  tooltip: 'Open project management',
-                  elevation: 0,
-                  hoverElevation: 0,
-                  focusElevation: 0,
-                  highlightElevation: 0,
-                  onPressed: _openProjectManagement,
-                  child: const Icon(Icons.folder_open_outlined),
-                ),
-                const SizedBox(height: 8),
-                _buildRoomFabWithPicker(),
-              ],
-            )
-          : null,
+      floatingActionButton: _buildSideActionFabs(),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       body: SafeArea(
         child: GestureDetector(
