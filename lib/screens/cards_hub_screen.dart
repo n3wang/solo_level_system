@@ -22,7 +22,7 @@ class CardsHubScreen extends StatefulWidget {
 }
 
 class _CardsHubScreenState extends State<CardsHubScreen> {
-  String _typeFilter = 'quote';
+  String _typeFilter = kCollectibleBookmarkFilter;
   String _scopeFilter = 'all'; // all | acquired
   bool _isReady = false;
 
@@ -89,86 +89,79 @@ class _CardsHubScreenState extends State<CardsHubScreen> {
                       cards: itemBox.values.toList(),
                       rewards: rewardBox.values.toList(),
                     );
-                    final visible = cards.where(_isVisible).toList();
+                    final visible = cards.where(_isVisible).toList()
+                      ..sort((a, b) {
+                        final byBookmark =
+                            CardRepository.compareBookmarkedFirst(a, b);
+                        if (byBookmark != 0) return byBookmark;
+                        return a.title.compareTo(b.title);
+                      });
 
-                    return Column(
+                    return Stack(
                       children: [
-                        _buildFilters(),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              Expanded(
-                                child: visible.isEmpty
-                                    ? Center(
-                                        child: Text(
-                                          'No cards for this filter yet',
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodyMedium,
-                                        ),
-                                      )
-                                    : LayoutBuilder(
-                                        builder: (context, constraints) {
-                                          final width = constraints.maxWidth;
-                                          final crossAxisCount = width >= 700
-                                              ? 5
-                                              : width >= 520
-                                              ? 4
-                                              : 3;
-                                          return GridView.builder(
-                                            padding: const EdgeInsets.all(
-                                              AppUiSizes.lg,
-                                            ),
-                                            gridDelegate:
-                                                SliverGridDelegateWithFixedCrossAxisCount(
-                                                  crossAxisCount:
-                                                      crossAxisCount,
-                                                  crossAxisSpacing:
-                                                      AppUiSizes.md,
-                                                  mainAxisSpacing:
-                                                      AppUiSizes.md,
-                                                  childAspectRatio:
-                                                      CollectibleCardLayout
-                                                          .aspectRatio,
-                                                ),
-                                            itemCount: visible.length,
-                                            itemBuilder: (context, index) {
-                                              final card = visible[index];
-                                              return CollectibleCardTile(
-                                                card: card,
-                                                availablePoints: userProgress
-                                                    .availablePoints,
-                                                onTap: () =>
-                                                    showCollectibleCardDetail(
-                                                      context: context,
-                                                      card: card,
-                                                      userProgress:
-                                                          userProgress,
-                                                    ),
-                                              );
-                                            },
-                                          );
-                                        },
+                        Column(
+                          children: [
+                            _buildFilters(),
+                            Expanded(
+                              child: visible.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        'No cards for this filter yet',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium,
                                       ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  AppUiSizes.lg,
-                                  AppUiSizes.xs,
-                                  AppUiSizes.lg,
-                                  AppUiSizes.lg,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: const [
-                                    HelpButton(screenKey: 'motivation_hub'),
-                                  ],
-                                ),
-                              ),
-                              // Room for the shared Stats Create FAB.
-                              const SizedBox(height: 72),
-                            ],
-                          ),
+                                    )
+                                  : LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        final width = constraints.maxWidth;
+                                        final crossAxisCount = width >= 700
+                                            ? 5
+                                            : width >= 520
+                                            ? 4
+                                            : 3;
+                                        return GridView.builder(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            AppUiSizes.lg,
+                                            AppUiSizes.lg,
+                                            AppUiSizes.lg,
+                                            88,
+                                          ),
+                                          gridDelegate:
+                                              SliverGridDelegateWithFixedCrossAxisCount(
+                                                crossAxisCount: crossAxisCount,
+                                                crossAxisSpacing:
+                                                    AppUiSizes.md,
+                                                mainAxisSpacing: AppUiSizes.md,
+                                                childAspectRatio:
+                                                    CollectibleCardLayout
+                                                        .aspectRatio,
+                                              ),
+                                          itemCount: visible.length,
+                                          itemBuilder: (context, index) {
+                                            final card = visible[index];
+                                            return CollectibleCardTile(
+                                              card: card,
+                                              availablePoints: userProgress
+                                                  .availablePoints,
+                                              onTap: () =>
+                                                  showCollectibleCardDetail(
+                                                    context: context,
+                                                    card: card,
+                                                    userProgress: userProgress,
+                                                  ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
+                        ),
+                        const Positioned(
+                          left: AppUiSizes.lg,
+                          bottom: AppUiSizes.lg,
+                          child: HelpButton(screenKey: 'motivation_hub'),
                         ),
                       ],
                     );
@@ -183,7 +176,11 @@ class _CardsHubScreenState extends State<CardsHubScreen> {
   }
 
   bool _isVisible(CatalogCard card) {
-    if (card.typeWire != _typeFilter) return false;
+    if (_typeFilter == kCollectibleBookmarkFilter) {
+      if (!card.isBookmarked) return false;
+    } else if (card.typeWire != _typeFilter) {
+      return false;
+    }
     if (_scopeFilter == 'acquired' && !card.isAcquired) return false;
     return true;
   }
@@ -207,6 +204,11 @@ class _CardsHubScreenState extends State<CardsHubScreen> {
               value: _typeFilter,
               onChanged: (v) => setState(() => _typeFilter = v),
               options: [
+                const SettingsRectChipOption(
+                  value: kCollectibleBookmarkFilter,
+                  label: '',
+                  icon: Icons.bookmark,
+                ),
                 for (final t in kCollectibleTypeFilters)
                   SettingsRectChipOption(value: t, label: t),
               ],

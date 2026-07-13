@@ -677,8 +677,8 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
       showAppSnack(
         context,
         text: wasUpdate
-                ? 'Exercise updated successfully'
-                : 'Exercise created successfully',,
+            ? 'Exercise updated successfully'
+            : 'Exercise created successfully',
       );
       Navigator.pop(context, true);
     } catch (e) {

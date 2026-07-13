@@ -29,6 +29,7 @@ class CatalogCard {
 
   final CardRarity rarity;
   final String? unlockTargetId;
+  final bool isBookmarked;
   final CardModel? sourceItem;
   final RewardModel? sourceReward;
 
@@ -48,6 +49,7 @@ class CatalogCard {
     this.bundledMusicCount = 0,
     this.rarity = CardRarity.common,
     this.unlockTargetId,
+    this.isBookmarked = false,
     this.sourceItem,
     this.sourceReward,
   });
@@ -68,6 +70,9 @@ class CardRepository {
         .where((s) => s.isNotEmpty)
         .toList();
   }
+
+  static bool _isBookmarkedMeta(Map<String, dynamic> metadata) =>
+      metadata['isBookmarked'] == true;
 
   static CatalogCard fromCardModel(CardModel item) {
     final meta = item.metadata;
@@ -95,8 +100,34 @@ class CardRepository {
       bundledMusicCount: bundled is num ? bundled.toInt() : 0,
       rarity: item.rarityTier,
       unlockTargetId: item.unlockTargetId,
+      isBookmarked: _isBookmarkedMeta(meta),
       sourceItem: item,
     );
+  }
+
+  /// Toggles bookmark on the backing Hive object. Returns the new value.
+  static Future<bool> toggleBookmark(CatalogCard card) async {
+    if (card.sourceItem != null) {
+      final item = card.sourceItem!;
+      final next = !_isBookmarkedMeta(item.metadata);
+      item.metadata = {...item.metadata, 'isBookmarked': next};
+      await item.save();
+      return next;
+    }
+    if (card.sourceReward != null) {
+      final reward = card.sourceReward!;
+      final next = !_isBookmarkedMeta(reward.metadata);
+      reward.metadata = {...reward.metadata, 'isBookmarked': next};
+      await reward.save();
+      return next;
+    }
+    return false;
+  }
+
+  /// Bookmarked cards sort before others (stable with a secondary comparator).
+  static int compareBookmarkedFirst(CatalogCard a, CatalogCard b) {
+    if (a.isBookmarked == b.isBookmarked) return 0;
+    return a.isBookmarked ? -1 : 1;
   }
 
   static List<CatalogCard> build({
@@ -136,6 +167,7 @@ class CardRepository {
           imageIndex: boardgameNumber is num ? boardgameNumber.toInt() : null,
           imageAsset: imageAsset,
           localImagePath: localImage,
+          isBookmarked: _isBookmarkedMeta(reward.metadata),
           sourceReward: reward,
         ),
       );

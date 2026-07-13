@@ -6,11 +6,8 @@ import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
 enum StatsPeriod {
   today('Today'),
   week('Week'),
-  lastWeek('Last Week'),
   month('Month'),
-  lastMonth('Last Month'),
-  year('Year'),
-  all('All');
+  year('Year');
 
   const StatsPeriod(this.label);
   final String label;
@@ -18,11 +15,8 @@ enum StatsPeriod {
   static const List<StatsPeriod> valuesInUiOrder = [
     StatsPeriod.today,
     StatsPeriod.week,
-    StatsPeriod.lastWeek,
     StatsPeriod.month,
-    StatsPeriod.lastMonth,
     StatsPeriod.year,
-    StatsPeriod.all,
   ];
 }
 
@@ -59,21 +53,10 @@ class StatsPeriodRange {
       case StatsPeriod.week:
         // Rolling week: today + past 6 days.
         return StatsPeriodRange(start: today.subtract(const Duration(days: 6)));
-      case StatsPeriod.lastWeek:
-        // Previous calendar week (Mon–Sun) relative to this week's Monday.
-        final thisMonday = today.subtract(Duration(days: today.weekday - 1));
-        final lastMonday = thisMonday.subtract(const Duration(days: 7));
-        return StatsPeriodRange(start: lastMonday, endExclusive: thisMonday);
       case StatsPeriod.month:
         return StatsPeriodRange(start: DateTime(n.year, n.month, 1));
-      case StatsPeriod.lastMonth:
-        final thisMonth = DateTime(n.year, n.month, 1);
-        final lastMonth = DateTime(n.year, n.month - 1, 1);
-        return StatsPeriodRange(start: lastMonth, endExclusive: thisMonth);
       case StatsPeriod.year:
         return StatsPeriodRange(start: DateTime(n.year, 1, 1));
-      case StatsPeriod.all:
-        return const StatsPeriodRange();
     }
   }
 
@@ -84,21 +67,15 @@ class StatsPeriodRange {
         return 'today';
       case StatsPeriod.week:
         return 'this week';
-      case StatsPeriod.lastWeek:
-        return 'last week';
       case StatsPeriod.month:
         return 'this month';
-      case StatsPeriod.lastMonth:
-        return 'last month';
       case StatsPeriod.year:
         return 'this year';
-      case StatsPeriod.all:
-        return 'yet';
     }
   }
 }
 
-/// Compact Today / Week / Last Week / … chip row used across analytics.
+/// Compact Today / Week / Month / Year chip row used across analytics.
 class StatsPeriodChips extends StatelessWidget {
   final StatsPeriod value;
   final ValueChanged<StatsPeriod> onChanged;

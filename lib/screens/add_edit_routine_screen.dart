@@ -963,8 +963,8 @@ class _AddEditRoutineScreenState extends State<AddEditRoutineScreen> {
       showAppSnack(
         context,
         text: widget.routine != null
-                ? 'Routine updated successfully'
-                : 'Routine created successfully',,
+            ? 'Routine updated successfully'
+            : 'Routine created successfully',
       );
     } catch (e) {
       showAppSnack(

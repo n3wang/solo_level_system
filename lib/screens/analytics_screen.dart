@@ -500,21 +500,44 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   Widget _buildAcquiredCollectibles(List<CatalogCard> catalog) {
-    // Lazy: only evaluate the active period range when this section builds.
     final range = StatsPeriodRange.forPeriod(_collectiblePeriod);
-    final acquired = <CatalogCard>[];
+    final inPeriod = <CatalogCard>[];
     for (final c in catalog) {
       if (!c.isAcquired) continue;
       if (_isDefaultStarterCollectible(c)) continue;
-      if (_collectibleFilter != 'all' && c.typeWire != _collectibleFilter) {
-        continue;
-      }
       if (!range.contains(_collectibleAcquiredAt(c))) continue;
-      acquired.add(c);
+      inPeriod.add(c);
     }
-    acquired.sort(
-      (a, b) => _collectibleAcquiredAt(b).compareTo(_collectibleAcquiredAt(a)),
-    );
+
+    final presentTypes = <String>{for (final c in inPeriod) c.typeWire};
+    if (_collectibleFilter != 'all' &&
+        _collectibleFilter != kCollectibleBookmarkFilter &&
+        !presentTypes.contains(_collectibleFilter)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_collectibleFilter == 'all' ||
+            _collectibleFilter == kCollectibleBookmarkFilter ||
+            presentTypes.contains(_collectibleFilter)) {
+          return;
+        }
+        setState(() => _collectibleFilter = 'all');
+      });
+    }
+
+    final acquired = inPeriod.where((c) {
+      if (_collectibleFilter == kCollectibleBookmarkFilter) {
+        return c.isBookmarked;
+      }
+      if (_collectibleFilter != 'all' && c.typeWire != _collectibleFilter) {
+        return false;
+      }
+      return true;
+    }).toList()
+      ..sort((a, b) {
+        final byBookmark = CardRepository.compareBookmarkedFirst(a, b);
+        if (byBookmark != 0) return byBookmark;
+        return _collectibleAcquiredAt(b).compareTo(_collectibleAcquiredAt(a));
+      });
 
     UserProgressModel progress = UserProgressModel();
     if (Hive.isBoxOpen('userProgress')) {
@@ -522,6 +545,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           Hive.box<UserProgressModel>('userProgress').get('progress') ??
           progress;
     }
+
+    final typeOptions = <SettingsRectChipOption<String>>[
+      const SettingsRectChipOption(value: 'all', label: 'all'),
+      const SettingsRectChipOption(
+        value: kCollectibleBookmarkFilter,
+        label: '',
+        icon: Icons.bookmark,
+      ),
+      for (final t in kCollectibleTypeFilters)
+        if (presentTypes.contains(t))
+          SettingsRectChipOption(value: t, label: t),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -544,10 +579,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           runSpacing: AppUiSizes.xs,
           value: _collectibleFilter,
           onChanged: (v) => setState(() => _collectibleFilter = v),
-          options: [
-            for (final t in kCollectibleOverviewTypeFilters)
-              SettingsRectChipOption(value: t, label: t),
-          ],
+          options: typeOptions,
         ),
         const SizedBox(height: AppUiSizes.md),
         if (acquired.isEmpty)

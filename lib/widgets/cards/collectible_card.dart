@@ -94,9 +94,13 @@ const List<String> kCollectibleTypeFilters = [
   'option',
 ];
 
+/// Special filter value for bookmarked cards (hub + overview).
+const String kCollectibleBookmarkFilter = 'bookmarked';
+
 /// Overview acquired list may still filter with `all` inside the week window.
 const List<String> kCollectibleOverviewTypeFilters = [
   'all',
+  kCollectibleBookmarkFilter,
   ...kCollectibleTypeFilters,
 ];
 
@@ -202,69 +206,87 @@ class CollectibleCardTile extends StatelessWidget {
               ? scheme.tertiary.withValues(alpha: 0.08)
               : scheme.surface,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  collectibleTypeIcon(card.typeWire),
-                  size: 16,
-                  color: scheme.onSurface.withValues(alpha: 0.72),
+                Row(
+                  children: [
+                    Icon(
+                      collectibleTypeIcon(card.typeWire),
+                      size: 16,
+                      color: scheme.onSurface.withValues(alpha: 0.72),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      collectibleCategoryIcon(card.category),
+                      size: 16,
+                      color: scheme.onSurface.withValues(alpha: 0.45),
+                    ),
+                    if (card.isAcquired) ...[
+                      const SizedBox(width: AppUiSizes.xs),
+                      Icon(
+                        Icons.check_circle,
+                        size: 14,
+                        color: scheme.tertiary,
+                      ),
+                    ] else
+                      Icon(
+                        Icons.lock_outline,
+                        size: 14,
+                        color: scheme.onSurface.withValues(alpha: 0.35),
+                      ),
+                  ],
                 ),
-                const Spacer(),
-                Icon(
-                  collectibleCategoryIcon(card.category),
-                  size: 16,
-                  color: scheme.onSurface.withValues(alpha: 0.45),
-                ),
-                if (card.isAcquired) ...[
-                  const SizedBox(width: AppUiSizes.xs),
-                  Icon(Icons.check_circle, size: 14, color: scheme.tertiary),
-                ] else
-                  Icon(
-                    Icons.lock_outline,
-                    size: 14,
-                    color: scheme.onSurface.withValues(alpha: 0.35),
+                Expanded(
+                  child: Center(
+                    child: CollectibleCardArt(
+                      card: card,
+                      size: CollectibleCardLayout.tileArtSize,
+                      overrideLocalImagePath: overrideLocalImagePath,
+                    ),
                   ),
+                ),
+                Text(
+                  card.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: AppUiSizes.xxs),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    card.isAcquired
+                        ? (card.acquisitionCount > 1
+                              ? 'owned x${card.acquisitionCount}'
+                              : 'owned')
+                        : '${card.pointsCost}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: card.isAcquired
+                          ? scheme.tertiary
+                          : canAfford
+                          ? scheme.primary
+                          : scheme.error,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               ],
             ),
-            Expanded(
-              child: Center(
-                child: CollectibleCardArt(
-                  card: card,
-                  size: CollectibleCardLayout.tileArtSize,
-                  overrideLocalImagePath: overrideLocalImagePath,
+            if (card.isBookmarked)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Icon(
+                  Icons.bookmark,
+                  size: 18,
+                  color: scheme.primary,
                 ),
               ),
-            ),
-            Text(
-              card.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: AppUiSizes.xxs),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                card.isAcquired
-                    ? (card.acquisitionCount > 1
-                          ? 'owned x${card.acquisitionCount}'
-                          : 'owned')
-                    : '${card.pointsCost}',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: card.isAcquired
-                      ? scheme.tertiary
-                      : canAfford
-                      ? scheme.primary
-                      : scheme.error,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -345,12 +367,14 @@ class _CollectibleCardDetailDialogState
   late final TextEditingController _quoteEditorController;
   late final TextEditingController _descriptionEditorController;
   late String _currentDescription;
+  late bool _isBookmarked;
 
   CatalogCard get card => widget.card;
 
   @override
   void initState() {
     super.initState();
+    _isBookmarked = card.isBookmarked;
     _quoteOptions = _quotesFor(card);
     _currentQuote = _quoteOptions.isNotEmpty
         ? _quoteOptions.first
@@ -610,6 +634,20 @@ class _CollectibleCardDetailDialogState
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+              ),
+              IconButton(
+                tooltip: _isBookmarked ? 'Remove bookmark' : 'Bookmark',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                icon: Icon(
+                  _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                ),
+                onPressed: () async {
+                  final next = await CardRepository.toggleBookmark(card);
+                  if (!mounted) return;
+                  setState(() => _isBookmarked = next);
+                },
               ),
               Icon(
                 collectibleCategoryIcon(card.category),
