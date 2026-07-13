@@ -8,6 +8,9 @@ Future<T?> showCenteredAppModal<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   bool barrierDismissible = true,
+  /// Use [Colors.transparent] when stacking on another modal to avoid
+  /// a double-dimmed backdrop.
+  Color? barrierColor,
   double horizontalInsetFraction = 0.06,
   double verticalInsetFraction = 0.055,
   double heightFraction = 0.88,
@@ -16,7 +19,7 @@ Future<T?> showCenteredAppModal<T>({
   return showDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
-    barrierColor: Colors.black.withValues(alpha: 0.45),
+    barrierColor: barrierColor ?? Colors.black.withValues(alpha: 0.45),
     builder: (ctx) {
       final media = MediaQuery.of(ctx);
       final maxWidth = media.size.width * (1 - horizontalInsetFraction * 2);

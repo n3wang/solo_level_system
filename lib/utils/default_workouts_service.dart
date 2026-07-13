@@ -5,6 +5,7 @@ import 'package:yaml/yaml.dart';
 import '../models/exercise_model.dart';
 import '../models/workout_routine_model.dart';
 import '../models/workout_set_model.dart';
+import 'exercise_tag_semantics.dart';
 
 /// Service for initializing default workouts on first app install
 class DefaultWorkoutsService {
@@ -117,10 +118,6 @@ class DefaultWorkoutsService {
         final exerciseData = exercisesList[i] as Map;
 
         final name = exerciseData['name']?.toString() ?? '';
-        final muscleGroup = exerciseData['muscle_group']?.toString() ?? '';
-        final equipment = exerciseData['equipment']?.toString() ?? '';
-        final category = exerciseData['category']?.toString() ?? '';
-        final difficulty = exerciseData['difficulty']?.toString() ?? '';
         final icon = exerciseData['icon']?.toString();
         final description = exerciseData['description']?.toString() ?? '';
         final instructions =
@@ -128,16 +125,27 @@ class DefaultWorkoutsService {
                 ?.map((e) => e.toString())
                 .toList() ??
             [];
-        final tags =
+        final rawTags =
             (exerciseData['tags'] as YamlList?)
                 ?.map((e) => e.toString())
                 .toList() ??
             [];
 
+        // Backward-compatible: if YAML still has legacy fields, fold into tags.
+        final resolved = ExerciseTagSemantics.resolve(
+          ExerciseTagSemantics.buildTags(
+            existing: rawTags,
+            category: exerciseData['category']?.toString(),
+            muscleGroup: exerciseData['muscle_group']?.toString(),
+            equipment: exerciseData['equipment']?.toString(),
+            difficulty: exerciseData['difficulty']?.toString(),
+          ),
+        );
+
         // Determine measurement unit based on exercise characteristics
         String measurementUnit = 'kg'; // Default to kg
         final defaultDuration = exerciseData['default_duration'] as int?;
-        final equipmentLower = equipment.toLowerCase();
+        final equipmentLower = resolved.equipment.toLowerCase();
         final nameLower = name.toLowerCase();
 
         // Time-based exercises (plank, wall sit, etc.)
@@ -154,8 +162,6 @@ class DefaultWorkoutsService {
             !nameLower.contains('barbell')) {
           measurementUnit = 'none';
         }
-        // Check if exercise should use lbs (could be added to YAML later)
-        // For now, default to kg for all weighted exercises
 
         // Try to get audio file from YAML, or generate it from name
         final audioFile = exerciseData['audio_file']?.toString();
@@ -164,10 +170,10 @@ class DefaultWorkoutsService {
           id: 'default_exercise_${i + 1}',
           name: name,
           description: description,
-          category: category,
-          muscleGroup: muscleGroup,
-          equipment: equipment,
-          difficulty: difficulty,
+          category: resolved.category,
+          muscleGroup: resolved.muscleGroup,
+          equipment: resolved.equipment,
+          difficulty: resolved.difficulty,
           instructions: instructions.isNotEmpty
               ? instructions
               : [
@@ -178,7 +184,7 @@ class DefaultWorkoutsService {
           imageUrl: icon,
           isCustom: false,
           createdAt: now,
-          tags: tags,
+          tags: resolved.tags,
           measurementUnit: measurementUnit,
           audioFile: audioFile,
         );

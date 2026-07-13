@@ -7,10 +7,10 @@ import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
+import 'package:solo_level_system/utils/exercise_tag_semantics.dart';
 import 'package:solo_level_system/widgets/exercise_image_library_picker.dart';
 import 'package:solo_level_system/widgets/exercise_set_membership_toggle.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
@@ -31,12 +31,17 @@ class AddEditExerciseScreen extends StatefulWidget {
   /// - `'discard'` on back
   /// - `'duplicated'` after duplicate
   /// - `null` when dismissed by tapping outside
+  ///
+  /// Set [nested] when opening over another centered modal (e.g. from
+  /// exercise details) so the backdrop is not dimmed twice.
   static Future<Object?> showAsModal(
     BuildContext context, {
     ExerciseModel? exercise,
+    bool nested = false,
   }) {
     return showCenteredAppModal<Object?>(
       context: context,
+      barrierColor: nested ? Colors.transparent : null,
       builder: (ctx) => AddEditExerciseScreen(
         exercise: exercise,
         presentedAsModal: true,
@@ -85,7 +90,13 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
     _nameController.text = exercise.name;
     _descriptionController.text = exercise.description;
     _instructionsController.text = exercise.instructions.join('\n');
-    _tags = List.from(exercise.tags);
+    _tags = ExerciseTagSemantics.buildTags(
+      existing: exercise.tags,
+      category: exercise.category,
+      muscleGroup: exercise.muscleGroup,
+      equipment: exercise.equipment,
+      difficulty: exercise.difficulty,
+    );
     _tagsController.text = _tags.join(', ');
     _measurementUnit = exercise.measurementUnit;
     _isBookmarked = exercise.isBookmarked;
@@ -277,10 +288,11 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
         TextFormField(
           controller: _tagsController,
           decoration: const InputDecoration(
-            labelText: 'Category, Muscle Group, and Tags',
-            hintText: 'e.g., strength, chest, compound, beginner',
+            labelText: 'Tags',
+            hintText: 'e.g., gym, legs, barbell, intermediate, strength',
             border: OutlineInputBorder(),
-            helperText: 'Separate with commas',
+            helperText:
+                'Special tags like legs, barbell, strength, intermediate are recognized automatically',
           ),
           onChanged: (value) {
             _tags = value
@@ -342,6 +354,15 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
   }
 
   Widget _buildImageSection() {
+    final accent = AppColorPalette.color2;
+    final buttonStyle = TextButton.styleFrom(
+      foregroundColor: accent,
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      alignment: Alignment.centerRight,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -350,7 +371,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: AppColorPalette.grey700,
+            color: accent,
           ),
         ),
         const SizedBox(height: 10),
@@ -362,7 +383,6 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
               height: 96,
               decoration: BoxDecoration(
                 color: AppColorPalette.grey100,
-                borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
                 border: Border.all(color: AppColorPalette.grey300),
               ),
               clipBehavior: Clip.antiAlias,
@@ -370,41 +390,37 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
                   ? Icon(
                       Icons.image_outlined,
                       size: 36,
-                      color: AppColorPalette.textSecondary,
+                      color: accent,
                     )
                   : WorkoutIconWidget(imageUrl: _imageUrl, size: 96),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _pickFromPhoneLibrary,
-                      icon: const Icon(Icons.photo_library_outlined, size: 18),
-                      label: const Text('Phone library'),
-                    ),
+                  TextButton.icon(
+                    onPressed: _isLoading ? null : _pickFromPhoneLibrary,
+                    style: buttonStyle,
+                    icon: Icon(Icons.photo_library_outlined, size: 18, color: accent),
+                    label: Text('Phone library', style: TextStyle(color: accent)),
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _pickFromExerciseLibrary,
-                      icon: const Icon(Icons.fitness_center, size: 18),
-                      label: const Text('Exercise images'),
-                    ),
+                  const SizedBox(height: 6),
+                  TextButton.icon(
+                    onPressed: _isLoading ? null : _pickFromExerciseLibrary,
+                    style: buttonStyle,
+                    icon: Icon(Icons.fitness_center, size: 18, color: accent),
+                    label: Text('Exercise images', style: TextStyle(color: accent)),
                   ),
                   if (_imageUrl != null && _imageUrl!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () => setState(() => _imageUrl = null),
-                        child: const Text('Remove image'),
-                      ),
+                    const SizedBox(height: 6),
+                    TextButton.icon(
+                      onPressed: _isLoading
+                          ? null
+                          : () => setState(() => _imageUrl = null),
+                      style: buttonStyle,
+                      icon: Icon(Icons.close, size: 18, color: accent),
+                      label: Text('Remove image', style: TextStyle(color: accent)),
                     ),
                   ],
                 ],
@@ -492,6 +508,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
       final instructions = _parseInstructions();
       final name = _nameController.text.trim();
       final description = _descriptionController.text.trim();
+      final resolved = ExerciseTagSemantics.resolve(_tags);
 
       String exerciseId;
 
@@ -506,11 +523,13 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
 
         boxed.name = name;
         boxed.description = description;
-        boxed.category = _tags.isNotEmpty ? _tags.first : boxed.category;
-        boxed.muscleGroup = _tags.length > 1 ? _tags[1] : boxed.muscleGroup;
+        boxed.category = resolved.category;
+        boxed.muscleGroup = resolved.muscleGroup;
+        boxed.equipment = resolved.equipment;
+        boxed.difficulty = resolved.difficulty;
         boxed.instructions = instructions;
         boxed.modifiedAt = DateTime.now();
-        boxed.tags = _tags;
+        boxed.tags = resolved.tags;
         boxed.measurementUnit = _measurementUnit;
         boxed.isBookmarked = _isBookmarked;
         boxed.imageUrl = _imageUrl;
@@ -527,14 +546,14 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           name: name,
           description: description,
-          category: _tags.isNotEmpty ? _tags.first : 'other',
-          muscleGroup: _tags.length > 1 ? _tags[1] : 'other',
-          equipment: 'other',
-          difficulty: 'intermediate',
+          category: resolved.category,
+          muscleGroup: resolved.muscleGroup,
+          equipment: resolved.equipment,
+          difficulty: resolved.difficulty,
           instructions: instructions,
           isCustom: true,
           createdAt: DateTime.now(),
-          tags: _tags,
+          tags: resolved.tags,
           isArchived: false,
           measurementUnit: _measurementUnit,
           isBookmarked: _isBookmarked,
@@ -586,21 +605,22 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
       final copyName = baseName.endsWith('(Copy)')
           ? baseName
           : '$baseName (Copy)';
+      final resolved = ExerciseTagSemantics.resolve(_tags);
 
       final duplicate = ExerciseModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: copyName,
         description: _descriptionController.text.trim(),
-        category: _tags.isNotEmpty ? _tags.first : source.category,
-        muscleGroup: _tags.length > 1 ? _tags[1] : source.muscleGroup,
-        equipment: source.equipment,
-        difficulty: source.difficulty,
+        category: resolved.category,
+        muscleGroup: resolved.muscleGroup,
+        equipment: resolved.equipment,
+        difficulty: resolved.difficulty,
         instructions: _parseInstructions(),
         videoUrl: source.videoUrl,
         imageUrl: _imageUrl ?? source.imageUrl,
         isCustom: true,
         createdAt: DateTime.now(),
-        tags: List.from(_tags),
+        tags: List.from(resolved.tags),
         isArchived: false,
         measurementUnit: _measurementUnit,
         isBookmarked: false,

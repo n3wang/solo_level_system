@@ -2,11 +2,8 @@
 # Contains all default exercises and routines with their metadata
 
 exercises:
+
   - name: "back squat"
-    muscle_group: "legs"
-    equipment: "barbell"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "back_squat"
     description: "Compound lower body exercise targeting quadriceps, glutes, and core"
     instructions:
@@ -17,14 +14,10 @@ exercises:
       - "Drive through heels to return to standing"
     default_sets: [1, 2, 3]
     default_reps: 8
-    tags: ["gym"]
+    tags: ["gym", "legs", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/back_squat.mp3"
 
   - name: "front squat"
-    muscle_group: "legs"
-    equipment: "barbell"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "front_squat"
     description: "Quadriceps-focused squat variation with front-loaded weight"
     instructions:
@@ -35,14 +28,10 @@ exercises:
       - "Drive through heels to stand"
     default_sets: [1, 2, 3]
     default_reps: 8
-    tags: ["gym"]
+    tags: ["gym", "legs", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/front_squat.mp3"
 
   - name: "Deadlift conventional"
-    muscle_group: "back"
-    equipment: "barbell"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "deadlift_conventional"
     description: "Full-body compound movement targeting posterior chain"
     instructions:
@@ -53,14 +42,10 @@ exercises:
       - "Stand tall at the top"
     default_sets: [1, 2, 3]
     default_reps: 5
-    tags: ["gym"]
+    tags: ["gym", "back", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/deadlift_conventional.mp3"
 
   - name: "Deadlift Romanian"
-    muscle_group: "back"
-    equipment: "barbell"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "deadlift_romanian"
     description: "Hamstring and glute focused deadlift variation"
     instructions:
@@ -71,14 +56,10 @@ exercises:
       - "Return to standing position"
     default_sets: [1, 2, 3]
     default_reps: 8
-    tags: ["gym"]
+    tags: ["gym", "back", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/deadlift_romanian.mp3"
 
   - name: "Bench press"
-    muscle_group: "chest"
-    equipment: "barbell"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "bench_press"
     description: "Upper body compound exercise primarily targeting chest"
     instructions:
@@ -89,14 +70,10 @@ exercises:
       - "Keep core engaged throughout"
     default_sets: [1, 2, 3]
     default_reps: 8
-    tags: ["gym"]
+    tags: ["gym", "chest", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/bench_press.mp3"
 
   - name: "Overhead press"
-    muscle_group: "shoulders"
-    equipment: "barbell"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "overhead_press"
     description: "Shoulder and tricep focused pressing movement"
     instructions:
@@ -107,14 +84,10 @@ exercises:
       - "Keep core tight"
     default_sets: [1, 2, 3]
     default_reps: 8
-    tags: ["gym"]
+    tags: ["gym", "shoulders", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/overhead_press.mp3"
 
   - name: "Pull-ups"
-    muscle_group: "back"
-    equipment: "bodyweight"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "pullups"
     description: "Upper body pulling exercise targeting lats and biceps"
     instructions:
@@ -125,14 +98,10 @@ exercises:
       - "Full range of motion"
     default_sets: [1, 2, 3]
     default_reps: 8
-    tags: ["gym"]
+    tags: ["gym", "back", "bodyweight", "intermediate", "strength"]
     audio_file: "audio/workouts/pull_ups.mp3"
 
   - name: "Chin-ups"
-    muscle_group: "back"
-    equipment: "bodyweight"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "chinups"
     description: "Pull-up variation with underhand grip emphasizing biceps"
     instructions:
@@ -142,14 +111,10 @@ exercises:
       - "Focus on bicep contraction"
     default_sets: [1, 2, 3]
     default_reps: 8
-    tags: ["gym"]
+    tags: ["gym", "back", "bodyweight", "intermediate", "strength"]
     audio_file: "audio/workouts/chin_ups.mp3"
 
   - name: "Barbell row"
-    muscle_group: "back"
-    equipment: "barbell"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "barbell_row"
     description: "Back and bicep focused rowing movement"
     instructions:
@@ -159,14 +124,10 @@ exercises:
       - "Lower with control"
     default_sets: [1, 2, 3]
     default_reps: 8
-    tags: ["gym"]
+    tags: ["gym", "back", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/barbell_row.mp3"
 
   - name: "Lat pulldown"
-    muscle_group: "back"
-    equipment: "machine"
-    category: "strength"
-    difficulty: "beginner"
     icon: "lat_pulldown"
     description: "Machine-based lat and upper back exercise"
     instructions:
@@ -176,14 +137,10 @@ exercises:
       - "Control the weight up"
     default_sets: [1, 2, 3]
     default_reps: 12
-    tags: ["gym"]
+    tags: ["gym", "back", "machine", "beginner", "strength"]
     audio_file: "audio/workouts/lat_pulldown.mp3"
 
   - name: "Leg press"
-    muscle_group: "legs"
-    equipment: "machine"
-    category: "strength"
-    difficulty: "beginner"
     icon: "leg_press"
     description: "Machine-based leg exercise targeting quadriceps and glutes"
     instructions:
@@ -193,14 +150,10 @@ exercises:
       - "Press through heels to extend"
     default_sets: [1, 2, 3]
     default_reps: 12
-    tags: ["gym"]
+    tags: ["gym", "legs", "machine", "beginner", "strength"]
     audio_file: "audio/workouts/leg_press.mp3"
 
   - name: "Dumbbell bench press"
-    muscle_group: "chest"
-    equipment: "dumbbells"
-    category: "strength"
-    difficulty: "beginner"
     icon: "dumbbell_bench_press"
     description: "Chest exercise with dumbbells allowing greater range of motion"
     instructions:
@@ -210,14 +163,10 @@ exercises:
       - "Feel stretch in chest"
     default_sets: [1, 2, 3]
     default_reps: 12
-    tags: ["gym"]
+    tags: ["gym", "chest", "dumbbells", "beginner", "strength"]
     audio_file: "audio/workouts/dumbbell_bench_press.mp3"
 
   - name: "Dumbbell shoulder press"
-    muscle_group: "shoulders"
-    equipment: "dumbbells"
-    category: "strength"
-    difficulty: "beginner"
     icon: "dumbbell_shoulder_press"
     description: "Shoulder pressing movement with dumbbells"
     instructions:
@@ -227,14 +176,10 @@ exercises:
       - "Keep core engaged"
     default_sets: [1, 2, 3]
     default_reps: 12
-    tags: ["gym"]
+    tags: ["gym", "shoulders", "dumbbells", "beginner", "strength"]
     audio_file: "audio/workouts/dumbbell_shoulder_press.mp3"
 
   - name: "Bicep curls"
-    muscle_group: "arms"
-    equipment: "dumbbells"
-    category: "strength"
-    difficulty: "beginner"
     icon: "bicep_curls"
     description: "Isolation exercise targeting biceps"
     instructions:
@@ -244,14 +189,10 @@ exercises:
       - "Lower with control"
     default_sets: [1, 2, 3]
     default_reps: 12
-    tags: ["gym"]
+    tags: ["gym", "arms", "dumbbells", "beginner", "strength"]
     audio_file: "audio/workouts/bicep_curls.mp3"
 
   - name: "Tricep pushdowns"
-    muscle_group: "arms"
-    equipment: "cables"
-    category: "strength"
-    difficulty: "beginner"
     icon: "tricep_pushdowns"
     description: "Isolation exercise targeting triceps"
     instructions:
@@ -261,14 +202,10 @@ exercises:
       - "Control the weight up"
     default_sets: [1, 2, 3]
     default_reps: 12
-    tags: ["gym"]
+    tags: ["gym", "arms", "cables", "beginner", "strength"]
     audio_file: "audio/workouts/tricep_pushdowns.mp3"
 
   - name: "Chest fly"
-    muscle_group: "chest"
-    equipment: "dumbbells"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "chest_fly"
     description: "Chest isolation exercise emphasizing pectoral stretch"
     instructions:
@@ -279,14 +216,10 @@ exercises:
       - "Bring back together"
     default_sets: [1, 2, 3]
     default_reps: 12
-    tags: ["gym"]
+    tags: ["gym", "chest", "dumbbells", "intermediate", "strength"]
     audio_file: "audio/workouts/chest_fly.mp3"
 
   - name: "Leg curl"
-    muscle_group: "legs"
-    equipment: "machine"
-    category: "strength"
-    difficulty: "beginner"
     icon: "leg_curl"
     description: "Hamstring isolation exercise"
     instructions:
@@ -296,14 +229,10 @@ exercises:
       - "Lower with control"
     default_sets: [1, 2, 3]
     default_reps: 12
-    tags: ["gym"]
+    tags: ["gym", "legs", "machine", "beginner", "strength"]
     audio_file: "audio/workouts/leg_curl.mp3"
 
   - name: "Leg extension"
-    muscle_group: "legs"
-    equipment: "machine"
-    category: "strength"
-    difficulty: "beginner"
     icon: "leg_extension"
     description: "Quadriceps isolation exercise"
     instructions:
@@ -313,14 +242,10 @@ exercises:
       - "Lower with control"
     default_sets: [1, 2, 3]
     default_reps: 12
-    tags: ["gym"]
+    tags: ["gym", "legs", "machine", "beginner", "strength"]
     audio_file: "audio/workouts/leg_extension.mp3"
 
   - name: "Plank"
-    muscle_group: "core"
-    equipment: "bodyweight"
-    category: "strength"
-    difficulty: "beginner"
     icon: "plank"
     description: "Core stability exercise targeting entire abdominal region"
     instructions:
@@ -332,14 +257,10 @@ exercises:
     default_sets: [4, 5]
     default_reps: 0  # Duration-based
     default_duration: 60  # seconds
-    tags: ["home"]
+    tags: ["home", "core", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/plank.mp3"
 
   - name: "Hanging leg raises"
-    muscle_group: "core"
-    equipment: "bodyweight"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "hanging_leg_raises"
     description: "Advanced core exercise targeting lower abs"
     instructions:
@@ -349,14 +270,10 @@ exercises:
       - "Lower with control"
     default_sets: [1, 2, 3]
     default_reps: 10
-    tags: ["gym"]
+    tags: ["gym", "core", "bodyweight", "intermediate", "strength"]
     audio_file: "audio/workouts/hanging_leg_raises.mp3"
 
   - name: "Treadmill running or walking"
-    muscle_group: "full_body"
-    equipment: "machine"
-    category: "cardio"
-    difficulty: "beginner"
     icon: "treadmill_running_or_walking"
     description: "Cardiovascular exercise for endurance"
     instructions:
@@ -367,14 +284,10 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 0  # Duration-based
     default_duration: 600  # 10 minutes
-    tags: ["gym"]
+    tags: ["gym", "full_body", "machine", "beginner", "cardio"]
     audio_file: "audio/workouts/treadmill_running.mp3"
 
   - name: "Stationary bike / spin bike"
-    muscle_group: "full_body"
-    equipment: "machine"
-    category: "cardio"
-    difficulty: "beginner"
     icon: "stationary_bike_spin_bike"
     description: "Low-impact cardiovascular exercise"
     instructions:
@@ -385,14 +298,10 @@ exercises:
     default_sets: [1, 2, 3]
     default_reps: 0  # Duration-based
     default_duration: 600  # 10 minutes
-    tags: ["gym"]
+    tags: ["gym", "full_body", "machine", "beginner", "cardio"]
     audio_file: "audio/workouts/stationary_bike.mp3"
 
   - name: "Bodyweight Squats"
-    muscle_group: "legs"
-    equipment: "bodyweight"
-    category: "strength"
-    difficulty: "beginner"
     icon: "bodyweight_squats"
     description: "Bodyweight leg exercise targeting quadriceps and glutes"
     instructions:
@@ -402,14 +311,10 @@ exercises:
       - "Drive through heels to stand"
     default_sets: [4, 5]
     default_reps: 15
-    tags: ["home"]
+    tags: ["home", "legs", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/bodyweight_squats.mp3"
 
   - name: "Lunges"
-    muscle_group: "legs"
-    equipment: "bodyweight"
-    category: "strength"
-    difficulty: "beginner"
     icon: "lunges"
     description: "Unilateral leg exercise targeting quadriceps, glutes, and core"
     instructions:
@@ -420,14 +325,10 @@ exercises:
       - "Alternate legs"
     default_sets: [4, 5]
     default_reps: 12
-    tags: ["home"]
+    tags: ["home", "legs", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/lunges.mp3"
 
   - name: "Wall Sit"
-    muscle_group: "legs"
-    equipment: "bodyweight"
-    category: "strength"
-    difficulty: "beginner"
     icon: "wall_sit"
     description: "Isometric leg exercise targeting quadriceps"
     instructions:
@@ -438,14 +339,10 @@ exercises:
     default_sets: [4, 5]
     default_reps: 0  # Duration-based
     default_duration: 45  # seconds
-    tags: ["home"]
+    tags: ["home", "legs", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/wall_sit.mp3"
 
   - name: "Glute Bridges"
-    muscle_group: "glutes"
-    equipment: "bodyweight"
-    category: "strength"
-    difficulty: "beginner"
     icon: "glute_bridges"
     description: "Glute and hamstring focused exercise"
     instructions:
@@ -455,14 +352,10 @@ exercises:
       - "Lower with control"
     default_sets: [4, 5]
     default_reps: 15
-    tags: ["home"]
+    tags: ["home", "glutes", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/glute_bridges.mp3"
 
   - name: "Push-ups"
-    muscle_group: "chest"
-    equipment: "bodyweight"
-    category: "strength"
-    difficulty: "beginner"
     icon: "pushups"
     description: "Upper body pushing exercise targeting chest, shoulders, and triceps"
     instructions:
@@ -472,14 +365,10 @@ exercises:
       - "Keep body straight"
     default_sets: [4, 5]
     default_reps: 12
-    tags: ["home"]
+    tags: ["home", "chest", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/push_ups.mp3"
 
   - name: "Triceps Dips"
-    muscle_group: "arms"
-    equipment: "bodyweight"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "triceps_dips"
     description: "Tricep and shoulder focused bodyweight exercise"
     instructions:
@@ -489,14 +378,10 @@ exercises:
       - "Push back up"
     default_sets: [4, 5]
     default_reps: 10
-    tags: ["home"]
+    tags: ["home", "arms", "bodyweight", "intermediate", "strength"]
     audio_file: "audio/workouts/triceps_dips.mp3"
 
   - name: "Side Plank"
-    muscle_group: "core"
-    equipment: "bodyweight"
-    category: "strength"
-    difficulty: "intermediate"
     icon: "side_plank"
     description: "Core exercise targeting obliques and lateral stability"
     instructions:
@@ -508,14 +393,10 @@ exercises:
     default_sets: [4, 5]
     default_reps: 0  # Duration-based
     default_duration: 45  # seconds
-    tags: ["home"]
+    tags: ["home", "core", "bodyweight", "intermediate", "strength"]
     audio_file: "audio/workouts/side_plank.mp3"
 
   - name: "Jumping Jacks"
-    muscle_group: "full_body"
-    equipment: "bodyweight"
-    category: "cardio"
-    difficulty: "beginner"
     icon: "jumping_jacks"
     description: "Full-body cardiovascular exercise"
     instructions:
@@ -526,14 +407,10 @@ exercises:
       - "Repeat rhythmically"
     default_sets: [4, 5]
     default_reps: 20
-    tags: ["home"]
+    tags: ["home", "full_body", "bodyweight", "beginner", "cardio"]
     audio_file: "audio/workouts/jumping_jacks.mp3"
 
   - name: "Burpees"
-    muscle_group: "full_body"
-    equipment: "bodyweight"
-    category: "cardio"
-    difficulty: "advanced"
     icon: "burpees"
     description: "High-intensity full-body exercise combining squat, push-up, and jump"
     instructions:
@@ -545,7 +422,7 @@ exercises:
       - "Jump up with arms overhead"
     default_sets: [4, 5]
     default_reps: 10
-    tags: ["home"]
+    tags: ["home", "full_body", "bodyweight", "advanced", "cardio"]
     audio_file: "audio/workouts/burpees.mp3"
 
 routines:

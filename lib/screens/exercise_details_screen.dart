@@ -73,6 +73,60 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
         (ex.lastWorkoutReps?.isNotEmpty ?? false);
   }
 
+  int get _timesUsedCount {
+    if (_exerciseHistory.isNotEmpty) return _exerciseHistory.length;
+    final performed = _liveExercise.timesPerformed;
+    if (performed > 0) return performed;
+    if (_hasLastWorkoutFallback) return 1;
+    return 0;
+  }
+
+  DateTime? get _lastUsedAt {
+    if (_exerciseHistory.isNotEmpty) return _exerciseHistory.first.startTime;
+    return _liveExercise.lastWorkoutDate;
+  }
+
+  double? get _bestWeightValue {
+    final exercise = _liveExercise;
+    final unit = exercise.measurementUnit;
+    final showWeight = unit == 'kg' || unit == 'lbs';
+    if (!showWeight) {
+      return exercise.personalRecord;
+    }
+
+    double? best = exercise.personalRecord;
+
+    void consider(double? value) {
+      if (value == null || value <= 0) return;
+      if (best == null || value > best!) best = value;
+    }
+
+    for (final session in _exerciseHistory) {
+      final stats = WorkoutService.statsForExerciseInSession(
+        session,
+        exercise.id,
+        measurementUnit: unit,
+      );
+      consider(stats?.maxWeight);
+    }
+
+    for (final weight in exercise.lastWorkoutWeights ?? const <double?>[]) {
+      consider(weight);
+    }
+
+    return best;
+  }
+
+  String get _bestWeightLabel {
+    final value = _bestWeightValue;
+    if (value == null) return '-';
+    return value == value.roundToDouble()
+        ? value.toInt().toString()
+        : value.toStringAsFixed(1);
+  }
+
+  Color get _accent => AppColorPalette.color2;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -106,7 +160,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                   exercise.isBookmarked
                       ? Icons.bookmark
                       : Icons.bookmark_border,
-                  color: exercise.isBookmarked ? AppColorPalette.warning : null,
+                  color: exercise.isBookmarked ? _accent : null,
                 ),
                 tooltip: exercise.isBookmarked
                     ? 'Remove bookmark'
@@ -124,11 +178,11 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete, color: AppColorPalette.error),
+                    Icon(Icons.delete, color: _accent),
                     SizedBox(width: 8),
                     Text(
                       'Delete',
-                      style: TextStyle(color: AppColorPalette.error),
+                      style: TextStyle(color: _accent),
                     ),
                   ],
                 ),
@@ -254,26 +308,28 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildInfoChip(
-                  exercise.category.toUpperCase(),
-                  Icons.category,
-                  AppColorPalette.info,
-                ),
-                _buildInfoChip(
-                  exercise.equipment == 'bodyweight'
-                      ? 'BODYWEIGHT'
-                      : exercise.equipment.toUpperCase(),
-                  Icons.fitness_center,
-                  AppColorPalette.primary,
-                ),
                 if (exercise.tags.isNotEmpty)
                   ...exercise.tags.map(
                     (tag) => _buildInfoChip(
                       tag.toUpperCase(),
                       Icons.tag,
-                      AppColorPalette.success,
+                      _accent,
                     ),
+                  )
+                else ...[
+                  _buildInfoChip(
+                    exercise.category.toUpperCase(),
+                    Icons.category,
+                    _accent,
                   ),
+                  _buildInfoChip(
+                    exercise.equipment == 'bodyweight'
+                        ? 'BODYWEIGHT'
+                        : exercise.equipment.toUpperCase(),
+                    Icons.fitness_center,
+                    _accent,
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 20),
@@ -293,6 +349,9 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
     final cardBgColor = isDark
         ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
         : AppColorPalette.white.withValues(alpha: 0.8);
+    final lastUsed = _lastUsedAt;
+    final timesUsed = _timesUsedCount;
+    final accent = _accent;
 
     return Card(
       color: cardBgColor,
@@ -307,32 +366,31 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                 Expanded(
                   child: _buildRecordCard(
                     'Best Weight',
-                    exercise.personalRecord?.toString() ?? '-',
-                    exercise.personalRecordUnit ?? 'kg',
+                    _bestWeightLabel,
+                    exercise.personalRecordUnit ??
+                        (exercise.measurementUnit == 'lbs' ? 'lbs' : 'kg'),
                     Icons.fitness_center,
-                    AppColorPalette.error,
+                    accent,
                   ),
                 ),
                 SizedBox(width: 8),
                 Expanded(
                   child: _buildRecordCard(
                     'Times Used',
-                    _exerciseHistory.length.toString(),
-                    'sessions',
+                    timesUsed.toString(),
+                    timesUsed == 1 ? 'session' : 'sessions',
                     Icons.history,
-                    AppColorPalette.info,
+                    accent,
                   ),
                 ),
                 SizedBox(width: 8),
                 Expanded(
                   child: _buildRecordCard(
                     'Last Used',
-                    _exerciseHistory.isNotEmpty
-                        ? _formatDate(_exerciseHistory.first.startTime)
-                        : 'Never',
+                    lastUsed != null ? _formatDate(lastUsed) : 'Never',
                     '',
                     Icons.access_time,
-                    AppColorPalette.success,
+                    accent,
                   ),
                 ),
               ],
@@ -384,7 +442,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
           SizedBox(height: 2),
           Text(
             title,
-            style: TextStyle(fontSize: 10, color: AppColorPalette.textSecondary),
+            style: TextStyle(fontSize: 10, color: color),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -403,7 +461,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.list_alt, color: AppColorPalette.info),
+                Icon(Icons.list_alt, color: _accent),
                 SizedBox(width: 8),
                 Builder(
                   builder: (context) {
@@ -443,7 +501,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: AppColorPalette.info,
+                          color: _accent,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Center(
@@ -500,7 +558,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.history, color: AppColorPalette.success),
+                Icon(Icons.history, color: _accent),
                 SizedBox(width: 8),
                 Text(
                   'Recent History',
@@ -620,7 +678,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
             children: [
               Icon(
                 Icons.check_circle,
-                color: AppColorPalette.success,
+                color: _accent,
                 size: 20,
               ),
               const SizedBox(width: 12),
@@ -695,8 +753,8 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                     ? Icons.check_circle
                     : Icons.cancel,
                 color: session.isCompleted || (stats?.completedSets ?? 0) > 0
-                    ? AppColorPalette.success
-                    : AppColorPalette.error,
+                    ? _accent
+                    : AppColorPalette.grey600,
                 size: 20,
               ),
               const SizedBox(width: 12),
@@ -788,7 +846,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppColorPalette.grey800,
+              color: AppColorPalette.color2,
             ),
           ),
         ],
@@ -823,22 +881,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   }
 
   Color _getMuscleGroupColor(String muscleGroup) {
-    switch (muscleGroup.toLowerCase()) {
-      case 'chest':
-        return AppColorPalette.error;
-      case 'back':
-        return AppColorPalette.info;
-      case 'legs':
-        return AppColorPalette.success;
-      case 'arms':
-        return AppColorPalette.warning;
-      case 'shoulders':
-        return AppColorPalette.primary;
-      case 'core':
-        return AppColorPalette.color3;
-      default:
-        return AppColorPalette.grey;
-    }
+    return _accent;
   }
 
   IconData _getMuscleGroupIcon(String muscleGroup) {
@@ -879,6 +922,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
     final result = await AddEditExerciseScreen.showAsModal(
       context,
       exercise: _liveExercise,
+      nested: true,
     );
 
     if (!mounted) return;
@@ -934,7 +978,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
             },
             child: Text(
               'Delete',
-              style: TextStyle(color: AppColorPalette.error),
+              style: TextStyle(color: AppColorPalette.color2),
             ),
           ),
         ],

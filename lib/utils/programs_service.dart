@@ -4,6 +4,7 @@ import 'package:hive/hive.dart';
 import 'package:yaml/yaml.dart';
 import '../models/exercise_model.dart';
 import '../models/timed_workout_model.dart';
+import 'exercise_tag_semantics.dart';
 
 /// Service for initializing 7-minute workout programs and exercises
 class ProgramsService {
@@ -485,19 +486,28 @@ class ProgramsService {
       final audioFile =
           yamlAudioMap[exerciseName.toLowerCase()] ??
           (data['audioFile'] as String?);
+      final resolved = ExerciseTagSemantics.resolve(
+        ExerciseTagSemantics.buildTags(
+          existing: List<String>.from(data['tags'] as List? ?? const []),
+          category: data['category'] as String?,
+          muscleGroup: data['muscleGroup'] as String?,
+          equipment: data['equipment'] as String?,
+          difficulty: data['difficulty'] as String?,
+        ),
+      );
       final exercise = ExerciseModel(
         id: 'program_exercise_${i + 1}_${now.millisecondsSinceEpoch}',
         name: exerciseName,
         description: data['description'] as String,
-        category: data['category'] as String,
-        muscleGroup: data['muscleGroup'] as String,
-        equipment: data['equipment'] as String,
-        difficulty: data['difficulty'] as String,
+        category: resolved.category,
+        muscleGroup: resolved.muscleGroup,
+        equipment: resolved.equipment,
+        difficulty: resolved.difficulty,
         instructions: List<String>.from(data['instructions'] as List),
         imageUrl: null, // Will be set from workout_icons
         isCustom: false,
         createdAt: now,
-        tags: List<String>.from(data['tags'] as List),
+        tags: resolved.tags,
         measurementUnit: 'none',
         audioFile: audioFile,
       );
