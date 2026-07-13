@@ -25,10 +25,8 @@ class ExerciseDetailsScreen extends StatefulWidget {
   static Future<void> show(BuildContext context, ExerciseModel exercise) {
     return showCenteredAppModal<void>(
       context: context,
-      builder: (ctx) => ExerciseDetailsScreen(
-        exercise: exercise,
-        presentedAsModal: true,
-      ),
+      builder: (ctx) =>
+          ExerciseDetailsScreen(exercise: exercise, presentedAsModal: true),
     );
   }
 
@@ -52,9 +50,9 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
     final box = Hive.box<ExerciseModel>('exercises');
     return box.get(_exercise.id) ??
         box.values.cast<ExerciseModel?>().firstWhere(
-              (ex) => ex?.id == _exercise.id,
-              orElse: () => null,
-            ) ??
+          (ex) => ex?.id == _exercise.id,
+          orElse: () => null,
+        ) ??
         _exercise;
   }
 
@@ -180,10 +178,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
                   children: [
                     Icon(Icons.delete, color: _accent),
                     SizedBox(width: 8),
-                    Text(
-                      'Delete',
-                      style: TextStyle(color: _accent),
-                    ),
+                    Text('Delete', style: TextStyle(color: _accent)),
                   ],
                 ),
               ),
@@ -221,182 +216,159 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   Widget _buildExerciseHeader() {
     final exercise = _liveExercise;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBgColor = isDark
-        ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
-        : AppColorPalette.white.withValues(alpha: 0.8);
 
-    return Card(
-      color: cardBgColor,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: _getMuscleGroupColor(exercise.muscleGroup),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: WorkoutIconWidget(
-                      imageUrl: exercise.imageUrl,
-                      size: 80,
-                      placeholder: Icon(
-                        _getMuscleGroupIcon(exercise.muscleGroup),
-                        color: AppColorPalette.white,
-                        size: 40,
-                      ),
+    return SizedBox(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: WorkoutIconWidget(
+                    imageUrl: exercise.imageUrl,
+                    size: 80,
+                    placeholder: Icon(
+                      _getMuscleGroupIcon(exercise.muscleGroup),
+                      color: AppColorPalette.white,
+                      size: 40,
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        exercise.name,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? AppColorPalette.white
-                              : AppColorPalette.grey900,
-                        ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      exercise.name,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppColorPalette.white
+                            : AppColorPalette.grey900,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        exercise.muscleGroup.toUpperCase(),
-                        style: TextStyle(
-                          color: isDark
-                              ? AppColorPalette.grey400
-                              : AppColorPalette.grey600,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      exercise.muscleGroup.toUpperCase(),
+                      style: TextStyle(
+                        color: isDark
+                            ? AppColorPalette.grey400
+                            : AppColorPalette.grey600,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        exercise.difficulty.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark
-                              ? AppColorPalette.grey400
-                              : AppColorPalette.grey600,
-                          fontWeight: FontWeight.w500,
-                        ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      exercise.difficulty.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColorPalette.grey400
+                            : AppColorPalette.grey600,
+                        fontWeight: FontWeight.w500,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            if (exercise.description.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                exercise.description,
-                style: TextStyle(fontSize: 16, color: AppColorPalette.grey700),
               ),
             ],
+          ),
+          if (exercise.description.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (exercise.tags.isNotEmpty)
-                  ...exercise.tags.map(
-                    (tag) => _buildInfoChip(
-                      tag.toUpperCase(),
-                      Icons.tag,
-                      _accent,
-                    ),
-                  )
-                else ...[
-                  _buildInfoChip(
-                    exercise.category.toUpperCase(),
-                    Icons.category,
-                    _accent,
-                  ),
-                  _buildInfoChip(
-                    exercise.equipment == 'bodyweight'
-                        ? 'BODYWEIGHT'
-                        : exercise.equipment.toUpperCase(),
-                    Icons.fitness_center,
-                    _accent,
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 20),
-            ExerciseSetMembershipToggle(
-              exerciseId: exercise.id,
-              persistImmediately: true,
+            Text(
+              exercise.description,
+              style: TextStyle(fontSize: 16, color: AppColorPalette.grey700),
             ),
           ],
-        ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (exercise.tags.isNotEmpty)
+                ...exercise.tags.map(
+                  (tag) =>
+                      _buildInfoChip(tag.toUpperCase(), Icons.tag, _accent),
+                )
+              else ...[
+                _buildInfoChip(
+                  exercise.category.toUpperCase(),
+                  Icons.category,
+                  _accent,
+                ),
+                _buildInfoChip(
+                  exercise.equipment == 'bodyweight'
+                      ? 'BODYWEIGHT'
+                      : exercise.equipment.toUpperCase(),
+                  Icons.fitness_center,
+                  _accent,
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 20),
+          ExerciseSetMembershipToggle(
+            exerciseId: exercise.id,
+            persistImmediately: true,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildPersonalRecords() {
     final exercise = _liveExercise;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBgColor = isDark
-        ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
-        : AppColorPalette.white.withValues(alpha: 0.8);
     final lastUsed = _lastUsedAt;
     final timesUsed = _timesUsedCount;
     final accent = _accent;
 
-    return Card(
-      color: cardBgColor,
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildRecordCard(
-                    'Best Weight',
-                    _bestWeightLabel,
-                    exercise.personalRecordUnit ??
-                        (exercise.measurementUnit == 'lbs' ? 'lbs' : 'kg'),
-                    Icons.fitness_center,
-                    accent,
-                  ),
+    return SizedBox(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildRecordCard(
+                  'Best Weight',
+                  _bestWeightLabel,
+                  exercise.personalRecordUnit ??
+                      (exercise.measurementUnit == 'lbs' ? 'lbs' : 'kg'),
+                  Icons.fitness_center,
+                  accent,
                 ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: _buildRecordCard(
-                    'Times Used',
-                    timesUsed.toString(),
-                    timesUsed == 1 ? 'session' : 'sessions',
-                    Icons.history,
-                    accent,
-                  ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: _buildRecordCard(
+                  'Times Used',
+                  timesUsed.toString(),
+                  timesUsed == 1 ? 'session' : 'sessions',
+                  Icons.history,
+                  accent,
                 ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: _buildRecordCard(
-                    'Last Used',
-                    lastUsed != null ? _formatDate(lastUsed) : 'Never',
-                    '',
-                    Icons.access_time,
-                    accent,
-                  ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: _buildRecordCard(
+                  'Last Used',
+                  lastUsed != null ? _formatDate(lastUsed) : 'Never',
+                  '',
+                  Icons.access_time,
+                  accent,
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -453,92 +425,89 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   }
 
   Widget _buildInstructions() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.list_alt, color: _accent),
-                SizedBox(width: 8),
-                Builder(
-                  builder: (context) {
-                    final isDark =
-                        Theme.of(context).brightness == Brightness.dark;
-                    return Text(
-                      'Instructions',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? AppColorPalette.white
-                            : AppColorPalette.grey900,
+    return SizedBox(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.list_alt, color: _accent),
+              SizedBox(width: 8),
+              Builder(
+                builder: (context) {
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
+                  return Text(
+                    'Instructions',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark
+                          ? AppColorPalette.white
+                          : AppColorPalette.grey900,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          if (_liveExercise.instructions.isEmpty)
+            Text(
+              'No instructions provided.',
+              style: TextStyle(
+                color: AppColorPalette.textSecondary,
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          else
+            ..._liveExercise.instructions.asMap().entries.map(
+              (entry) => Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: _accent,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            if (_liveExercise.instructions.isEmpty)
-              Text(
-                'No instructions provided.',
-                style: TextStyle(
-                  color: AppColorPalette.textSecondary,
-                  fontStyle: FontStyle.italic,
-                ),
-              )
-            else
-              ..._liveExercise.instructions.asMap().entries.map(
-                (entry) => Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: _accent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${entry.key + 1}',
-                            style: TextStyle(
-                              color: AppColorPalette.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      child: Center(
+                        child: Text(
+                          '${entry.key + 1}',
+                          style: TextStyle(
+                            color: AppColorPalette.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Builder(
-                          builder: (context) {
-                            final isDark =
-                                Theme.of(context).brightness == Brightness.dark;
-                            return Text(
-                              entry.value,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: isDark
-                                    ? AppColorPalette.grey300
-                                    : AppColorPalette.grey800,
-                              ),
-                            );
-                          },
-                        ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Builder(
+                        builder: (context) {
+                          final isDark =
+                              Theme.of(context).brightness == Brightness.dark;
+                          return Text(
+                            entry.value,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: isDark
+                                  ? AppColorPalette.grey300
+                                  : AppColorPalette.grey800,
+                            ),
+                          );
+                        },
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -549,59 +518,54 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
         ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
         : AppColorPalette.white.withValues(alpha: 0.8);
 
-    return Card(
-      color: cardBgColor,
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.history, color: _accent),
-                SizedBox(width: 8),
-                Text(
-                  'Recent History',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColorPalette.white
-                        : AppColorPalette.grey900,
-                  ),
+    return SizedBox(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.history, color: _accent),
+              SizedBox(width: 8),
+              Text(
+                'Recent History',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark
+                      ? AppColorPalette.white
+                      : AppColorPalette.grey900,
                 ),
-              ],
-            ),
-            SizedBox(height: 16),
-            if (_exerciseHistory.isEmpty && !_hasLastWorkoutFallback)
-              Builder(
-                builder: (context) {
-                  final isDark =
-                      Theme.of(context).brightness == Brightness.dark;
-                  return Text(
-                    'No workout history for this exercise.',
-                    style: TextStyle(
-                      color: isDark
-                          ? AppColorPalette.grey400
-                          : AppColorPalette.grey600,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  );
-                },
-              )
-            else if (_hasLastWorkoutFallback)
-              _buildLastWorkoutFallbackItem()
-            else
-              ...(_exerciseHistory
-                  .take(5)
-                  .map((session) => _buildHistoryItem(session))),
-            if (_exerciseHistory.length > 5)
-              TextButton(
-                onPressed: _viewFullHistory,
-                child: Text('View All History'),
               ),
-          ],
-        ),
+            ],
+          ),
+          SizedBox(height: 16),
+          if (_exerciseHistory.isEmpty && !_hasLastWorkoutFallback)
+            Builder(
+              builder: (context) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return Text(
+                  'No workout history for this exercise.',
+                  style: TextStyle(
+                    color: isDark
+                        ? AppColorPalette.grey400
+                        : AppColorPalette.grey600,
+                    fontStyle: FontStyle.italic,
+                  ),
+                );
+              },
+            )
+          else if (_hasLastWorkoutFallback)
+            _buildLastWorkoutFallbackItem()
+          else
+            ...(_exerciseHistory
+                .take(5)
+                .map((session) => _buildHistoryItem(session))),
+          if (_exerciseHistory.length > 5)
+            TextButton(
+              onPressed: _viewFullHistory,
+              child: Text('View All History'),
+            ),
+        ],
       ),
     );
   }
@@ -612,8 +576,10 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
     final weights = exercise.lastWorkoutWeights ?? [];
     final completed = reps.length;
     final totalReps = reps.fold(0, (a, b) => a + b);
-    final positiveWeights =
-        weights.whereType<double>().where((w) => w > 0).toList();
+    final positiveWeights = weights
+        .whereType<double>()
+        .where((w) => w > 0)
+        .toList();
     final showWeight =
         exercise.measurementUnit == 'kg' || exercise.measurementUnit == 'lbs';
     final avg = positiveWeights.isEmpty
@@ -676,17 +642,16 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.check_circle,
-                color: _accent,
-                size: 20,
-              ),
+              Icon(Icons.check_circle, color: _accent, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
                     Text(
                       subtitle,
                       style: TextStyle(
@@ -732,8 +697,8 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
       exercise.id,
       measurementUnit: exercise.measurementUnit,
     );
-    final showWeight = exercise.measurementUnit == 'kg' ||
-        exercise.measurementUnit == 'lbs';
+    final showWeight =
+        exercise.measurementUnit == 'kg' || exercise.measurementUnit == 'lbs';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -793,11 +758,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               spacing: 8,
               runSpacing: 6,
               children: [
-                _historyStatChip(
-                  'Reps',
-                  '${stats.totalReps}',
-                  Icons.repeat,
-                ),
+                _historyStatChip('Reps', '${stats.totalReps}', Icons.repeat),
                 if (showWeight && stats.averageWeight != null)
                   _historyStatChip(
                     'Avg',
@@ -959,9 +920,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete Exercise'),
-        content: Text(
-          'Are you sure you want to delete "${exercise.name}"?',
-        ),
+        content: Text('Are you sure you want to delete "${exercise.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1006,10 +965,8 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ActiveWorkoutSessionScreen(
-          session: session,
-          exercises: [exercise],
-        ),
+        builder: (context) =>
+            ActiveWorkoutSessionScreen(session: session, exercises: [exercise]),
       ),
     );
   }

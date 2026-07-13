@@ -35,7 +35,6 @@ class SetSessionSummaryScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ready to start'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: AppColorPalette.white,
       ),
@@ -65,17 +64,11 @@ class SetSessionSummaryScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   '${exercises.length} exercises · ~$totalSets sets',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: AppColorPalette.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 15),
                 ),
                 Text(
                   'Est. $estMinLow–$estMinHigh min',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColorPalette.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 14),
                 ),
                 const SizedBox(height: 28),
                 Text(
@@ -139,10 +132,7 @@ class SetSessionSummaryScreen extends StatelessWidget {
       totalSetsCompleted: 0,
       totalRepsCompleted: 0,
       caloriesBurned: 0,
-      additionalData: {
-        'setCategoryId': setCategory.id,
-        'setLabel': setLabel,
-      },
+      additionalData: {'setCategoryId': setCategory.id, 'setLabel': setLabel},
     );
 
     final result = await Navigator.push<Object?>(
@@ -297,11 +287,7 @@ class _PlanExerciseTile extends StatelessWidget {
         children: [
           Text(
             '$index.',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColorPalette.textSecondary,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(width: 10),
           Container(
@@ -340,10 +326,7 @@ class _PlanExerciseTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '$volumeLabel · $muscleLabel',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColorPalette.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 13),
                 ),
               ],
             ),

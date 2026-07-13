@@ -173,157 +173,172 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
       builder: (context, Box<ExerciseModel> exercisesBox, _) {
         final exerciseImages = _getExerciseImages(program, exercisesBox);
 
-        return Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    ...List.generate(5, (index) {
-                      final isCompleted = index < program.timesPerformed;
-                      return Container(
-                        width: 20,
-                        height: 8,
-                        margin: const EdgeInsets.only(right: 4),
-                        decoration: BoxDecoration(
-                          color: isCompleted
-                              ? AppColorPalette.color2
-                              : AppColorPalette.grey300,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      );
-                    }),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => program.toggleBookmark(),
-                      child: Icon(
-                        program.isBookmarked
-                            ? Icons.bookmark
-                            : Icons.bookmark_border,
-                        color: program.isBookmarked
-                            ? AppColorPalette.color2
-                            : AppColorPalette.grey400,
-                        size: 24,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  program.name,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.timer,
-                      size: 16,
-                      color: AppColorPalette.color2,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Duration: ${program.formattedDuration}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColorPalette.color2,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Icon(
-                      Icons.repeat,
-                      size: 16,
-                      color: AppColorPalette.color2,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Performed: ${program.timesPerformed}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColorPalette.color2,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                      childAspectRatio: 1.0,
-                    ),
-                    itemCount:
-                        exerciseImages.length > 12 ? 12 : exerciseImages.length,
-                    itemBuilder: (context, index) {
-                      final imageUrl = exerciseImages[index];
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: AppColorPalette.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: WorkoutIconWidget(
-                            imageUrl: imageUrl,
-                            size: double.infinity,
-                            backgroundColor: AppColorPalette.white,
-                            placeholder: Icon(
-                              Icons.fitness_center,
-                              color: AppColorPalette.textSecondary,
-                              size: 24,
-                            ),
+        return GestureDetector(
+          onTap: () => _startProgram(program),
+          behavior: HitTestBehavior.opaque,
+          child: Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: AppColorPalette.grey300),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      ...List.generate(5, (index) {
+                        final isCompleted = index < program.timesPerformed;
+                        return Container(
+                          width: 20,
+                          height: 8,
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(
+                            color: isCompleted
+                                ? AppColorPalette.color2
+                                : AppColorPalette.grey300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        );
+                      }),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => program.toggleBookmark(),
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(
+                            program.isBookmarked
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
+                            color: program.isBookmarked
+                                ? AppColorPalette.color2
+                                : AppColorPalette.grey400,
+                            size: 24,
                           ),
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ProgramRunningScreen(program: program),
+                  const SizedBox(height: 16),
+                  Text(
+                    program.name,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.timer,
+                        size: 16,
+                        color: AppColorPalette.color2,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Duration: ${program.formattedDuration}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColorPalette.color2,
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppUiSizes.buttonRadius),
                       ),
-                    ),
-                    child: const Text(
-                      'Start Program',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(width: 16),
+                      Icon(
+                        Icons.repeat,
+                        size: 16,
+                        color: AppColorPalette.color2,
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Performed: ${program.timesPerformed}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColorPalette.color2,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: _buildExerciseImageGrid(exerciseImages),
+                  ),
+                ],
+              ),
             ),
           ),
         );
       },
+    );
+  }
+
+  void _startProgram(TimedWorkoutModel program) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProgramRunningScreen(program: program),
+      ),
+    );
+  }
+
+  /// Fixed 4×4 slots — no scrolling; empty cells when fewer than 16 images.
+  Widget _buildExerciseImageGrid(List<String?> exerciseImages) {
+    const cols = 4;
+    const rows = 4;
+    const spacing = 8.0;
+
+    return Column(
+      children: [
+        for (var row = 0; row < rows; row++) ...[
+          if (row > 0) const SizedBox(height: spacing),
+          Expanded(
+            child: Row(
+              children: [
+                for (var col = 0; col < cols; col++) ...[
+                  if (col > 0) const SizedBox(width: spacing),
+                  Expanded(
+                    child: _buildGridCell(
+                      exerciseImages.length > row * cols + col
+                          ? exerciseImages[row * cols + col]
+                          : null,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildGridCell(String? imageUrl) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColorPalette.white,
+        borderRadius: BorderRadius.circular(8),
+        border: imageUrl == null
+            ? Border.all(color: AppColorPalette.grey200)
+            : null,
+      ),
+      child: imageUrl == null
+          ? const SizedBox.expand()
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: WorkoutIconWidget(
+                imageUrl: imageUrl,
+                size: double.infinity,
+                backgroundColor: AppColorPalette.white,
+                placeholder: Icon(
+                  Icons.fitness_center,
+                  color: AppColorPalette.textSecondary,
+                  size: 24,
+                ),
+              ),
+            ),
     );
   }
 
@@ -333,6 +348,7 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
   ) {
     final images = <String?>[];
     for (final item in program.workoutOrder) {
+      if (images.length >= 16) break;
       ExerciseModel? exercise = exercisesBox.get(item.workoutId);
       exercise ??= exercisesBox.values.cast<ExerciseModel?>().firstWhere(
             (ex) => ex?.id == item.workoutId,

@@ -17,39 +17,11 @@ class OnOffToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = activeColor ?? Theme.of(context).colorScheme.primary;
-    final enabled = onChanged != null;
-
-    return Opacity(
-      opacity: enabled ? 1 : 0.5,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: enabled ? () => onChanged!(!value) : null,
-          borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: value ? accent : Colors.transparent,
-              borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
-              border: Border.all(
-                color: value ? accent : AppColorPalette.grey400,
-                width: 1.5,
-              ),
-            ),
-            child: Text(
-              value ? 'On' : 'Off',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: value ? AppColorPalette.white : AppColorPalette.grey700,
-              ),
-            ),
-          ),
-        ),
-      ),
+    return SettingsRectChip(
+      label: value ? 'On' : 'Off',
+      selected: value,
+      activeColor: activeColor,
+      onTap: onChanged == null ? null : () => onChanged!(!value),
     );
   }
 }
@@ -85,6 +57,62 @@ class OnOffToggleListTile extends StatelessWidget {
         activeColor: activeColor,
       ),
       onTap: onChanged == null ? null : () => onChanged!(!value),
+    );
+  }
+}
+
+/// Shared rectangular chip used by On/Off toggles and settings presets.
+/// Uses [AppUiSizes.buttonRadius] — slightly rounded, not pill-shaped.
+class SettingsRectChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+  final Color? activeColor;
+
+  const SettingsRectChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    this.onTap,
+    this.activeColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = activeColor ?? Theme.of(context).colorScheme.primary;
+    final enabled = onTap != null;
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: selected ? accent : Colors.transparent,
+              borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+              border: Border.all(
+                color: selected ? accent : AppColorPalette.grey400,
+                width: 1.5,
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color:
+                    selected ? AppColorPalette.white : AppColorPalette.grey700,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

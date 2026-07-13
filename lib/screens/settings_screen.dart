@@ -13,6 +13,7 @@ import 'package:solo_level_system/utils/palette_notifier.dart';
 import 'package:solo_level_system/screens/workout_settings_screen.dart';
 import 'package:solo_level_system/widgets/common/standard_tab_app_bar.dart';
 import 'package:solo_level_system/widgets/common/on_off_toggle.dart';
+import 'package:solo_level_system/widgets/common/settings_slider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -236,8 +237,8 @@ class _SettingsScreenState extends State<SettingsScreen>
           title: Text('Work Duration'),
           subtitle: Text('${userSettings.defaultWorkMinutes} minutes'),
           trailing: SizedBox(
-            width: 100,
-            child: Slider(
+            width: 120,
+            child: SettingsSlider(
               value: userSettings.defaultWorkMinutes.toDouble(),
               min: 1,
               max: 60,
@@ -275,8 +276,8 @@ class _SettingsScreenState extends State<SettingsScreen>
           title: Text('Break Duration'),
           subtitle: Text('${userSettings.defaultBreakMinutes} minutes'),
           trailing: SizedBox(
-            width: 100,
-            child: Slider(
+            width: 120,
+            child: SettingsSlider(
               value: userSettings.defaultBreakMinutes.toDouble(),
               min: 1,
               max: 30,
@@ -536,8 +537,8 @@ class _SettingsScreenState extends State<SettingsScreen>
           title: Text('Bit Rate'),
           subtitle: Text('${audioSettings.bitRate} kbps'),
           trailing: SizedBox(
-            width: 100,
-            child: Slider(
+            width: 120,
+            child: SettingsSlider(
               value: audioSettings.bitRate.toDouble(),
               min: 64,
               max: 256,
@@ -585,8 +586,8 @@ class _SettingsScreenState extends State<SettingsScreen>
           title: Text('Volume'),
           subtitle: Text('${(audioSettings.volume * 100).round()}%'),
           trailing: SizedBox(
-            width: 100,
-            child: Slider(
+            width: 120,
+            child: SettingsSlider(
               value: audioSettings.volume,
               min: 0.0,
               max: 1.0,
@@ -701,34 +702,13 @@ class _SettingsScreenState extends State<SettingsScreen>
           padding: EdgeInsets.symmetric(horizontal: 16),
           child: Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: values.map((value) {
               final isSelected = currentValue == value;
-              return GestureDetector(
+              return SettingsRectChip(
+                label: '${value}m',
+                selected: isSelected,
                 onTap: () => onSelected(value),
-                child: AnimatedContainer(
-                  duration: Duration(milliseconds: 200),
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? Theme.of(context).primaryColor
-                        : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isSelected
-                          ? Theme.of(context).primaryColor
-                          : Colors.grey[300]!,
-                    ),
-                  ),
-                  child: Text(
-                    '${value}m',
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.grey[700],
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ),
               );
             }).toList(),
           ),

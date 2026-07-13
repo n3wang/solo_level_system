@@ -356,9 +356,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
     final exercises = _getOrderedExercisesForSet(selectedSet);
     if (exercises.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add an exercise first')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Add an exercise first')));
       return;
     }
 
@@ -923,17 +923,15 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _viewExerciseDetails(exercise),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColorPalette.grey300),
-            ),
-            child: Stack(
+      child: GestureDetector(
+        onTap: () => _viewExerciseDetails(exercise),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColorPalette.grey300),
+          ),
+          child: Stack(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
@@ -951,14 +949,11 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                                   ? AppColorPalette.backgroundDarkSurface
                                   : AppColorPalette.white;
                               return Container(
-                                width: 50,
-                                height: 50,
+                                width: 60,
+                                height: 60,
                                 decoration: BoxDecoration(
                                   color: iconBgColor,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: AppColorPalette.grey300,
-                                  ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
@@ -985,8 +980,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: List.generate(5, (index) {
-                              final set =
-                                  sets.length > index ? sets[index] : null;
+                              final set = sets.length > index
+                                  ? sets[index]
+                                  : null;
                               final belongsToSet =
                                   set != null &&
                                   set.exerciseIds.contains(exercise.id);
@@ -1130,7 +1126,6 @@ class _WorkoutScreenState extends State<WorkoutScreen>
             ),
           ),
         ),
-      ),
     );
   }
 
@@ -1407,5 +1402,3 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     );
   }
 }
-
-

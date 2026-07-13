@@ -25,9 +25,16 @@ class _AddEditTimedProgramScreenState extends State<AddEditTimedProgramScreen> {
 
   bool get _isEditing => widget.program != null;
 
+  bool get _canSave {
+    final hasName = _nameController.text.trim().isNotEmpty;
+    final hasExercise = _steps.any((s) => s.exerciseId != null);
+    return hasName && hasExercise;
+  }
+
   @override
   void initState() {
     super.initState();
+    _nameController.addListener(() => setState(() {}));
     final program = widget.program;
     if (program != null) {
       _nameController.text = program.name;
@@ -120,23 +127,11 @@ class _AddEditTimedProgramScreenState extends State<AddEditTimedProgramScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit Program' : 'Create Program'),
-        actions: [
-          TextButton(
-            onPressed: _saving ? null : _save,
-            child: Text(
-              'Save',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
             TextFormField(
               controller: _nameController,
@@ -278,6 +273,31 @@ class _AddEditTimedProgramScreenState extends State<AddEditTimedProgramScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: _canSave
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                    child: Text(
+                      _saving ? 'Saving…' : 'Save Program',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : null,
     );
   }
 }
