@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/config/app_environment.dart';
-import 'package:solo_level_system/models/motivation_item_model.dart';
+import 'package:solo_level_system/models/card_model.dart';
 
 class MotivationSeedService {
   static const String _boxName = 'motivationItems';
@@ -11,9 +11,9 @@ class MotivationSeedService {
 
   static Future<void> ensureSeeded() async {
     if (!Hive.isBoxOpen(_boxName)) {
-      await Hive.openBox<MotivationItemModel>(_boxName);
+      await Hive.openBox<CardModel>(_boxName);
     }
-    final box = Hive.box<MotivationItemModel>(_boxName);
+    final box = Hive.box<CardModel>(_boxName);
     final quoteMap = await _loadQuotesByPerson();
     final csvRaw = await rootBundle.loadString(_csvPath);
     final lines = csvRaw
@@ -38,7 +38,7 @@ class MotivationSeedService {
       final quoteText = type == 'quote' && quotes.isNotEmpty
           ? quotes.first
           : null;
-      MotivationItemModel? existing;
+      CardModel? existing;
       for (final item in box.values) {
         if (item.id == id) {
           existing = item;
@@ -72,7 +72,7 @@ class MotivationSeedService {
       }
 
       await box.add(
-        MotivationItemModel(
+        CardModel(
           id: id,
           type: type,
           title: name,
@@ -84,6 +84,7 @@ class MotivationSeedService {
           quotePerson: type == 'quote' ? name : null,
           quoteText: quoteText,
           imageIndex: number,
+          rarity: _rarityFor(number),
           metadata: {
             'source': 'motivation_64.csv',
             if (type == 'quote' && quotes.isNotEmpty) 'quotes': quotes,
@@ -92,17 +93,115 @@ class MotivationSeedService {
       );
     }
 
+    await _ensureStarterUnlockCards(box);
+
     if (AppEnvironment.isTest) {
       await _ensureTestSampleGymQuotes(box);
     }
   }
 
+  /// Seeds first-run cards that ship already acquired: stackable capacity
+  /// options (project / room slots, ×3 each) and a core guide card. Idempotent.
+  static Future<void> _ensureStarterUnlockCards(Box<CardModel> box) async {
+    final now = DateTime.now();
+    final optionCost = AppEnvironment.isTest ? 10 : 50;
+
+    CardModel option({
+      required String id,
+      required String title,
+      required String description,
+      required String settingKey,
+    }) {
+      return CardModel(
+        id: id,
+        type: 'option',
+        title: title,
+        description: description,
+        category: 'option',
+        pointsCost: optionCost,
+        createdAt: now,
+        isSystem: true,
+        isStarter: true,
+        isAcquired: true,
+        acquisitionCount: 3,
+        acquisitionHistory: [now, now, now],
+        unlockTargetId: settingKey,
+        rarity: 'uncommon',
+        metadata: {
+          'source': 'starter_option',
+          'settingKey': settingKey,
+          'capacityPerCopy': 1,
+        },
+      );
+    }
+
+    final starters = <CardModel>[
+      option(
+        id: 'option_project_slots',
+        title: 'Project Slot',
+        description:
+            'Each copy raises your maximum number of projects by one. Buy again to add more.',
+        settingKey: 'project_slots',
+      ),
+      option(
+        id: 'option_room_slots',
+        title: 'Room Slot',
+        description:
+            'Each copy raises the number of rooms you can keep by one. Buy again to add more.',
+        settingKey: 'room_slots',
+      ),
+      CardModel(
+        id: 'guide_motivation_hub',
+        type: 'guide',
+        title: 'Motivation Hub Guide',
+        description: 'How the card catalog and points work.',
+        category: 'guide',
+        pointsCost: 0,
+        createdAt: now,
+        isSystem: true,
+        isStarter: true,
+        isAcquired: true,
+        acquisitionCount: 1,
+        acquisitionHistory: [now],
+        unlockTargetId: 'motivation_hub',
+        rarity: 'common',
+        metadata: {
+          'source': 'starter_guide',
+          'screenKey': 'motivation_hub',
+          'howTo':
+              'Every tile is a Card. Spend points (earned from focus and workout '
+                  'sessions) to acquire cards. Acquiring a card unlocks what it '
+                  'represents — a program, room, track, or extra capacity. Option '
+                  'cards stack: buy them again to raise a limit.',
+          'tips': [
+            'Filter by type or by "acquired" to find cards fast.',
+            'Session loot drops cards weighted by rarity.',
+          ],
+        },
+      ),
+    ];
+
+    for (final starter in starters) {
+      final exists = box.values.any((c) => c.id == starter.id);
+      if (exists) continue;
+      await box.add(starter);
+    }
+  }
+
+  /// Rough rarity tiering by catalog number so drops and tints vary.
+  static String _rarityFor(int number) {
+    if (number <= 3) return 'common';
+    if (number <= 12) return 'uncommon';
+    if (number <= 24) return 'rare';
+    return 'epic';
+  }
+
   static Future<void> _ensureTestSampleGymQuotes(
-    Box<MotivationItemModel> box,
+    Box<CardModel> box,
   ) async {
     final now = DateTime.now();
-    final samples = <MotivationItemModel>[
-      MotivationItemModel(
+    final samples = <CardModel>[
+      CardModel(
         id: 'test_quote_gym_1',
         type: 'quote',
         title: 'Gym Focus',
@@ -123,7 +222,7 @@ class MotivationSeedService {
           ],
         },
       ),
-      MotivationItemModel(
+      CardModel(
         id: 'test_quote_gym_2',
         type: 'quote',
         title: 'Gym Discipline',
@@ -144,7 +243,7 @@ class MotivationSeedService {
           ],
         },
       ),
-      MotivationItemModel(
+      CardModel(
         id: 'test_quote_gym_3',
         type: 'quote',
         title: 'Gym Momentum',

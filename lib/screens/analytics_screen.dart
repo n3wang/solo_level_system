@@ -3,18 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
+import 'package:solo_level_system/constants/collectible_card_layout.dart';
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
-import 'package:solo_level_system/models/motivation_item_model.dart';
+import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/motivation_points_transaction_model.dart';
+import 'package:solo_level_system/models/reward_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
-import 'package:solo_level_system/screens/motivation_hub_screen.dart';
+import 'package:solo_level_system/screens/cards_hub_screen.dart';
+import 'package:solo_level_system/utils/card_repository.dart';
 import 'package:solo_level_system/utils/motivation_points_service.dart';
+import 'package:solo_level_system/widgets/cards/collectible_card.dart';
+import 'package:solo_level_system/widgets/cards/create_reward_dialog.dart';
 import 'package:solo_level_system/widgets/pomodoro/session_recording_preview.dart';
 import 'package:solo_level_system/widgets/common/standard_tab_app_bar.dart';
 import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
-import 'package:sprite_sheets/sprite_sheets.dart';
 
 extension StringExtension on String {
   String capitalizeFirst() {
@@ -57,13 +61,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     return Scaffold(
       appBar: StandardTabAppBar(
         controller: _tabController,
-        labels: const ['Overview', 'Focus', 'Workouts', 'Motivation'],
+        labels: const ['Overview', 'Cards', 'Focus', 'Workouts'],
         isScrollable: false,
       ),
+      floatingActionButton: _tabController.index == 0
+          ? FloatingActionButton.extended(
+              onPressed: () => showCreateRewardDialog(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Create'),
+            )
+          : null,
       body: Column(
         children: [
-          // Period picker on Focus/Workouts; Motivation shows points; Overview has neither.
-          if (_tabController.index == 3)
+          // Period picker on Focus/Workouts; Cards shows points; Overview has neither.
+          if (_tabController.index == 1)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(
@@ -73,7 +84,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               alignment: Alignment.centerLeft,
               child: _buildMotivationPointsHeader(),
             )
-          else if (_tabController.index == 1 || _tabController.index == 2)
+          else if (_tabController.index == 2 || _tabController.index == 3)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(
@@ -100,9 +111,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               controller: _tabController,
               children: [
                 _buildOverviewTab(),
+                const CardsHubScreen(),
                 _buildFocusTab(),
                 _buildWorkoutsTab(),
-                const MotivationHubScreen(),
               ],
             ),
           ),
@@ -159,8 +170,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       future: Future.wait([
         _ensureBoxIsOpen<PomodoroModel>('pomodoros'),
         _ensureBoxIsOpen<WorkoutSessionModel>('workoutSessions'),
-        _ensureBoxIsOpen<EnhancedAudioModel>('audioFiles'),
-        _ensureBoxIsOpen<MotivationItemModel>('motivationItems'),
+        _ensureBoxIsOpen<CardModel>('motivationItems'),
+        _ensureBoxIsOpen<RewardModel>('rewards'),
+        _ensureBoxIsOpen<UserProgressModel>('userProgress'),
       ]),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -180,30 +192,32 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               ).listenable(),
               builder: (context, workoutBox, _) {
                 return ValueListenableBuilder(
-                  valueListenable: Hive.box<EnhancedAudioModel>(
-                    'audioFiles',
+                  valueListenable: Hive.box<CardModel>(
+                    'motivationItems',
                   ).listenable(),
-                  builder: (context, audioBox, _) {
+                  builder: (context, motivationBox, _) {
                     return ValueListenableBuilder(
-                      valueListenable:
-                          Hive.box<MotivationItemModel>(
-                            'motivationItems',
-                          ).listenable(),
-                      builder: (context, motivationBox, _) {
-                        final sessionAudios = audioBox.values
+                      valueListenable: Hive.box<RewardModel>(
+                        'rewards',
+                      ).listenable(),
+                      builder: (context, rewardsBox, _) {
+                        final catalog = CardRepository.build(
+                          cards: motivationBox.values.toList(),
+                          rewards: rewardsBox.values.toList(),
+                        );
+                        final weekStart = _collectiblesWeekStart();
+                        final acquired = catalog
                             .where(
-                              (audio) =>
-                                  audio.category == null ||
-                                  audio.category == 'session',
+                              (c) =>
+                                  c.isAcquired &&
+                                  _isAcquiredInCollectiblesWeek(c, weekStart),
                             )
-                            .toList();
-                        final acquired = motivationBox.values
-                            .where((item) => item.hasAnyAcquisition)
                             .toList()
-                          ..sort(
-                            (a, b) => (b.acquiredAt ?? b.createdAt)
-                                .compareTo(a.acquiredAt ?? a.createdAt),
-                          );
+                          ..sort((a, b) {
+                            final aAt = _collectibleAcquiredAt(a);
+                            final bAt = _collectibleAcquiredAt(b);
+                            return bAt.compareTo(aAt);
+                          });
 
                         return SingleChildScrollView(
                           padding: const EdgeInsets.all(AppUiSizes.lg),
@@ -216,8 +230,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                               ),
                               const SizedBox(height: AppUiSizes.xxl),
                               _buildAcquiredCollectibles(acquired),
-                              const SizedBox(height: AppUiSizes.xxl),
-                              _buildSessionAudioRecordingsCard(sessionAudios),
+                              // Extra space so FAB does not cover the last row.
+                              const SizedBox(height: 72),
                             ],
                           ),
                         );
@@ -235,7 +249,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   Widget _buildFocusTab() {
     return FutureBuilder(
-      future: _ensureBoxIsOpen<PomodoroModel>('pomodoros'),
+      future: Future.wait([
+        _ensureBoxIsOpen<PomodoroModel>('pomodoros'),
+        _ensureBoxIsOpen<EnhancedAudioModel>('audioFiles'),
+      ]),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
@@ -250,23 +267,37 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         return ValueListenableBuilder(
           valueListenable: Hive.box<PomodoroModel>('pomodoros').listenable(),
           builder: (context, Box<PomodoroModel> box, _) {
-            final sessions = box.values.toList();
-            final filteredSessions = _filterSessionsByPeriod(sessions);
+            return ValueListenableBuilder(
+              valueListenable: Hive.box<EnhancedAudioModel>(
+                'audioFiles',
+              ).listenable(),
+              builder: (context, Box<EnhancedAudioModel> audioBox, _) {
+                final sessions = box.values.toList();
+                final filteredSessions = _filterSessionsByPeriod(sessions);
+                final sessionAudios = _filterAudiosByPeriod(
+                  audioBox.values
+                      .where(_isSessionRecording)
+                      .toList(),
+                );
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppUiSizes.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildFocusStats(filteredSessions),
-                  const SizedBox(height: AppUiSizes.xxl),
-                  _buildFocusChart(filteredSessions),
-                  const SizedBox(height: AppUiSizes.xxl),
-                  _buildProjectBreakdown(filteredSessions),
-                  const SizedBox(height: AppUiSizes.xxl),
-                  _buildStreakInfo(sessions),
-                ],
-              ),
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppUiSizes.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildFocusStats(filteredSessions),
+                      const SizedBox(height: AppUiSizes.xxl),
+                      _buildFocusChart(filteredSessions),
+                      const SizedBox(height: AppUiSizes.xxl),
+                      _buildProjectBreakdown(filteredSessions),
+                      const SizedBox(height: AppUiSizes.xxl),
+                      _buildStreakInfo(sessions),
+                      const SizedBox(height: AppUiSizes.xxl),
+                      _buildSessionAudioRecordingsCard(sessionAudios),
+                    ],
+                  ),
+                );
+              },
             );
           },
         );
@@ -462,11 +493,46 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildAcquiredCollectibles(List<MotivationItemModel> acquired) {
+  /// Start of "today and past 6 days" window (inclusive local calendar days).
+  DateTime _collectiblesWeekStart() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return today.subtract(const Duration(days: 6));
+  }
+
+  DateTime _collectibleAcquiredAt(CatalogCard card) {
+    final item = card.sourceItem;
+    if (item != null) {
+      if (item.acquiredAt != null) return item.acquiredAt!;
+      if (item.acquisitionHistory.isNotEmpty) {
+        return item.acquisitionHistory.last;
+      }
+      return item.createdAt;
+    }
+    final reward = card.sourceReward;
+    if (reward != null) {
+      return reward.purchasedAt ?? reward.createdAt;
+    }
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  bool _isAcquiredInCollectiblesWeek(CatalogCard card, DateTime weekStart) {
+    final at = _collectibleAcquiredAt(card);
+    return !at.isBefore(weekStart);
+  }
+
+  Widget _buildAcquiredCollectibles(List<CatalogCard> acquired) {
     final visible = acquired.where((item) {
       if (_collectibleFilter == 'all') return true;
-      return item.type == _collectibleFilter;
+      return item.typeWire == _collectibleFilter;
     }).toList();
+
+    UserProgressModel progress = UserProgressModel();
+    if (Hive.isBoxOpen('userProgress')) {
+      progress =
+          Hive.box<UserProgressModel>('userProgress').get('progress') ??
+          progress;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,6 +544,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             fontWeight: FontWeight.bold,
           ),
         ),
+        const SizedBox(height: AppUiSizes.xxs),
+        Text(
+          'Today and the past 6 days',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppColorPalette.textSecondary,
+          ),
+        ),
         const SizedBox(height: AppUiSizes.sm),
         SettingsRectChipGroup<String>(
           size: SettingsRectChipSize.compact,
@@ -485,11 +558,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           runSpacing: AppUiSizes.xs,
           value: _collectibleFilter,
           onChanged: (v) => setState(() => _collectibleFilter = v),
-          options: const [
-            SettingsRectChipOption(value: 'all', label: 'all'),
-            SettingsRectChipOption(value: 'quote', label: 'quote'),
-            SettingsRectChipOption(value: 'collection', label: 'collection'),
-            SettingsRectChipOption(value: 'reward', label: 'reward'),
+          options: [
+            for (final t in kCollectibleOverviewTypeFilters)
+              SettingsRectChipOption(value: t, label: t),
           ],
         ),
         const SizedBox(height: AppUiSizes.md),
@@ -498,7 +569,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             child: Padding(
               padding: const EdgeInsets.all(AppUiSizes.lg),
               child: Text(
-                'No acquired collectibles yet',
+                'No collectibles acquired in the past week',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColorPalette.textSecondary,
                 ),
@@ -514,97 +585,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               crossAxisCount: 3,
               crossAxisSpacing: AppUiSizes.md,
               mainAxisSpacing: AppUiSizes.md,
-              childAspectRatio: 0.84,
+              childAspectRatio: CollectibleCardLayout.aspectRatio,
             ),
             itemBuilder: (context, index) {
-              return _buildCollectibleTile(visible[index]);
+              final card = visible[index];
+              return CollectibleCardTile(
+                card: card,
+                availablePoints: progress.availablePoints,
+                onTap: () => showCollectibleCardDetail(
+                  context: context,
+                  card: card,
+                  userProgress: progress,
+                ),
+              );
             },
           ),
       ],
-    );
-  }
-
-  Widget _buildCollectibleTile(MotivationItemModel item) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(AppUiSizes.md),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
-        border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
-        color: scheme.surface,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  item.type,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurface.withValues(alpha: 0.72),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  item.category,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurface.withValues(alpha: 0.58),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Expanded(
-            child: Center(
-              child: _buildCollectibleArt(item, size: 52),
-            ),
-          ),
-          Text(
-            item.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: AppUiSizes.xs),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              item.acquisitionCount > 1
-                  ? 'x${item.acquisitionCount}'
-                  : '${item.pointsCost}',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: scheme.primary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCollectibleArt(MotivationItemModel item, {double size = 52}) {
-    final index = item.imageIndex;
-    if (index != null && index > 0) {
-      return SpriteImage(sheet: 'motivation_64', index: index - 1, size: size);
-    }
-    return Icon(
-      item.type == 'quote'
-          ? Icons.format_quote
-          : item.type == 'reward'
-          ? Icons.card_giftcard
-          : Icons.diamond_outlined,
-      size: size * 0.75,
-      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
     );
   }
 
@@ -639,7 +635,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             const SizedBox(height: AppUiSizes.md),
             if (sorted.isEmpty)
               Text(
-                'No session recordings yet.',
+                'No session recordings for this period.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(
                     context,
@@ -652,7 +648,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     .map(
                       (audio) => Padding(
                         padding: const EdgeInsets.only(bottom: AppUiSizes.sm),
-                        child: SessionRecordingPreview(audio: audio),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _formatRecordingDate(audio.createdAt),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
+                                  ),
+                            ),
+                            const SizedBox(height: AppUiSizes.xs),
+                            SessionRecordingPreview(audio: audio),
+                          ],
+                        ),
                       ),
                     )
                     .toList(),
@@ -1136,55 +1148,57 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   // Helper methods
-  List<PomodoroModel> _filterSessionsByPeriod(List<PomodoroModel> sessions) {
+  DateTime _periodStartDate() {
     final now = DateTime.now();
-    DateTime startDate;
-
     switch (_selectedPeriod) {
       case 'Today':
-        startDate = DateTime(now.year, now.month, now.day);
-        break;
+        return DateTime(now.year, now.month, now.day);
       case 'Week':
-        startDate = now.subtract(Duration(days: now.weekday - 1));
-        break;
+        return now.subtract(Duration(days: now.weekday - 1));
       case 'Month':
-        startDate = DateTime(now.year, now.month, 1);
-        break;
+        return DateTime(now.year, now.month, 1);
       case 'Year':
-        startDate = DateTime(now.year, 1, 1);
-        break;
+        return DateTime(now.year, 1, 1);
       default:
-        startDate = now.subtract(Duration(days: 7));
+        return now.subtract(Duration(days: 7));
     }
+  }
 
+  bool _isSessionRecording(EnhancedAudioModel audio) {
+    return audio.category == null ||
+        audio.category == 'session' ||
+        audio.tags.contains('session');
+  }
+
+  String _formatRecordingDate(DateTime date) {
+    final local = date.toLocal();
+    final mm = local.month.toString().padLeft(2, '0');
+    final dd = local.day.toString().padLeft(2, '0');
+    final hh = local.hour.toString().padLeft(2, '0');
+    final min = local.minute.toString().padLeft(2, '0');
+    return '$mm/$dd/${local.year} $hh:$min';
+  }
+
+  List<PomodoroModel> _filterSessionsByPeriod(List<PomodoroModel> sessions) {
+    final startDate = _periodStartDate();
     return sessions
         .where((session) => session.startTime.isAfter(startDate))
+        .toList();
+  }
+
+  List<EnhancedAudioModel> _filterAudiosByPeriod(
+    List<EnhancedAudioModel> audios,
+  ) {
+    final startDate = _periodStartDate();
+    return audios
+        .where((audio) => audio.createdAt.isAfter(startDate))
         .toList();
   }
 
   List<WorkoutSessionModel> _filterWorkoutsByPeriod(
     List<WorkoutSessionModel> sessions,
   ) {
-    final now = DateTime.now();
-    DateTime startDate;
-
-    switch (_selectedPeriod) {
-      case 'Today':
-        startDate = DateTime(now.year, now.month, now.day);
-        break;
-      case 'Week':
-        startDate = now.subtract(Duration(days: now.weekday - 1));
-        break;
-      case 'Month':
-        startDate = DateTime(now.year, now.month, 1);
-        break;
-      case 'Year':
-        startDate = DateTime(now.year, 1, 1);
-        break;
-      default:
-        startDate = now.subtract(Duration(days: 7));
-    }
-
+    final startDate = _periodStartDate();
     return sessions
         .where((session) => session.startTime.isAfter(startDate))
         .toList();

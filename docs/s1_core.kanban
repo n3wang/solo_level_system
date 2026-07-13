@@ -5,15 +5,6 @@
       "title": "Backlog [move n sprint]",
       "cards": [
         {
-          "id": "93bca62b-4887-44c0-9c76-af5f74de96e0",
-          "listId": "1a85af95-8733-4f4a-9df3-94e7d1bddb67",
-          "title": "Solving the accent issues",
-          "description": "On dark mode I cant see what I am clicking. Also why does accent setting nt actually reflect on the aplication? Why the my rewards when tab is selected is purple and not my selected accent color on settings? Do I need to restart teh application to see this accent color changes?",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
           "id": "01e685b2-8aec-4463-997b-3ef4099ce64d",
           "listId": "1a85af95-8733-4f4a-9df3-94e7d1bddb67",
           "title": "Chrome Extension",
@@ -59,60 +50,36 @@
           "id": "0c0ed0da-07e7-4b52-b42c-36f200957e85",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "build core afk mechanic",
-          "description": "The core mechanic can be just done with a few icons characters and a couple skills. The core mechanic refers to one single character working out and improving stats\n",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "5d3e0edb-8d9d-4f59-a3c8-ba3a5bed089c",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Pressing in the routine, focusing and saving",
-          "description": "Pressing in the routine  workout button selection doesnt open the routine screen with the workouts. It should open that list  where can open the screen to continue the workout",
+          "description": "The core mechanic can be just done with a few icons characters and a couple skills. The core mechanic refers to one single character working out and improving stats\n\nFor the afk mechanic. We will have the following effects:\n- those random items will get the character some random effects.\n\n\n\n\n",
           "labels": [],
           "checkboxes": [
             {
-              "id": "46836d27-e487-444d-aeb5-5118c197a398",
-              "title": "Animate the 7 mins workout using the irasutoya style ",
+              "id": "24a5c789-096f-480e-8746-3665db82d2c8",
+              "title": "Designate effects for the card games",
               "checked": false
             },
             {
-              "id": "d69d2d19-f594-4eb5-a2e2-93e73a7c1a37",
-              "title": "Creating icons for common excercises",
+              "id": "11ca8e72-f429-434c-9565-e76ea2260261",
+              "title": "Designate effects for the plants",
+              "checked": false
+            },
+            {
+              "id": "be70e7c6-6c65-47a9-8468-5e773b1ab835",
+              "title": "Rework on the markdown how these works in cards",
+              "checked": false
+            },
+            {
+              "id": "8902b3b2-523b-49d6-9426-892ef943f1d6",
+              "title": "Repeated character cards represent better relationship with people",
+              "checked": false
+            },
+            {
+              "id": "0c072feb-ea78-47d6-9791-3a4003b65d9c",
+              "title": "Add rpg effect cards (inspired by dnd)",
               "checked": false
             }
           ],
           "comments": []
-        },
-        {
-          "id": "f1d9bc53-96d5-4f9b-9e86-536aeee5fb3f",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Motivational cards for workout -> collectibles",
-          "description": "On the One should be able to create motivational cards and ",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "3dd64d6f-9bfb-4fb7-a11a-b8de0e5db074",
-              "title": "Actually move the the side buttons from the right to the top",
-              "checked": true
-            },
-            {
-              "id": "c4ddb2d9-aa69-4d9d-9b47-8a079ee650c1",
-              "title": "Clean the top screen",
-              "checked": false
-            },
-            {
-              "id": "09bb8b4d-3b4a-42d0-b9b4-a71bd274129d",
-              "title": "Add zombies and fighting motivation packs for workout (unlockeable)",
-              "checked": false
-            }
-          ],
-          "comments": [
-            {
-              "id": "15e93875-7684-4c21-9bef-31d6c0886729",
-              "comment": "The user should allow for creating images (uploading images, optional) and have motivational cards, when viewing the motivanal card, the text shoudl appear overalying the image and the image should be fitting the width, the users shoudl be able to have an access to view all his motivational cards. Create and migrate the models required for self storing thes on  Hive"
-            }
-          ]
         },
         {
           "id": "641883aa-e179-4abc-a590-0c61fad393cc",
@@ -131,6 +98,15 @@
           "labels": [],
           "checkboxes": [],
           "comments": []
+        },
+        {
+          "id": "66605315-e738-4540-a0ae-7344e7a012f3",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Have the option to cleanroom/workout after break session.",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
         }
       ]
     },
@@ -141,7 +117,7 @@
         {
           "id": "20f34882-5aed-44b4-bd5f-892c781b67e2",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Adding cleaning or push ups for break + 1",
+          "title": "Workout screen update",
           "description": "",
           "labels": [],
           "checkboxes": [
@@ -152,6 +128,36 @@
             }
           ],
           "comments": []
+        },
+        {
+          "id": "f1d9bc53-96d5-4f9b-9e86-536aeee5fb3f",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Motivational cards for workout -> Card Model",
+          "description": "On the One should be able to create motivational cards and ",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "3dd64d6f-9bfb-4fb7-a11a-b8de0e5db074",
+              "title": "Actually move the the side buttons from the right to the top",
+              "checked": true
+            },
+            {
+              "id": "09bb8b4d-3b4a-42d0-b9b4-a71bd274129d",
+              "title": "Add zombies and fighting motivation packs for workout (unlockeable)",
+              "checked": false
+            },
+            {
+              "id": "8b93ffb4-67dc-423d-bb29-60eff731f0cb",
+              "title": "Implement model",
+              "checked": false
+            }
+          ],
+          "comments": [
+            {
+              "id": "15e93875-7684-4c21-9bef-31d6c0886729",
+              "comment": "The user should allow for creating images (uploading images, optional) and have motivational cards, when viewing the motivanal card, the text shoudl appear overalying the image and the image should be fitting the width, the users shoudl be able to have an access to view all his motivational cards. Create and migrate the models required for self storing thes on  Hive"
+            }
+          ]
         }
       ]
     },
@@ -159,6 +165,35 @@
       "id": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
       "title": "Done",
       "cards": [
+        {
+          "id": "93bca62b-4887-44c0-9c76-af5f74de96e0",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Solving the accent issues",
+          "description": "On dark mode I cant see what I am clicking. Also why does accent setting nt actually reflect on the aplication? Why the my rewards when tab is selected is purple and not my selected accent color on settings? Do I need to restart teh application to see this accent color changes?",
+          "labels": [],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "5d3e0edb-8d9d-4f59-a3c8-ba3a5bed089c",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Pressing in the routine, focusing and saving",
+          "description": "Pressing in the routine  workout button selection doesnt open the routine screen with the workouts. It should open that list  where can open the screen to continue the workout",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "46836d27-e487-444d-aeb5-5118c197a398",
+              "title": "Animate the 7 mins workout using the irasutoya style ",
+              "checked": false
+            },
+            {
+              "id": "d69d2d19-f594-4eb5-a2e2-93e73a7c1a37",
+              "title": "Creating icons for common excercises",
+              "checked": false
+            }
+          ],
+          "comments": []
+        },
         {
           "id": "26b305e6-64e3-461c-805f-75c81987c4b4",
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",

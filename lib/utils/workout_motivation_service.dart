@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:hive/hive.dart';
-import 'package:solo_level_system/models/motivation_item_model.dart';
+import 'package:solo_level_system/models/card_model.dart';
 
 class WorkoutQuoteVm {
   final String itemId;
@@ -29,7 +29,7 @@ class WorkoutMotivationService {
     String? excludeItemId,
   }) {
     if (!Hive.isBoxOpen('motivationItems')) return null;
-    final box = Hive.box<MotivationItemModel>('motivationItems');
+    final box = Hive.box<CardModel>('motivationItems');
 
     final quotePool = <WorkoutQuoteVm>[];
     for (final item in box.values) {
@@ -62,7 +62,7 @@ class WorkoutMotivationService {
     return source[_random.nextInt(source.length)];
   }
 
-  static List<String> _quoteOptions(MotivationItemModel item) {
+  static List<String> _quoteOptions(CardModel item) {
     final quotes = <String>[];
     final metadataQuotes = item.metadata['quotes'];
     if (metadataQuotes is List) {

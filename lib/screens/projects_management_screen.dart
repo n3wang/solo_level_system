@@ -9,6 +9,7 @@ import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:solo_level_system/models/project_model.dart';
+import 'package:solo_level_system/utils/unlock_service.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
 
 class ProjectsManagementScreen extends StatefulWidget {
@@ -1423,6 +1424,23 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
   }
 
   void _showCreateProjectDialog() {
+    // Enforce project-slot capacity from `option` cards. When no option cards
+    // exist yet (max <= 0), the catalog hasn't seeded them, so we don't gate.
+    final maxProjects = UnlockService.capacityFor(
+      SettingKeys.projectSlots,
+      base: 0,
+    );
+    if (maxProjects > 0 && projects.length >= maxProjects) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Project limit reached ($maxProjects). Unlock more Project Slot cards in Motivation.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final nameController = TextEditingController();
     showDialog(
       context: context,

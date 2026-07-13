@@ -1,0 +1,57 @@
+import 'dart:math';
+
+import 'package:hive/hive.dart';
+import 'package:solo_level_system/models/card_model.dart';
+
+/// Rarity-weighted random draw over the card catalog for session loot.
+///
+/// Draws can repeat; repeats stack (`acquisitionCount`), re-applying unlock
+/// semantics on the drawn card. `reward` cards are excluded — those are
+/// user-authored goals, not loot.
+class CardDropService {
+  CardDropService._();
+
+  static final Random _random = Random();
+  static const String boxName = 'motivationItems';
+
+  /// Relative draw weight per rarity (rarer = less likely).
+  static const Map<CardRarity, double> _weights = {
+    CardRarity.common: 1.0,
+    CardRarity.uncommon: 0.5,
+    CardRarity.rare: 0.2,
+    CardRarity.epic: 0.06,
+  };
+
+  /// Draw [count] cards from the pool. Returns live box objects so callers can
+  /// `recordAcquisition()` on them. Empty if the pool is empty.
+  static List<CardModel> draw(int count) {
+    if (count <= 0 || !Hive.isBoxOpen(boxName)) return const [];
+    final pool =
+        Hive.box<CardModel>(boxName).values.where(_isDroppable).toList();
+    if (pool.isEmpty) return const [];
+
+    final result = <CardModel>[];
+    for (var i = 0; i < count; i++) {
+      final card = _weightedPick(pool);
+      if (card != null) result.add(card);
+    }
+    return result;
+  }
+
+  static bool _isDroppable(CardModel card) => card.cardType != CardType.reward;
+
+  static CardModel? _weightedPick(List<CardModel> pool) {
+    var total = 0.0;
+    for (final card in pool) {
+      total += _weights[card.rarityTier] ?? 1.0;
+    }
+    if (total <= 0) return pool[_random.nextInt(pool.length)];
+
+    var roll = _random.nextDouble() * total;
+    for (final card in pool) {
+      roll -= _weights[card.rarityTier] ?? 1.0;
+      if (roll <= 0) return card;
+    }
+    return pool.last;
+  }
+}

@@ -5,11 +5,13 @@ import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
 
+/// Progression is points + cards only (no XP / levels). This screen shows the
+/// points wallet + session stats and lets the user manage custom rewards.
 class RewardsScreen extends StatefulWidget {
   const RewardsScreen({super.key});
 
   @override
-  _RewardsScreenState createState() => _RewardsScreenState();
+  State<RewardsScreen> createState() => _RewardsScreenState();
 }
 
 class _RewardsScreenState extends State<RewardsScreen>
@@ -22,20 +24,18 @@ class _RewardsScreenState extends State<RewardsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _loadData();
   }
 
   Future<void> _loadData() async {
     try {
-      // Load user progress
       if (!Hive.isBoxOpen('userProgress')) {
         await Hive.openBox<UserProgressModel>('userProgress');
       }
       final progressBox = Hive.box<UserProgressModel>('userProgress');
       userProgress = progressBox.get('progress');
 
-      // Load rewards
       if (!Hive.isBoxOpen('rewards')) {
         await Hive.openBox<RewardModel>('rewards');
       }
@@ -46,7 +46,7 @@ class _RewardsScreenState extends State<RewardsScreen>
         isLoading = false;
       });
     } catch (e) {
-      print('Error loading rewards data: $e');
+      debugPrint('Error loading rewards data: $e');
       setState(() {
         isLoading = false;
       });
@@ -63,24 +63,21 @@ class _RewardsScreenState extends State<RewardsScreen>
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text('Rewards & Progress')),
+        appBar: AppBar(title: const Text('Rewards & Progress')),
         body: Center(
-          child: CircularProgressIndicator(
-            color: Theme.of(context).primaryColor,
-          ),
+          child: CircularProgressIndicator(color: Theme.of(context).primaryColor),
         ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Rewards & Progress'),
+        title: const Text('Rewards & Progress'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: [
-            Tab(icon: Icon(Icons.star), text: 'Progress'),
+          tabs: const [
+            Tab(icon: Icon(Icons.insights), text: 'Progress'),
             Tab(icon: Icon(Icons.card_giftcard), text: 'Rewards'),
-            Tab(icon: Icon(Icons.lock_open), text: 'Features'),
           ],
         ),
       ),
@@ -89,17 +86,16 @@ class _RewardsScreenState extends State<RewardsScreen>
         children: [
           _buildProgressTab(),
           _buildRewardsTab(),
-          _buildFeaturesTab(),
         ],
       ),
       floatingActionButton: _tabController.index == 1
           ? FloatingActionButton(
-              heroTag: "rewards_add_reward",
+              heroTag: 'rewards_add_reward',
               onPressed: _showAddRewardDialog,
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
               tooltip: 'Create Custom Reward',
-              child: Icon(Icons.add),
+              child: const Icon(Icons.add),
             )
           : null,
     );
@@ -107,70 +103,61 @@ class _RewardsScreenState extends State<RewardsScreen>
 
   Widget _buildProgressTab() {
     if (userProgress == null) {
-      return Center(child: Text('No progress data available'));
+      return const Center(child: Text('No progress data available'));
     }
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildProgressOverview(),
-          SizedBox(height: 24),
-          _buildRewardSystemInfo(),
-          SizedBox(height: 24),
-          _buildLevelProgress(),
-          SizedBox(height: 24),
+          _buildPointsOverview(),
+          const SizedBox(height: 24),
           _buildStatistics(),
-          SizedBox(height: 24),
-          _buildMilestones(),
         ],
       ),
     );
   }
 
-  Widget _buildProgressOverview() {
+  Widget _buildPointsOverview() {
+    final scheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             Row(
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundColor: Theme.of(context).primaryColor,
-                  child: Text(
-                    '${userProgress!.currentLevel}',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  backgroundColor: scheme.primary,
+                  child: const Icon(Icons.stars, color: Colors.white, size: 30),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        userProgress!.levelTitle,
-                        style: TextStyle(
-                          fontSize: 20,
+                        '${userProgress!.availablePoints} points',
+                        style: const TextStyle(
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        '${userProgress!.totalExperience} XP • ${userProgress!.availablePoints} Points',
-                        style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 16),
+                        'Earned ${userProgress!.totalPointsEarned} · Spent ${userProgress!.totalPointsSpent}',
+                        style: TextStyle(
+                          color: AppColorPalette.textSecondary,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
@@ -180,7 +167,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                     Icons.timer,
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: _buildStatCard(
                     'Current Streak',
@@ -198,7 +185,7 @@ class _RewardsScreenState extends State<RewardsScreen>
 
   Widget _buildStatCard(String title, String value, IconData icon) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
@@ -206,124 +193,14 @@ class _RewardsScreenState extends State<RewardsScreen>
       child: Column(
         children: [
           Icon(icon, size: 32, color: Theme.of(context).primaryColor),
-          SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          Text(title, style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 12)),
+          const SizedBox(height: 8),
+          Text(value,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(title,
+              style: TextStyle(
+                  color: AppColorPalette.textSecondary, fontSize: 12)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildRewardSystemInfo() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline, color: Theme.of(context).primaryColor),
-                SizedBox(width: 8),
-                Text(
-                  'How Rewards Work',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            _buildInfoRow(
-              Icons.timer,
-              'Minutes = Rewards',
-              'Earn 1 XP and 1 Point per minute spent on pomodoro sessions',
-            ),
-            SizedBox(height: 8),
-            _buildInfoRow(
-              Icons.local_fire_department,
-              'Streak Bonus',
-              'Every 5-day streak adds +5 bonus XP per session',
-            ),
-            SizedBox(height: 8),
-            _buildInfoRow(
-              Icons.trending_up,
-              'Level Bonus',
-              'Higher levels provide small XP bonuses',
-            ),
-            SizedBox(height: 8),
-            _buildInfoRow(
-              Icons.add_circle_outline,
-              'Create Your Rewards',
-              'Design custom rewards with your own point costs using the + button',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String title, String description) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Theme.of(context).primaryColor.withValues(alpha:0.7),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
-              Text(
-                description,
-                style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLevelProgress() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Level Progress',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Level ${userProgress!.currentLevel}'),
-                Text('Level ${userProgress!.currentLevel + 1}'),
-              ],
-            ),
-            SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: userProgress!.progressToNextLevel,
-              backgroundColor: Colors.grey[300],
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Theme.of(context).primaryColor,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '${userProgress!.experienceNeededForNextLevel} XP needed for next level',
-              style: TextStyle(color: AppColorPalette.textSecondary),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -331,35 +208,21 @@ class _RewardsScreenState extends State<RewardsScreen>
   Widget _buildStatistics() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Statistics',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
+            const Text('Statistics',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
             _buildStatRow(
-              'Total Sessions',
-              '${userProgress!.totalPomodoroSessions}',
-            ),
+                'Total Sessions', '${userProgress!.totalPomodoroSessions}'),
+            _buildStatRow('Sessions Today', '${userProgress!.getSessionsToday()}'),
             _buildStatRow(
-              'Sessions Today',
-              '${userProgress!.getSessionsToday()}',
-            ),
-            _buildStatRow(
-              'Sessions This Week',
-              '${userProgress!.getSessionsThisWeek()}',
-            ),
-            _buildStatRow(
-              'Longest Streak',
-              '${userProgress!.longestStreak} days',
-            ),
-            _buildStatRow(
-              'Points Earned',
-              '${userProgress!.totalPointsEarned}',
-            ),
+                'Sessions This Week', '${userProgress!.getSessionsThisWeek()}'),
+            _buildStatRow('Longest Streak', '${userProgress!.longestStreak} days'),
+            _buildStatRow('Next Milestone', userProgress!.nextMilestone),
+            _buildStatRow('Points Earned', '${userProgress!.totalPointsEarned}'),
             _buildStatRow('Points Spent', '${userProgress!.totalPointsSpent}'),
           ],
         ),
@@ -369,54 +232,13 @@ class _RewardsScreenState extends State<RewardsScreen>
 
   Widget _buildStatRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label),
-          Text(value, style: TextStyle(fontWeight: FontWeight.w500)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMilestones() {
-    final milestones = ProgressConstants.MILESTONES;
-
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Milestones',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            ...milestones.map((milestone) {
-              final isCompleted =
-                  userProgress!.totalPomodoroSessions >= milestone['sessions'];
-              return ListTile(
-                leading: Icon(
-                  isCompleted
-                      ? Icons.check_circle
-                      : Icons.radio_button_unchecked,
-                  color: isCompleted ? Colors.green : Colors.grey,
-                ),
-                title: Text(milestone['title']),
-                subtitle: Text('${milestone['sessions']} sessions'),
-                trailing: Text(
-                  '+${milestone['points_bonus']} pts',
-                  style: TextStyle(
-                    color: isCompleted ? Colors.green : Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              );
-            }),
-          ],
-        ),
       ),
     );
   }
@@ -460,7 +282,7 @@ class _RewardsScreenState extends State<RewardsScreen>
               size: 64,
               color: AppColorPalette.textSecondary,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
               canPurchase
                   ? 'No rewards created yet'
@@ -472,11 +294,12 @@ class _RewardsScreenState extends State<RewardsScreen>
               ),
             ),
             if (canPurchase) ...[
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 'Tap the + button to create your first reward!\nSet your own point costs for treats you want.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 14),
+                style: TextStyle(
+                    color: AppColorPalette.textSecondary, fontSize: 14),
               ),
             ],
           ],
@@ -484,29 +307,28 @@ class _RewardsScreenState extends State<RewardsScreen>
       );
     }
 
-    // Group rewards by category
     final groupedRewards = <String, List<RewardModel>>{};
     for (final reward in rewardList) {
       groupedRewards.putIfAbsent(reward.category, () => []).add(reward);
     }
 
     return ListView(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       children: groupedRewards.entries.map((entry) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 entry.value.first.categoryDisplay,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
-            ...entry.value.map(
-              (reward) => _buildRewardCard(reward, canPurchase),
-            ),
-            SizedBox(height: 16),
+            ...entry.value
+                .map((reward) => _buildRewardCard(reward, canPurchase)),
+            const SizedBox(height: 16),
           ],
         );
       }).toList(),
@@ -514,20 +336,19 @@ class _RewardsScreenState extends State<RewardsScreen>
   }
 
   Widget _buildRewardCard(RewardModel reward, bool canPurchase) {
-    final canAfford = userProgress!.availablePoints >= reward.pointsCost;
+    final canAfford =
+        (userProgress?.availablePoints ?? 0) >= reward.pointsCost;
 
     return Card(
-      margin: EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor:
               _parseColor(reward.color) ?? Theme.of(context).primaryColor,
           child: Icon(_getIconData(reward.iconName), color: Colors.white),
         ),
-        title: Text(
-          reward.title,
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title:
+            Text(reward.title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -535,10 +356,8 @@ class _RewardsScreenState extends State<RewardsScreen>
             if (reward.timesPurchased > 0)
               Text(
                 'Purchased ${reward.timesPurchased} time(s)',
-                style: TextStyle(
-                  color: Colors.green,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: const TextStyle(
+                    color: Colors.green, fontWeight: FontWeight.w500),
               ),
           ],
         ),
@@ -556,73 +375,14 @@ class _RewardsScreenState extends State<RewardsScreen>
                   ),
                   if (!canAfford)
                     Text(
-                      'Need ${reward.pointsCost - userProgress!.availablePoints} more',
-                      style: TextStyle(fontSize: 10, color: Colors.red),
+                      'Need ${reward.pointsCost - (userProgress?.availablePoints ?? 0)} more',
+                      style: const TextStyle(fontSize: 10, color: Colors.red),
                     ),
                 ],
               )
-            : Icon(Icons.check_circle, color: Colors.green),
+            : const Icon(Icons.check_circle, color: Colors.green),
         onTap: canPurchase && canAfford ? () => _purchaseReward(reward) : null,
       ),
-    );
-  }
-
-  Widget _buildFeaturesTab() {
-    final featureRequirements = ProgressConstants.FEATURE_UNLOCK_REQUIREMENTS;
-    final featureDescriptions = ProgressConstants.FEATURE_DESCRIPTIONS;
-
-    return ListView(
-      padding: EdgeInsets.all(16),
-      children: featureRequirements.entries.map((entry) {
-        final isUnlocked =
-            userProgress!.canUnlockFeature(entry.key, entry.value) ||
-            userProgress!.isFeatureUnlocked(entry.key);
-        final canUnlock = userProgress!.canUnlockFeature(
-          entry.key,
-          entry.value,
-        );
-
-        return Card(
-          child: ListTile(
-            leading: Icon(
-              isUnlocked ? Icons.lock_open : Icons.lock,
-              color: isUnlocked ? Colors.green : Colors.grey,
-            ),
-            title: Text(
-              entry.key.replaceAll('_', ' ').toUpperCase(),
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(featureDescriptions[entry.key] ?? 'Feature description'),
-                SizedBox(height: 4),
-                Text(
-                  'Requires ${entry.value} XP',
-                  style: TextStyle(
-                    color: isUnlocked ? Colors.green : AppColorPalette.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-            trailing: isUnlocked
-                ? Icon(Icons.check_circle, color: Colors.green)
-                : canUnlock
-                ? ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: () => _unlockFeature(entry.key),
-                    child: Text('Unlock'),
-                  )
-                : Text(
-                    '${entry.value - userProgress!.totalExperience} XP needed',
-                    style: TextStyle(fontSize: 12, color: AppColorPalette.textSecondary),
-                  ),
-          ),
-        );
-      }).toList(),
     );
   }
 
@@ -630,14 +390,14 @@ class _RewardsScreenState extends State<RewardsScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Purchase Reward'),
+        title: const Text('Purchase Reward'),
         content: Text(
-          'Purchase "${reward.title}" for ${reward.pointsCost} points?\n\nYou will have ${userProgress!.availablePoints - reward.pointsCost} points remaining.',
+          'Purchase "${reward.title}" for ${reward.pointsCost} points?\n\nYou will have ${(userProgress?.availablePoints ?? 0) - reward.pointsCost} points remaining.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -645,34 +405,21 @@ class _RewardsScreenState extends State<RewardsScreen>
               foregroundColor: Colors.white,
             ),
             onPressed: () {
-              if (userProgress!.spendPoints(reward.pointsCost)) {
+              if (userProgress?.spendPoints(reward.pointsCost) ?? false) {
                 reward.purchase();
                 setState(() {});
                 Navigator.of(context).pop();
-
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                  const SnackBar(
                     content: Text('🎉 Reward purchased! Enjoy your treat!'),
                     backgroundColor: Colors.green,
                   ),
                 );
               }
             },
-            child: Text('Purchase'),
+            child: const Text('Purchase'),
           ),
         ],
-      ),
-    );
-  }
-
-  void _unlockFeature(String featureId) {
-    userProgress!.unlockFeature(featureId);
-    setState(() {});
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('🎉 Feature unlocked! Check the app for new options.'),
-        backgroundColor: Colors.green,
       ),
     );
   }
@@ -686,61 +433,58 @@ class _RewardsScreenState extends State<RewardsScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Create Your Reward'),
+        title: const Text('Create Your Reward'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Reward Title',
                   hintText: 'e.g., "New Phone Case"',
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextField(
                 controller: descriptionController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Description',
                   hintText: 'What is this reward for?',
                 ),
                 maxLines: 2,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextField(
                 controller: pointsController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Points Cost',
                   hintText:
                       'You decide! 50 for small treats, 500+ for bigger ones',
                 ),
                 keyboardType: TextInputType.number,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: selectedCategory,
-                decoration: InputDecoration(labelText: 'Category'),
-                items:
-                    [
-                          'general',
-                          'electronics',
-                          'entertainment',
-                          'food',
-                          'shopping',
-                          'activities',
-                          'tools',
-                          'books',
-                          'health',
-                          'travel',
-                        ]
-                        .map(
-                          (category) => DropdownMenuItem(
-                            value: category,
-                            child: Text(category),
-                          ),
-                        )
-                        .toList(),
+                decoration: const InputDecoration(labelText: 'Category'),
+                items: const [
+                  'general',
+                  'electronics',
+                  'entertainment',
+                  'food',
+                  'shopping',
+                  'activities',
+                  'tools',
+                  'books',
+                  'health',
+                  'travel',
+                ]
+                    .map((category) => DropdownMenuItem(
+                          value: category,
+                          child: Text(category),
+                        ))
+                    .toList(),
                 onChanged: (value) {
                   if (value != null) selectedCategory = value;
                 },
@@ -751,7 +495,7 @@ class _RewardsScreenState extends State<RewardsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -773,7 +517,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                 }
               }
             },
-            child: Text('Create Reward'),
+            child: const Text('Create Reward'),
           ),
         ],
       ),
@@ -800,9 +544,10 @@ class _RewardsScreenState extends State<RewardsScreen>
       rewards.add(reward);
     });
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('🎉 Your reward has been created!')));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('🎉 Your reward has been created!')),
+    );
   }
 
   Color? _parseColor(String? colorHex) {

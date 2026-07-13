@@ -94,30 +94,34 @@ class DefaultWorkoutsService {
   }
 
   static const String _yamlPath = 'assets/workouts/default_workouts.yaml';
+  static const String _set1YamlPath = 'assets/workouts/set1_workouts.yaml';
 
-  /// Create all default exercises from YAML
+  /// All exercise-source YAMLs. `default_workouts.yaml` exercises unlock by
+  /// default; `set1_workouts.yaml` exercises ship locked (card-gated). Both are
+  /// loaded so the ExerciseModel exists and can appear once its card is acquired.
+  static const List<String> _exerciseYamlPaths = [_yamlPath, _set1YamlPath];
+
+  /// Create all default exercises from every source YAML
   static Future<List<ExerciseModel>> _createDefaultExercises() async {
     final now = DateTime.now();
     final exercises = <ExerciseModel>[];
+    var idCounter = 0;
 
-    try {
-      // Load YAML file
-      final String yamlString = await rootBundle.loadString(_yamlPath);
-      final dynamic yamlMap = loadYaml(yamlString);
+    for (final path in _exerciseYamlPaths) {
+      try {
+        final String yamlString = await rootBundle.loadString(path);
+        final dynamic yamlMap = loadYaml(yamlString);
 
-      if (yamlMap is! Map) {
-        throw Exception('Invalid YAML format: root must be a map');
-      }
+        if (yamlMap is! Map) continue;
 
-      final exercisesList = yamlMap['exercises'] as YamlList?;
-      if (exercisesList == null) {
-        throw Exception('Missing exercises list in YAML');
-      }
+        final exercisesList = yamlMap['exercises'] as YamlList?;
+        if (exercisesList == null) continue;
 
-      for (int i = 0; i < exercisesList.length; i++) {
-        final exerciseData = exercisesList[i] as Map;
+        for (int i = 0; i < exercisesList.length; i++) {
+          idCounter++;
+          final exerciseData = exercisesList[i] as Map;
 
-        final name = exerciseData['name']?.toString() ?? '';
+          final name = exerciseData['name']?.toString() ?? '';
         final icon = exerciseData['icon']?.toString();
         final description = exerciseData['description']?.toString() ?? '';
         final instructions =
@@ -167,7 +171,7 @@ class DefaultWorkoutsService {
         final audioFile = exerciseData['audio_file']?.toString();
 
         final exercise = ExerciseModel(
-          id: 'default_exercise_${i + 1}',
+          id: 'default_exercise_$idCounter',
           name: name,
           description: description,
           category: resolved.category,
@@ -189,10 +193,10 @@ class DefaultWorkoutsService {
           audioFile: audioFile,
         );
         exercises.add(exercise);
+        }
+      } catch (e) {
+        print('Error loading exercises from $path: $e');
       }
-    } catch (e) {
-      print('Error loading exercises from YAML: $e');
-      rethrow;
     }
 
     return exercises;

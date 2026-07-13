@@ -1,6 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/config/app_environment.dart';
-import 'package:solo_level_system/models/motivation_item_model.dart';
+import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/motivation_points_transaction_model.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
@@ -19,7 +19,7 @@ class TestModeBootstrapService {
     await MotivationSeedService.ensureSeeded();
 
     final progressBox = Hive.box<UserProgressModel>('userProgress');
-    final motivationBox = Hive.box<MotivationItemModel>('motivationItems');
+    final motivationBox = Hive.box<CardModel>('motivationItems');
     final rewardsBox = Hive.box<RewardModel>('rewards');
     final pomodorosBox = Hive.box<PomodoroModel>('pomodoros');
     final workoutSessionsBox = Hive.box<WorkoutSessionModel>('workoutSessions');
@@ -49,7 +49,7 @@ class TestModeBootstrapService {
   }
 
   static Future<void> _ensureAcquiredMotivationItems(
-    Box<MotivationItemModel> motivationBox,
+    Box<CardModel> motivationBox,
   ) async {
     final quoteTargets = motivationBox.values
         .where((item) => item.type == 'quote')

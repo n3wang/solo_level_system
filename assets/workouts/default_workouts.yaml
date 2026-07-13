@@ -273,33 +273,8 @@ exercises:
     tags: ["gym", "core", "bodyweight", "intermediate", "strength"]
     audio_file: "audio/workouts/hanging_leg_raises.mp3"
 
-  - name: "Treadmill running or walking"
-    icon: "treadmill_running_or_walking"
-    description: "Cardiovascular exercise for endurance"
-    instructions:
-      - "Start at comfortable pace"
-      - "Maintain steady rhythm"
-      - "Adjust speed as needed"
-      - "Focus on breathing"
-    default_sets: [1, 2, 3]
-    default_reps: 0  # Duration-based
-    default_duration: 600  # 10 minutes
-    tags: ["gym", "full_body", "machine", "beginner", "cardio"]
-    audio_file: "audio/workouts/treadmill_running.mp3"
-
-  - name: "Stationary bike / spin bike"
-    icon: "stationary_bike_spin_bike"
-    description: "Low-impact cardiovascular exercise"
-    instructions:
-      - "Adjust seat height"
-      - "Start pedaling"
-      - "Maintain steady pace"
-      - "Adjust resistance as needed"
-    default_sets: [1, 2, 3]
-    default_reps: 0  # Duration-based
-    default_duration: 600  # 10 minutes
-    tags: ["gym", "full_body", "machine", "beginner", "cardio"]
-    audio_file: "audio/workouts/stationary_bike.mp3"
+  # NOTE: "Treadmill running or walking" and "Stationary bike / spin bike"
+  # moved to set1_workouts.yaml — they ship locked and unlock via the cards system.
 
   - name: "Bodyweight Squats"
     icon: "bodyweight_squats"

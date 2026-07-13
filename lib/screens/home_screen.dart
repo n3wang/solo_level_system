@@ -29,6 +29,8 @@ import 'package:solo_level_system/utils/notification_service.dart';
 import 'package:solo_level_system/utils/timer_controller.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
+import 'package:solo_level_system/utils/session_reward_service.dart';
+import 'package:solo_level_system/widgets/common/session_loot_dialog.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:solo_level_system/models/room_model.dart';
@@ -41,6 +43,7 @@ import 'package:solo_level_system/widgets/pomodoro/session_recording_preview.dar
 import 'package:solo_level_system/screens/room_management_screen.dart';
 import 'package:solo_level_system/screens/projects_management_screen.dart';
 import 'package:solo_level_system/utils/room_management_seed_service.dart';
+import 'package:solo_level_system/utils/unlock_service.dart';
 import 'package:solo_level_system/utils/project_seed_service.dart';
 import 'package:solo_level_system/models/room_management_model.dart';
 import 'package:solo_level_system/widgets/pomodoro/long_break_modal.dart';
@@ -1094,32 +1097,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       selectedProject!.addPomodoroSession();
     }
 
-    // Award XP and points for completing the session (now based on actual minutes)
+    // Record session stats + grant points and card loot (points + cards only).
     if (userProgress != null) {
-      userProgress!.completePomodoro(
-        sessionDate: session.startTime,
-        minutesSpent: minutesSpent,
+      userProgress!.recordSession(sessionDate: session.startTime);
+      final loot = SessionRewardService.grant(
+        minutes: minutesSpent,
+        kind: SessionKind.focus,
+        progress: userProgress,
       );
-
-      // Show reward notification
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.star, color: Theme.of(context).colorScheme.tertiary),
-              const SizedBox(width: AppUiSizes.sm),
-              Expanded(
-                child: Text(
-                  '+${minutesSpent * UserProgressModel.XP_PER_MINUTE} XP, +${minutesSpent * UserProgressModel.POINTS_PER_MINUTE} Points! ($minutesSpent min) Level ${userProgress!.currentLevel}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: Theme.of(context).colorScheme.tertiary,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      if (mounted) {
+        await showSessionLootDialog(context, loot);
+      }
     }
 
     print(
@@ -1321,8 +1309,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       userProgress = box.get('progress');
       if (userProgress == null) {
-        // Create new progress tracking
-        userProgress = UserProgressModel();
+        // Create new progress tracking with a small starting balance
+        // (for testing; adjust startingPoints as needed).
+        userProgress = UserProgressModel(availablePoints: 100);
         await box.put('progress', userProgress!);
 
         // Initialize empty rewards box if it doesn't exist
@@ -1403,6 +1392,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           .whereType<Map>()
           .map(RoomModel.fromMap)
           .where((room) => room.isActive)
+          // Only rooms unlocked through the cards system appear in the pomodoro.
+          .where((room) => UnlockService.isUnlocked('room:${room.id}'))
           .toList();
 
       setState(() {

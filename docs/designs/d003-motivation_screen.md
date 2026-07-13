@@ -11,6 +11,105 @@ On Overview:
 
 There’s no main Habit screen wired up yet, so those stats are mostly empty unless something else writes into that box.
 
+
+## Card sources
+
+Where each card type's content comes from today, and where to add more. All paths are repo-relative under `assets/` and bundled via `pubspec.yaml`. Services read them with `rootBundle.loadString(...)` — never hardcode content in Dart (see CLAUDE.md: `default_workouts.yaml` is the source of truth for exercise audio).
+
+### Content sources (data)
+
+| Source file | Feeds card type | Read by | Format / notes |
+|-------------|-----------------|---------|----------------|
+| `assets/icon/motivation_64.csv` | `quote` (philosopher rows), `collection` (boardgame + plant rows) | `MotivationSeedService` | `name,number,description,category`; `category ∈ {philosopher, boardgame, plant}` → 33 / 22 / 40 rows. `number` = sprite index into `motivation_64`. |
+| `assets/quotes.csv` | `quote` (quote text packs) | `MotivationSeedService` | `philosopher,quotes`; quotes are `;`-separated, joined onto the matching philosopher card's `metadata.quotes`. |
+| `assets/icon/motivation_64.csv` (boardgame rows) | `reward` (hidden collectible dupes) | `RewardSeedService` (`_sourceTag = default_boardgame_csv`) | Same CSV, re-projected as demo rewards; **hidden** in the hub so boardgames show only as `collection`. Fold away once one Card catalog is canonical. |
+| `assets/workouts/default_workouts.yaml` | `program`, `set` (+ exercises, audio refs) | `ProgramsService` / `DefaultWorkoutsService` | Exercises, sets, routines, `audio_file` per exercise. Program/set **cards** not seeded yet — `unlockTargetId` will point at program/set ids from here. |
+| `assets/lofi/lofi_mapping.json` (+ `assets/lofi/*.mp3`) | `music` | `LofiService` | `tracks[]`: `id, filename, title, author, albumImage`. Music **cards** not seeded yet — one card per track (or small pack). |
+| `assets/lofi/room_music_whitelist.yaml` (+ `assets/album/*`) | `room` | room/atmosphere loader | Rooms: `id, name, description, iconAssetPath, trackRegex, visuals[], phrases[]`. Room **cards** not seeded yet — `unlockTargetId` = room `id`. |
+
+### Art / audio sources (referenced by cards, not cards themselves)
+
+| Source | Used for |
+|--------|----------|
+| `assets/icon/motivation_64.png` | Sprite sheet `motivation_64`; card art via `imageIndex` (= CSV `number`; drawn at sprite slot `imageIndex − 1`). |
+| `assets/album/*.png` / `*.gif` | Room / album backgrounds (room card art, atmosphere visuals). |
+| `assets/icon/workout_icons_128px.png` + `.csv` + `workout_icons_sliced/*` | Exercise / set / program card icons. |
+| `assets/audio/workouts/*.mp3` | Per-exercise cue audio (referenced from YAML `audio_file`). |
+| `assets/audio/{s01,s02,s03}*.mp3`, `break_time.mp3`, `workout_complete.mp3` | Sound effects (session/loot feedback) — **not** cards. |
+
+### Adding a future source
+
+Adding content = drop the asset + extend the matching source file; a seed service turns it into cards. No new Dart per item.
+
+| To add a… | Do this |
+|-----------|---------|
+| Quote pack | Add a `philosopher,quotes` row to `quotes.csv` (and a `motivation_64.csv` row if it needs its own sprite). |
+| Collection item | Add a `boardgame`/`plant` row to `motivation_64.csv` with a sprite `number`. |
+| Program / set | Add it to `default_workouts.yaml`; seed a `program`/`set` card whose `unlockTargetId` = its id. |
+| Music track/pack | Add `.mp3`(s) to `assets/lofi/` + an entry in `lofi_mapping.json`; seed a `music` card per track/pack. |
+| Room | Add a room block to `room_music_whitelist.yaml` + visuals to `assets/album/`; seed a `room` card with `unlockTargetId` = room id. |
+| Reward | User-authored at runtime (Quick Create / Rewards screen) — no asset. |
+| Guide / Option | Author a **markdown file** — see below. |
+
+### Guides & options as markdown (proposed)
+
+`guide` and `option` cards are **text-first** (a title + a description/how-to body), so author them as markdown files instead of CSV rows. Opening the card renders the markdown; for guides the same body feeds the on-screen **?** modal.
+
+Layout (bundled — list the folders in `pubspec.yaml` with trailing slash):
+
+```
+assets/cards/
+  guides/
+    motivation-hub.md
+    active-workout.md
+    focus-pomodoro.md
+  options/
+    project-slots.md
+    room-slots.md
+```
+
+Each file = one card. YAML frontmatter carries the card fields; the markdown body is the description (guides: the how-to; options: what the setting does, shown when the card is opened).
+
+Guide example — `assets/cards/guides/motivation-hub.md`:
+
+```markdown
+---
+type: guide
+screenKey: motivation_hub
+title: Motivation Hub Guide
+rarity: common
+imageIndex: 5      # optional sprite in motivation_64
+starter: true      # ships already unlocked
+---
+Every tile is a Card. Spend points (earned from focus and workout sessions)
+to acquire cards. Acquiring a card unlocks what it represents.
+
+## Tips
+- Filter by type or "acquired" to find cards fast.
+- Session loot drops cards weighted by rarity.
+```
+
+Option example — `assets/cards/options/project-slots.md`:
+
+```markdown
+---
+type: option
+settingKey: project_slots
+title: Project Slot
+rarity: uncommon
+capacityPerCopy: 1
+starterCopies: 3   # seeded owned xN → base capacity
+cost: 50
+---
+Each copy raises your maximum number of projects by one. Buy again to add more.
+```
+
+Seeding: a `CardMarkdownSeedService` enumerates `assets/cards/guides/` and `.../options/` from `AssetManifest.json`, parses frontmatter → card fields and body → `metadata.howTo` (guide) or `description` (option), then upserts by a stable id derived from the filename (`guide_motivation_hub`, `option_project_slots`). Re-running updates body/fields without dropping `acquisitionCount`. `## Tips` under a guide body becomes `metadata.tips`.
+
+Rendering: the card detail modal and `HelpButton` render the markdown body (upgrade `help_button.dart` from plain `Text` to a markdown widget, e.g. `flutter_markdown`).
+
+This replaces the current hardcoded starter guide/option seeding in `motivation_seed_service.dart` (`_ensureStarterUnlockCards`) — those two option cards and the hub guide move to markdown files, and new guides/options are added by dropping a `.md` file.
+
 ## Core idea: Cards, not “motivation items”
 
 Everything in the Motivation hub is a **Card**. A card is a collectible entry you can browse, filter, and acquire with points. Acquiring a card **unlocks the thing it represents** in the rest of the app.
@@ -31,6 +130,8 @@ There is **no level** and **no experience (XP)** track. Features, capacity, cont
 | `option` | A setting / capacity limit (stackable — see below) |
 
 Unlocking a card is the gate: until acquired, the corresponding option stays locked (or hidden) on its screen. Until acquired, the card still shows in the hub (catalog) so the player can discover and buy it.
+
+
 
 ### Option cards (stackable settings)
 

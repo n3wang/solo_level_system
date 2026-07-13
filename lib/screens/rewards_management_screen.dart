@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
-import 'package:solo_level_system/models/motivation_item_model.dart';
+import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
-import 'package:solo_level_system/screens/motivation_hub_screen.dart';
+import 'package:solo_level_system/screens/cards_hub_screen.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
 
@@ -46,7 +46,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
         await Hive.openBox<RewardModel>('rewards');
       }
       if (!Hive.isBoxOpen('motivationItems')) {
-        await Hive.openBox<MotivationItemModel>('motivationItems');
+        await Hive.openBox<CardModel>('motivationItems');
       }
       await RewardSeedService.ensureDefaultBoardgameRewards();
       await MotivationSeedService.ensureSeeded();
@@ -99,7 +99,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
         children: [
           _buildAvailableRewardsTab(),
           _buildPurchasedRewardsTab(),
-          const MotivationHubScreen(),
+          const CardsHubScreen(),
         ],
       ),
       floatingActionButton: _tabController.index == 0
@@ -673,11 +673,11 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                         selectedCategory,
                       );
                     } else {
-                      final box = Hive.box<MotivationItemModel>(
+                      final box = Hive.box<CardModel>(
                         'motivationItems',
                       );
                       await box.add(
-                        MotivationItemModel(
+                        CardModel(
                           id: 'quick_${selectedType}_${DateTime.now().millisecondsSinceEpoch}',
                           type: selectedType,
                           title: title,

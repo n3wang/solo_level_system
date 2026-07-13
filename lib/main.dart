@@ -19,11 +19,12 @@ import 'models/project_model.dart';
 import 'models/user_progress_model.dart';
 import 'models/reward_model.dart';
 import 'models/motivational_card_model.dart';
-import 'models/motivation_item_model.dart';
+import 'models/card_model.dart';
 import 'models/motivation_points_transaction_model.dart';
 import 'models/timed_workout_model.dart';
 import 'models/long_break_queue_item_model.dart';
 import 'utils/default_workouts_service.dart';
+import 'utils/card_content_seed_service.dart';
 import 'utils/test_mode_bootstrap_service.dart';
 import 'utils/programs_service.dart';
 import 'utils/palette_notifier.dart';
@@ -95,7 +96,7 @@ void main() async {
     Hive.registerAdapter(UserProgressModelAdapter());
     Hive.registerAdapter(RewardModelAdapter());
     Hive.registerAdapter(MotivationalCardModelAdapter());
-    Hive.registerAdapter(MotivationItemModelAdapter());
+    Hive.registerAdapter(CardModelAdapter());
     Hive.registerAdapter(MotivationPointsTransactionModelAdapter());
     Hive.registerAdapter(TimedWorkoutItemAdapter());
     Hive.registerAdapter(TimedWorkoutModelAdapter());
@@ -324,7 +325,7 @@ void main() async {
     }
 
     try {
-      await Hive.openBox<MotivationItemModel>('motivationItems');
+      await Hive.openBox<CardModel>('motivationItems');
       print('✓ Opened motivationItems box');
     } catch (e) {
       print('⚠️ Error opening motivationItems box, clearing and recreating: $e');
@@ -335,7 +336,7 @@ void main() async {
           'Note: Could not delete motivationItems box (may not exist): $deleteError',
         );
       }
-      await Hive.openBox<MotivationItemModel>('motivationItems');
+      await Hive.openBox<CardModel>('motivationItems');
       print('✓ Recreated motivationItems box');
     }
 
@@ -385,6 +386,14 @@ void main() async {
       await DefaultWorkoutsService.updateAudioFilesFromYaml();
     } catch (e) {
       print('⚠️ Error syncing audio files: $e');
+    }
+
+    // Seed content cards (exercise/program/music/room) so unlock gating is
+    // reliable before the Cards hub is opened (locks set1 exercises).
+    try {
+      await CardContentSeedService.ensureSeeded();
+    } catch (e) {
+      print('⚠️ Error seeding content cards: $e');
     }
 
     // Initialize spritesheets (cut-on-memory, single texture per sheet)

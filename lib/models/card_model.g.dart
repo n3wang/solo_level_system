@@ -1,22 +1,22 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'motivation_item_model.dart';
+part of 'card_model.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class MotivationItemModelAdapter extends TypeAdapter<MotivationItemModel> {
+class CardModelAdapter extends TypeAdapter<CardModel> {
   @override
   final int typeId = 26;
 
   @override
-  MotivationItemModel read(BinaryReader reader) {
+  CardModel read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return MotivationItemModel(
+    return CardModel(
       id: fields[0] as String,
       type: fields[1] as String,
       title: fields[2] as String,
@@ -33,13 +33,16 @@ class MotivationItemModelAdapter extends TypeAdapter<MotivationItemModel> {
       metadata: (fields[13] as Map).cast<String, dynamic>(),
       acquisitionCount: fields[14] as int,
       acquisitionHistory: (fields[15] as List).cast<DateTime>(),
+      unlockTargetId: fields[16] as String?,
+      rarity: fields[17] as String? ?? 'common',
+      isStarter: fields[18] as bool? ?? false,
     );
   }
 
   @override
-  void write(BinaryWriter writer, MotivationItemModel obj) {
+  void write(BinaryWriter writer, CardModel obj) {
     writer
-      ..writeByte(16)
+      ..writeByte(19)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -71,7 +74,13 @@ class MotivationItemModelAdapter extends TypeAdapter<MotivationItemModel> {
       ..writeByte(14)
       ..write(obj.acquisitionCount)
       ..writeByte(15)
-      ..write(obj.acquisitionHistory);
+      ..write(obj.acquisitionHistory)
+      ..writeByte(16)
+      ..write(obj.unlockTargetId)
+      ..writeByte(17)
+      ..write(obj.rarity)
+      ..writeByte(18)
+      ..write(obj.isStarter);
   }
 
   @override
@@ -80,7 +89,7 @@ class MotivationItemModelAdapter extends TypeAdapter<MotivationItemModel> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is MotivationItemModelAdapter &&
+      other is CardModelAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

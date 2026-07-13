@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
+import 'package:solo_level_system/utils/unlock_service.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/screens/exercise_details_screen.dart';
@@ -143,8 +144,13 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
 
   void _manageSetExercises() {
     final exercisesBox = Hive.box<ExerciseModel>('exercises');
-    final allExercises = exercisesBox.values.toList();
     final setExerciseIds = widget.setCategory!.exerciseIds.toSet();
+    // Hide locked (un-acquired) exercises, but keep any already in this set.
+    final allExercises = exercisesBox.values
+        .where((e) =>
+            setExerciseIds.contains(e.id) ||
+            UnlockService.isUnlocked('exercise:${e.name}'))
+        .toList();
 
     showModalBottomSheet(
       context: context,
@@ -378,6 +384,11 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
 
   List<ExerciseModel> _filterExercises(List<ExerciseModel> exercises) {
     return exercises.where((exercise) {
+      // Card-unlock filter: hide exercises not acquired through the cards system.
+      if (!UnlockService.isUnlocked('exercise:${exercise.name}')) {
+        return false;
+      }
+
       // Set filter - only show exercises in the selected set
       if (widget.filterSetId != null && widget.setCategory != null) {
         if (!widget.setCategory!.exerciseIds.contains(exercise.id)) {

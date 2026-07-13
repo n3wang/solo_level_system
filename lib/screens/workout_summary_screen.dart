@@ -1,10 +1,14 @@
 // lib/screens/workout_summary_screen.dart
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
+import 'package:solo_level_system/models/user_progress_model.dart';
+import 'package:solo_level_system/utils/session_reward_service.dart';
+import 'package:solo_level_system/widgets/common/session_loot_dialog.dart';
 
-class WorkoutSummaryScreen extends StatelessWidget {
+class WorkoutSummaryScreen extends StatefulWidget {
   final WorkoutSessionModel session;
   final List<ExerciseModel> exercises;
   final int totalSetsCompleted;
@@ -19,7 +23,47 @@ class WorkoutSummaryScreen extends StatelessWidget {
   });
 
   @override
+  State<WorkoutSummaryScreen> createState() => _WorkoutSummaryScreenState();
+}
+
+class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Grant session rewards once, only for a completed workout (points + cards).
+    if (widget.session.isCompleted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _grantRewards());
+    }
+  }
+
+  Future<void> _grantRewards() async {
+    final session = widget.session;
+    final duration = session.endTime != null
+        ? session.endTime!.difference(session.startTime)
+        : Duration.zero;
+
+    if (!Hive.isBoxOpen('userProgress')) {
+      await Hive.openBox<UserProgressModel>('userProgress');
+    }
+    final progressBox = Hive.box<UserProgressModel>('userProgress');
+    final progress = progressBox.get('progress');
+    progress?.recordSession(sessionDate: session.startTime);
+
+    final loot = SessionRewardService.grant(
+      minutes: duration.inMinutes,
+      kind: SessionKind.workout,
+      progress: progress,
+    );
+    if (!mounted) return;
+    await showSessionLootDialog(context, loot);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final session = widget.session;
+    final exercises = widget.exercises;
+    final totalSetsCompleted = widget.totalSetsCompleted;
+    final totalSets = widget.totalSets;
     final duration = session.endTime != null
         ? session.endTime!.difference(session.startTime)
         : Duration.zero;
