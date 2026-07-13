@@ -1,8 +1,7 @@
-# Motivation Screen
+# Motivation Screen — Cards Unlock System
 
-Status: **implemented** (hub live under Analytics → Motivation).  
-Former rework plan kept as “Next ideas” at the bottom.
-
+Status: **design revision** (hub exists; broaden “motivation items” into abstract **Cards** that unlock options across the app).  
+No new implementation yet — this doc is the target model.
 
 **Habit** here means records in the Hive `habits` box (`HabitTrackerModel`) — recurring goals you can mark complete (daily/weekly, tied to pomodoro, workout, or custom).
 
@@ -12,7 +11,86 @@ On Overview:
 
 There’s no main Habit screen wired up yet, so those stats are mostly empty unless something else writes into that box.
 
-## Entry
+## Core idea: Cards, not “motivation items”
+
+Everything in the Motivation hub is a **Card**. A card is a collectible entry you can browse, filter, and acquire with points. Acquiring a card **unlocks the thing it represents** in the rest of the app.
+
+**Progression = collectible cards (+ points to buy them).**  
+There is **no level** and **no experience (XP)** track. Features, capacity, content, and help are all gated by owning the right cards — not by reaching a level or XP threshold. Any existing level / XP UI or earn paths are **legacy to remove** in favor of this card catalog.
+
+| Card type | Unlocks |
+|-----------|---------|
+| `quote` | Quote packs usable during workouts / motivation surfaces |
+| `collection` | Collectible art / themed sets (boardgames, plants, etc.) |
+| `reward` | Redeemable rewards (points sink) |
+| `room` | Background / room scene for focus / workout atmosphere |
+| `music` | Music track (or small pack) in the audio picker |
+| `program` | Workout program availability |
+| `set` | Exercise set (group of exercises) availability |
+| `guide` | Screen / feature “how to use” help (see below) |
+| `option` | A setting / capacity limit (stackable — see below) |
+
+Unlocking a card is the gate: until acquired, the corresponding option stays locked (or hidden) on its screen. Until acquired, the card still shows in the hub (catalog) so the player can discover and buy it.
+
+### Option cards (stackable settings)
+
+`option` cards do **not** unlock a single asset. They unlock or raise a **setting / capacity**, and **copies stack**.
+
+`acquisitionCount` = how much capacity that option grants (or adds), depending on the card.
+
+Examples:
+
+| Option card | Effect per copy | Starter copies |
+|-------------|-----------------|----------------|
+| **Project slots** | +1 max project | **×3** → max 3 projects |
+| **Room slots** | +1 max room (saved / usable room slots) | **×3** → max 3 rooms |
+
+Players buy the same card again to accumulate more capacity (e.g. from 3 → 4 projects). Hub footer shows `owned xN`. Soft-cap or rising cost can come later; design assumes rebuy is always allowed for these cards.
+
+Distinguish from `room` / `program` content cards:
+
+- `room` / `program` / `music` = **which** assets exist in the picker
+- `option` (room slots / project slots) = **how many** you may keep or use at once
+
+### Filter surface
+
+Type filters on one card grid (no separate sub-tabs):
+
+`all` | `quote` | `collection` | `reward` | `room` | `music` | `program` | `set` | `guide` | `option`
+
+Scope: `all` | `acquired`.
+
+## Starter unlocks (first-run defaults)
+
+Ship a small set of cards already acquired so the app is usable without spending points first.
+
+| Area | Default unlocked |
+|------|------------------|
+| **Sets (exercises)** | Almost all — at least every set that is referenced by seeded programs / YAML sets |
+| **Programs** | **7 Minutes Workout** program card unlocked |
+| **Music** | A few core, nice tracks unlocked |
+| **Rooms / album art** | 2–3 room / album background images unlocked |
+| **Option: project slots** | **3 copies** owned → max **3** projects |
+| **Option: room slots** | **3 copies** owned → max **3** rooms |
+| **Guides** | Core instructional cards for the main flows (decorative in hub; functional help on screens) |
+
+Everything else starts locked and appears in the hub as purchasable cards.
+
+## Guide cards → screen help
+
+`guide` cards are **instructional / decorative** in the Motivation hub (art + short blurb about a feature).
+
+Once a guide card is **unlocked**, its corresponding screen gains a **?** control. Tapping **?** opens a modal that explains how to use that screen (content sourced from the unlocked guide card: title, body, optional tips).
+
+| Concept | Behavior |
+|---------|----------|
+| Locked guide | Visible in hub catalog; no **?** on the target screen (or **?** disabled / “unlock in Motivation”) |
+| Unlocked guide | **?** appears on the target screen → modal with how-to content |
+| Hub tile | Decorative presentation of the same guide (sprite, title, short description) |
+
+Target screens for guides (examples): Motivation hub itself, Active Workout, Programs, Focus / Pomodoro, Analytics, Settings-related atmospheres (rooms / music) as needed.
+
+## Entry (current)
 
 | Path | Screen |
 |------|--------|
@@ -22,9 +100,7 @@ There’s no main Habit screen wired up yet, so those stats are mostly empty unl
 Shell tabs on Analytics: Overview | Focus | Workouts | Motivation (`analytics_screen.dart`).  
 The period picker above Analytics is unused by the Motivation hub.
 
-There are **no separate Quotes / Collection / Rewards sub-tabs**. Those are **type filters** on one card grid.
-
-## Hub UX (`lib/screens/motivation_hub_screen.dart`)
+## Hub UX (target shape)
 
 Top → bottom:
 
@@ -33,114 +109,140 @@ Top → bottom:
    - Last week: `(+earned / -spent)` from transactions
    - Source: `MotivationPointsService.summary()`
 
-2. **Filters**
-   - Type: `all` | `quote` | `collection` | `reward`
-   - Scope: `all` | `acquired` (acquired = collected or purchased)
+2. **Filters** — types above + `all` / `acquired`
 
 3. **Card grid** (responsive 3–5 columns)
    - Type + category, sprite or icon, title
    - Footer: cost / `owned` / `owned xN` (insufficient funds tinted)
+   - Locked vs acquired visual state
 
-4. **Create** → Quick Create dialog (Collection / Quote / Reward)
+4. **Create** → Quick Create (extend for new card types where user-authored cards make sense)
 
 ### Card tap
 
-Detail modal: art, cost, acquire/buy.  
-Quote cards: random / next / list / edit quotes stored in `metadata['quotes']`.
+Detail modal: art, cost, description, acquire/buy.  
+Quote cards: random / next / list / edit quotes stored in metadata.  
+Program / set / room / music / guide cards: show what unlocking enables (and for guides, preview of the how-to body).  
+Option cards: show current capacity from copies (`owned xN` → “max N projects/rooms”) and cost of +1.
 
 ### Acquire / buy
 
-Confirm if already owned → `userProgress.spendPoints(cost)` →  
-`MotivationItemModel.recordAcquisition()` **or** `RewardModel.purchase()`.
+Confirm if already owned → spend points → mark card acquired → **propagate unlock** so the option appears on the matching screen.  
+For `option` cards, rebuy is expected: each purchase increments `acquisitionCount` and raises the limit.
 
-### Card projection
+### Unlock propagation (new)
 
-| Source | Shown as |
-|--------|----------|
-| All `MotivationItemModel` | quote / collection cards |
-| `RewardModel` except collectible-seeded | reward cards |
+| Card type | Effect when acquired |
+|-----------|----------------------|
+| `quote` | Quote pack usable by `WorkoutMotivationService` / hub |
+| `collection` | Collection entry owned (display / progress) |
+| `reward` | Same as today (`RewardModel.purchase` path) |
+| `room` | Room/background selectable in atmosphere / session UI |
+| `music` | Track selectable in music picker |
+| `program` | Program selectable / startable in workout programs |
+| `set` | Exercises in that set available for custom / program building |
+| `guide` | Enable **?** + how-to modal on the mapped screen |
+| `option` | Raise setting capacity: `max = acquisitionCount` (or base + count); enforce in create/save flows |
 
-Collectible rewards (`metadata.isCollectible`, `source=default_boardgame_csv`, or tag `collectible`) are **hidden** in the hub so boardgames appear only as **collection** items.
+## Data model direction
 
-Sprite art: `SpriteImage(sheet: 'motivation_64', index: imageIndex - 1)` when `imageIndex > 0`.
+Keep a single hub concept of **Card** (evolve `MotivationItemModel` or rename conceptually to Card). Broaden `type` beyond `quote | collection | reward`.
 
-## Data models
+Suggested fields / metadata:
 
-| Model | Box | Role |
-|-------|-----|------|
-| `MotivationItemModel` | `motivationItems` | Deck: `quote` / `collection` (acquisition count + history) |
-| `MotivationPointsTransactionModel` | `motivationPointsTransactions` | Ledger: `earned` \| `spent`, amount, source, createdAt |
-| `RewardModel` | `rewards` | Purchasable rewards; hub projects non-collectibles |
-| `MotivationalCardModel` | `motivationalCards` | **Legacy** workout cards only (not hub) |
-| `UserProgressModel` | `userProgress` | `availablePoints`, lifetime earn/spend counters |
+| Field / metadata | Role |
+|------------------|------|
+| `type` | `quote` \| `collection` \| `reward` \| `room` \| `music` \| `program` \| `set` \| `guide` \| `option` |
+| `unlockTargetId` | ID of program, set, track, room asset, screen key, or setting key (`project_slots`, `room_slots`, …) |
+| `acquisitionCount` | Stack depth; for `option`, drives max capacity |
+| `metadata.quotes` | Quote lists (existing) |
+| `metadata.howTo` / body | Guide modal content |
+| `metadata.screenKey` | Which screen gets the **?** (for `guide`) |
+| `metadata.settingKey` | Which limit this option raises (`max_projects`, `max_rooms`, …) |
+| `metadata.capacityPerCopy` | Usually `1`; allows +N per purchase later if needed |
+| `isStarter` / seeded `isAcquired` | First-run unlocked cards (option starters seed with `acquisitionCount: 3`) |
+| `rarity` | Drop / display tier (e.g. `common` \| `uncommon` \| `rare` \| `epic`) |
+| `imageIndex` / asset paths | Sprite or album / room art |
 
-Opened at startup in `main.dart` (and hub also opens them defensively).
+Rewards may remain projected from `RewardModel` or fold into Cards later; see legacy notes below.
 
-## Services
+## Current implementation snapshot (as of hub live)
 
-| Service | Role |
-|---------|------|
-| `MotivationSeedService` | Idempotent seed from CSVs → `MotivationItemModel` |
-| `RewardSeedService` | Seeds collectible `RewardModel`s from same CSV (hub filters them out) |
-| `MotivationPointsService` | `recordEarned` / `recordSpent` / `summary()` |
-| `MotivationalCardService` | Legacy card CRUD — not used by hub |
-| `WorkoutMotivationService` | Random quote from **acquired** hub quote items during workouts |
+Useful until the redesign lands:
 
-## Seeding
+| Piece | Today |
+|-------|--------|
+| Types in hub | `quote` \| `collection` \| `reward` only |
+| Models | `MotivationItemModel`, `RewardModel`, points ledger, legacy `MotivationalCardModel` |
+| Seeding | `motivation_64.csv`, `quotes.csv`, sprite `motivation_64` |
+| Points | Earn: +1 / minute on session complete; spend: hub acquire — **not** level-up |
+| Session loot | +1 random card / 10 min (min 1); repeats stack; rarity-weighted |
+| Filters | `all` \| `quote` \| `collection` \| `reward` + scope `all` \| `acquired` |
+| Legacy | `UserProgressModel` still has level / XP fields in code — **retire**; points-only + cards |
 
-Sources:
+Collectible rewards from CSV are hidden in the hub so boardgames appear as **collection** cards only.
 
-- `assets/icon/motivation_64.csv` — name, number (sprite index), description, category  
-- `assets/quotes.csv` — `person,quote1;quote2;…`  
-- Sprite sheet: `assets/icon/motivation_64.png` (`motivation_64`)
+## Points & session rewards (cards only — no XP / levels)
 
-Rules:
+**Balance:** points (today on `UserProgressModel.availablePoints`; keep points, drop level/XP).
 
-- `philosopher` → `quote`
-- `boardgame` / `plant` / other → `collection`
-- Quote lists matched to person name (exact, then contains)
-- Stable IDs: `motivation_catalog_<number>`
-- Low-cost starters: first few catalog rows use starter cost (20 prod / 5 test env)
+**Spend:** Hub acquire / reward purchase → unlock or stack cards.
 
-## Points economy
+**Create catalog items** does **not** spend points; it adds records.
 
-**Balance:** `UserProgressModel.availablePoints`.
+**Progress display:** hub / analytics show **points + card collection** (owned counts, types unlocked, rarity) — not level bars or XP.
 
-**Earn** (also writes ledger):
+### Session complete (focus or workout)
 
-- Pomodoro complete → `pomodoro_session`
-- Level-up bonus → `level_up_bonus`
+On completing **any** session (focus / pomodoro **or** workout):
 
-**Spend:**
+| Grant | Rule |
+|-------|------|
+| **Points** | **+1 point per minute** spent in the session (card currency) |
+| **Random cards** | **+1 random card per 10 minutes**, floored — but **at least 1 card** even for short sessions |
 
-- Hub acquire / reward purchase → `spendPoints` + `recordSpent(..., source: 'points_spend')`
+Examples:
 
-**Create catalog items** (Quick Create) does **not** spend points; it adds Hive records.
+| Duration | Points | Random cards |
+|----------|--------|--------------|
+| 7 min workout | +7 | **1** (minimum) |
+| 25 min focus | +25 | **2** (⌊25/10⌋) |
+| 50 min | +50 | **5** |
 
-## Quick Create
+#### Random card drops
 
-Dialog from hub **Create**:
+- Drawn from the catalog drop pool (weighted by **rarity**; exact weights TBD).
+- Drops **can repeat**; repeats **stack** (`acquisitionCount` / `owned xN`) — same as option copy stacking.
+- Stacking a content/option card re-applies unlock semantics (e.g. another room-slot copy raises capacity).
+- Show a short “loot” summary after the session (points + cards gained, rarity callouts).
 
-| Type | Creates |
-|------|---------|
-| Collection | `MotivationItemModel(type: collection)` |
-| Quote | `MotivationItemModel(type: quote)` + person/topic + optional quote text |
-| Reward | `RewardModel` via existing custom-reward helper |
+**Do not** award XP, level-ups, or “level_up_bonus” points.
+
+### Rarity
+
+Every catalog card has a **rarity** used for drop chance and hub presentation (tint / badge). Stacking does not change rarity; rarer cards are simply harder to roll on session complete. Players can still **buy** cards in the hub with points (buy path may ignore rarity weights or charge more for higher rarity — TBD).
 
 ## Related / legacy surfaces
 
 | Surface | Status |
 |---------|--------|
-| `MotivationalCardsScreen` (+ add/edit/detail) | Live on workout nav; separate freeform cards |
-| `RewardsManagementScreen` / `RewardsScreen` | Exist; full reward CRUD; **not** on main nav (management screen can embed hub) |
-| Dual CSV seed into both items + collectible rewards | Intentional split; hub prefers collection items |
+| `MotivationalCardsScreen` | Live on workout nav; separate freeform cards — candidate to merge into hub Cards |
+| `RewardsManagementScreen` / `RewardsScreen` | Exist; not on main nav |
+| Dual CSV seed (items + collectible rewards) | Prefer single Card catalog over time |
 
-## Next ideas (not built)
+## Implementation checklist (not started)
 
-- Rarity tiers / unlock effects  
-- Topic quote packs / streak rewards  
-- Transaction timeline + spend chart  
-- Unify collectible rewards so hub doesn’t need a filter exclusion  
-- Retire or merge legacy `MotivationalCardModel` path into the hub  
-- Scope label `deck` (plan) vs current `all` — cosmetic only  
-- Card tiles: description snippet + explicit “Need Y” footer
+- [ ] Widen card `type` enum + filters for room / music / program / set / guide / option
+- [ ] Define unlock propagation APIs (query “is X unlocked?” + “max capacity for setting Y?”)
+- [ ] Seed starters: all in-set exercises/sets, 7 Minutes program, core music, 2–3 rooms/album images, core guides
+- [ ] Seed option cards: project slots ×3, room slots ×3; enforce max in create/save UI
+- [ ] Allow rebuy of `option` cards to stack capacity; hub shows `owned xN`
+- [ ] Wire **?** + how-to modal from unlocked `guide` cards on target screens
+- [ ] Hub detail copy for unlockable option / content cards
+- [ ] Optional: rename UX copy from “Motivation Item” → “Card” throughout hub
+- [ ] **Remove levels & experience:** drop XP earn, level-up bonus, level/XP UI; points + cards only
+- [ ] Replace any “unlock at level N / XP” gates with `option` / content / `guide` cards
+- [ ] Session complete grants: **+1 point / minute** + **⌊minutes/10⌋ random cards (min 1)**; repeats stack
+- [ ] Rarity on cards + weighted drop table; post-session loot UI
+- [ ] Retire or merge legacy `MotivationalCardModel` into Cards
+- [ ] Transaction timeline / spend chart (stretch)

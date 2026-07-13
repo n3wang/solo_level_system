@@ -6,7 +6,6 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
-import 'package:solo_level_system/models/habit_tracker_model.dart';
 import 'package:solo_level_system/models/motivation_item_model.dart';
 import 'package:solo_level_system/models/motivation_points_transaction_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
@@ -63,7 +62,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       ),
       body: Column(
         children: [
-          // Period picker on analytics tabs; Motivation shows points only (no period).
+          // Period picker on Focus/Workouts; Motivation shows points; Overview has neither.
           if (_tabController.index == 3)
             Container(
               width: double.infinity,
@@ -74,7 +73,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               alignment: Alignment.centerLeft,
               child: _buildMotivationPointsHeader(),
             )
-          else
+          else if (_tabController.index == 1 || _tabController.index == 2)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(
@@ -160,7 +159,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       future: Future.wait([
         _ensureBoxIsOpen<PomodoroModel>('pomodoros'),
         _ensureBoxIsOpen<WorkoutSessionModel>('workoutSessions'),
-        _ensureBoxIsOpen<HabitTrackerModel>('habits'),
         _ensureBoxIsOpen<EnhancedAudioModel>('audioFiles'),
         _ensureBoxIsOpen<MotivationItemModel>('motivationItems'),
       ]),
@@ -182,72 +180,46 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               ).listenable(),
               builder: (context, workoutBox, _) {
                 return ValueListenableBuilder(
-                  valueListenable: Hive.box<HabitTrackerModel>(
-                    'habits',
+                  valueListenable: Hive.box<EnhancedAudioModel>(
+                    'audioFiles',
                   ).listenable(),
-                  builder: (context, habitBox, _) {
+                  builder: (context, audioBox, _) {
                     return ValueListenableBuilder(
-                      valueListenable: Hive.box<EnhancedAudioModel>(
-                        'audioFiles',
-                      ).listenable(),
-                      builder: (context, audioBox, _) {
-                        return ValueListenableBuilder(
-                          valueListenable:
-                              Hive.box<MotivationItemModel>(
-                                'motivationItems',
-                              ).listenable(),
-                          builder: (context, motivationBox, _) {
-                            final pomodoros = _filterSessionsByPeriod(
-                              pomodoroBox.values.toList(),
-                            );
-                            final workouts = _filterWorkoutsByPeriod(
-                              workoutBox.values.toList(),
-                            );
-                            final habits = habitBox.values
-                                .where((h) => h.isActive)
-                                .toList();
-                            final sessionAudios = _filterAudioByPeriod(
-                              audioBox.values.toList(),
-                            );
-                            final acquired = motivationBox.values
-                                .where((item) => item.hasAnyAcquisition)
-                                .toList()
-                              ..sort(
-                                (a, b) => (b.acquiredAt ?? b.createdAt)
-                                    .compareTo(a.acquiredAt ?? a.createdAt),
-                              );
+                      valueListenable:
+                          Hive.box<MotivationItemModel>(
+                            'motivationItems',
+                          ).listenable(),
+                      builder: (context, motivationBox, _) {
+                        final sessionAudios = audioBox.values
+                            .where(
+                              (audio) =>
+                                  audio.category == null ||
+                                  audio.category == 'session',
+                            )
+                            .toList();
+                        final acquired = motivationBox.values
+                            .where((item) => item.hasAnyAcquisition)
+                            .toList()
+                          ..sort(
+                            (a, b) => (b.acquiredAt ?? b.createdAt)
+                                .compareTo(a.acquiredAt ?? a.createdAt),
+                          );
 
-                            return SingleChildScrollView(
-                              padding: const EdgeInsets.all(AppUiSizes.lg),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildQuickStats(
-                                    pomodoros,
-                                    workouts,
-                                    habits,
-                                  ),
-                                  const SizedBox(height: AppUiSizes.xxl),
-                                  _buildWeeklyOverview(
-                                    pomodoroBox.values.toList(),
-                                    workoutBox.values.toList(),
-                                  ),
-                                  const SizedBox(height: AppUiSizes.xxl),
-                                  _buildAcquiredCollectibles(acquired),
-                                  const SizedBox(height: AppUiSizes.xxl),
-                                  _buildGoalsProgress(
-                                    pomodoros,
-                                    workouts,
-                                    habits,
-                                  ),
-                                  const SizedBox(height: AppUiSizes.xxl),
-                                  _buildSessionAudioRecordingsCard(
-                                    sessionAudios,
-                                  ),
-                                ],
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.all(AppUiSizes.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildWeeklyOverview(
+                                pomodoroBox.values.toList(),
+                                workoutBox.values.toList(),
                               ),
-                            );
-                          },
+                              const SizedBox(height: AppUiSizes.xxl),
+                              _buildAcquiredCollectibles(acquired),
+                              const SizedBox(height: AppUiSizes.xxl),
+                              _buildSessionAudioRecordingsCard(sessionAudios),
+                            ],
+                          ),
                         );
                       },
                     );
@@ -342,92 +314,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           },
         );
       },
-    );
-  }
-
-  Widget _buildQuickStats(
-    List<PomodoroModel> pomodoros,
-    List<WorkoutSessionModel> workouts,
-    List<HabitTrackerModel> habits,
-  ) {
-    final focusMinutes = pomodoros.fold<int>(
-      0,
-      (sum, p) => sum + p.minutesSpent,
-    );
-    final workoutMinutes = workouts
-        .where((w) => w.isCompleted)
-        .fold<int>(0, (sum, w) => sum + w.durationMinutes);
-    final completedHabits = habits.where((h) => h.isCompleted).length;
-    final totalHabits = habits.length;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppUiSizes.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Quick Stats - $_selectedPeriod',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontSize: AppColorPalette.fontSizeSubtitle,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: AppUiSizes.lg),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatItem(
-                    'Focus (min)',
-                    '$focusMinutes',
-                    Icons.timer,
-                  ),
-                ),
-                Expanded(
-                  child: _buildStatItem(
-                    'Workout (min)',
-                    '$workoutMinutes',
-                    Icons.fitness_center,
-                  ),
-                ),
-                Expanded(
-                  child: _buildStatItem(
-                    'Habits',
-                    '$completedHabits/$totalHabits',
-                    Icons.track_changes,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(height: AppUiSizes.sm),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontSize: AppColorPalette.fontSizeTitle,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            fontSize: AppColorPalette.fontSizeSmall,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.72),
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
     );
   }
 
@@ -725,56 +611,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
-  Widget _buildGoalsProgress(
-    List<PomodoroModel> pomodoros,
-    List<WorkoutSessionModel> workouts,
-    List<HabitTrackerModel> habits,
-  ) {
-    final todayPomodoros = pomodoros.where((p) {
-      final today = DateTime.now();
-      return p.startTime.year == today.year &&
-          p.startTime.month == today.month &&
-          p.startTime.day == today.day;
-    }).length;
-
-    final weeklyWorkouts = workouts.where((w) => w.isCompleted).length;
-    final completedHabits = habits.where((h) => h.isCompleted).length;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppUiSizes.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Goals Progress',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontSize: AppColorPalette.fontSizeSubtitle,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: AppUiSizes.lg),
-            _buildGoalItem('Daily Focus Sessions', todayPomodoros, 5),
-            _buildGoalItem(
-              '$_selectedPeriod Workouts',
-              weeklyWorkouts,
-              _selectedPeriod == 'Week'
-                  ? 4
-                  : _selectedPeriod == 'Today'
-                  ? 1
-                  : 15,
-            ),
-            _buildGoalItem(
-              'Habit Completion',
-              completedHabits,
-              habits.isNotEmpty ? habits.length : 1,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildSessionAudioRecordingsCard(List<EnhancedAudioModel> audios) {
     final sorted = [...audios]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -793,7 +629,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             ),
             const SizedBox(height: AppUiSizes.sm),
             Text(
-              '${sorted.length} recording${sorted.length == 1 ? '' : 's'} in $_selectedPeriod',
+              '${sorted.length} recording${sorted.length == 1 ? '' : 's'}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(
                   context,
@@ -803,7 +639,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             const SizedBox(height: AppUiSizes.md),
             if (sorted.isEmpty)
               Text(
-                'No session recordings for this period yet.',
+                'No session recordings yet.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(
                     context,
@@ -823,34 +659,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildGoalItem(String goal, int current, int target) {
-    final progress = current / target;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppUiSizes.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [Text(goal), Text('$current/$target')],
-          ),
-          const SizedBox(height: AppUiSizes.xs),
-          LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.16),
-            valueColor: AlwaysStoppedAnimation<Color>(
-              progress >= 1.0
-                  ? Theme.of(context).colorScheme.tertiary
-                  : Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1379,38 +1187,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     return sessions
         .where((session) => session.startTime.isAfter(startDate))
-        .toList();
-  }
-
-  List<EnhancedAudioModel> _filterAudioByPeriod(
-    List<EnhancedAudioModel> audios,
-  ) {
-    final now = DateTime.now();
-    DateTime startDate;
-
-    switch (_selectedPeriod) {
-      case 'Today':
-        startDate = DateTime(now.year, now.month, now.day);
-        break;
-      case 'Week':
-        startDate = now.subtract(Duration(days: now.weekday - 1));
-        break;
-      case 'Month':
-        startDate = DateTime(now.year, now.month, 1);
-        break;
-      case 'Year':
-        startDate = DateTime(now.year, 1, 1);
-        break;
-      default:
-        startDate = now.subtract(Duration(days: 7));
-    }
-
-    return audios
-        .where(
-          (audio) =>
-              audio.createdAt.isAfter(startDate) &&
-              (audio.category == null || audio.category == 'session'),
-        )
         .toList();
   }
 
