@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/screens/exercise_details_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
@@ -102,15 +103,7 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _getSetColor().withValues(alpha: 0.1),
-        border: Border(
-          bottom: BorderSide(
-            color: _getSetColor().withValues(alpha: 0.3),
-            width: 2,
-          ),
-        ),
-      ),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(width: 1))),
       child: Row(
         children: [
           Icon(Icons.filter_list, color: _getSetColor(), size: 20),
@@ -143,14 +136,9 @@ class _WorkoutExercisesScreenState extends State<WorkoutExercisesScreen> {
   }
 
   Color _getSetColor() {
-    if (widget.setCategory?.color != null) {
-      try {
-        return Color(int.parse(widget.setCategory!.color!));
-      } catch (e) {
-        return Colors.purple;
-      }
-    }
-    return Colors.purple;
+    final set = widget.setCategory;
+    if (set == null) return AppColorPalette.color1;
+    return AppColorPalette.colorForSetPosition(set.position);
   }
 
   void _manageSetExercises() {

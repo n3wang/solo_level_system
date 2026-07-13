@@ -28,15 +28,17 @@ class ExerciseSetMembershipToggle extends StatelessWidget {
 
   List<WorkoutSetCategoryModel> _activeSets() {
     if (!Hive.isBoxOpen('workoutSetCategories')) return [];
-    final sets = Hive.box<WorkoutSetCategoryModel>('workoutSetCategories')
-        .values
-        .where((s) => s.isActive)
-        .toList();
+    final sets = Hive.box<WorkoutSetCategoryModel>(
+      'workoutSetCategories',
+    ).values.where((s) => s.isActive).toList();
     sets.sort((a, b) => a.position.compareTo(b.position));
     return sets;
   }
 
-  Set<String> _membershipFor(String exerciseId, List<WorkoutSetCategoryModel> sets) {
+  Set<String> _membershipFor(
+    String exerciseId,
+    List<WorkoutSetCategoryModel> sets,
+  ) {
     return sets
         .where((s) => s.exerciseIds.contains(exerciseId))
         .map((s) => s.id)
@@ -50,8 +52,9 @@ class ExerciseSetMembershipToggle extends StatelessWidget {
     }
 
     return ValueListenableBuilder(
-      valueListenable:
-          Hive.box<WorkoutSetCategoryModel>('workoutSetCategories').listenable(),
+      valueListenable: Hive.box<WorkoutSetCategoryModel>(
+        'workoutSetCategories',
+      ).listenable(),
       builder: (context, Box<WorkoutSetCategoryModel> box, _) {
         final sets = _activeSets();
         if (sets.isEmpty) return const SizedBox.shrink();
@@ -89,6 +92,9 @@ class ExerciseSetMembershipToggle extends StatelessWidget {
                 final index = entry.key;
                 final set = entry.value;
                 final isSelected = selected.contains(set.id);
+                final setColor = AppColorPalette.colorForSetPosition(
+                  set.position,
+                );
 
                 return GestureDetector(
                   onTap: () => _onToggle(set, isSelected, selected),
@@ -97,16 +103,13 @@ class ExerciseSetMembershipToggle extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColorPalette.grey800
-                          : Colors.transparent,
-                      borderRadius:
-                          BorderRadius.circular(AppUiSizes.buttonRadius),
+                      color: isSelected ? setColor : Colors.transparent,
+                      borderRadius: BorderRadius.circular(
+                        AppUiSizes.buttonRadius,
+                      ),
                       border: Border.all(
-                        color: isSelected
-                            ? AppColorPalette.grey800
-                            : AppColorPalette.grey400,
-                        width: 2,
+                        color: isSelected ? setColor : AppColorPalette.grey800,
+                        width: 1,
                       ),
                     ),
                     child: Center(

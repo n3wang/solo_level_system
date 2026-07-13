@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
+import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/screens/add_edit_workout_set_screen.dart';
 import 'package:solo_level_system/screens/workout_exercises_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
@@ -267,23 +268,7 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
   }
 
   Color _getSetColor(WorkoutSetCategoryModel setCategory) {
-    if (setCategory.color != null) {
-      try {
-        return Color(int.parse(setCategory.color!));
-      } catch (e) {
-        // Fall through to default colors
-      }
-    }
-
-    // Default colors based on position
-    final colors = [
-      Colors.purple,
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.red,
-    ];
-    return colors[setCategory.position % colors.length];
+    return AppColorPalette.colorForSetPosition(setCategory.position);
   }
 
   void _reorderSets(

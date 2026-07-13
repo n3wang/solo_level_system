@@ -12,6 +12,7 @@ import 'package:solo_level_system/utils/workout_service.dart';
 import 'package:solo_level_system/utils/workout_motivation_service.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
+import 'package:solo_level_system/widgets/common/settings_slider.dart';
 import 'package:sprite_sheets/sprite_sheets.dart';
 
 class ActiveWorkoutSessionScreen extends StatefulWidget {
@@ -1409,7 +1410,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                         ),
                       ],
                     ),
-                    Slider(
+                    SettingsSlider(
                       value: draftRest.toDouble(),
                       min: 15,
                       max: 180,

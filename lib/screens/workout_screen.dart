@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
+import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
@@ -299,7 +300,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         if (selectedSet != null && (hasExercises || canResume)) ...[
           CustomFloatingActionButton(
             heroTag: 'workout_start_set_session',
-            label: canResume ? 'Resume Set $setLabel' : 'Start Set $setLabel',
+            label: canResume ? 'Resume' : 'Start $setLabel',
             icon: canResume ? Icons.play_arrow : Icons.fitness_center,
             onPressed: canResume ? _resumeSetSession : _startSetSession,
           ),
@@ -307,7 +308,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         ],
         CustomFloatingActionButton(
           heroTag: 'workout_new_exercise',
-          label: 'New Exercise',
+          label: 'New E.',
           icon: Icons.add,
           onPressed: _createNewExercise,
         ),
@@ -597,14 +598,14 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     VoidCallback? onLongPress,
   }) {
     final chipColor = color ?? AppColorPalette.grey;
-    // Calculate dimensions: height based on vertical padding, width = 0.5 * height
-    // With vertical padding of 8, approximate height is ~36px (8*2 + text height ~20)
-    // So width should be around 18px
     const double verticalPadding = 8;
-    const double approximateHeight = 36; // verticalPadding * 2 + text height
-    const double targetWidth = approximateHeight * .8; // ~18px
+    const double approximateHeight = 36;
+    const double targetWidth = approximateHeight * .8;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unselectedBorder = isDark
+        ? AppColorPalette.grey300
+        : AppColorPalette.grey800;
     final unselectedTextColor = isDark
         ? AppColorPalette.grey300
         : AppColorPalette.grey800;
@@ -617,10 +618,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         padding: EdgeInsets.symmetric(horizontal: 4, vertical: verticalPadding),
         decoration: BoxDecoration(
           color: isSelected ? chipColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
           border: Border.all(
-            color: isSelected ? chipColor : AppColorPalette.grey400,
-            width: 2,
+            color: isSelected ? chipColor : unselectedBorder,
+            width: 1,
           ),
         ),
         child: Center(
@@ -932,200 +933,197 @@ class _WorkoutScreenState extends State<WorkoutScreen>
             border: Border.all(color: AppColorPalette.grey300),
           ),
           child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        children: [
-                          Builder(
-                            builder: (context) {
-                              final isDark =
-                                  Theme.of(context).brightness ==
-                                  Brightness.dark;
-                              final iconBgColor = isDark
-                                  ? AppColorPalette.backgroundDarkSurface
-                                  : AppColorPalette.white;
-                              return Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: iconBgColor,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: WorkoutIconWidget(
-                                    key: ValueKey(
-                                      'workout_list_icon_${exercise.id}_${exercise.imageUrl}',
-                                    ),
-                                    imageUrl: exercise.imageUrl,
-                                    size: 50,
-                                    backgroundColor: iconBgColor,
-                                    placeholder: Icon(
-                                      _getCategoryIcon(exercise.category),
-                                      color: _getCategoryColor(
-                                        exercise.category,
-                                      ),
-                                      size: 28,
-                                    ),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      children: [
+                        Builder(
+                          builder: (context) {
+                            final isDark =
+                                Theme.of(context).brightness == Brightness.dark;
+                            final iconBgColor = isDark
+                                ? AppColorPalette.backgroundDarkSurface
+                                : AppColorPalette.white;
+                            return Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: iconBgColor,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: WorkoutIconWidget(
+                                  key: ValueKey(
+                                    'workout_list_icon_${exercise.id}_${exercise.imageUrl}',
+                                  ),
+                                  imageUrl: exercise.imageUrl,
+                                  size: 50,
+                                  backgroundColor: iconBgColor,
+                                  placeholder: Icon(
+                                    _getCategoryIcon(exercise.category),
+                                    color: _getCategoryColor(exercise.category),
+                                    size: 28,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: List.generate(5, (index) {
-                              final set = sets.length > index
-                                  ? sets[index]
-                                  : null;
-                              final belongsToSet =
-                                  set != null &&
-                                  set.exerciseIds.contains(exercise.id);
-                              final setColor = set != null
-                                  ? _getSetColor(set)
-                                  : AppColorPalette.grey800;
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(5, (index) {
+                            final set = sets.length > index
+                                ? sets[index]
+                                : null;
+                            final belongsToSet =
+                                set != null &&
+                                set.exerciseIds.contains(exercise.id);
+                            final setColor = set != null
+                                ? _getSetColor(set)
+                                : AppColorPalette.grey800;
 
-                              return Padding(
-                                padding: EdgeInsets.only(
-                                  right: index < 4 ? 3 : 0,
-                                ),
-                                child: Container(
-                                  width: setChipWidth,
-                                  height: setChipHeight,
-                                  decoration: BoxDecoration(
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                right: index < 4 ? 3 : 0,
+                              ),
+                              child: Container(
+                                width: setChipWidth,
+                                height: setChipHeight,
+                                decoration: BoxDecoration(
+                                  color: belongsToSet
+                                      ? setColor
+                                      : Colors.transparent,
+                                  border: Border.all(
                                     color: belongsToSet
                                         ? setColor
-                                        : Colors.transparent,
-                                    border: Border.all(
-                                      color: belongsToSet
-                                          ? setColor
-                                          : AppColorPalette.grey400,
-                                      width: 1.2,
-                                    ),
-                                    borderRadius: BorderRadius.circular(2.5),
+                                        : AppColorPalette.grey800,
+                                    width: .6,
+                                  ),
+                                  borderRadius: BorderRadius.circular(2.5),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  exercise.name,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              );
-                            }),
+                              ),
+                              const SizedBox(width: 8),
+                              _buildLastWorkoutInfo(exercise),
+                              // Space for bookmark in the top-right
+                              const SizedBox(width: 28),
+                            ],
+                          ),
+                          if (exercise.description.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Builder(
+                                builder: (context) {
+                                  final isDark =
+                                      Theme.of(context).brightness ==
+                                      Brightness.dark;
+                                  return Text(
+                                    exercise.description,
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? AppColorPalette.grey400
+                                          : AppColorPalette.grey600,
+                                      fontSize: 14,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          if (exercise.tags.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Builder(
+                                builder: (context) {
+                                  final isDark =
+                                      Theme.of(context).brightness ==
+                                      Brightness.dark;
+                                  return Text(
+                                    't:${exercise.tags.join(', ')}',
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? AppColorPalette.grey400
+                                          : AppColorPalette.grey600,
+                                      fontSize: 14,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              exercise.lastWorkoutDate != null
+                                  ? _formatLastPerformanceDate(
+                                      exercise.lastWorkoutDate!,
+                                    )
+                                  : 'Never performed',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: exercise.lastWorkoutDate != null
+                                    ? AppColorPalette.textSecondary
+                                    : AppColorPalette.grey,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    exercise.name,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                _buildLastWorkoutInfo(exercise),
-                                // Space for bookmark in the top-right
-                                const SizedBox(width: 28),
-                              ],
-                            ),
-                            if (exercise.description.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Builder(
-                                  builder: (context) {
-                                    final isDark =
-                                        Theme.of(context).brightness ==
-                                        Brightness.dark;
-                                    return Text(
-                                      exercise.description,
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? AppColorPalette.grey400
-                                            : AppColorPalette.grey600,
-                                        fontSize: 14,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            if (exercise.tags.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Builder(
-                                  builder: (context) {
-                                    final isDark =
-                                        Theme.of(context).brightness ==
-                                        Brightness.dark;
-                                    return Text(
-                                      't:${exercise.tags.join(', ')}',
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? AppColorPalette.grey400
-                                            : AppColorPalette.grey600,
-                                        fontSize: 14,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                exercise.lastWorkoutDate != null
-                                    ? _formatLastPerformanceDate(
-                                        exercise.lastWorkoutDate!,
-                                      )
-                                    : 'Never performed',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: exercise.lastWorkoutDate != null
-                                      ? AppColorPalette.textSecondary
-                                      : AppColorPalette.grey,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: GestureDetector(
-                    onTap: () => exercise.toggleBookmark(),
-                    behavior: HitTestBehavior.opaque,
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: Icon(
-                        exercise.isBookmarked
-                            ? Icons.bookmark
-                            : Icons.bookmark_border,
-                        size: 18,
-                        color: exercise.isBookmarked
-                            ? accent
-                            : AppColorPalette.grey400,
-                      ),
+              ),
+              Positioned(
+                top: 6,
+                right: 6,
+                child: GestureDetector(
+                  onTap: () => exercise.toggleBookmark(),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      exercise.isBookmarked
+                          ? Icons.bookmark
+                          : Icons.bookmark_border,
+                      size: 18,
+                      color: exercise.isBookmarked
+                          ? accent
+                          : AppColorPalette.grey400,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+      ),
     );
   }
 
@@ -1199,15 +1197,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   }
 
   Color _getSetColor(WorkoutSetCategoryModel setCategory) {
-    if (setCategory.color != null) {
-      try {
-        return Color(int.parse(setCategory.color!));
-      } catch (e) {
-        // Fall through to default colors
-      }
-    }
-
-    return AppColorPalette.getColorByIndex(setCategory.position);
+    // Always follow the active palette: set 1 → color1, …, set 5 → color5.
+    return AppColorPalette.colorForSetPosition(setCategory.position);
   }
 
   Color _getCategoryColor(String category) {

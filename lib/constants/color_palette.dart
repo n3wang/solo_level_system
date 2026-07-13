@@ -225,6 +225,11 @@ class AppColorPalette {
     return getColorByIndex(position - 1);
   }
 
+  /// Palette color for a set slot. [position] is 0-based (set 1 → color1).
+  static Color colorForSetPosition(int position) {
+    return getColorByIndex(position);
+  }
+
   // ============================================================================
   // SEMANTIC COLORS - From Active Palette
   // ============================================================================
