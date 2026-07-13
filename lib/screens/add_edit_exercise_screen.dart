@@ -42,10 +42,8 @@ class AddEditExerciseScreen extends StatefulWidget {
     return showCenteredAppModal<Object?>(
       context: context,
       barrierColor: nested ? Colors.transparent : null,
-      builder: (ctx) => AddEditExerciseScreen(
-        exercise: exercise,
-        presentedAsModal: true,
-      ),
+      builder: (ctx) =>
+          AddEditExerciseScreen(exercise: exercise, presentedAsModal: true),
     );
   }
 
@@ -69,6 +67,8 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
   final Set<String> _selectedSetIds = {};
 
   List<String> _tags = [];
+  List<String> _tagSuggestions = [];
+  final Set<String> _knownTagsCatalog = {...ExerciseTagSemantics.catalogTags};
   bool _isLoading = false;
   bool _showOptionalFields = true;
   bool _isBookmarked = false;
@@ -80,8 +80,37 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _workingExercise = widget.exercise;
+    _loadKnownTagsFromDatabase();
     if (_workingExercise != null) {
       _populateFields();
+    }
+  }
+
+  Future<void> _loadKnownTagsFromDatabase() async {
+    try {
+      if (!Hive.isBoxOpen('exercises')) {
+        await Hive.openBox<ExerciseModel>('exercises');
+      }
+      if (!mounted) return;
+      setState(() {
+        for (final exercise in Hive.box<ExerciseModel>('exercises').values) {
+          for (final tag in exercise.tags) {
+            final normalized = tag.trim().toLowerCase();
+            if (normalized.isNotEmpty) _knownTagsCatalog.add(normalized);
+          }
+          for (final extra in [
+            exercise.category,
+            exercise.muscleGroup,
+            exercise.equipment,
+            exercise.difficulty,
+          ]) {
+            final normalized = extra.trim().toLowerCase();
+            if (normalized.isNotEmpty) _knownTagsCatalog.add(normalized);
+          }
+        }
+      });
+    } catch (_) {
+      // Catalog still has built-in special tags.
     }
   }
 
@@ -104,9 +133,9 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
 
     _selectedSetIds.clear();
     if (Hive.isBoxOpen('workoutSetCategories')) {
-      final sets = Hive.box<WorkoutSetCategoryModel>('workoutSetCategories')
-          .values
-          .where((s) => s.isActive && s.exerciseIds.contains(exercise.id));
+      final sets = Hive.box<WorkoutSetCategoryModel>(
+        'workoutSetCategories',
+      ).values.where((s) => s.isActive && s.exerciseIds.contains(exercise.id));
       _selectedSetIds.addAll(sets.map((s) => s.id));
     }
   }
@@ -117,6 +146,58 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
         .map((line) => line.trim())
         .where((line) => line.isNotEmpty)
         .toList();
+  }
+
+  String _incompleteTagPrefix(String text) {
+    final lastComma = text.lastIndexOf(',');
+    final segment = lastComma == -1 ? text : text.substring(lastComma + 1);
+    return segment.trimLeft();
+  }
+
+  List<String> _finishedTags(String text) {
+    final lastComma = text.lastIndexOf(',');
+    final finishedPart = lastComma == -1 ? '' : text.substring(0, lastComma);
+    return finishedPart
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .where((t) => t.isNotEmpty)
+        .toList();
+  }
+
+  void _syncTagsListFromController() {
+    _tags = _tagsController.text
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
+  }
+
+  void _onTagsChanged(String value) {
+    _syncTagsListFromController();
+    final prefix = _incompleteTagPrefix(value).toLowerCase();
+    final finished = _finishedTags(value).toSet();
+
+    final suggestions = prefix.isEmpty
+        ? <String>[]
+        : (_knownTagsCatalog.toList()..sort())
+              .where((tag) => tag.startsWith(prefix) && !finished.contains(tag))
+              .take(8)
+              .toList();
+
+    setState(() => _tagSuggestions = suggestions);
+  }
+
+  void _applyTagSuggestion(String tag) {
+    final text = _tagsController.text;
+    final lastComma = text.lastIndexOf(',');
+    final newText = lastComma == -1
+        ? '$tag, '
+        : '${text.substring(0, lastComma + 1)} $tag, ';
+    _tagsController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
+    );
+    _onTagsChanged(newText);
   }
 
   @override
@@ -269,10 +350,7 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
               ),
             ),
             const Spacer(),
-            Icon(
-              _showOptionalFields ? Icons.expand_less : Icons.expand_more,
-              color: AppColorPalette.textSecondary,
-            ),
+            Icon(_showOptionalFields ? Icons.expand_less : Icons.expand_more),
           ],
         ),
       ),
@@ -289,19 +367,34 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
           controller: _tagsController,
           decoration: const InputDecoration(
             labelText: 'Tags',
-            hintText: 'e.g., gym, legs, barbell, intermediate, strength',
+            hintText: 'e.g., gym, legs, barbell, intermediate',
             border: OutlineInputBorder(),
-            helperText:
-                'Special tags like legs, barbell, strength, intermediate are recognized automatically',
           ),
-          onChanged: (value) {
-            _tags = value
-                .split(',')
-                .map((tag) => tag.trim())
-                .where((tag) => tag.isNotEmpty)
-                .toList();
-          },
+          onChanged: _onTagsChanged,
         ),
+        if (_tagSuggestions.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: _tagSuggestions.map((tag) {
+              return ActionChip(
+                label: Text(
+                  tag,
+                  style: TextStyle(
+                    color: AppColorPalette.color2,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                backgroundColor: AppColorPalette.color2.withValues(alpha: 0.12),
+                side: BorderSide(
+                  color: AppColorPalette.color2.withValues(alpha: 0.35),
+                ),
+                onPressed: () => _applyTagSuggestion(tag),
+              );
+            }).toList(),
+          ),
+        ],
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
@@ -357,11 +450,27 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
     final accent = AppColorPalette.color2;
     final buttonStyle = TextButton.styleFrom(
       foregroundColor: accent,
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       minimumSize: Size.zero,
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      alignment: Alignment.centerRight,
+      visualDensity: VisualDensity.compact,
     );
+
+    Widget action({
+      required IconData icon,
+      required String label,
+      required VoidCallback? onPressed,
+    }) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: TextButton.icon(
+          onPressed: onPressed,
+          style: buttonStyle,
+          icon: Icon(icon, size: 18, color: accent),
+          label: Text(label, style: TextStyle(color: accent)),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,40 +496,33 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
               ),
               clipBehavior: Clip.antiAlias,
               child: _imageUrl == null || _imageUrl!.isEmpty
-                  ? Icon(
-                      Icons.image_outlined,
-                      size: 36,
-                      color: accent,
-                    )
+                  ? Icon(Icons.image_outlined, size: 36, color: accent)
                   : WorkoutIconWidget(imageUrl: _imageUrl, size: 96),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 28),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextButton.icon(
+                  action(
+                    icon: Icons.photo_library_outlined,
+                    label: 'Phone library',
                     onPressed: _isLoading ? null : _pickFromPhoneLibrary,
-                    style: buttonStyle,
-                    icon: Icon(Icons.photo_library_outlined, size: 18, color: accent),
-                    label: Text('Phone library', style: TextStyle(color: accent)),
                   ),
-                  const SizedBox(height: 6),
-                  TextButton.icon(
+                  const SizedBox(height: 4),
+                  action(
+                    icon: Icons.fitness_center,
+                    label: 'Exercise images',
                     onPressed: _isLoading ? null : _pickFromExerciseLibrary,
-                    style: buttonStyle,
-                    icon: Icon(Icons.fitness_center, size: 18, color: accent),
-                    label: Text('Exercise images', style: TextStyle(color: accent)),
                   ),
                   if (_imageUrl != null && _imageUrl!.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    TextButton.icon(
+                    const SizedBox(height: 4),
+                    action(
+                      icon: Icons.close,
+                      label: 'Remove image',
                       onPressed: _isLoading
                           ? null
                           : () => setState(() => _imageUrl = null),
-                      style: buttonStyle,
-                      icon: Icon(Icons.close, size: 18, color: accent),
-                      label: Text('Remove image', style: TextStyle(color: accent)),
                     ),
                   ],
                 ],
@@ -459,17 +561,18 @@ class _AddEditExerciseScreenState extends State<AddEditExerciseScreen>
       if (!await exerciseDir.exists()) {
         await exerciseDir.create(recursive: true);
       }
-      final fileName =
-          'exercise_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final saved = await File(picked.path).copy('${exerciseDir.path}/$fileName');
+      final fileName = 'exercise_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final saved = await File(
+        picked.path,
+      ).copy('${exerciseDir.path}/$fileName');
 
       if (!mounted) return;
       setState(() => _imageUrl = saved.path);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not pick image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not pick image: $e')));
     }
   }
 

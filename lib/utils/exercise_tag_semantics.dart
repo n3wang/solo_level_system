@@ -43,6 +43,15 @@ class ExerciseTagSemantics {
     'advanced',
   };
 
+  /// Built-in special tags used for autocomplete suggestions.
+  static Set<String> get catalogTags => {
+        ...muscleGroups,
+        ...equipment,
+        ...categories,
+        ...difficulties,
+        'gym',
+      };
+
   static String? _firstMatch(List<String> tags, Set<String> known) {
     for (final tag in tags) {
       final normalized = tag.trim().toLowerCase();
