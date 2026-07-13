@@ -1082,6 +1082,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       imagePath: imagePath,
       dayPomodoroNumber: countCompletedToday + 1,
       duration: minutesSpent.toString(),
+      durationMinutes: minutesSpent,
       project_id: selectedProject?.id,
       project_name: selectedProject?.name,
     );

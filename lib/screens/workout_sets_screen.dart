@@ -66,6 +66,7 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
       body: _isLoading
           ? LoadingIndicator(message: 'Loading workout sets...')
           : _buildSetsList(),
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
       floatingActionButton: _canAddMoreSets()
           ? CustomFloatingActionButton(
               heroTag: "workout_sets_new_set",

@@ -12,6 +12,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/utils/palette_notifier.dart';
 import 'package:solo_level_system/screens/workout_settings_screen.dart';
 import 'package:solo_level_system/widgets/common/standard_tab_app_bar.dart';
+import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
 import 'package:solo_level_system/widgets/common/on_off_toggle.dart';
 import 'package:solo_level_system/widgets/common/settings_slider.dart';
 
@@ -684,36 +685,18 @@ class _SettingsScreenState extends State<SettingsScreen>
     required int currentValue,
     required Function(int) onSelected,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.only(left: 16, top: 8, bottom: 8),
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColorPalette.textSecondary,
+    return SettingsRectChipGroup<int>(
+      title: title,
+      value: currentValue,
+      onChanged: onSelected,
+      options: values
+          .map(
+            (value) => SettingsRectChipOption(
+              value: value,
+              label: '${value}m',
             ),
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: values.map((value) {
-              final isSelected = currentValue == value;
-              return SettingsRectChip(
-                label: '${value}m',
-                selected: isSelected,
-                onTap: () => onSelected(value),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
+          )
+          .toList(),
     );
   }
 

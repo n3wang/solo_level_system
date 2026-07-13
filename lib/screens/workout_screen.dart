@@ -269,6 +269,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         controller: _tabController,
         labels: const ['Sets', 'Programs'],
         isScrollable: false,
+        visualSlotCount: 4,
       ),
       body: _isLoading
           ? LoadingIndicator(message: 'Loading...')
@@ -276,6 +277,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
               controller: _tabController,
               children: [_buildSetsTab(), _buildTimedTab()],
             ),
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
       floatingActionButton: _tabController.index == 0
           ? _buildSetsFloatingActions()
           : null,

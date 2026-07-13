@@ -117,6 +117,7 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
           );
         },
       ),
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
       floatingActionButton: CustomFloatingActionButton(
         heroTag: 'programs_manage',
         label: 'Manage',

@@ -144,7 +144,13 @@
           "title": "Adding cleaning or push ups for break + 1",
           "description": "",
           "labels": [],
-          "checkboxes": [],
+          "checkboxes": [
+            {
+              "id": "8f7740d9-9e4f-4660-8675-b0e31c668587",
+              "title": "This has to work on individual as well",
+              "checked": false
+            }
+          ],
           "comments": []
         }
       ]

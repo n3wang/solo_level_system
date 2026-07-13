@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:solo_level_system/constants/app_ui_sizes.dart';
-import 'package:solo_level_system/constants/color_palette.dart';
+import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
 
 /// Compact rectangle toggle. Defaults to "On" / "Off"; optional custom
 /// labels and icons for each state.
@@ -13,6 +12,7 @@ class OnOffToggle extends StatelessWidget {
   final IconData? onIcon;
   final IconData? offIcon;
   final double iconSize;
+  final SettingsRectChipSize size;
 
   const OnOffToggle({
     super.key,
@@ -24,6 +24,7 @@ class OnOffToggle extends StatelessWidget {
     this.onIcon,
     this.offIcon,
     this.iconSize = 16,
+    this.size = SettingsRectChipSize.regular,
   });
 
   @override
@@ -34,6 +35,7 @@ class OnOffToggle extends StatelessWidget {
       iconSize: iconSize,
       selected: value,
       activeColor: activeColor,
+      size: size,
       onTap: onChanged == null ? null : () => onChanged!(!value),
     );
   }
@@ -82,77 +84,6 @@ class OnOffToggleListTile extends StatelessWidget {
         offIcon: offIcon,
       ),
       onTap: onChanged == null ? null : () => onChanged!(!value),
-    );
-  }
-}
-
-/// Shared rectangular chip used by On/Off toggles and settings presets.
-/// Uses [AppUiSizes.buttonRadius] — slightly rounded, not pill-shaped.
-class SettingsRectChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback? onTap;
-  final Color? activeColor;
-  final IconData? icon;
-  final double iconSize;
-
-  const SettingsRectChip({
-    super.key,
-    required this.label,
-    required this.selected,
-    this.onTap,
-    this.activeColor,
-    this.icon,
-    this.iconSize = 16,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = activeColor ?? Theme.of(context).colorScheme.primary;
-    final enabled = onTap != null;
-    final foreground =
-        selected ? AppColorPalette.white : AppColorPalette.grey700;
-
-    return Opacity(
-      opacity: enabled ? 1 : 0.5,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: selected ? accent : Colors.transparent,
-              borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
-              border: Border.all(
-                color: selected ? accent : AppColorPalette.grey400,
-                width: 1.5,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, size: iconSize, color: foreground),
-                  if (label.isNotEmpty) const SizedBox(width: 6),
-                ],
-                if (label.isNotEmpty)
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: foreground,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

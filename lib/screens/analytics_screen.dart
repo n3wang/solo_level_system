@@ -7,9 +7,15 @@ import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/habit_tracker_model.dart';
+import 'package:solo_level_system/models/motivation_item_model.dart';
+import 'package:solo_level_system/models/motivation_points_transaction_model.dart';
+import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/screens/motivation_hub_screen.dart';
+import 'package:solo_level_system/utils/motivation_points_service.dart';
 import 'package:solo_level_system/widgets/pomodoro/session_recording_preview.dart';
 import 'package:solo_level_system/widgets/common/standard_tab_app_bar.dart';
+import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
+import 'package:sprite_sheets/sprite_sheets.dart';
 
 extension StringExtension on String {
   String capitalizeFirst() {
@@ -30,11 +36,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   late TabController _tabController;
   String _selectedPeriod = 'Week';
   final List<String> _periods = ['Today', 'Week', 'Month', 'Year'];
+  String _collectibleFilter = 'all'; // all | quote | collection | reward
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -49,42 +59,42 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       appBar: StandardTabAppBar(
         controller: _tabController,
         labels: const ['Overview', 'Focus', 'Workouts', 'Motivation'],
+        isScrollable: false,
       ),
       body: Column(
         children: [
-          // Time period selector below tabs
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppUiSizes.lg,
-              vertical: AppUiSizes.sm,
-            ),
-            alignment: Alignment.centerRight,
-            child: PopupMenuButton<String>(
-              onSelected: (period) {
-                setState(() => _selectedPeriod = period);
-              },
-              itemBuilder: (context) => _periods
-                  .map(
-                    (period) =>
-                        PopupMenuItem(value: period, child: Text(period)),
-                  )
-                  .toList(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppUiSizes.sm,
-                  vertical: AppUiSizes.xs,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_selectedPeriod),
-                    const SizedBox(width: AppUiSizes.xs),
-                    const Icon(Icons.arrow_drop_down),
-                  ],
-                ),
+          // Period picker on analytics tabs; Motivation shows points only (no period).
+          if (_tabController.index == 3)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppUiSizes.lg,
+                vertical: AppUiSizes.sm,
+              ),
+              alignment: Alignment.centerLeft,
+              child: _buildMotivationPointsHeader(),
+            )
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppUiSizes.lg,
+                vertical: AppUiSizes.sm,
+              ),
+              child: SettingsRectChipGroup<String>(
+                size: SettingsRectChipSize.compact,
+                spacing: AppUiSizes.sm,
+                runSpacing: AppUiSizes.xs,
+                value: _selectedPeriod,
+                onChanged: (period) => setState(() => _selectedPeriod = period),
+                options: _periods
+                    .map(
+                      (period) =>
+                          SettingsRectChipOption(value: period, label: period),
+                    )
+                    .toList(),
               ),
             ),
-          ),
           // Tab content
           Expanded(
             child: TabBarView(
@@ -102,6 +112,49 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
+  Widget _buildMotivationPointsHeader() {
+    if (!Hive.isBoxOpen('userProgress')) {
+      return const SizedBox.shrink();
+    }
+    final progressBox = Hive.box<UserProgressModel>('userProgress');
+    final txOpen = Hive.isBoxOpen('motivationPointsTransactions');
+
+    Widget buildLabel() {
+      final progress = progressBox.get('progress') ?? UserProgressModel();
+      final summary = MotivationPointsService.summary();
+      final scheme = Theme.of(context).colorScheme;
+      return Text(
+        '${progress.availablePoints} (+${summary.lastWeekEarned}/-${summary.lastWeekSpent} lw)',
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: scheme.primary,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    if (!txOpen) {
+      return ValueListenableBuilder(
+        valueListenable: progressBox.listenable(),
+        builder: (_, __, ___) => buildLabel(),
+      );
+    }
+
+    final txBox = Hive.box<MotivationPointsTransactionModel>(
+      'motivationPointsTransactions',
+    );
+    return ValueListenableBuilder(
+      valueListenable: progressBox.listenable(),
+      builder: (_, __, ___) {
+        return ValueListenableBuilder(
+          valueListenable: txBox.listenable(),
+          builder: (_, __, ___) => buildLabel(),
+        );
+      },
+    );
+  }
+
   Widget _buildOverviewTab() {
     return FutureBuilder(
       future: Future.wait([
@@ -109,6 +162,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         _ensureBoxIsOpen<WorkoutSessionModel>('workoutSessions'),
         _ensureBoxIsOpen<HabitTrackerModel>('habits'),
         _ensureBoxIsOpen<EnhancedAudioModel>('audioFiles'),
+        _ensureBoxIsOpen<MotivationItemModel>('motivationItems'),
       ]),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -137,33 +191,63 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                         'audioFiles',
                       ).listenable(),
                       builder: (context, audioBox, _) {
-                        final pomodoros = _filterSessionsByPeriod(
-                          pomodoroBox.values.toList(),
-                        );
-                        final workouts = _filterWorkoutsByPeriod(
-                          workoutBox.values.toList(),
-                        );
-                        final habits = habitBox.values
-                            .where((h) => h.isActive)
-                            .toList();
-                        final sessionAudios = _filterAudioByPeriod(
-                          audioBox.values.toList(),
-                        );
+                        return ValueListenableBuilder(
+                          valueListenable:
+                              Hive.box<MotivationItemModel>(
+                                'motivationItems',
+                              ).listenable(),
+                          builder: (context, motivationBox, _) {
+                            final pomodoros = _filterSessionsByPeriod(
+                              pomodoroBox.values.toList(),
+                            );
+                            final workouts = _filterWorkoutsByPeriod(
+                              workoutBox.values.toList(),
+                            );
+                            final habits = habitBox.values
+                                .where((h) => h.isActive)
+                                .toList();
+                            final sessionAudios = _filterAudioByPeriod(
+                              audioBox.values.toList(),
+                            );
+                            final acquired = motivationBox.values
+                                .where((item) => item.hasAnyAcquisition)
+                                .toList()
+                              ..sort(
+                                (a, b) => (b.acquiredAt ?? b.createdAt)
+                                    .compareTo(a.acquiredAt ?? a.createdAt),
+                              );
 
-                        return SingleChildScrollView(
-                          padding: const EdgeInsets.all(AppUiSizes.lg),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildQuickStats(pomodoros, workouts, habits),
-                              const SizedBox(height: AppUiSizes.xxl),
-                              _buildWeeklyOverview(pomodoros),
-                              const SizedBox(height: AppUiSizes.xxl),
-                              _buildGoalsProgress(pomodoros, workouts, habits),
-                              const SizedBox(height: AppUiSizes.xxl),
-                              _buildSessionAudioRecordingsCard(sessionAudios),
-                            ],
-                          ),
+                            return SingleChildScrollView(
+                              padding: const EdgeInsets.all(AppUiSizes.lg),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildQuickStats(
+                                    pomodoros,
+                                    workouts,
+                                    habits,
+                                  ),
+                                  const SizedBox(height: AppUiSizes.xxl),
+                                  _buildWeeklyOverview(
+                                    pomodoroBox.values.toList(),
+                                    workoutBox.values.toList(),
+                                  ),
+                                  const SizedBox(height: AppUiSizes.xxl),
+                                  _buildAcquiredCollectibles(acquired),
+                                  const SizedBox(height: AppUiSizes.xxl),
+                                  _buildGoalsProgress(
+                                    pomodoros,
+                                    workouts,
+                                    habits,
+                                  ),
+                                  const SizedBox(height: AppUiSizes.xxl),
+                                  _buildSessionAudioRecordingsCard(
+                                    sessionAudios,
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         );
                       },
                     );
@@ -266,8 +350,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     List<WorkoutSessionModel> workouts,
     List<HabitTrackerModel> habits,
   ) {
-    final focusSessions = pomodoros.length;
-    final completedWorkouts = workouts.where((w) => w.isCompleted).length;
+    final focusMinutes = pomodoros.fold<int>(
+      0,
+      (sum, p) => sum + p.minutesSpent,
+    );
+    final workoutMinutes = workouts
+        .where((w) => w.isCompleted)
+        .fold<int>(0, (sum, w) => sum + w.durationMinutes);
     final completedHabits = habits.where((h) => h.isCompleted).length;
     final totalHabits = habits.length;
 
@@ -289,15 +378,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               children: [
                 Expanded(
                   child: _buildStatItem(
-                    'Focus Sessions',
-                    '$focusSessions',
+                    'Focus (min)',
+                    '$focusMinutes',
                     Icons.timer,
                   ),
                 ),
                 Expanded(
                   child: _buildStatItem(
-                    'Workouts',
-                    '$completedWorkouts',
+                    'Workout (min)',
+                    '$workoutMinutes',
                     Icons.fitness_center,
                   ),
                 ),
@@ -332,7 +421,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             fontSize: AppColorPalette.fontSizeSmall,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.72),
           ),
           textAlign: TextAlign.center,
         ),
@@ -340,99 +431,299 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildWeeklyOverview(List<PomodoroModel> pomodoros) {
+  Widget _buildWeeklyOverview(
+    List<PomodoroModel> pomodoros,
+    List<WorkoutSessionModel> workouts,
+  ) {
     final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final weekData = List.generate(7, (index) {
+    final startOfWeek = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1));
+    final focusMinutes = List.generate(7, (index) {
       final day = startOfWeek.add(Duration(days: index));
-      final dayPomodoros = pomodoros
-          .where(
-            (p) =>
-                p.startTime.year == day.year &&
-                p.startTime.month == day.month &&
-                p.startTime.day == day.day,
-          )
-          .length;
-      return dayPomodoros;
+      return pomodoros
+          .where((p) => _isSameDay(p.startTime, day))
+          .fold<int>(0, (sum, p) => sum + p.minutesSpent);
+    });
+    final workoutMinutes = List.generate(7, (index) {
+      final day = startOfWeek.add(Duration(days: index));
+      return workouts
+          .where((w) => w.isCompleted && _isSameDay(w.startTime, day))
+          .fold<int>(0, (sum, w) => sum + w.durationMinutes);
     });
 
-    final maxSessions = weekData.isNotEmpty
-        ? weekData.reduce((a, b) => a > b ? a : b)
-        : 1;
+    // workout = red/color1, focus = blue/color2 (matches mockup)
+    final workoutColor = AppColorPalette.color1;
+    final focusColor = AppColorPalette.color2;
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const labelWidth = 72.0;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppUiSizes.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildHeatmapRow(
+          label: 'workout',
+          color: workoutColor,
+          values: workoutMinutes,
+          labelWidth: labelWidth,
+        ),
+        const SizedBox(height: AppUiSizes.sm),
+        _buildHeatmapRow(
+          label: 'focus',
+          color: focusColor,
+          values: focusMinutes,
+          labelWidth: labelWidth,
+        ),
+        const SizedBox(height: AppUiSizes.md),
+        Row(
           children: [
-            Text(
-              'This Week - Focus Sessions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontSize: AppColorPalette.fontSizeSubtitle,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: AppUiSizes.lg),
-            SizedBox(
-              height: 150,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: List.generate(7, (index) {
-                  final dayNames = [
-                    'Mon',
-                    'Tue',
-                    'Wed',
-                    'Thu',
-                    'Fri',
-                    'Sat',
-                    'Sun',
-                  ];
-                  final sessions = weekData[index];
-                  final height = maxSessions > 0
-                      ? (sessions / maxSessions) * 100
-                      : 0.0;
-
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        width: 20,
-                        height: height.clamp(5.0, 100.0),
-                        decoration: BoxDecoration(
-                          color: sessions > 0
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.2)
-                              : Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.circular(AppUiSizes.xs),
-                        ),
+            const SizedBox(width: labelWidth),
+            ...List.generate(7, (index) {
+              final day = startOfWeek.add(Duration(days: index));
+              final isFirst = index == 0;
+              return Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      dayNames[index],
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        fontSize: AppColorPalette.fontSizeSmall,
                       ),
-                      const SizedBox(height: AppUiSizes.sm),
+                    ),
+                    if (isFirst)
                       Text(
-                        sessions.toString(),
+                        '${day.month}/${day.day}',
+                        textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           fontSize: AppColorPalette.fontSizeXSmall,
-                          fontWeight: FontWeight.bold,
+                          color: AppColorPalette.textSecondary,
                         ),
                       ),
-                      Text(
-                        dayNames[index],
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          fontSize: AppColorPalette.fontSizeSmall,
-                        ),
-                      ),
-                    ],
-                  );
-                }),
-              ),
-            ),
+                  ],
+                ),
+              );
+            }),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeatmapRow({
+    required String label,
+    required Color color,
+    required List<int> values,
+    required double labelWidth,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: labelWidth,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _buildMinutesLegendChip(label, color),
+          ),
+        ),
+        ...List.generate(7, (index) {
+          final minutes = values[index];
+          return Expanded(
+            child: Center(
+              child: minutes > 0
+                  ? _buildDayMinuteChip('$minutes', color)
+                  : const SizedBox(height: 22),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildMinutesLegendChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
+
+  Widget _buildDayMinuteChip(String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+        border: Border.all(color: color, width: 1.2),
+      ),
+      child: Text(
+        value,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAcquiredCollectibles(List<MotivationItemModel> acquired) {
+    final visible = acquired.where((item) {
+      if (_collectibleFilter == 'all') return true;
+      return item.type == _collectibleFilter;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Acquired Collectibles',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontSize: AppColorPalette.fontSizeSubtitle,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: AppUiSizes.sm),
+        SettingsRectChipGroup<String>(
+          size: SettingsRectChipSize.compact,
+          spacing: AppUiSizes.xs,
+          runSpacing: AppUiSizes.xs,
+          value: _collectibleFilter,
+          onChanged: (v) => setState(() => _collectibleFilter = v),
+          options: const [
+            SettingsRectChipOption(value: 'all', label: 'all'),
+            SettingsRectChipOption(value: 'quote', label: 'quote'),
+            SettingsRectChipOption(value: 'collection', label: 'collection'),
+            SettingsRectChipOption(value: 'reward', label: 'reward'),
+          ],
+        ),
+        const SizedBox(height: AppUiSizes.md),
+        if (visible.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppUiSizes.lg),
+              child: Text(
+                'No acquired collectibles yet',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColorPalette.textSecondary,
+                ),
+              ),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: visible.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: AppUiSizes.md,
+              mainAxisSpacing: AppUiSizes.md,
+              childAspectRatio: 0.84,
+            ),
+            itemBuilder: (context, index) {
+              return _buildCollectibleTile(visible[index]);
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCollectibleTile(MotivationItemModel item) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(AppUiSizes.md),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
+        border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
+        color: scheme.surface,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item.type,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurface.withValues(alpha: 0.72),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  item.category,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurface.withValues(alpha: 0.58),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Expanded(
+            child: Center(
+              child: _buildCollectibleArt(item, size: 52),
+            ),
+          ),
+          Text(
+            item.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: AppUiSizes.xs),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              item.acquisitionCount > 1
+                  ? 'x${item.acquisitionCount}'
+                  : '${item.pointsCost}',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: scheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollectibleArt(MotivationItemModel item, {double size = 52}) {
+    final index = item.imageIndex;
+    if (index != null && index > 0) {
+      return SpriteImage(sheet: 'motivation_64', index: index - 1, size: size);
+    }
+    return Icon(
+      item.type == 'quote'
+          ? Icons.format_quote
+          : item.type == 'reward'
+          ? Icons.card_giftcard
+          : Icons.diamond_outlined,
+      size: size * 0.75,
+      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+    );
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
   Widget _buildGoalsProgress(
     List<PomodoroModel> pomodoros,
@@ -504,7 +795,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             Text(
               '${sorted.length} recording${sorted.length == 1 ? '' : 's'} in $_selectedPeriod',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.72),
               ),
             ),
             const SizedBox(height: AppUiSizes.md),
@@ -512,7 +805,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               Text(
                 'No session recordings for this period yet.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.72),
                 ),
               )
             else
@@ -562,8 +857,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   Widget _buildFocusStats(List<PomodoroModel> sessions) {
     final totalSessions = sessions.length;
-    final totalMinutes = totalSessions * 25; // Assuming 25-minute sessions
-    final avgPerDay = totalSessions / 7; // Weekly average
+    final totalMinutes = sessions.fold<int>(
+      0,
+      (sum, s) => sum + s.minutesSpent,
+    );
+    final avgMinutesPerDay = totalMinutes / 7;
 
     return Row(
       children: [
@@ -579,8 +877,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         ),
         Expanded(
           child: _buildStatCard(
-            'Avg/Day',
-            avgPerDay.toStringAsFixed(1),
+            'Avg min/Day',
+            avgMinutesPerDay.toStringAsFixed(0),
             Icons.trending_up,
           ),
         ),
@@ -607,7 +905,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               title,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontSize: AppColorPalette.fontSizeSmall,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.72),
               ),
             ),
           ],
@@ -704,22 +1004,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                                     const SizedBox(width: AppUiSizes.sm),
                                     Text(
                                       projectNames[entry.key] ?? 'Unknown',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium?.copyWith(
-                                        fontSize: AppColorPalette.fontSizeBody,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            fontSize:
+                                                AppColorPalette.fontSizeBody,
+                                          ),
                                     ),
                                   ],
                                 ),
                                 Text(
                                   '${entry.value} sessions',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface.withValues(alpha: 0.8),
-                                  ),
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.8),
+                                      ),
                                 ),
                               ],
                             ),
@@ -773,7 +1077,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   Icons.local_fire_department,
                   color: currentStreak > 0
                       ? Theme.of(context).colorScheme.tertiary
-                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
                   size: 32,
                 ),
                 const SizedBox(width: AppUiSizes.lg),
@@ -901,10 +1207,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     child: Center(
                       child: Text(
                         '${sessions.length} total sessions recorded',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: AppColorPalette.fontSizeMedium,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontSize: AppColorPalette.fontSizeMedium,
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                     ),
                   ),
@@ -946,10 +1253,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     children: [
                       Text(
                         '🏆 ${recordSessions.fold<int>(0, (sum, s) => sum + s.personalRecordsSet.length)} records set',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: AppColorPalette.fontSizeMedium,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontSize: AppColorPalette.fontSizeMedium,
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                       const SizedBox(height: AppUiSizes.sm),
                       Text(

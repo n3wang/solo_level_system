@@ -124,7 +124,7 @@ class CustomFloatingActionButton extends StatelessWidget {
   final Color? backgroundColor;
   final Color? foregroundColor;
   final bool extended;
-  final String? heroTag;
+  final Object? heroTag;
 
   const CustomFloatingActionButton({
     super.key,

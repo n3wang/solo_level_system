@@ -9,9 +9,9 @@ import 'package:solo_level_system/models/motivation_item_model.dart';
 import 'package:solo_level_system/models/motivation_points_transaction_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
-import 'package:solo_level_system/utils/motivation_points_service.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
+import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
 import 'package:sprite_sheets/sprite_sheets.dart';
 
 class MotivationHubScreen extends StatefulWidget {
@@ -86,7 +86,6 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
                   builder: (context, Box<UserProgressModel> userBox, __) {
                     final userProgress =
                         userBox.get('progress') ?? UserProgressModel();
-                    final summary = MotivationPointsService.summary();
                     final cards = _buildCards(
                       motivationItems: itemBox.values.toList(),
                       rewards: rewardBox.values.toList(),
@@ -95,10 +94,6 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
 
                     return Column(
                       children: [
-                        _buildSummaryCard(
-                          summary: summary,
-                          availablePoints: userProgress.availablePoints,
-                        ),
                         _buildFilters(),
                         Expanded(
                           child: Column(
@@ -255,100 +250,40 @@ class _MotivationHubScreenState extends State<MotivationHubScreen> {
     return quotes.toSet().toList();
   }
 
-  Widget _buildSummaryCard({
-    required MotivationPointsSummary summary,
-    required int availablePoints,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.fromLTRB(
-        AppUiSizes.lg,
-        AppUiSizes.lg,
-        AppUiSizes.lg,
-        AppUiSizes.sm,
-      ),
-      padding: const EdgeInsets.all(AppUiSizes.lg),
-      decoration: BoxDecoration(
-        color: scheme.primary.withValues(alpha: 0.1),
-        border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.workspace_premium_outlined, color: scheme.primary),
-          const SizedBox(width: AppUiSizes.sm),
-          Expanded(
-            child: Text(
-              '$availablePoints (+${summary.lastWeekEarned}/-${summary.lastWeekSpent} lw)',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: scheme.primary,
-              ),
-            ),
-          ),
-          Text(
-            'total +${summary.totalEarned} / -${summary.totalSpent}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFilters() {
-    final typeOptions = const ['all', 'quote', 'collection', 'reward'];
-    final scopeOptions = const ['all', 'acquired'];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppUiSizes.lg),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Wrap(
+            child: SettingsRectChipGroup<String>(
+              size: SettingsRectChipSize.compact,
               spacing: AppUiSizes.xs,
               runSpacing: AppUiSizes.xs,
-              children: typeOptions.map((option) {
-                final selected = _typeFilter == option;
-                return ChoiceChip(
-                  label: Text(option),
-                  selected: selected,
-                  showCheckmark: false,
-                  visualDensity: const VisualDensity(
-                    horizontal: -3,
-                    vertical: -3,
-                  ),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  labelPadding: const EdgeInsets.symmetric(
-                    horizontal: AppUiSizes.xs,
-                  ),
-                  padding: EdgeInsets.zero,
-                  onSelected: (_) => setState(() => _typeFilter = option),
-                );
-              }).toList(),
+              value: _typeFilter,
+              onChanged: (v) => setState(() => _typeFilter = v),
+              options: const [
+                SettingsRectChipOption(value: 'all', label: 'all'),
+                SettingsRectChipOption(value: 'quote', label: 'quote'),
+                SettingsRectChipOption(
+                  value: 'collection',
+                  label: 'collection',
+                ),
+                SettingsRectChipOption(value: 'reward', label: 'reward'),
+              ],
             ),
           ),
           const SizedBox(width: AppUiSizes.xs),
-          Wrap(
+          SettingsRectChipGroup<String>(
+            size: SettingsRectChipSize.compact,
             spacing: AppUiSizes.xs,
-            children: scopeOptions.map((option) {
-              final selected = _scopeFilter == option;
-              return ChoiceChip(
-                label: Text(option),
-                selected: selected,
-                showCheckmark: false,
-                visualDensity: const VisualDensity(
-                  horizontal: -3,
-                  vertical: -3,
-                ),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                labelPadding: const EdgeInsets.symmetric(
-                  horizontal: AppUiSizes.xs,
-                ),
-                padding: EdgeInsets.zero,
-                onSelected: (_) => setState(() {
-                  _scopeFilter = _scopeFilter == 'all' ? 'acquired' : 'all';
-                }),
-              );
-            }).toList(),
+            value: _scopeFilter,
+            onChanged: (v) => setState(() => _scopeFilter = v),
+            options: const [
+              SettingsRectChipOption(value: 'all', label: 'all'),
+              SettingsRectChipOption(value: 'acquired', label: 'acquired'),
+            ],
           ),
         ],
       ),

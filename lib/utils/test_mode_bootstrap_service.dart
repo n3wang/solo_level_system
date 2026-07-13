@@ -92,7 +92,7 @@ class TestModeBootstrapService {
     if (alreadySeeded) return;
 
     final now = DateTime.now();
-    final durations = <String>['25', '35', '20', '45', '30', '50', '40'];
+    final durations = <int>[25, 35, 20, 45, 30, 50, 40];
     for (var i = 0; i < 14; i++) {
       final dayOffset = i ~/ 2;
       final hourOffset = (i % 2 == 0) ? 9 : 18;
@@ -104,11 +104,13 @@ class TestModeBootstrapService {
         hourOffset,
         (i % 3) * 10,
       );
+      final minutes = durations[i % durations.length];
 
       await pomodorosBox.add(
         PomodoroModel(
           startTime: start,
-          duration: durations[i % durations.length],
+          duration: minutes.toString(),
+          durationMinutes: minutes,
           project_id: 'test_seed_project_${(i % 3) + 1}',
           project_name: 'Test Project ${(i % 3) + 1}',
           dayPomodoroNumber: (i % 4) + 1,
