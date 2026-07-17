@@ -172,7 +172,7 @@ class ExerciseAudioService {
     try {
       await _audioPlayer.stop();
       await _audioPlayer.setVolume(1.0);
-      await _playAudioSource('audio/break_time.mp3');
+      await _playAudioSource('audio/sfx/break_time.mp3');
       print('Playing break sound');
     } catch (e) {
       print('Failed to play break sound: $e');
@@ -189,7 +189,7 @@ class ExerciseAudioService {
     try {
       await _audioPlayer.stop();
       await _audioPlayer.setVolume(1.0);
-      await _playAudioSource('audio/$number.mp3');
+      await _playAudioSource('audio/sfx/$number.mp3');
       print('Playing countdown: $number');
     } catch (e) {
       print('Failed to play countdown $number: $e');
@@ -201,7 +201,7 @@ class ExerciseAudioService {
     try {
       await _audioPlayer.stop();
       await _audioPlayer.setVolume(1.0);
-      await _playAudioSource('audio/5_seconds_left.mp3');
+      await _playAudioSource('audio/sfx/5_seconds_left.mp3');
       print('Playing 5 seconds left warning');
     } catch (e) {
       print('Failed to play 5 seconds left sound: $e');
@@ -213,7 +213,7 @@ class ExerciseAudioService {
     try {
       await _audioPlayer.stop();
       await _audioPlayer.setVolume(1.0);
-      await _playAudioSource('audio/workout_complete.mp3');
+      await _playAudioSource('audio/sfx/workout_complete.mp3');
       print('Playing workout complete sound');
     } catch (e) {
       print('Failed to play workout complete sound: $e');

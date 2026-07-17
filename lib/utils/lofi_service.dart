@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import '../models/lofi_track.dart';
 
 class LofiService {
-  static const String _mappingPath = 'assets/lofi/lofi_mapping.json';
+  static const String _mappingPath = 'assets/data/lofi_mapping.json';
 
   /// Bundled looping covers (PNG refs in `lofi_mapping.json` are often absent from the repo).
   static const List<String> _bundledGifCovers = [

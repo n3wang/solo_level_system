@@ -49,9 +49,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   static const String _randomRoomKey = '__random__';
   static const String _spaceRoomId = 'sample-room-space-station-study';
   static const String _mansionRoomId = 'sample-room-abandoned-mansion-study';
-  static const String _spaceIconAsset = 'assets/album/al16-spaceship.png';
+  static const String _spaceIconAsset = 'assets/images/album/al16-spaceship.png';
   static const String _mansionIconAsset =
-      'assets/album/an02_model1_working_2.gif';
+      'assets/images/album/an02_model1_working_2.gif';
   static const double _basePreviewVolume = 0.25;
   static const List<String> _supportedAudioExtensions = [
     'mp3',

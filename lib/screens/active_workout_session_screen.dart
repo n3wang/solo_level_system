@@ -13,7 +13,7 @@ import 'package:solo_level_system/utils/workout_motivation_service.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/widgets/common/settings_slider.dart';
-import 'package:sprite_sheets/sprite_sheets.dart';
+import 'package:solo_level_system/widgets/game_icon_widget.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class ActiveWorkoutSessionScreen extends StatefulWidget {
@@ -531,9 +531,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                     const SizedBox(height: 12),
                     Center(
                       child: current.imageIndex != null && current.imageIndex! > 0
-                          ? SpriteImage(
-                              sheet: 'motivation_64',
-                              index: current.imageIndex! - 1,
+                          ? MotivationIconWidget(
+                              imageIndex: current.imageIndex!,
                               size: 96,
                             )
                           : Icon(

@@ -11,9 +11,9 @@ void main() async {
 
 class WorkoutSpriteSlicer {
   static const int spriteSize = 128;
-  static const String spriteSheetPath = 'assets/icon/workout_icons_128px.png';
-  static const String csvPath = 'assets/icon/workout_icons_128px.csv';
-  static const String outputDir = 'assets/icon/workout_icons_sliced';
+  static const String spriteSheetPath = 'assets/images/icon/workout_icons_128px.png';
+  static const String csvPath = 'assets/data/workout_icons_128px.csv';
+  static const String outputDir = 'assets/images/icon/workout_icons_sliced';
 
   /// Convert exercise name to slug (lowercase, underscores, no special chars)
   String nameToSlug(String name) {

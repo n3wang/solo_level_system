@@ -97,7 +97,7 @@ class BackgroundMusicService {
 
     try {
       await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('lofi/${_currentTrack!.filename}'));
+      await _audioPlayer.play(AssetSource('audio/lofi/${_currentTrack!.filename}'));
       await _audioPlayer.setVolume(_volume);
       _isPlaying = true;
     } catch (e) {

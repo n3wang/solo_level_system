@@ -49,8 +49,8 @@ class LofiTrack {
     };
   }
 
-  String get fullPath => 'assets/lofi/$filename';
-  String? get albumImagePath => albumImage != null ? 'assets/$albumImage' : null;
+  String get fullPath => 'assets/audio/lofi/$filename';
+  String? get albumImagePath => albumImage != null ? 'assets/images/$albumImage' : null;
 
   LofiTrack copyWith({
     int? id,

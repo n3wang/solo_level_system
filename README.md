@@ -64,7 +64,7 @@ run slicing automatically before launch.
 
 Room-specific music and visuals are whitelisted in:
 
-`assets/lofi/room_music_whitelist.yaml`
+`assets/data/room_music_whitelist.yaml`
 
 Each room entry supports:
 - `trackRegex` to match audio files by filename
@@ -72,7 +72,7 @@ Each room entry supports:
 - `phrases` for room quote rotation
 
 Notes:
-- New audio files dropped under `assets/lofi/` are auto-discovered at runtime,
+- New audio files dropped under `assets/audio/lofi/` are auto-discovered at runtime,
   even if `lofi_mapping.json` was not updated yet.
 - Empty room music is disallowed: when a room has no selected tracks, app falls
   back to an available lofi track so playback still works.

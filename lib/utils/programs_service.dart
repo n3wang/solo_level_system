@@ -9,7 +9,7 @@ import 'exercise_tag_semantics.dart';
 /// Service for initializing 7-minute workout programs and exercises
 class ProgramsService {
   static const String _programsInitializedKey = 'programs_initialized';
-  static const String _yamlPath = 'assets/workouts/default_workouts.yaml';
+  static const String _yamlPath = 'assets/data/default_workouts.yaml';
   static const String _appFlagsBoxName = 'app_init_flags';
 
   /// Check if programs have been initialized
@@ -90,9 +90,9 @@ class ProgramsService {
         if (breakExercise.audioFile == null ||
             breakExercise.audioFile!.isEmpty) {
           print(
-            '[ProgramsService]   ✗ Break exercise has no audioFile, setting to: "audio/break_time.mp3"',
+            '[ProgramsService]   ✗ Break exercise has no audioFile, setting to: "audio/sfx/break_time.mp3"',
           );
-          breakExercise.audioFile = 'audio/break_time.mp3';
+          breakExercise.audioFile = 'audio/sfx/break_time.mp3';
           breakExercise.save();
           print('[ProgramsService]   ✓ Updated break exercise audioFile');
         } else {
@@ -260,7 +260,7 @@ class ProgramsService {
       createdAt: now,
       tags: ['rest', 'break'],
       measurementUnit: 'none',
-      audioFile: 'audio/break_time.mp3',
+      audioFile: 'audio/sfx/break_time.mp3',
     );
   }
 
@@ -704,7 +704,7 @@ class ProgramsService {
     for (final existing in exercisesBox.values) {
       if (existing.name.toLowerCase() == 'break') {
         if (existing.audioFile == null || existing.audioFile!.isEmpty) {
-          existing.audioFile = 'audio/break_time.mp3';
+          existing.audioFile = 'audio/sfx/break_time.mp3';
           existing.save();
         }
         return existing;

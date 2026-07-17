@@ -15,7 +15,7 @@ import 'dart:io';
 ///   `workout_sprite_N` → grid index N (old numbered format)
 ///   `workout_icon_N`   → grid index N (unnamed high-index sprites)
 class WorkoutIconWidget extends StatelessWidget {
-  static const String _slicedBasePath = 'assets/icon/workout_icons_sliced';
+  static const String _slicedBasePath = 'assets/images/icon/workout_icons_sliced';
 
   /// Sprite slug, asset path, or file path. When null an icon placeholder is shown.
   final String? imageUrl;

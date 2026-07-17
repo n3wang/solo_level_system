@@ -18,10 +18,10 @@ class SoundEffectsService {
 
   // Sound file mappings
   static const Map<SoundEvent, String> _soundFiles = {
-    SoundEvent.audioRecordSubmitted: 'audio/s01-video-game-bonus-323603.mp3',
-    SoundEvent.breakTimeStarts: 'audio/s01-video-game-bonus-323603.mp3',
-    SoundEvent.workTimeCompleted: 'audio/s03-positive-notification-new-level-152480.mp3',
-    SoundEvent.breakTimeEnds: 'audio/s02-level-up-4-243762.mp3',
+    SoundEvent.audioRecordSubmitted: 'audio/sfx/s01-video-game-bonus-323603.mp3',
+    SoundEvent.breakTimeStarts: 'audio/sfx/s01-video-game-bonus-323603.mp3',
+    SoundEvent.workTimeCompleted: 'audio/sfx/s03-positive-notification-new-level-152480.mp3',
+    SoundEvent.breakTimeEnds: 'audio/sfx/s02-level-up-4-243762.mp3',
   };
 
   bool get soundEffectsEnabled => _soundEffectsEnabled;

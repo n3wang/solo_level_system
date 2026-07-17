@@ -6,8 +6,8 @@ void main() async {
 }
 
 class LofiOrganizer {
-  static const String lofiDir = 'assets/lofi';
-  static const String mappingFile = 'assets/lofi/lofi_mapping.json';
+  static const String lofiDir = 'assets/audio/lofi';
+  static const String mappingFile = 'assets/data/lofi_mapping.json';
 
   Future<void> organize() async {
     print('Starting lofi organization...');

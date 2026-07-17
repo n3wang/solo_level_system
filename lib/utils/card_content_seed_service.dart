@@ -17,10 +17,10 @@ class CardContentSeedService {
   CardContentSeedService._();
 
   static const String _boxName = 'motivationItems';
-  static const String _workoutsYaml = 'assets/workouts/default_workouts.yaml';
-  static const String _set1Yaml = 'assets/workouts/set1_workouts.yaml';
-  static const String _roomsYaml = 'assets/lofi/room_music_whitelist.yaml';
-  static const String _iconDir = 'assets/icon/workout_icons_sliced';
+  static const String _workoutsYaml = 'assets/data/default_workouts.yaml';
+  static const String _set1Yaml = 'assets/data/set1_workouts.yaml';
+  static const String _roomsYaml = 'assets/data/room_music_whitelist.yaml';
+  static const String _iconDir = 'assets/images/icon/workout_icons_sliced';
 
   /// Default programs that ship LOCKED (must be acquired via a card).
   static const Set<String> _lockedProgramNames = {'legs home'};
@@ -163,7 +163,7 @@ class CardContentSeedService {
             pointsCost: testMode ? 5 : 20,
             rarity: 'common',
             acquired: acquired,
-            imageAsset: albumImage.isEmpty ? null : 'assets/$albumImage',
+            imageAsset: albumImage.isEmpty ? null : 'assets/images/$albumImage',
           ),
         );
         index++;

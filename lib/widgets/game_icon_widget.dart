@@ -1,53 +1,54 @@
 import 'package:flutter/material.dart';
-import 'package:sprite_sheets/sprite_sheets.dart';
 
-/// Displays a board-game icon from the `motivation_64` spritesheet.
+/// Displays a motivation / board-game icon by its catalog number.
 ///
-/// Sprites are identified by the game name as it appears in the CSV
-/// (e.g. `"Codenames"`, `"Pandemic"`).
+/// Icons are individual pre-sliced 64×64 PNGs under
+/// `assets/images/icon/c64x64_sliced/`, named by their 1-based catalog number
+/// (the `number` column in `assets/data/c64x64_mappings.csv`, stored on a card
+/// as [imageIndex]). This replaces the former `motivation_64` spritesheet —
+/// each icon is now its own asset file rather than a slot in one texture.
 ///
 /// ```dart
-/// GameIconWidget(name: 'Codenames', size: 64)
-/// GameIconWidget(name: 'Pandemic', size: 48, backgroundColor: Colors.black)
+/// MotivationIconWidget(imageIndex: 1, size: 64) // Codenames
 /// ```
-///
-/// Metadata (description, category) is available via [GameIconWidget.entryFor].
-class GameIconWidget extends StatelessWidget {
-  static const _sheet = 'motivation_64';
+class MotivationIconWidget extends StatelessWidget {
+  static const String slicedBasePath = 'assets/images/icon/c64x64_sliced';
 
-  final String name;
+  /// 1-based catalog number — the CSV `number` / card `imageIndex`.
+  final int imageIndex;
   final double? size;
   final Color? backgroundColor;
+
+  /// Shown when the sliced asset for [imageIndex] is missing.
   final Widget? placeholder;
 
-  const GameIconWidget({
+  const MotivationIconWidget({
     super.key,
-    required this.name,
+    required this.imageIndex,
     this.size,
     this.backgroundColor,
     this.placeholder,
   });
 
-  /// Synchronous access to the sprite entry metadata (description, category).
-  /// Returns null if the sheet isn't loaded yet or the name isn't found.
-  static SpriteEntry? entryFor(String name) =>
-      SpriteSheets.of(_sheet)?.entry(name);
-
-  /// All loaded game entries, optionally filtered by category.
-  static List<SpriteEntry> allEntries({String? category}) {
-    final sheet = SpriteSheets.of(_sheet);
-    if (sheet == null) return [];
-    if (category == null) return sheet.entries;
-    return sheet.where((e) => e.metadata['category'] == category);
-  }
+  /// Asset path for a given 1-based catalog [number].
+  static String assetPathFor(int number) => '$slicedBasePath/$number.png';
 
   @override
   Widget build(BuildContext context) {
+    Widget image(double s) => Image.asset(
+          assetPathFor(imageIndex),
+          width: s,
+          height: s,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) =>
+              placeholder ?? const SizedBox.shrink(),
+        );
+
     if (size != null) {
       return RepaintBoundary(
         child: ColoredBox(
           color: backgroundColor ?? Colors.transparent,
-          child: SpriteImage(sheet: _sheet, name: name, size: size),
+          child: image(size!),
         ),
       );
     }
@@ -58,7 +59,7 @@ class GameIconWidget extends StatelessWidget {
           final s = constraints.biggest.shortestSide;
           return ColoredBox(
             color: backgroundColor ?? Colors.transparent,
-            child: SpriteImage(sheet: _sheet, name: name, size: s),
+            child: image(s),
           );
         },
       ),

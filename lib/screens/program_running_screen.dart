@@ -8,7 +8,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/utils/workout_motivation_service.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/utils/exercise_audio_service.dart';
-import 'package:sprite_sheets/sprite_sheets.dart';
+import 'package:solo_level_system/widgets/game_icon_widget.dart';
 
 class ProgramRunningScreen extends StatefulWidget {
   final TimedWorkoutModel program;
@@ -209,9 +209,8 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
                     const SizedBox(height: 12),
                     Center(
                       child: current.imageIndex != null && current.imageIndex! > 0
-                          ? SpriteImage(
-                              sheet: 'motivation_64',
-                              index: current.imageIndex! - 1,
+                          ? MotivationIconWidget(
+                              imageIndex: current.imageIndex!,
                               size: 96,
                             )
                           : Icon(

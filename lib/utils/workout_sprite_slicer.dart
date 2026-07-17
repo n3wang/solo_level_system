@@ -9,8 +9,8 @@ import 'package:flutter/foundation.dart';
 /// Icons are stored with slug names (e.g., back_squat.png, jumping_jacks.png)
 class WorkoutSpriteSlicer {
   static const int spriteSize = 128;
-  static const String spriteSheetPath = 'assets/icon/workout_icons_128px.png';
-  static const String slicedSpriteDir = 'assets/icon/workout_icons_sliced';
+  static const String spriteSheetPath = 'assets/images/icon/workout_icons_128px.png';
+  static const String slicedSpriteDir = 'assets/images/icon/workout_icons_sliced';
 
   // Cache for loaded sprites by slug name
   static final Map<String, ui.Image> _slugCache = {};
@@ -19,7 +19,7 @@ class WorkoutSpriteSlicer {
   static final Map<int, ui.Image> _spriteCache = {};
 
   /// Get a sprite by slug name (e.g., "back_squat", "jumping_jacks")
-  /// Loads from assets/icon/workout_icons_sliced/{slug}.png
+  /// Loads from assets/images/icon/workout_icons_sliced/{slug}.png
   static Future<ui.Image?> getSpriteBySlug(String slug) async {
     // Return cached sprite if available
     if (_slugCache.containsKey(slug)) {

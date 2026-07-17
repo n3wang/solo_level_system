@@ -93,8 +93,8 @@ class DefaultWorkoutsService {
     }
   }
 
-  static const String _yamlPath = 'assets/workouts/default_workouts.yaml';
-  static const String _set1YamlPath = 'assets/workouts/set1_workouts.yaml';
+  static const String _yamlPath = 'assets/data/default_workouts.yaml';
+  static const String _set1YamlPath = 'assets/data/set1_workouts.yaml';
 
   /// All exercise-source YAMLs. `default_workouts.yaml` exercises unlock by
   /// default; `set1_workouts.yaml` exercises ship locked (card-gated). Both are

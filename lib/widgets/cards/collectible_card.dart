@@ -11,7 +11,7 @@ import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/utils/card_acquisition_service.dart';
 import 'package:solo_level_system/utils/card_repository.dart';
-import 'package:sprite_sheets/sprite_sheets.dart';
+import 'package:solo_level_system/widgets/game_icon_widget.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
 import 'package:solo_level_system/widgets/common/button_components.dart';
 
@@ -207,7 +207,11 @@ class CollectibleCardArt extends StatelessWidget {
 
     final index = card.imageIndex;
     if (index != null && index > 0) {
-      return SpriteImage(sheet: 'motivation_64', index: index - 1, size: size);
+      return MotivationIconWidget(
+        imageIndex: index,
+        size: size,
+        placeholder: fallback,
+      );
     }
 
     final asset = card.imageAsset;
@@ -493,7 +497,7 @@ class _CollectibleCardDetailDialogState
   Future<void> _playPreview(String filename) async {
     final player = _previewPlayer ??= AudioPlayer();
     await player.stop();
-    await player.play(AssetSource('lofi/$filename'));
+    await player.play(AssetSource('audio/lofi/$filename'));
   }
 
   Future<void> _stopPreview() async {

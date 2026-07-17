@@ -144,31 +144,31 @@ const List<_HardcodedRoomPack> _hardcodedRooms = [
     trackPrefixes: ['like_a_dog_'],
     visuals: [
       RoomVisualConfig(
-        path: 'asset:assets/album/like_a_dog_1.gif',
+        path: 'asset:assets/images/album/like_a_dog_1.gif',
         isGif: true,
       ),
       RoomVisualConfig(
-        path: 'asset:assets/album/like_a_dog_2.gif',
+        path: 'asset:assets/images/album/like_a_dog_2.gif',
         isGif: true,
       ),
       RoomVisualConfig(
-        path: 'asset:assets/album/like_a_dog_3.gif',
+        path: 'asset:assets/images/album/like_a_dog_3.gif',
         isGif: true,
       ),
       RoomVisualConfig(
-        path: 'asset:assets/album/like_a_dog_4.gif',
+        path: 'asset:assets/images/album/like_a_dog_4.gif',
         isGif: true,
       ),
       RoomVisualConfig(
-        path: 'asset:assets/album/like_a_dog_5.gif',
+        path: 'asset:assets/images/album/like_a_dog_5.gif',
         isGif: true,
       ),
       RoomVisualConfig(
-        path: 'asset:assets/album/like_a_dog_6.gif',
+        path: 'asset:assets/images/album/like_a_dog_6.gif',
         isGif: true,
       ),
       RoomVisualConfig(
-        path: 'asset:assets/album/like_a_dog_7.gif',
+        path: 'asset:assets/images/album/like_a_dog_7.gif',
         isGif: true,
       ),
     ],
@@ -184,19 +184,19 @@ const List<_HardcodedRoomPack> _hardcodedRooms = [
     trackPrefixes: ['ghost_lofi_'],
     visuals: [
       RoomVisualConfig(
-        path: 'asset:assets/album/ghost_lofi_1.gif',
+        path: 'asset:assets/images/album/ghost_lofi_1.gif',
         isGif: true,
       ),
       RoomVisualConfig(
-        path: 'asset:assets/album/ghost_lofi_2.gif',
+        path: 'asset:assets/images/album/ghost_lofi_2.gif',
         isGif: true,
       ),
       RoomVisualConfig(
-        path: 'asset:assets/album/ghost_lofi_3.gif',
+        path: 'asset:assets/images/album/ghost_lofi_3.gif',
         isGif: true,
       ),
       RoomVisualConfig(
-        path: 'asset:assets/album/ghost_lofi_4.gif',
+        path: 'asset:assets/images/album/ghost_lofi_4.gif',
         isGif: true,
       ),
     ],
@@ -211,11 +211,11 @@ const List<_HardcodedRoomPack> _hardcodedRooms = [
     description: 'Late-night experiment energy.',
     trackPrefixes: ['lab_'],
     visuals: [
-      RoomVisualConfig(path: 'asset:assets/album/lab_1.gif', isGif: true),
-      RoomVisualConfig(path: 'asset:assets/album/lab_2.gif', isGif: true),
-      RoomVisualConfig(path: 'asset:assets/album/lab_3.gif', isGif: true),
-      RoomVisualConfig(path: 'asset:assets/album/lab_4.gif', isGif: true),
-      RoomVisualConfig(path: 'asset:assets/album/lab_4.jpg', isGif: false),
+      RoomVisualConfig(path: 'asset:assets/images/album/lab_1.gif', isGif: true),
+      RoomVisualConfig(path: 'asset:assets/images/album/lab_2.gif', isGif: true),
+      RoomVisualConfig(path: 'asset:assets/images/album/lab_3.gif', isGif: true),
+      RoomVisualConfig(path: 'asset:assets/images/album/lab_4.gif', isGif: true),
+      RoomVisualConfig(path: 'asset:assets/images/album/lab_4.jpg', isGif: false),
     ],
     phrases: [
       'Hypothesis: you finish strong today.',
@@ -228,9 +228,9 @@ const List<_HardcodedRoomPack> _hardcodedRooms = [
     description: 'Retro city pop and neon nights.',
     trackPrefixes: ['90s_jap_', 'kiraisuki'],
     visuals: [
-      RoomVisualConfig(path: 'asset:assets/album/90s_jap_1.gif', isGif: true),
-      RoomVisualConfig(path: 'asset:assets/album/90s_jap_2.gif', isGif: true),
-      RoomVisualConfig(path: 'asset:assets/album/90s_jap_3.gif', isGif: true),
+      RoomVisualConfig(path: 'asset:assets/images/album/90s_jap_1.gif', isGif: true),
+      RoomVisualConfig(path: 'asset:assets/images/album/90s_jap_2.gif', isGif: true),
+      RoomVisualConfig(path: 'asset:assets/images/album/90s_jap_3.gif', isGif: true),
     ],
     phrases: [
       'Neon focus. Vinyl dreams.',

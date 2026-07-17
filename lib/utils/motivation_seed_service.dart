@@ -5,8 +5,8 @@ import 'package:solo_level_system/models/card_model.dart';
 
 class MotivationSeedService {
   static const String _boxName = 'motivationItems';
-  static const String _csvPath = 'assets/icon/motivation_64.csv';
-  static const String _quotesPath = 'assets/quotes.csv';
+  static const String _csvPath = 'assets/data/c64x64_mappings.csv';
+  static const String _quotesPath = 'assets/data/quotes.csv';
   static const String _testSourceTag = 'test_sample_gym_quotes';
 
   static Future<void> ensureSeeded() async {
@@ -86,7 +86,7 @@ class MotivationSeedService {
           imageIndex: number,
           rarity: _rarityFor(number),
           metadata: {
-            'source': 'motivation_64.csv',
+            'source': 'c64x64_mappings.csv',
             if (type == 'quote' && quotes.isNotEmpty) 'quotes': quotes,
           },
         ),

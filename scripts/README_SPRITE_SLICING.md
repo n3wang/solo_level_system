@@ -31,9 +31,9 @@ dart run scripts/slice_workout_sprites.dart
 ```
 
 This will:
-- Read `assets/icon/workout_icons_128px.png`
+- Read `assets/images/icon/workout_icons_128px.png`
 - Slice it into individual 128x128px PNG files
-- Save them to `assets/icon/workout_icons_sliced/workout_icon_0.png`, `workout_icon_1.png`, etc.
+- Save them to `assets/images/icon/workout_icons_sliced/workout_icon_0.png`, `workout_icon_1.png`, etc.
 
 ### Step 3: Update Assets (if needed)
 
@@ -74,7 +74,7 @@ You can integrate this into your build process:
 ## File Structure
 
 ```
-assets/icon/
+assets/images/icon/
 ├── workout_icons_128px.png          # Original sprite sheet
 ├── workout_icons_128px.csv           # Icon names mapping
 └── workout_icons_sliced/             # Pre-sliced images (generated)
