@@ -868,7 +868,6 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
         status: 'active',
         totalSetsCompleted: 0,
         totalRepsCompleted: 0,
-        caloriesBurned: 0,
       );
 
       setState(() {
@@ -911,7 +910,6 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
       status: 'active',
       totalSetsCompleted: 0,
       totalRepsCompleted: 0,
-      caloriesBurned: 0,
     );
 
     setState(() {
@@ -1121,7 +1119,6 @@ class _WorkoutModeScreenState extends State<WorkoutModeScreen>
       status: 'active',
       totalSetsCompleted: 0,
       totalRepsCompleted: 0,
-      caloriesBurned: 0,
     );
 
     setState(() {

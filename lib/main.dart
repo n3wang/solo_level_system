@@ -477,18 +477,18 @@ class _MyAppState extends State<MyApp> {
       final box = Hive.box<UserSettingsModel>('userSettings');
       userSettings = box.get('settings') ?? UserSettingsModel();
 
-      // Migrate old palette names
+      // Migrate old palette names → pastel (current default)
       if (userSettings.colorPalette == 'original' ||
-          userSettings.colorPalette == 'default') {
-        userSettings.colorPalette = 'creative';
+          userSettings.colorPalette == 'default' ||
+          userSettings.colorPalette == 'creative') {
+        userSettings.colorPalette = 'pastel';
         await box.put('settings', userSettings);
       } else if (![
         'grayscale',
         'creative',
         'pastel',
       ].contains(userSettings.colorPalette)) {
-        // If palette doesn't exist, default to creative
-        userSettings.colorPalette = 'creative';
+        userSettings.colorPalette = 'pastel';
         await box.put('settings', userSettings);
       }
 
@@ -497,7 +497,7 @@ class _MyAppState extends State<MyApp> {
     } catch (e) {
       print('Error loading user settings in main: $e');
       userSettings = UserSettingsModel();
-      AppColorPalette.setActivePalette('default');
+      AppColorPalette.setActivePalette('pastel');
     } finally {
       if (mounted) {
         setState(() {
@@ -608,6 +608,44 @@ class _MyAppState extends State<MyApp> {
         scaffoldBackgroundColor: scaffoldBackgroundColor,
         brightness: Brightness.light,
         useMaterial3: true,
+        appBarTheme: AppBarTheme(
+          titleTextStyle: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColorPalette.textColor,
+          ),
+        ),
+        tabBarTheme: const TabBarThemeData(
+          labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          unselectedLabelStyle:
+              TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+        textTheme: ThemeData.light().textTheme.copyWith(
+          headlineLarge: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+          ),
+          headlineMedium: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+          ),
+          headlineSmall: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+          titleLarge: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+          titleMedium: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+          titleSmall: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       darkTheme: ThemeData(
         primarySwatch: primaryMaterialColor,
@@ -627,6 +665,44 @@ class _MyAppState extends State<MyApp> {
         scaffoldBackgroundColor: AppColorPalette.backgroundDark,
         brightness: Brightness.dark,
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          titleTextStyle: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        tabBarTheme: const TabBarThemeData(
+          labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          unselectedLabelStyle:
+              TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+        textTheme: ThemeData.dark().textTheme.copyWith(
+          headlineLarge: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+          ),
+          headlineMedium: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+          ),
+          headlineSmall: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+          titleLarge: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+          titleMedium: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+          titleSmall: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       themeMode: _getThemeMode(userSettings.theme),
       home: MainNavigationScreen(

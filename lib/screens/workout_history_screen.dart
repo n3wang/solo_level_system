@@ -229,15 +229,6 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
                 icon: Icons.fitness_center,
               ),
               SizedBox(width: 8),
-              if (session.caloriesBurned > 0) ...[
-                StatChip(
-                  label: 'Calories',
-                  value: '${session.caloriesBurned}',
-                  icon: Icons.local_fire_department,
-                  color: Colors.orange,
-                ),
-                SizedBox(width: 8),
-              ],
               StatChip(
                 label: 'Type',
                 value: _getSessionTypeLabel(session),
@@ -412,8 +403,6 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
               'Exercises Completed',
               '${session.completedExerciseIds.length}',
             ),
-            if (session.caloriesBurned > 0)
-              _buildDetailRow('Calories Burned', '${session.caloriesBurned}'),
             _buildDetailRow('Workout Type', _getSessionTypeLabel(session)),
             if (session.notes?.isNotEmpty == true) ...[
               SizedBox(height: 16),

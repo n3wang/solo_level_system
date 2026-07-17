@@ -4,9 +4,12 @@ import 'package:solo_level_system/models/project_model.dart';
 class ProjectSeedService {
   ProjectSeedService._();
 
+  static const String studiesProjectId = 'sample-project-deep-work-coding';
+  static const String gamesStudyingProjectId = 'sample-project-language-sprint';
+
   static const String _projectsBoxName = 'projects';
-  static const String _studiesProjectId = 'sample-project-deep-work-coding';
-  static const String _gamesStudyingProjectId = 'sample-project-language-sprint';
+  static const String _studiesProjectId = studiesProjectId;
+  static const String _gamesStudyingProjectId = gamesStudyingProjectId;
 
   static Future<void> ensureSampleProjects() async {
     if (!Hive.isBoxOpen(_projectsBoxName)) {

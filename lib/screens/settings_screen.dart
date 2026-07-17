@@ -56,12 +56,14 @@ class _SettingsScreenState extends State<SettingsScreen>
       }
       
       // Migrate old palette names
-      if (userSettings.colorPalette == 'original' || userSettings.colorPalette == 'default') {
-        userSettings.colorPalette = 'creative';
+      if (userSettings.colorPalette == 'original' ||
+          userSettings.colorPalette == 'default' ||
+          userSettings.colorPalette == 'creative') {
+        userSettings.colorPalette = 'pastel';
         await _saveUserSettings();
       } else if (!['grayscale', 'creative', 'pastel'].contains(userSettings.colorPalette)) {
-        // If palette doesn't exist, default to creative
-        userSettings.colorPalette = 'creative';
+        // If palette doesn't exist, default to pastel
+        userSettings.colorPalette = 'pastel';
         await _saveUserSettings();
       }
       

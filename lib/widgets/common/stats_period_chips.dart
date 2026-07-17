@@ -60,6 +60,60 @@ class StatsPeriodRange {
     }
   }
 
+  /// The immediately preceding window of the same shape as [forPeriod].
+  /// Today ↔ yesterday, rolling week ↔ prior 7 days, etc.
+  static StatsPeriodRange previousPeriod(
+    StatsPeriod period, {
+    DateTime? now,
+  }) {
+    final n = now ?? DateTime.now();
+    final today = DateTime(n.year, n.month, n.day);
+
+    switch (period) {
+      case StatsPeriod.today:
+        return StatsPeriodRange(
+          start: today.subtract(const Duration(days: 1)),
+          endExclusive: today,
+        );
+      case StatsPeriod.week:
+        final currentStart = today.subtract(const Duration(days: 6));
+        return StatsPeriodRange(
+          start: currentStart.subtract(const Duration(days: 7)),
+          endExclusive: currentStart,
+        );
+      case StatsPeriod.month:
+        final thisMonth = DateTime(n.year, n.month, 1);
+        return StatsPeriodRange(
+          start: DateTime(n.year, n.month - 1, 1),
+          endExclusive: thisMonth,
+        );
+      case StatsPeriod.year:
+        return StatsPeriodRange(
+          start: DateTime(n.year - 1, 1, 1),
+          endExclusive: DateTime(n.year, 1, 1),
+        );
+    }
+  }
+
+  /// Length of the current period in whole days (for averages). At least 1.
+  static int dayCount(StatsPeriod period, {DateTime? now}) {
+    return dayCountOf(forPeriod(period, now: now), now: now);
+  }
+
+  /// Length of the previous period in whole days. At least 1.
+  static int previousDayCount(StatsPeriod period, {DateTime? now}) {
+    return dayCountOf(previousPeriod(period, now: now), now: now);
+  }
+
+  static int dayCountOf(StatsPeriodRange range, {DateTime? now}) {
+    final n = now ?? DateTime.now();
+    final today = DateTime(n.year, n.month, n.day);
+    final start = range.start ?? today;
+    final end = range.endExclusive ?? today.add(const Duration(days: 1));
+    final days = end.difference(start).inDays;
+    return days < 1 ? 1 : days;
+  }
+
   /// Short phrase for empty-state copy ("today", "this week", …).
   static String emptyLabel(StatsPeriod period) {
     switch (period) {

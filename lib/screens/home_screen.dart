@@ -45,6 +45,7 @@ import 'package:solo_level_system/screens/room_management_screen.dart';
 import 'package:solo_level_system/screens/projects_management_screen.dart';
 import 'package:solo_level_system/utils/room_management_seed_service.dart';
 import 'package:solo_level_system/utils/unlock_service.dart';
+import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/utils/project_seed_service.dart';
 import 'package:solo_level_system/models/room_management_model.dart';
 import 'package:solo_level_system/widgets/pomodoro/long_break_modal.dart';
@@ -1031,10 +1032,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   final track = visibleTracks[index];
                                   final isCurrent =
                                       track.title == currentlyPlayingTrack;
+                                  final unlocked =
+                                      AppEnvironment.isTest ||
+                                      UnlockService.isMusicUnlocked(
+                                        track.filename,
+                                      );
                                   return ListTile(
                                     dense: true,
+                                    enabled: unlocked,
                                     leading: Icon(
-                                      isCurrent
+                                      !unlocked
+                                          ? Icons.lock_outline
+                                          : isCurrent
                                           ? Icons.equalizer_rounded
                                           : Icons.music_note,
                                     ),
@@ -1044,12 +1053,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     subtitle: Text(
-                                      '${track.author} • ${track.duration}',
+                                      unlocked
+                                          ? '${track.author} • ${track.duration}'
+                                          : 'Acquire to listen',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    onTap: () =>
-                                        Navigator.of(context).pop(track),
+                                    onTap: () {
+                                      if (!unlocked) {
+                                        showAppSnack(
+                                          context,
+                                          text: 'Acquire to listen',
+                                        );
+                                        return;
+                                      }
+                                      Navigator.of(context).pop(track);
+                                    },
                                   );
                                 },
                               ),

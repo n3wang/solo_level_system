@@ -51,6 +51,13 @@ class UnlockService {
     return !gated;
   }
 
+  /// Music playback gate for a lofi filename (`music:{filename}`).
+  static bool isMusicUnlocked(String filename) {
+    final name = filename.trim();
+    if (name.isEmpty) return false;
+    return isUnlocked('music:$name');
+  }
+
   /// How many copies of a specific card are owned (`owned xN`).
   static int ownedCount(String cardId) {
     final box = _box;

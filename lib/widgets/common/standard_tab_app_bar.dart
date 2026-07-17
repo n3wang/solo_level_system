@@ -61,11 +61,11 @@ class StandardTabAppBar extends StatelessWidget implements PreferredSizeWidget {
       unselectedLabelColor: AppColorPalette.grey700,
       labelStyle: const TextStyle(
         fontWeight: FontWeight.w600,
-        fontSize: 14,
+        fontSize: 12,
       ),
       unselectedLabelStyle: const TextStyle(
         fontWeight: FontWeight.w500,
-        fontSize: 14,
+        fontSize: 12,
       ),
       tabs: [for (final label in labels) Tab(text: label)],
     );

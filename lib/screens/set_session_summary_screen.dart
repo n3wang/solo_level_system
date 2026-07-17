@@ -131,7 +131,6 @@ class SetSessionSummaryScreen extends StatelessWidget {
       status: 'active',
       totalSetsCompleted: 0,
       totalRepsCompleted: 0,
-      caloriesBurned: 0,
       additionalData: {'setCategoryId': setCategory.id, 'setLabel': setLabel},
     );
 

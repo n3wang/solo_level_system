@@ -1,12 +1,15 @@
 // lib/screens/analytics_screen.dart
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/constants/collectible_card_layout.dart';
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
+import 'package:solo_level_system/models/workout_set_category_model.dart';
+import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/motivation_points_transaction_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
@@ -20,6 +23,8 @@ import 'package:solo_level_system/widgets/pomodoro/session_recording_preview.dar
 import 'package:solo_level_system/widgets/common/standard_tab_app_bar.dart';
 import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
 import 'package:solo_level_system/widgets/common/stats_period_chips.dart';
+import 'package:solo_level_system/utils/stats_breakdown.dart';
+import 'package:solo_level_system/widgets/analytics/stacked_period_bar_chart.dart';
 
 extension StringExtension on String {
   String capitalizeFirst() {
@@ -232,6 +237,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       future: Future.wait([
         _ensureBoxIsOpen<PomodoroModel>('pomodoros'),
         _ensureBoxIsOpen<EnhancedAudioModel>('audioFiles'),
+        _ensureBoxIsOpen<ProjectModel>('projects'),
       ]),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -254,6 +260,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               builder: (context, Box<EnhancedAudioModel> audioBox, _) {
                 final sessions = box.values.toList();
                 final filteredSessions = _filterSessionsByPeriod(sessions);
+                final previousSessions = _filterSessionsByPreviousPeriod(
+                  sessions,
+                );
                 final sessionAudios = _filterAudiosByPeriod(
                   audioBox.values.where(_isSessionRecording).toList(),
                 );
@@ -263,7 +272,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildFocusStats(filteredSessions),
+                      _buildFocusStats(filteredSessions, previousSessions),
                       const SizedBox(height: AppUiSizes.xxl),
                       _buildFocusChart(filteredSessions),
                       const SizedBox(height: AppUiSizes.xxl),
@@ -285,7 +294,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   Widget _buildWorkoutsTab() {
     return FutureBuilder(
-      future: _ensureBoxIsOpen<WorkoutSessionModel>('workoutSessions'),
+      future: Future.wait([
+        _ensureBoxIsOpen<WorkoutSessionModel>('workoutSessions'),
+        _ensureBoxIsOpen<WorkoutSetCategoryModel>('workoutSetCategories'),
+      ]),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
@@ -304,15 +316,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           builder: (context, Box<WorkoutSessionModel> box, _) {
             final sessions = box.values.toList();
             final filteredSessions = _filterWorkoutsByPeriod(sessions);
+            final previousSessions = _filterWorkoutsByPreviousPeriod(sessions);
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(AppUiSizes.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildWorkoutStats(filteredSessions),
+                  _buildWorkoutStats(filteredSessions, previousSessions),
                   const SizedBox(height: AppUiSizes.xxl),
                   _buildWorkoutChart(filteredSessions),
+                  const SizedBox(height: AppUiSizes.xxl),
+                  _buildWorkoutStreakInfo(sessions),
                   const SizedBox(height: AppUiSizes.xxl),
                   _buildPersonalRecords(filteredSessions),
                   const SizedBox(height: AppUiSizes.xxl),
@@ -331,105 +346,133 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     List<WorkoutSessionModel> workouts,
   ) {
     final now = DateTime.now();
-    final startOfWeek = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - 1));
-    final focusMinutes = List.generate(7, (index) {
-      final day = startOfWeek.add(Duration(days: index));
-      return pomodoros
+    final today = DateTime(now.year, now.month, now.day);
+    // Rolling 7 days ending today (oldest on the left, today on the right).
+    final days = List.generate(
+      7,
+      (index) => today.subtract(Duration(days: 6 - index)),
+    );
+
+    final samples = AppEnvironment.is_test
+        ? _testHeatmapSamplesForPastDays(today, dayCount: 25)
+        : const <DateTime, ({int focus, int workout})>{};
+
+    final focusMinutes = <int>[];
+    final workoutMinutes = <int>[];
+    for (final day in days) {
+      var focus = pomodoros
           .where((p) => _isSameDay(p.startTime, day))
           .fold<int>(0, (sum, p) => sum + p.minutesSpent);
-    });
-    final workoutMinutes = List.generate(7, (index) {
-      final day = startOfWeek.add(Duration(days: index));
-      return workouts
+      var workout = workouts
           .where((w) => w.isCompleted && _isSameDay(w.startTime, day))
           .fold<int>(0, (sum, w) => sum + w.durationMinutes);
-    });
+
+      final sample = samples[day];
+      if (sample != null) {
+        if (focus == 0) focus = sample.focus;
+        if (workout == 0) workout = sample.workout;
+      }
+      focusMinutes.add(focus);
+      workoutMinutes.add(workout);
+    }
 
     // workout = red/color1, focus = blue/color2 (matches mockup)
     final workoutColor = AppColorPalette.color1;
     final focusColor = AppColorPalette.color2;
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const labelWidth = 72.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildHeatmapRow(
-          label: 'workout',
-          color: workoutColor,
-          values: workoutMinutes,
-          labelWidth: labelWidth,
-        ),
+        _buildHeatmapRow(color: workoutColor, values: workoutMinutes),
         const SizedBox(height: AppUiSizes.sm),
-        _buildHeatmapRow(
-          label: 'focus',
-          color: focusColor,
-          values: focusMinutes,
-          labelWidth: labelWidth,
-        ),
-        const SizedBox(height: AppUiSizes.md),
+        _buildHeatmapRow(color: focusColor, values: focusMinutes),
+        const SizedBox(height: AppUiSizes.sm),
         Row(
           children: [
-            const SizedBox(width: labelWidth),
-            ...List.generate(7, (index) {
-              final day = startOfWeek.add(Duration(days: index));
-              final isFirst = index == 0;
+            ...List.generate(days.length, (index) {
+              final day = days[index];
+              final isToday = index == days.length - 1;
               return Expanded(
                 child: Column(
                   children: [
                     Text(
-                      dayNames[index],
+                      dayNames[day.weekday - 1],
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         fontSize: AppColorPalette.fontSizeSmall,
+                        fontWeight: isToday ? FontWeight.w700 : null,
                       ),
                     ),
-                    if (isFirst)
-                      Text(
-                        '${day.month}/${day.day}',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          fontSize: AppColorPalette.fontSizeXSmall,
-                          color: AppColorPalette.textSecondary,
-                        ),
+                    Text(
+                      '${day.month}/${day.day}',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontSize: AppColorPalette.fontSizeXSmall,
+                        color: AppColorPalette.textSecondary,
+                        fontWeight: isToday ? FontWeight.w600 : null,
                       ),
+                    ),
                   ],
                 ),
               );
             }),
           ],
         ),
+        const SizedBox(height: AppUiSizes.md),
+        Row(
+          children: [
+            _buildMinutesLegendChip('workout', workoutColor),
+            const SizedBox(width: AppUiSizes.sm),
+            _buildMinutesLegendChip('focus', focusColor),
+          ],
+        ),
       ],
     );
   }
 
+  /// Deterministic sample focus/workout minutes for [dayCount] days ending
+  /// at [today] (inclusive), keyed by date-only [DateTime].
+  Map<DateTime, ({int focus, int workout})> _testHeatmapSamplesForPastDays(
+    DateTime today, {
+    int dayCount = 25,
+  }) {
+    final map = <DateTime, ({int focus, int workout})>{};
+    for (var i = 0; i < dayCount; i++) {
+      final day = today.subtract(Duration(days: i));
+      // Stable pseudo-random from day ordinal so hot reload stays consistent.
+      final seed = day.year * 10000 + day.month * 100 + day.day;
+      final focus = (seed * 7) % 5 == 0 ? 0 : 15 + (seed % 4) * 10;
+      final workout = (seed * 11) % 6 == 0 ? 0 : 20 + (seed % 5) * 10;
+      map[day] = (focus: focus, workout: workout);
+    }
+    return map;
+  }
+
   Widget _buildHeatmapRow({
-    required String label,
     required Color color,
     required List<int> values,
-    required double labelWidth,
   }) {
+    final maxMinutes = values.fold<int>(0, (m, v) => v > m ? v : m);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        SizedBox(
-          width: labelWidth,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: _buildMinutesLegendChip(label, color),
-          ),
-        ),
-        ...List.generate(7, (index) {
+        ...List.generate(values.length, (index) {
           final minutes = values[index];
+          // Relative to the strongest day in this visible row (0 when empty).
+          final intensity = maxMinutes <= 0 || minutes <= 0
+              ? 0.0
+              : (minutes / maxMinutes).clamp(0.0, 1.0);
           return Expanded(
             child: Center(
               child: minutes > 0
-                  ? _buildDayMinuteChip('$minutes', color)
-                  : const SizedBox(height: 22),
+                  ? _buildDayMinuteChip(
+                      '$minutes',
+                      color,
+                      intensity: intensity,
+                    )
+                  : const SizedBox(height: 28),
             ),
           );
         }),
@@ -455,18 +498,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildDayMinuteChip(String value, Color color) {
+  /// [intensity] is 0–1 vs max minutes in the same row (day comparison).
+  Widget _buildDayMinuteChip(
+    String value,
+    Color color, {
+    required double intensity,
+  }) {
+    // Floor so low days stay readable; ceiling keeps the hottest day strong.
+    final alpha = 0.18 + (intensity * 0.72);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withValues(alpha: alpha),
         borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
-        border: Border.all(color: color, width: 1.2),
       ),
       child: Text(
         value,
-        style: TextStyle(
-          color: color,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.black,
           fontSize: 11,
           fontWeight: FontWeight.w700,
         ),
@@ -545,13 +597,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Widget _buildFocusStats(List<PomodoroModel> sessions) {
+  Widget _buildFocusStats(
+    List<PomodoroModel> sessions,
+    List<PomodoroModel> previous,
+  ) {
     final totalSessions = sessions.length;
+    final prevSessions = previous.length;
     final totalMinutes = sessions.fold<int>(
       0,
       (sum, s) => sum + s.minutesSpent,
     );
-    final avgMinutesPerDay = totalMinutes / 7;
+    final prevMinutes = previous.fold<int>(
+      0,
+      (sum, s) => sum + s.minutesSpent,
+    );
+    final days = StatsPeriodRange.dayCount(_selectedPeriod);
+    final prevDays = StatsPeriodRange.previousDayCount(_selectedPeriod);
+    final avg = (totalMinutes / days).round();
+    final prevAvg = (prevMinutes / prevDays).round();
 
     return Row(
       children: [
@@ -560,23 +623,44 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             'Sessions',
             '$totalSessions',
             Icons.play_circle,
+            delta: totalSessions - prevSessions,
           ),
         ),
         Expanded(
-          child: _buildStatCard('Minutes', '$totalMinutes', Icons.timer),
+          child: _buildStatCard(
+            'Minutes',
+            '$totalMinutes',
+            Icons.timer,
+            delta: totalMinutes - prevMinutes,
+          ),
         ),
         Expanded(
           child: _buildStatCard(
             'Avg min/Day',
-            avgMinutesPerDay.toStringAsFixed(0),
+            '$avg',
             Icons.trending_up,
+            delta: avg - prevAvg,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon, {
+    int? delta,
+  }) {
+    final secondary = Theme.of(context).colorScheme.secondary;
+    final deltaText = delta == null
+        ? null
+        : delta == 0
+            ? '0'
+            : delta > 0
+                ? '+$delta'
+                : '$delta';
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppUiSizes.lg),
@@ -591,6 +675,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 fontWeight: FontWeight.bold,
               ),
             ),
+            if (deltaText != null)
+              Text(
+                deltaText,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontSize: AppColorPalette.fontSizeSmall,
+                  color: secondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             Text(
               title,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -607,44 +700,79 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   Widget _buildFocusChart(List<PomodoroModel> sessions) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppUiSizes.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Focus Sessions Over Time',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontSize: AppColorPalette.fontSizeMedium,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: AppUiSizes.lg),
-            SizedBox(
-              height: 200,
-              child: Center(child: Text('Chart would go here')),
-            ),
-          ],
-        ),
-      ),
+    final labels = _resolveProjectLabels(sessions);
+    final data = buildStackedChart(
+      period: _selectedPeriod,
+      now: DateTime.now(),
+      timestamps: sessions.map((s) => s.startTime),
+      groupIdAt: (i) => sessions[i].project_id,
+      groupLabelAt: (i) {
+        final id = sessions[i].project_id;
+        if (id == null) return sessions[i].project_name;
+        return labels[id] ?? sessions[i].project_name;
+      },
+      valueAt: (i) => sessions[i].minutesSpent.toDouble(),
+    );
+
+    return StackedPeriodBarChart(
+      title: 'Focus Sessions Over Time',
+      data: data,
+      emptyMessage: 'No focus data for this period',
     );
   }
 
-  Widget _buildProjectBreakdown(List<PomodoroModel> sessions) {
-    // Group sessions by project
-    final projectStats = <String, int>{};
-    final projectNames = <String, String>{};
+  Map<String, String> _resolveProjectLabels(List<PomodoroModel> sessions) {
+    final labels = <String, String>{};
+    if (Hive.isBoxOpen('projects')) {
+      for (final p in Hive.box<ProjectModel>('projects').values) {
+        if (p.name.isNotEmpty) labels[p.id] = p.name;
+      }
+    }
+    for (final s in sessions) {
+      final id = s.project_id;
+      if (id != null && !labels.containsKey(id) && s.project_name != null) {
+        labels[id] = s.project_name!;
+      }
+    }
+    return labels;
+  }
 
+  Widget _buildProjectBreakdown(List<PomodoroModel> sessions) {
+    final labels = _resolveProjectLabels(sessions);
+    final chart = buildStackedChart(
+      period: _selectedPeriod,
+      now: DateTime.now(),
+      timestamps: sessions.map((s) => s.startTime),
+      groupIdAt: (i) => sessions[i].project_id,
+      groupLabelAt: (i) {
+        final id = sessions[i].project_id;
+        if (id == null) return sessions[i].project_name;
+        return labels[id] ?? sessions[i].project_name;
+      },
+      valueAt: (_) => 1,
+    );
+
+    final projectStats = <String, int>{};
     for (final session in sessions) {
-      if (session.project_id != null && session.project_name != null) {
-        final projectId = session.project_id!;
-        projectStats[projectId] = (projectStats[projectId] ?? 0) + 1;
-        projectNames[projectId] = session.project_name!;
-      } else {
-        // Sessions without project
-        projectStats['unassigned'] = (projectStats['unassigned'] ?? 0) + 1;
-        projectNames['unassigned'] = 'Unassigned';
+      final id = session.project_id ?? StatsSeriesId.def;
+      projectStats[id] = (projectStats[id] ?? 0) + 1;
+    }
+
+    final colorById = chart.colorById;
+    final ordered = chart.series
+        .where((s) => (projectStats[s.id] ?? 0) > 0)
+        .toList();
+    // Include any groups not in the top series (shouldn't happen often).
+    for (final id in projectStats.keys) {
+      if (!ordered.any((s) => s.id == id)) {
+        ordered.add(
+          StatsSeriesMeta(
+            id: id,
+            label: labels[id] ??
+                (id == StatsSeriesId.def ? 'Default' : id),
+            color: colorById[id] ?? AppColorPalette.grey500,
+          ),
+        );
       }
     }
 
@@ -662,7 +790,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               ),
             ),
             const SizedBox(height: AppUiSizes.lg),
-            projectStats.isEmpty
+            ordered.isEmpty
                 ? Text(
                     'No project data available',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -672,54 +800,52 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     ),
                   )
                 : Column(
-                    children: projectStats.entries
-                        .map(
-                          (entry) => Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppUiSizes.xs,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: ordered.map((series) {
+                      final count = projectStats[series.id] ?? 0;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppUiSizes.xs,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 12,
-                                      height: 12,
-                                      decoration: BoxDecoration(
-                                        color: _getProjectColor(entry.key),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                    ),
-                                    const SizedBox(width: AppUiSizes.sm),
-                                    Text(
-                                      projectNames[entry.key] ?? 'Unknown',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            fontSize:
-                                                AppColorPalette.fontSizeBody,
-                                          ),
-                                    ),
-                                  ],
+                                Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: series.color,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
                                 ),
+                                const SizedBox(width: AppUiSizes.sm),
                                 Text(
-                                  '${entry.value} sessions',
-                                  style: Theme.of(context).textTheme.bodyMedium
+                                  series.label,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
                                       ?.copyWith(
-                                        fontWeight: FontWeight.w500,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.8),
+                                        fontSize: AppColorPalette.fontSizeBody,
                                       ),
                                 ),
                               ],
                             ),
-                          ),
-                        )
-                        .toList(),
+                            Text(
+                              '$count sessions',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.8),
+                                  ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
                   ),
           ],
         ),
@@ -727,25 +853,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  Color _getProjectColor(String projectId) {
-    // Color assignment from centralized palette.
-    final colors = [
-      AppColorPalette.color2,
-      AppColorPalette.color3,
-      AppColorPalette.color4,
-      AppColorPalette.color1,
-      AppColorPalette.color5,
-      AppColorPalette.accent,
-    ];
-
-    if (projectId == 'unassigned') return AppColorPalette.grey500;
-
-    final hash = projectId.hashCode.abs();
-    return colors[hash % colors.length];
-  }
-
   Widget _buildStreakInfo(List<PomodoroModel> sessions) {
-    int currentStreak = _calculateCurrentStreak(sessions);
+    final stats = computeStreakStats(
+      period: _selectedPeriod,
+      activityTimes: sessions.map((s) => s.startTime),
+    );
 
     return Card(
       child: Padding(
@@ -763,35 +875,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             const SizedBox(height: AppUiSizes.lg),
             Row(
               children: [
-                Icon(
-                  Icons.local_fire_department,
-                  color: currentStreak > 0
-                      ? Theme.of(context).colorScheme.tertiary
-                      : Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.5),
-                  size: 32,
+                Expanded(
+                  child: _buildStreakMetric(
+                    stats.current,
+                    'Current',
+                    stats.unitLabel,
+                    highlight: stats.current > 0,
+                  ),
                 ),
-                const SizedBox(width: AppUiSizes.lg),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      currentStreak > 0 ? '$currentStreak days' : 'No streak',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: AppColorPalette.fontSizeTitle,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Current streak',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.72),
-                      ),
-                    ),
-                  ],
+                Expanded(
+                  child: _buildStreakMetric(
+                    stats.maxAllTime,
+                    'Max',
+                    stats.unitLabel,
+                  ),
+                ),
+                Expanded(
+                  child: _buildStreakMetric(
+                    stats.maxThisYear,
+                    'Max this year',
+                    stats.unitLabel,
+                  ),
                 ),
               ],
             ),
@@ -801,69 +905,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
   }
 
-  int _calculateCurrentStreak(List<PomodoroModel> sessions) {
-    if (sessions.isEmpty) return 0;
-
-    int streak = 0;
-    final today = DateTime.now();
-
-    for (int i = 0; i < 365; i++) {
-      final checkDate = today.subtract(Duration(days: i));
-      final hasSessions = sessions.any(
-        (s) =>
-            s.startTime.year == checkDate.year &&
-            s.startTime.month == checkDate.month &&
-            s.startTime.day == checkDate.day,
-      );
-
-      if (hasSessions) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-
-    return streak;
-  }
-
-  Widget _buildWorkoutStats(List<WorkoutSessionModel> sessions) {
-    final completedSessions = sessions.where((s) => s.isCompleted).toList();
-    final totalHours =
-        completedSessions.fold<int>(0, (sum, s) => sum + s.durationMinutes) /
-        60;
-    final totalCalories = completedSessions.fold<int>(
-      0,
-      (sum, s) => sum + s.caloriesBurned,
+  Widget _buildWorkoutStreakInfo(List<WorkoutSessionModel> sessions) {
+    final completed = sessions.where((s) => s.isCompleted);
+    final stats = computeStreakStats(
+      period: _selectedPeriod,
+      activityTimes: completed.map((s) => s.startTime),
     );
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            'Workouts',
-            '${completedSessions.length}',
-            Icons.fitness_center,
-          ),
-        ),
-        Expanded(
-          child: _buildStatCard(
-            'Hours',
-            totalHours > 0 ? totalHours.toStringAsFixed(1) : '0',
-            Icons.schedule,
-          ),
-        ),
-        Expanded(
-          child: _buildStatCard(
-            'Calories',
-            '$totalCalories',
-            Icons.local_fire_department,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWorkoutChart(List<WorkoutSessionModel> sessions) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppUiSizes.lg),
@@ -871,44 +919,187 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Workout Frequency',
+              'Workout Streak',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontSize: AppColorPalette.fontSizeMedium,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: AppUiSizes.lg),
-            sessions.isEmpty
-                ? SizedBox(
-                    height: 100,
-                    child: Center(
-                      child: Text(
-                        'No workout data yet. Start your first workout!',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.72),
-                        ),
-                      ),
-                    ),
-                  )
-                : SizedBox(
-                    height: 100,
-                    child: Center(
-                      child: Text(
-                        '${sessions.length} total sessions recorded',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              fontSize: AppColorPalette.fontSizeMedium,
-                              fontWeight: FontWeight.w500,
-                            ),
-                      ),
-                    ),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStreakMetric(
+                    stats.current,
+                    'Current',
+                    stats.unitLabel,
+                    highlight: stats.current > 0,
                   ),
+                ),
+                Expanded(
+                  child: _buildStreakMetric(
+                    stats.maxAllTime,
+                    'Max',
+                    stats.unitLabel,
+                  ),
+                ),
+                Expanded(
+                  child: _buildStreakMetric(
+                    stats.maxThisYear,
+                    'Max this year',
+                    stats.unitLabel,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildStreakMetric(
+    int value,
+    String label,
+    String unit, {
+    bool highlight = false,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Icon(
+          Icons.local_fire_department,
+          color: highlight
+              ? scheme.tertiary
+              : scheme.onSurface.withValues(alpha: 0.45),
+          size: 28,
+        ),
+        const SizedBox(height: AppUiSizes.xs),
+        Text(
+          '$value',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontSize: AppColorPalette.fontSizeTitle,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          unit,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: scheme.onSurface.withValues(alpha: 0.65),
+          ),
+        ),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: scheme.onSurface.withValues(alpha: 0.72),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWorkoutStats(
+    List<WorkoutSessionModel> sessions,
+    List<WorkoutSessionModel> previous,
+  ) {
+    final completed = sessions.where((s) => s.isCompleted).toList();
+    final prevCompleted = previous.where((s) => s.isCompleted).toList();
+    final totalMinutes = completed.fold<int>(
+      0,
+      (sum, s) => sum + s.durationMinutes,
+    );
+    final prevMinutes = prevCompleted.fold<int>(
+      0,
+      (sum, s) => sum + s.durationMinutes,
+    );
+    final programs = completed
+        .map((s) => workoutSetGroupId(s.additionalData, s.routineId))
+        .whereType<String>()
+        .toSet()
+        .length;
+    final prevPrograms = prevCompleted
+        .map((s) => workoutSetGroupId(s.additionalData, s.routineId))
+        .whereType<String>()
+        .toSet()
+        .length;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            'Workouts',
+            '${completed.length}',
+            Icons.fitness_center,
+            delta: completed.length - prevCompleted.length,
+          ),
+        ),
+        Expanded(
+          child: _buildStatCard(
+            'Minutes',
+            '$totalMinutes',
+            Icons.schedule,
+            delta: totalMinutes - prevMinutes,
+          ),
+        ),
+        Expanded(
+          child: _buildStatCard(
+            'Sets',
+            '$programs',
+            Icons.list_alt,
+            delta: programs - prevPrograms,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWorkoutChart(List<WorkoutSessionModel> sessions) {
+    final completed = sessions.where((s) => s.isCompleted).toList();
+    final setNames = _resolveSetTypeLabels(completed);
+    final data = buildStackedChart(
+      period: _selectedPeriod,
+      now: DateTime.now(),
+      timestamps: completed.map((s) => s.startTime),
+      groupIdAt: (i) => workoutSetGroupId(
+        completed[i].additionalData,
+        completed[i].routineId,
+      ),
+      groupLabelAt: (i) {
+        final id = workoutSetGroupId(
+          completed[i].additionalData,
+          completed[i].routineId,
+        );
+        if (id == null) return completed[i].routineName;
+        return setNames[id] ?? completed[i].routineName;
+      },
+      valueAt: (_) => 1,
+    );
+
+    return StackedPeriodBarChart(
+      title: 'Workouts Over Time',
+      data: data,
+      emptyMessage: 'No workout data yet. Start your first workout!',
+    );
+  }
+
+  Map<String, String> _resolveSetTypeLabels(
+    List<WorkoutSessionModel> sessions,
+  ) {
+    final labels = <String, String>{};
+    if (Hive.isBoxOpen('workoutSetCategories')) {
+      for (final s
+          in Hive.box<WorkoutSetCategoryModel>('workoutSetCategories').values) {
+        if (s.name.isNotEmpty) labels[s.id] = s.name;
+      }
+    }
+    for (final session in sessions) {
+      final id = workoutSetGroupId(session.additionalData, session.routineId);
+      if (id != null && !labels.containsKey(id)) {
+        labels[id] = session.routineName;
+      }
+    }
+    return labels;
   }
 
   Widget _buildPersonalRecords(List<WorkoutSessionModel> sessions) {
@@ -1038,6 +1229,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     return sessions.where((s) => range.contains(s.startTime)).toList();
   }
 
+  List<PomodoroModel> _filterSessionsByPreviousPeriod(
+    List<PomodoroModel> sessions,
+  ) {
+    final range = StatsPeriodRange.previousPeriod(_selectedPeriod);
+    return sessions.where((s) => range.contains(s.startTime)).toList();
+  }
+
   List<EnhancedAudioModel> _filterAudiosByPeriod(
     List<EnhancedAudioModel> audios,
   ) {
@@ -1049,6 +1247,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     List<WorkoutSessionModel> sessions,
   ) {
     final range = StatsPeriodRange.forPeriod(_selectedPeriod);
+    return sessions.where((s) => range.contains(s.startTime)).toList();
+  }
+
+  List<WorkoutSessionModel> _filterWorkoutsByPreviousPeriod(
+    List<WorkoutSessionModel> sessions,
+  ) {
+    final range = StatsPeriodRange.previousPeriod(_selectedPeriod);
     return sessions.where((s) => range.contains(s.startTime)).toList();
   }
 

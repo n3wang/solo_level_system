@@ -49,8 +49,7 @@ class WorkoutSessionModel extends HiveObject {
   @HiveField(14)
   List<String> personalRecordsSet; // Exercise IDs where PR was achieved
 
-  @HiveField(15)
-  int caloriesBurned; // Estimated
+  // Hive field 15 was caloriesBurned; reserved / unused for binary compatibility.
 
   @HiveField(16)
   double? averageHeartRate;
@@ -80,7 +79,6 @@ class WorkoutSessionModel extends HiveObject {
     this.totalSetsCompleted = 0,
     this.totalRepsCompleted = 0,
     this.personalRecordsSet = const [],
-    this.caloriesBurned = 0,
     this.averageHeartRate,
     this.tags = const [],
     this.location,

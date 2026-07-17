@@ -697,7 +697,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                 Text(
                   workoutName,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: isDark
                         ? AppColorPalette.white
@@ -1029,7 +1029,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                                 child: Text(
                                   exercise.name,
                                   style: const TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),

@@ -961,7 +961,6 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
       status: 'active',
       totalSetsCompleted: 0,
       totalRepsCompleted: 0,
-      caloriesBurned: 0,
     );
 
     Navigator.push(

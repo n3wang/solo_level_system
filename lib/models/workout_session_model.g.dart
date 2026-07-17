@@ -32,7 +32,6 @@ class WorkoutSessionModelAdapter extends TypeAdapter<WorkoutSessionModel> {
       totalSetsCompleted: fields[12] as int,
       totalRepsCompleted: fields[13] as int,
       personalRecordsSet: (fields[14] as List).cast<String>(),
-      caloriesBurned: fields[15] as int,
       averageHeartRate: fields[16] as double?,
       tags: (fields[17] as List).cast<String>(),
       location: fields[18] as String?,
@@ -75,7 +74,7 @@ class WorkoutSessionModelAdapter extends TypeAdapter<WorkoutSessionModel> {
       ..writeByte(14)
       ..write(obj.personalRecordsSet)
       ..writeByte(15)
-      ..write(obj.caloriesBurned)
+      ..write(0) // legacy caloriesBurned slot
       ..writeByte(16)
       ..write(obj.averageHeartRate)
       ..writeByte(17)

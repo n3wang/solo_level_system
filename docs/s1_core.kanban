@@ -107,6 +107,26 @@
           "labels": [],
           "checkboxes": [],
           "comments": []
+        },
+        {
+          "id": "ca5eabb0-b10f-4720-a86c-43c10f1b9ffb",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Allies mechanics",
+          "description": "",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "9e20df80-28fe-44c3-a71c-cb6eaee1c0b5",
+              "title": "Make the Snack as conversations (another clone) as talking  from ally",
+              "checked": false
+            },
+            {
+              "id": "ea364646-cc6e-4e97-918d-47535b889faf",
+              "title": "Mkae the allies also randomnly increase their skill",
+              "checked": false
+            }
+          ],
+          "comments": []
         }
       ]
     },
@@ -149,6 +169,31 @@
             {
               "id": "8b93ffb4-67dc-423d-bb29-60eff731f0cb",
               "title": "Implement model",
+              "checked": false
+            },
+            {
+              "id": "d2431584-d7ec-4bd6-876d-bb0d246474bc",
+              "title": "Create Castle in the Sky Room",
+              "checked": false
+            },
+            {
+              "id": "44fd5706-d9c6-4568-9c6b-78e116c80b6a",
+              "title": "Reclean the music origins and audio free with correct labels",
+              "checked": false
+            },
+            {
+              "id": "91efeb9d-3014-4df7-babf-fff6c74f5baa",
+              "title": "Create Monoke Traveling Rooms",
+              "checked": false
+            },
+            {
+              "id": "aea6cc02-bf37-48e9-a509-7d0a258284a9",
+              "title": "Create Vampire/haunted Libraries Room",
+              "checked": false
+            },
+            {
+              "id": "6d6e6e5a-2460-4080-9b90-ae118ae87ca5",
+              "title": "Change it so that images are preexported into slices",
               "checked": false
             }
           ],

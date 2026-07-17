@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/collectible_card_layout.dart';
 import 'package:solo_level_system/models/card_model.dart';
@@ -105,28 +106,86 @@ const List<String> kCollectibleOverviewTypeFilters = [
   ...kCollectibleTypeFilters,
 ];
 
+/// Whether unowned catalog art/copy should be shown in full (test/demo).
+bool revealCollectibleContents(CatalogCard card, {bool acquiredReveal = false}) {
+  if (acquiredReveal) return true;
+  if (AppEnvironment.revealUnacquiredCardDetails) return true;
+  return card.isAcquired;
+}
+
+/// Spoiler copy for locked cards (Pokemon TCG-style acquire-to-reveal).
+String collectibleAcquirePrompt(CardType type) {
+  switch (type) {
+    case CardType.music:
+      return 'Acquire to listen.';
+    case CardType.quote:
+      return 'Acquire to read.';
+    case CardType.guide:
+      return 'Acquire to unlock help.';
+    case CardType.program:
+    case CardType.exercise:
+      return 'Acquire to unlock.';
+    case CardType.room:
+    case CardType.reward:
+    case CardType.collection:
+    case CardType.option:
+      return 'Acquire to view.';
+  }
+}
+
+/// Generic unrevealed-card art: same outlined help icon used as the type
+/// fallback (large grey `?` in a circle).
+class CollectibleMysteryArt extends StatelessWidget {
+  final double size;
+
+  const CollectibleMysteryArt({
+    super.key,
+    this.size = CollectibleCardLayout.tileArtSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Icon(
+        Icons.help_outline,
+        size: size * 0.75,
+        color: scheme.onSurface.withValues(alpha: 0.5),
+      ),
+    );
+  }
+}
+
 /// Shared art for a [CatalogCard] (sprite, asset, file, or type icon).
 class CollectibleCardArt extends StatelessWidget {
   final CatalogCard card;
   final double size;
   final String? overrideLocalImagePath;
 
+  /// When false, shows [CollectibleMysteryArt] instead of real art.
+  final bool revealContents;
+
   const CollectibleCardArt({
     super.key,
     required this.card,
     this.size = CollectibleCardLayout.tileArtSize,
     this.overrideLocalImagePath,
+    this.revealContents = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (!revealContents) {
+      return CollectibleMysteryArt(size: size);
+    }
+
     final scheme = Theme.of(context).colorScheme;
     final fallback = Icon(
       collectibleTypeIcon(card.typeWire),
       size: size * 0.75,
-      color: card.isAcquired
-          ? scheme.tertiary
-          : scheme.onSurface.withValues(alpha: 0.5),
+      color: scheme.onSurface.withValues(alpha: 0.5),
     );
 
     final local = overrideLocalImagePath ?? card.localImagePath;
@@ -176,12 +235,16 @@ class CollectibleCardTile extends StatelessWidget {
   final int? availablePoints;
   final String? overrideLocalImagePath;
 
+  /// Always show real art / type icons (e.g. create-reward preview).
+  final bool forceRevealContents;
+
   const CollectibleCardTile({
     super.key,
     required this.card,
     this.onTap,
     this.availablePoints,
     this.overrideLocalImagePath,
+    this.forceRevealContents = false,
   });
 
   @override
@@ -190,6 +253,8 @@ class CollectibleCardTile extends StatelessWidget {
     final canAfford = availablePoints == null
         ? true
         : availablePoints! >= card.pointsCost;
+    final revealed =
+        forceRevealContents || revealCollectibleContents(card);
 
     return InkWell(
       borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
@@ -199,38 +264,35 @@ class CollectibleCardTile extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
           border: Border.all(
-            color: card.isAcquired
-                ? scheme.tertiary
-                : scheme.outline.withValues(alpha: 0.6),
+            color: scheme.outline.withValues(alpha: 0.6),
           ),
-          color: card.isAcquired
-              ? scheme.tertiary.withValues(alpha: 0.08)
-              : scheme.surface,
+          color: scheme.surface,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(
-                  collectibleTypeIcon(card.typeWire),
-                  size: 16,
-                  color: scheme.onSurface.withValues(alpha: 0.72),
-                ),
-                const Spacer(),
-                Icon(
-                  collectibleCategoryIcon(card.category),
-                  size: 16,
-                  color: scheme.onSurface.withValues(alpha: 0.45),
-                ),
-                if (card.isAcquired) ...[
-                  const SizedBox(width: AppUiSizes.xs),
+                if (revealed)
                   Icon(
-                    Icons.check_circle,
-                    size: 14,
-                    color: scheme.tertiary,
+                    collectibleTypeIcon(card.typeWire),
+                    size: 16,
+                    color: scheme.onSurface.withValues(alpha: 0.72),
+                  )
+                else
+                  Icon(
+                    Icons.lock_outline,
+                    size: 16,
+                    color: scheme.onSurface.withValues(alpha: 0.45),
                   ),
-                ] else ...[
+                const Spacer(),
+                if (revealed)
+                  Icon(
+                    collectibleCategoryIcon(card.category),
+                    size: 16,
+                    color: scheme.onSurface.withValues(alpha: 0.45),
+                  ),
+                if (!card.isAcquired) ...[
                   const SizedBox(width: AppUiSizes.xs),
                   Icon(
                     Icons.lock_outline,
@@ -254,6 +316,7 @@ class CollectibleCardTile extends StatelessWidget {
                   card: card,
                   size: CollectibleCardLayout.tileArtSize,
                   overrideLocalImagePath: overrideLocalImagePath,
+                  revealContents: revealed,
                 ),
               ),
             ),
@@ -276,7 +339,7 @@ class CollectibleCardTile extends StatelessWidget {
                     : '${card.pointsCost}',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: card.isAcquired
-                      ? scheme.tertiary
+                      ? scheme.onSurface.withValues(alpha: 0.65)
                       : canAfford
                       ? scheme.primary
                       : scheme.error,
@@ -607,12 +670,19 @@ class _CollectibleCardDetailDialogState
     required bool canAttemptAcquire,
     required double screenHeight,
   }) {
+    final revealed = revealCollectibleContents(
+      card,
+      acquiredReveal: widget.acquiredReveal,
+    );
     final isQuote = card.type == CardType.quote;
-    final visuals = _roomVisuals;
-    final musicFile = _musicFilename;
+    final visuals = revealed ? _roomVisuals : const <String>[];
+    final musicFile = revealed ? _musicFilename : null;
     final heightFactor = widget.acquiredReveal
         ? CollectibleCardLayout.detailModalHeightFactor * 0.82
         : CollectibleCardLayout.detailModalHeightFactor;
+    final bodyCopy = revealed
+        ? (isQuote ? _currentQuote : _currentDescription)
+        : collectibleAcquirePrompt(card.type);
 
     return SizedBox(
       width: CollectibleCardLayout.detailModalWidth,
@@ -622,8 +692,10 @@ class _CollectibleCardDetailDialogState
         children: [
           Row(
             children: [
-              Icon(collectibleTypeIcon(card.typeWire), size: 20),
-              const SizedBox(width: AppUiSizes.sm),
+              if (revealed) ...[
+                Icon(collectibleTypeIcon(card.typeWire), size: 20),
+                const SizedBox(width: AppUiSizes.sm),
+              ],
               Expanded(
                 child: Text(
                   card.title,
@@ -646,11 +718,12 @@ class _CollectibleCardDetailDialogState
                   setState(() => _isBookmarked = next);
                 },
               ),
-              Icon(
-                collectibleCategoryIcon(card.category),
-                size: 18,
-                color: scheme.onSurface.withValues(alpha: 0.55),
-              ),
+              if (revealed)
+                Icon(
+                  collectibleCategoryIcon(card.category),
+                  size: 18,
+                  color: scheme.onSurface.withValues(alpha: 0.55),
+                ),
             ],
           ),
           const SizedBox(height: AppUiSizes.md),
@@ -660,6 +733,7 @@ class _CollectibleCardDetailDialogState
                 : CollectibleCardArt(
                     card: card,
                     size: CollectibleCardLayout.modalArtSize,
+                    revealContents: revealed,
                   ),
           ),
           if (visuals.length > 1) ...[
@@ -705,17 +779,22 @@ class _CollectibleCardDetailDialogState
                   : scheme.error,
             ),
           ),
-          if (isQuote) ...[
+          if (revealed && isQuote) ...[
             const SizedBox(height: AppUiSizes.sm),
             _buildQuoteControls(scheme),
           ],
           const SizedBox(height: AppUiSizes.sm),
-          if (!isQuote || _activeQuotePanel.isEmpty)
+          if (!revealed || !isQuote || _activeQuotePanel.isEmpty)
             Expanded(
               child: SingleChildScrollView(
                 child: Text(
-                  isQuote ? _currentQuote : _currentDescription,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  bodyCopy,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontStyle: revealed ? FontStyle.normal : FontStyle.italic,
+                    color: revealed
+                        ? null
+                        : scheme.onSurface.withValues(alpha: 0.72),
+                  ),
                 ),
               ),
             )
@@ -743,8 +822,24 @@ class _CollectibleCardDetailDialogState
                 label: Text(_isPreviewing ? 'Stop' : 'Play'),
               ),
             ),
+          ] else if (!revealed && card.type == CardType.music) ...[
+            const SizedBox(height: AppUiSizes.sm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  showAppSnack(
+                    context,
+                    text: collectibleAcquirePrompt(CardType.music),
+                  );
+                },
+                icon: const Icon(Icons.lock_outline),
+                label: const Text('Play'),
+              ),
+            ),
           ],
-          if (card.type == CardType.room &&
+          if (revealed &&
+              card.type == CardType.room &&
               (card.bundledMusicCount > 0 || visuals.isNotEmpty)) ...[
             const SizedBox(height: AppUiSizes.xs),
             Text(
@@ -842,6 +937,7 @@ class _CollectibleCardDetailDialogState
         errorBuilder: (_, __, ___) => CollectibleCardArt(
           card: card,
           size: CollectibleCardLayout.modalArtSize,
+          revealContents: true,
         ),
       ),
     );

@@ -169,6 +169,7 @@ Future<void> showCreateRewardDialog(BuildContext context) async {
                               child: CollectibleCardTile(
                                 card: previewCard,
                                 overrideLocalImagePath: localImagePath,
+                                forceRevealContents: true,
                               ),
                             ),
                           ),

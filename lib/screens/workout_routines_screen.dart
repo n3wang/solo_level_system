@@ -249,7 +249,6 @@ class _WorkoutRoutinesScreenState extends State<WorkoutRoutinesScreen> {
         status: 'active',
         totalSetsCompleted: 0,
         totalRepsCompleted: 0,
-        caloriesBurned: 0,
       );
 
       // Update active session

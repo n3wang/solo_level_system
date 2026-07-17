@@ -6,7 +6,9 @@ import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
+import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
+import 'package:solo_level_system/utils/project_seed_service.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
 
 class TestModeBootstrapService {
@@ -86,10 +88,27 @@ class TestModeBootstrapService {
   }
 
   static Future<void> _ensurePomodoroHistory(Box<PomodoroModel> pomodorosBox) async {
+    // Drop legacy "Test Project N" seeds so charts show real sample projects.
+    final legacy = pomodorosBox.values
+        .where((p) => (p.project_id ?? '').startsWith('test_seed_'))
+        .toList();
+    for (final p in legacy) {
+      await p.delete();
+    }
+
     final alreadySeeded = pomodorosBox.values.any(
-      (p) => (p.project_id ?? '').startsWith('test_seed_'),
+      (p) =>
+          p.project_id == ProjectSeedService.studiesProjectId ||
+          p.project_id == ProjectSeedService.gamesStudyingProjectId,
     );
     if (alreadySeeded) return;
+
+    await ProjectSeedService.ensureSampleProjects();
+
+    const projects = [
+      (ProjectSeedService.studiesProjectId, 'Studies Assignments'),
+      (ProjectSeedService.gamesStudyingProjectId, 'Games and Studying'),
+    ];
 
     final now = DateTime.now();
     final durations = <int>[25, 35, 20, 45, 30, 50, 40];
@@ -105,14 +124,15 @@ class TestModeBootstrapService {
         (i % 3) * 10,
       );
       final minutes = durations[i % durations.length];
+      final project = projects[i % projects.length];
 
       await pomodorosBox.add(
         PomodoroModel(
           startTime: start,
           duration: minutes.toString(),
           durationMinutes: minutes,
-          project_id: 'test_seed_project_${(i % 3) + 1}',
-          project_name: 'Test Project ${(i % 3) + 1}',
+          project_id: project.$1,
+          project_name: project.$2,
           dayPomodoroNumber: (i % 4) + 1,
         ),
       );
@@ -122,31 +142,55 @@ class TestModeBootstrapService {
   static Future<void> _ensureWorkoutHistory(
     Box<WorkoutSessionModel> workoutSessionsBox,
   ) async {
+    final legacy = workoutSessionsBox.values
+        .where((s) => s.id.startsWith('test_seed_workout_'))
+        .toList();
+    for (final s in legacy) {
+      await s.delete();
+    }
+
     final alreadySeeded = workoutSessionsBox.values.any(
-      (s) => s.id.startsWith('test_seed_workout_'),
+      (s) => s.id.startsWith('test_seed_set_workout_'),
     );
     if (alreadySeeded) return;
 
+    if (!Hive.isBoxOpen('workoutSetCategories')) {
+      await Hive.openBox<WorkoutSetCategoryModel>('workoutSetCategories');
+    }
+    final sets = Hive.box<WorkoutSetCategoryModel>('workoutSetCategories')
+        .values
+        .where((s) => s.isActive)
+        .toList()
+      ..sort((a, b) => a.position.compareTo(b.position));
+
+    if (sets.isEmpty) return;
+
     final now = DateTime.now();
-    final samples = List.generate(6, (i) {
-      final start = now.subtract(Duration(days: i * 2 + 1, hours: i % 3));
+    final samples = List.generate(sets.length.clamp(1, 5) * 2, (i) {
+      final set = sets[i % sets.length];
+      final start = now.subtract(Duration(days: i, hours: i % 3));
       final duration = 28 + (i * 6);
       return WorkoutSessionModel(
-        id: 'test_seed_workout_${i + 1}',
-        routineId: 'test_seed_routine_${(i % 2) + 1}',
-        routineName: i.isEven ? 'Strength Builder' : 'Conditioning Blast',
+        id: 'test_seed_set_workout_${i + 1}',
+        routineId: set.id,
+        routineName: set.name,
         startTime: start,
         endTime: start.add(Duration(minutes: duration)),
         durationMinutes: duration,
-        completedExerciseIds: const ['squat', 'pushup', 'plank'],
-        exerciseCompletedSets: const {'squat': 3, 'pushup': 3, 'plank': 2},
+        completedExerciseIds: set.exerciseIds.take(3).toList(),
+        exerciseCompletedSets: {
+          for (final id in set.exerciseIds.take(3)) id: 3,
+        },
         isCompleted: true,
         status: 'completed',
         totalSetsCompleted: 8,
         totalRepsCompleted: 72 + (i * 4),
-        caloriesBurned: 220 + (i * 35),
-        tags: const ['test_seed', 'gym'],
+        tags: const ['test_seed', 'set'],
         location: 'gym',
+        additionalData: {
+          'setCategoryId': set.id,
+          'setLabel': String.fromCharCode(65 + (i % 3)),
+        },
       );
     });
 

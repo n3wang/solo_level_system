@@ -18,7 +18,7 @@ class AppColorPalette {
   static AppTheme? _activeTheme;
 
   // Current active palette name (defaults to creative)
-  static String _activePaletteName = 'creative';
+  static String _activePaletteName = 'pastel';
 
   // ============================================================================
   // PALETTE MANAGEMENT
@@ -536,9 +536,9 @@ class AppColorPalette {
   static double get fontSizeCaption => _activeTheme?.fontSizes.caption ?? 12.0;
   static double get fontSizeBody => _activeTheme?.fontSizes.body ?? 16.0;
   static double get fontSizeSubtitle =>
-      _activeTheme?.fontSizes.subtitle ?? 18.0;
-  static double get fontSizeTitle => _activeTheme?.fontSizes.title ?? 21.0;
-  static double get fontSizeHeading => _activeTheme?.fontSizes.heading ?? 24.0;
+      _activeTheme?.fontSizes.subtitle ?? 15.0;
+  static double get fontSizeTitle => _activeTheme?.fontSizes.title ?? 17.0;
+  static double get fontSizeHeading => _activeTheme?.fontSizes.heading ?? 19.0;
   static double get fontSizeDisplay => _activeTheme?.fontSizes.display ?? 36.0;
 }
 
@@ -579,21 +579,21 @@ class GrayscalePalette {
   static const Color grey900 = Color(0xFF212121);
 }
 
-/// Creative color palette (renamed from Original)
-/// Vibrant, creative colors for a bold look
+/// Creative color palette
+/// Warm earthy continuum: maroon → coral → peach → butter → mint
 class CreativePalette {
-  // Primary colors
-  static const Color color1 = Color(0xFF9C27B0); // Purple
-  static const Color color2 = Color(0xFF2196F3); // Blue
-  static const Color color3 = Color(0xFF4CAF50); // Green
-  static const Color color4 = Color(0xFFFF9800); // Orange
-  static const Color color5 = Color(0xFFF44336); // Red
+  // Primary colors (sampled from palette art)
+  static const Color color1 = Color(0xFF6E3033); // Deep maroon
+  static const Color color2 = Color(0xFFE07761); // Terracotta coral
+  static const Color color3 = Color(0xFFF9C78C); // Apricot peach
+  static const Color color4 = Color(0xFFF6E8A1); // Butter yellow
+  static const Color color5 = Color(0xFF85DEB2); // Mint seafoam
 
   // Semantic colors
-  static const Color primary = Color(0xFF9C27B0); // Purple as primary
-  static const Color accent = Color(0xFF2196F3); // Blue as accent
-  static const Color background = Color(0xFFFFFFFF); // White background
-  static const Color textColor = Color(0xFF212121); // Dark grey text
+  static const Color primary = Color(0xFF6E3033); // Maroon as primary
+  static const Color accent = Color(0xFFE07761); // Coral as accent
+  static const Color background = Color(0xFFFFFBF7); // Warm off-white
+  static const Color textColor = Color(0xFF2C1A1B); // Near-maroon dark text
 
   // Grey shades - Updated to cooler, more neutral grey tones
   // Mid greys darkened for readable secondary text on white

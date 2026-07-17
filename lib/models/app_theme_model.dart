@@ -146,9 +146,9 @@ class ThemeFontSizes {
       xxLarge: 36.0,
       caption: 12.0,
       body: 16.0,
-      subtitle: 18.0,
-      title: 21.0,
-      heading: 24.0,
+      subtitle: 15.0,
+      title: 17.0,
+      heading: 19.0,
       display: 36.0,
     );
   }
