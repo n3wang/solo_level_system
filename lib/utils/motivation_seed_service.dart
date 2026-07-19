@@ -2,11 +2,14 @@ import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/models/card_model.dart';
+import 'package:yaml/yaml.dart';
 
 class MotivationSeedService {
   static const String _boxName = 'motivationItems';
-  static const String _csvPath = 'assets/data/c64x64_mappings.csv';
+  static const String _csvPath = 'assets/data/cards_catalog.csv';
   static const String _quotesPath = 'assets/data/quotes.csv';
+  static const String _guidesPath = 'assets/data/guides.yml';
+  static const String _optionsPath = 'assets/data/options.yml';
   static const String _testSourceTag = 'test_sample_gym_quotes';
 
   static Future<void> ensureSeeded() async {
@@ -86,106 +89,101 @@ class MotivationSeedService {
           imageIndex: number,
           rarity: _rarityFor(number),
           metadata: {
-            'source': 'c64x64_mappings.csv',
+            'source': 'cards_catalog.csv',
             if (type == 'quote' && quotes.isNotEmpty) 'quotes': quotes,
           },
         ),
       );
     }
 
-    await _ensureStarterUnlockCards(box);
+    await _ensureConfiguredCards(box);
 
     if (AppEnvironment.isTest) {
       await _ensureTestSampleGymQuotes(box);
     }
   }
 
-  /// Seeds first-run cards that ship already acquired: stackable capacity
-  /// options (project / room slots, ×3 each) and a core guide card. Idempotent.
-  static Future<void> _ensureStarterUnlockCards(Box<CardModel> box) async {
-    final now = DateTime.now();
-    final optionCost = AppEnvironment.isTest ? 10 : 50;
+  /// Seeds guide and option cards from YAML while preserving player progress.
+  static Future<void> _ensureConfiguredCards(Box<CardModel> box) async {
+    await _seedConfiguredCards(box, _optionsPath, 'options', 'option');
+    await _seedConfiguredCards(box, _guidesPath, 'guides', 'guide');
+  }
 
-    CardModel option({
-      required String id,
-      required String title,
-      required String description,
-      required String settingKey,
-    }) {
-      return CardModel(
-        id: id,
-        type: 'option',
+  static Future<void> _seedConfiguredCards(
+    Box<CardModel> box,
+    String path,
+    String listKey,
+    String type,
+  ) async {
+    final document = loadYaml(await rootBundle.loadString(path));
+    final entries = document[listKey];
+    if (entries is! YamlList) return;
+
+    for (final raw in entries) {
+      if (raw is! Map) continue;
+      final slug = (raw['id'] ?? '').toString().trim();
+      final title = (raw['title'] ?? '').toString().trim();
+      if (slug.isEmpty || title.isEmpty) continue;
+
+      final copies = int.tryParse('${raw['starter_copies'] ?? 0}') ?? 0;
+      final now = DateTime.now();
+      final targetKey = type == 'option' ? 'setting_key' : 'screen_key';
+      final targetId = (raw[targetKey] ?? '').toString().trim();
+      final metadata = <String, dynamic>{
+        'source': '${type}_yaml',
+        if (type == 'option') ...{
+          'settingKey': targetId,
+          'capacityPerCopy':
+              int.tryParse('${raw['capacity_per_copy'] ?? 1}') ?? 1,
+        },
+        if (type == 'guide') ...{
+          'screenKey': targetId,
+          'howTo': (raw['how_to'] ?? '').toString(),
+          'tips': _yamlStringList(raw['tips']),
+        },
+      };
+      final card = CardModel(
+        id: '${type}_$slug',
+        type: type,
         title: title,
-        description: description,
-        category: 'option',
-        pointsCost: optionCost,
+        description: (raw['description'] ?? '').toString(),
+        category: type,
+        pointsCost: AppEnvironment.isTest && type == 'option'
+            ? 10
+            : (int.tryParse('${raw['points_cost'] ?? 0}') ?? 0),
         createdAt: now,
         isSystem: true,
-        isStarter: true,
-        isAcquired: true,
-        acquisitionCount: 3,
-        acquisitionHistory: [now, now, now],
-        unlockTargetId: settingKey,
-        rarity: 'uncommon',
-        metadata: {
-          'source': 'starter_option',
-          'settingKey': settingKey,
-          'capacityPerCopy': 1,
-        },
+        isStarter: copies > 0,
+        isAcquired: copies > 0,
+        acquisitionCount: copies,
+        acquisitionHistory: List<DateTime>.filled(copies, now),
+        unlockTargetId: targetId.isEmpty ? null : targetId,
+        rarity: (raw['rarity'] ?? 'common').toString(),
+        metadata: metadata,
       );
-    }
 
-    final starters = <CardModel>[
-      option(
-        id: 'option_project_slots',
-        title: 'Project Slot',
-        description:
-            'Each copy raises your maximum number of projects by one. Buy again to add more.',
-        settingKey: 'project_slots',
-      ),
-      option(
-        id: 'option_room_slots',
-        title: 'Room Slot',
-        description:
-            'Each copy raises the number of rooms you can keep by one. Buy again to add more.',
-        settingKey: 'room_slots',
-      ),
-      CardModel(
-        id: 'guide_motivation_hub',
-        type: 'guide',
-        title: 'Motivation Hub Guide',
-        description: 'How the card catalog and points work.',
-        category: 'guide',
-        pointsCost: 0,
-        createdAt: now,
-        isSystem: true,
-        isStarter: true,
-        isAcquired: true,
-        acquisitionCount: 1,
-        acquisitionHistory: [now],
-        unlockTargetId: 'motivation_hub',
-        rarity: 'common',
-        metadata: {
-          'source': 'starter_guide',
-          'screenKey': 'motivation_hub',
-          'howTo':
-              'Every tile is a Card. Spend points (earned from focus and workout '
-                  'sessions) to acquire cards. Acquiring a card unlocks what it '
-                  'represents — a program, room, track, or extra capacity. Option '
-                  'cards stack: buy them again to raise a limit.',
-          'tips': [
-            'Filter by type or by "acquired" to find cards fast.',
-            'Session loot drops cards weighted by rarity.',
-          ],
-        },
-      ),
-    ];
-
-    for (final starter in starters) {
-      final exists = box.values.any((c) => c.id == starter.id);
-      if (exists) continue;
-      await box.add(starter);
+      final existing = box.values
+          .where((item) => item.id == card.id)
+          .firstOrNull;
+      if (existing == null) {
+        await box.add(card);
+        continue;
+      }
+      existing
+        ..title = card.title
+        ..description = card.description
+        ..category = card.category
+        ..pointsCost = card.pointsCost
+        ..unlockTargetId = card.unlockTargetId
+        ..rarity = card.rarity
+        ..metadata = card.metadata;
+      await existing.save();
     }
+  }
+
+  static List<String> _yamlStringList(dynamic value) {
+    if (value is! YamlList) return const [];
+    return value.map((item) => item.toString()).toList(growable: false);
   }
 
   /// Rough rarity tiering by catalog number so drops and tints vary.
@@ -196,9 +194,7 @@ class MotivationSeedService {
     return 'epic';
   }
 
-  static Future<void> _ensureTestSampleGymQuotes(
-    Box<CardModel> box,
-  ) async {
+  static Future<void> _ensureTestSampleGymQuotes(Box<CardModel> box) async {
     final now = DateTime.now();
     final samples = <CardModel>[
       CardModel(
@@ -247,7 +243,8 @@ class MotivationSeedService {
         id: 'test_quote_gym_3',
         type: 'quote',
         title: 'Gym Momentum',
-        description: 'Show up. Warm up. Start small. Momentum handles the rest.',
+        description:
+            'Show up. Warm up. Start small. Momentum handles the rest.',
         category: 'quote',
         pointsCost: 5,
         createdAt: now,
@@ -282,7 +279,10 @@ class MotivationSeedService {
       // Keep motivation seeding alive even if quotes asset is unavailable.
       return map;
     }
-    final lines = raw.split('\n').where((line) => line.trim().isNotEmpty).toList();
+    final lines = raw
+        .split('\n')
+        .where((line) => line.trim().isNotEmpty)
+        .toList();
     if (lines.length <= 1) return map;
     for (var i = 1; i < lines.length; i++) {
       final line = lines[i];
@@ -340,4 +340,3 @@ class MotivationSeedService {
     return AppEnvironment.isTest ? 25 : 45;
   }
 }
-

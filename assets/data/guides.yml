@@ -1,0 +1,17 @@
+version: 1
+guides:
+  - id: motivation_hub
+    title: Motivation Hub Guide
+    description: How the card catalog and points work.
+    screen_key: motivation_hub
+    starter_copies: 1
+    points_cost: 0
+    rarity: common
+    how_to: >-
+      Every tile is a Card. Spend points earned from focus and workout sessions
+      to acquire cards. Acquiring a card unlocks what it represents: a program,
+      room, track, or extra capacity. Option cards stack, so buying them again
+      raises the corresponding limit.
+    tips:
+      - Filter by type or by acquired status to find cards quickly.
+      - Session loot drops cards weighted by rarity.

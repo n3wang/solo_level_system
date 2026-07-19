@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 ///
 /// Icons are individual pre-sliced 64×64 PNGs under
 /// `assets/images/icon/c64x64_sliced/`, named by their 1-based catalog number
-/// (the `number` column in `assets/data/c64x64_mappings.csv`, stored on a card
+/// (the `number` column in `assets/data/cards_catalog.csv`, stored on a card
 /// as [imageIndex]). This replaces the former `motivation_64` spritesheet —
 /// each icon is now its own asset file rather than a slot in one texture.
 ///

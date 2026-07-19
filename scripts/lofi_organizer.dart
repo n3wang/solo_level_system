@@ -7,7 +7,7 @@ void main() async {
 
 class LofiOrganizer {
   static const String lofiDir = 'assets/audio/lofi';
-  static const String mappingFile = 'assets/data/lofi_mapping.json';
+  static const String mappingFile = 'assets/data/lofi_tracks.yml';
 
   Future<void> organize() async {
     print('Starting lofi organization...');
@@ -99,8 +99,8 @@ class LofiOrganizer {
       }
     }
 
-    // Save mapping to JSON
-    await _saveMappingToJson(lofiMappings);
+    // Save mapping to YAML
+    await _saveMappingToYaml(lofiMappings);
     print('Organization complete! Generated ${lofiMappings.length} mappings.');
   }
 
@@ -141,18 +141,22 @@ class LofiOrganizer {
     }
   }
 
-  Future<void> _saveMappingToJson(List<Map<String, dynamic>> mappings) async {
-    final jsonData = {
-      'version': '1.0',
-      'generated': DateTime.now().toIso8601String(),
-      'total_tracks': mappings.length,
-      'tracks': mappings,
-    };
-
+  Future<void> _saveMappingToYaml(List<Map<String, dynamic>> mappings) async {
+    final buffer = StringBuffer()
+      ..writeln('version: ${jsonEncode('1.0')}')
+      ..writeln('generated: ${jsonEncode(DateTime.now().toIso8601String())}')
+      ..writeln('total_tracks: ${mappings.length}')
+      ..writeln('tracks:');
+    for (final mapping in mappings) {
+      var first = true;
+      for (final entry in mapping.entries) {
+        final prefix = first ? '  - ' : '    ';
+        buffer.writeln('$prefix${entry.key}: ${jsonEncode(entry.value)}');
+        first = false;
+      }
+    }
     final file = File(mappingFile);
-    await file.writeAsString(
-      const JsonEncoder.withIndent('  ').convert(jsonData),
-    );
+    await file.writeAsString(buffer.toString());
 
     print('Saved mapping to: $mappingFile');
   }

@@ -1,9 +1,10 @@
-# Default Workouts Configuration
-# Contains all default exercises and routines with their metadata
+# Workout Card Configuration
+# Contains starter and card-gated exercises plus workout routines
 
 exercises:
 
-  - name: "back squat"
+  - starter: true
+    name: "back squat"
     icon: "back_squat"
     description: "Compound lower body exercise targeting quadriceps, glutes, and core"
     instructions:
@@ -17,7 +18,8 @@ exercises:
     tags: ["gym", "legs", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/back_squat.mp3"
 
-  - name: "front squat"
+  - starter: true
+    name: "front squat"
     icon: "front_squat"
     description: "Quadriceps-focused squat variation with front-loaded weight"
     instructions:
@@ -31,7 +33,8 @@ exercises:
     tags: ["gym", "legs", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/front_squat.mp3"
 
-  - name: "Deadlift conventional"
+  - starter: true
+    name: "Deadlift conventional"
     icon: "deadlift_conventional"
     description: "Full-body compound movement targeting posterior chain"
     instructions:
@@ -45,7 +48,8 @@ exercises:
     tags: ["gym", "back", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/deadlift_conventional.mp3"
 
-  - name: "Deadlift Romanian"
+  - starter: true
+    name: "Deadlift Romanian"
     icon: "deadlift_romanian"
     description: "Hamstring and glute focused deadlift variation"
     instructions:
@@ -59,7 +63,8 @@ exercises:
     tags: ["gym", "back", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/deadlift_romanian.mp3"
 
-  - name: "Bench press"
+  - starter: true
+    name: "Bench press"
     icon: "bench_press"
     description: "Upper body compound exercise primarily targeting chest"
     instructions:
@@ -73,7 +78,8 @@ exercises:
     tags: ["gym", "chest", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/bench_press.mp3"
 
-  - name: "Overhead press"
+  - starter: true
+    name: "Overhead press"
     icon: "overhead_press"
     description: "Shoulder and tricep focused pressing movement"
     instructions:
@@ -87,7 +93,8 @@ exercises:
     tags: ["gym", "shoulders", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/overhead_press.mp3"
 
-  - name: "Pull-ups"
+  - starter: true
+    name: "Pull-ups"
     icon: "pullups"
     description: "Upper body pulling exercise targeting lats and biceps"
     instructions:
@@ -101,7 +108,8 @@ exercises:
     tags: ["gym", "back", "bodyweight", "intermediate", "strength"]
     audio_file: "audio/workouts/pull_ups.mp3"
 
-  - name: "Chin-ups"
+  - starter: true
+    name: "Chin-ups"
     icon: "chinups"
     description: "Pull-up variation with underhand grip emphasizing biceps"
     instructions:
@@ -114,7 +122,8 @@ exercises:
     tags: ["gym", "back", "bodyweight", "intermediate", "strength"]
     audio_file: "audio/workouts/chin_ups.mp3"
 
-  - name: "Barbell row"
+  - starter: true
+    name: "Barbell row"
     icon: "barbell_row"
     description: "Back and bicep focused rowing movement"
     instructions:
@@ -127,7 +136,8 @@ exercises:
     tags: ["gym", "back", "barbell", "intermediate", "strength"]
     audio_file: "audio/workouts/barbell_row.mp3"
 
-  - name: "Lat pulldown"
+  - starter: true
+    name: "Lat pulldown"
     icon: "lat_pulldown"
     description: "Machine-based lat and upper back exercise"
     instructions:
@@ -140,7 +150,8 @@ exercises:
     tags: ["gym", "back", "machine", "beginner", "strength"]
     audio_file: "audio/workouts/lat_pulldown.mp3"
 
-  - name: "Leg press"
+  - starter: true
+    name: "Leg press"
     icon: "leg_press"
     description: "Machine-based leg exercise targeting quadriceps and glutes"
     instructions:
@@ -153,7 +164,8 @@ exercises:
     tags: ["gym", "legs", "machine", "beginner", "strength"]
     audio_file: "audio/workouts/leg_press.mp3"
 
-  - name: "Dumbbell bench press"
+  - starter: true
+    name: "Dumbbell bench press"
     icon: "dumbbell_bench_press"
     description: "Chest exercise with dumbbells allowing greater range of motion"
     instructions:
@@ -166,7 +178,8 @@ exercises:
     tags: ["gym", "chest", "dumbbells", "beginner", "strength"]
     audio_file: "audio/workouts/dumbbell_bench_press.mp3"
 
-  - name: "Dumbbell shoulder press"
+  - starter: true
+    name: "Dumbbell shoulder press"
     icon: "dumbbell_shoulder_press"
     description: "Shoulder pressing movement with dumbbells"
     instructions:
@@ -179,7 +192,8 @@ exercises:
     tags: ["gym", "shoulders", "dumbbells", "beginner", "strength"]
     audio_file: "audio/workouts/dumbbell_shoulder_press.mp3"
 
-  - name: "Bicep curls"
+  - starter: true
+    name: "Bicep curls"
     icon: "bicep_curls"
     description: "Isolation exercise targeting biceps"
     instructions:
@@ -192,7 +206,8 @@ exercises:
     tags: ["gym", "arms", "dumbbells", "beginner", "strength"]
     audio_file: "audio/workouts/bicep_curls.mp3"
 
-  - name: "Tricep pushdowns"
+  - starter: true
+    name: "Tricep pushdowns"
     icon: "tricep_pushdowns"
     description: "Isolation exercise targeting triceps"
     instructions:
@@ -205,7 +220,8 @@ exercises:
     tags: ["gym", "arms", "cables", "beginner", "strength"]
     audio_file: "audio/workouts/tricep_pushdowns.mp3"
 
-  - name: "Chest fly"
+  - starter: true
+    name: "Chest fly"
     icon: "chest_fly"
     description: "Chest isolation exercise emphasizing pectoral stretch"
     instructions:
@@ -219,7 +235,8 @@ exercises:
     tags: ["gym", "chest", "dumbbells", "intermediate", "strength"]
     audio_file: "audio/workouts/chest_fly.mp3"
 
-  - name: "Leg curl"
+  - starter: true
+    name: "Leg curl"
     icon: "leg_curl"
     description: "Hamstring isolation exercise"
     instructions:
@@ -232,7 +249,8 @@ exercises:
     tags: ["gym", "legs", "machine", "beginner", "strength"]
     audio_file: "audio/workouts/leg_curl.mp3"
 
-  - name: "Leg extension"
+  - starter: true
+    name: "Leg extension"
     icon: "leg_extension"
     description: "Quadriceps isolation exercise"
     instructions:
@@ -245,7 +263,8 @@ exercises:
     tags: ["gym", "legs", "machine", "beginner", "strength"]
     audio_file: "audio/workouts/leg_extension.mp3"
 
-  - name: "Plank"
+  - starter: true
+    name: "Plank"
     icon: "plank"
     description: "Core stability exercise targeting entire abdominal region"
     instructions:
@@ -260,7 +279,8 @@ exercises:
     tags: ["home", "core", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/plank.mp3"
 
-  - name: "Hanging leg raises"
+  - starter: true
+    name: "Hanging leg raises"
     icon: "hanging_leg_raises"
     description: "Advanced core exercise targeting lower abs"
     instructions:
@@ -273,10 +293,9 @@ exercises:
     tags: ["gym", "core", "bodyweight", "intermediate", "strength"]
     audio_file: "audio/workouts/hanging_leg_raises.mp3"
 
-  # NOTE: "Treadmill running or walking" and "Stationary bike / spin bike"
-  # moved to set1_workouts.yaml — they ship locked and unlock via the cards system.
 
-  - name: "Bodyweight Squats"
+  - starter: true
+    name: "Bodyweight Squats"
     icon: "bodyweight_squats"
     description: "Bodyweight leg exercise targeting quadriceps and glutes"
     instructions:
@@ -289,7 +308,8 @@ exercises:
     tags: ["home", "legs", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/bodyweight_squats.mp3"
 
-  - name: "Lunges"
+  - starter: true
+    name: "Lunges"
     icon: "lunges"
     description: "Unilateral leg exercise targeting quadriceps, glutes, and core"
     instructions:
@@ -303,7 +323,8 @@ exercises:
     tags: ["home", "legs", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/lunges.mp3"
 
-  - name: "Wall Sit"
+  - starter: true
+    name: "Wall Sit"
     icon: "wall_sit"
     description: "Isometric leg exercise targeting quadriceps"
     instructions:
@@ -317,7 +338,8 @@ exercises:
     tags: ["home", "legs", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/wall_sit.mp3"
 
-  - name: "Glute Bridges"
+  - starter: true
+    name: "Glute Bridges"
     icon: "glute_bridges"
     description: "Glute and hamstring focused exercise"
     instructions:
@@ -330,7 +352,8 @@ exercises:
     tags: ["home", "glutes", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/glute_bridges.mp3"
 
-  - name: "Push-ups"
+  - starter: true
+    name: "Push-ups"
     icon: "pushups"
     description: "Upper body pushing exercise targeting chest, shoulders, and triceps"
     instructions:
@@ -343,7 +366,8 @@ exercises:
     tags: ["home", "chest", "bodyweight", "beginner", "strength"]
     audio_file: "audio/workouts/push_ups.mp3"
 
-  - name: "Triceps Dips"
+  - starter: true
+    name: "Triceps Dips"
     icon: "triceps_dips"
     description: "Tricep and shoulder focused bodyweight exercise"
     instructions:
@@ -356,7 +380,8 @@ exercises:
     tags: ["home", "arms", "bodyweight", "intermediate", "strength"]
     audio_file: "audio/workouts/triceps_dips.mp3"
 
-  - name: "Side Plank"
+  - starter: true
+    name: "Side Plank"
     icon: "side_plank"
     description: "Core exercise targeting obliques and lateral stability"
     instructions:
@@ -371,7 +396,8 @@ exercises:
     tags: ["home", "core", "bodyweight", "intermediate", "strength"]
     audio_file: "audio/workouts/side_plank.mp3"
 
-  - name: "Jumping Jacks"
+  - starter: true
+    name: "Jumping Jacks"
     icon: "jumping_jacks"
     description: "Full-body cardiovascular exercise"
     instructions:
@@ -385,7 +411,8 @@ exercises:
     tags: ["home", "full_body", "bodyweight", "beginner", "cardio"]
     audio_file: "audio/workouts/jumping_jacks.mp3"
 
-  - name: "Burpees"
+  - starter: true
+    name: "Burpees"
     icon: "burpees"
     description: "High-intensity full-body exercise combining squat, push-up, and jump"
     instructions:
@@ -399,6 +426,37 @@ exercises:
     default_reps: 10
     tags: ["home", "full_body", "bodyweight", "advanced", "cardio"]
     audio_file: "audio/workouts/burpees.mp3"
+
+  # Card-gated exercises
+  - starter: false
+    name: "Treadmill running or walking"
+    icon: "treadmill_running_or_walking"
+    description: "Cardiovascular exercise for endurance"
+    instructions:
+      - "Start at comfortable pace"
+      - "Maintain steady rhythm"
+      - "Adjust speed as needed"
+      - "Focus on breathing"
+    default_sets: [1, 2, 3]
+    default_reps: 0  # Duration-based
+    default_duration: 600  # 10 minutes
+    tags: ["gym", "full_body", "machine", "beginner", "cardio"]
+    audio_file: "audio/workouts/treadmill_running.mp3"
+
+  - starter: false
+    name: "Stationary bike / spin bike"
+    icon: "stationary_bike_spin_bike"
+    description: "Low-impact cardiovascular exercise"
+    instructions:
+      - "Adjust seat height"
+      - "Start pedaling"
+      - "Maintain steady pace"
+      - "Adjust resistance as needed"
+    default_sets: [1, 2, 3]
+    default_reps: 0  # Duration-based
+    default_duration: 600  # 10 minutes
+    tags: ["gym", "full_body", "machine", "beginner", "cardio"]
+    audio_file: "audio/workouts/stationary_bike.mp3"
 
 routines:
   - name: "Chest Day (Gym)"

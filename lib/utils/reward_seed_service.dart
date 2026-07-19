@@ -7,7 +7,7 @@ class RewardSeedService {
   static const String _rewardsBoxName = 'rewards';
   static const String _sourceTag = 'default_boardgame_csv';
   static const String _testSourceTag = 'test_sample_user_rewards';
-  static const String _csvAssetPath = 'assets/data/c64x64_mappings.csv';
+  static const String _csvAssetPath = 'assets/data/cards_catalog.csv';
 
   static Future<void> ensureDefaultBoardgameRewards() async {
     if (!Hive.isBoxOpen(_rewardsBoxName)) {

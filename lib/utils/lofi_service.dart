@@ -1,11 +1,11 @@
-import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:yaml/yaml.dart';
 import '../models/lofi_track.dart';
 
 class LofiService {
-  static const String _mappingPath = 'assets/data/lofi_mapping.json';
+  static const String _mappingPath = 'assets/data/lofi_tracks.yml';
 
-  /// Bundled looping covers (PNG refs in `lofi_mapping.json` are often absent from the repo).
+  /// Bundled looping covers (PNG refs in the mapping can be absent from the repo).
   static const List<String> _bundledGifCovers = [
     'album/lab_1.gif',
     'album/lab_2.gif',
@@ -59,9 +59,8 @@ class LofiService {
     }
 
     try {
-      final String jsonString = await rootBundle.loadString(_mappingPath);
-      final Map<String, dynamic> jsonData = json.decode(jsonString);
-      final base = LofiMapping.fromJson(jsonData);
+      final yamlData = loadYaml(await rootBundle.loadString(_mappingPath));
+      final base = LofiMapping.fromJson(_stringKeyedMap(yamlData));
       final mergedTracks = _mergeWithKnownExtraTracks(
         base.tracks.map(_withGifAlbumArt).toList(growable: false),
       );
@@ -127,6 +126,21 @@ class LofiService {
     return Duration(minutes: minutes, seconds: seconds);
   }
 
+  static Map<String, dynamic> _stringKeyedMap(dynamic value) {
+    if (value is! Map) {
+      throw const FormatException('Lofi mapping root must be a map');
+    }
+    return value.map(
+      (key, item) => MapEntry(key.toString(), _plainYamlValue(item)),
+    );
+  }
+
+  static dynamic _plainYamlValue(dynamic value) {
+    if (value is Map) return _stringKeyedMap(value);
+    if (value is List) return value.map(_plainYamlValue).toList();
+    return value;
+  }
+
   /// Forces a non-null `.gif` cover so UI always resolves [LofiTrack.albumImagePath].
   static LofiTrack _withGifAlbumArt(LofiTrack track) {
     final trimmed = track.albumImage?.trim() ?? '';
@@ -136,12 +150,14 @@ class LofiService {
     final bucket = trimmed.isEmpty ? 0 : trimmed.hashCode;
     final idx =
         ((track.id * 47 + bucket + track.filename.hashCode).abs()) %
-            _bundledGifCovers.length;
+        _bundledGifCovers.length;
     final path = _bundledGifCovers[idx];
     return track.copyWith(albumImage: path);
   }
 
-  static List<LofiTrack> _mergeWithKnownExtraTracks(List<LofiTrack> baseTracks) {
+  static List<LofiTrack> _mergeWithKnownExtraTracks(
+    List<LofiTrack> baseTracks,
+  ) {
     final existingByFilename = <String>{
       for (final t in baseTracks) t.filename.toLowerCase(),
     };

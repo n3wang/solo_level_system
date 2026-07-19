@@ -76,7 +76,7 @@ You can integrate this into your build process:
 ```
 assets/images/icon/
 ├── workout_icons_128px.png          # Original sprite sheet
-├── workout_icons_128px.csv           # Icon names mapping
+├── workout_icons.csv           # Icon names mapping
 └── workout_icons_sliced/             # Pre-sliced images (generated)
     ├── workout_icon_0.png
     ├── workout_icon_1.png

@@ -404,7 +404,7 @@ void main() async {
             'assets/images/icon/workout_icons_128px.png',
             tileWidth: 128,
             tileHeight: 128,
-            csv: 'assets/data/workout_icons_128px.csv',
+            csv: 'assets/data/workout_icons.csv',
           ),
           // Motivation / board-game icons are now individual sliced PNGs under
           // assets/images/icon/c64x64_sliced/ (see MotivationIconWidget), no

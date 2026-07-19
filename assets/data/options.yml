@@ -1,0 +1,19 @@
+version: 1
+options:
+  - id: project_slots
+    title: Project Slot
+    description: Each copy raises your maximum number of projects by one. Buy again to add more.
+    setting_key: project_slots
+    capacity_per_copy: 1
+    starter_copies: 3
+    points_cost: 50
+    rarity: uncommon
+
+  - id: room_slots
+    title: Room Slot
+    description: Each copy raises the number of rooms you can keep by one. Buy again to add more.
+    setting_key: room_slots
+    capacity_per_copy: 1
+    starter_copies: 3
+    points_cost: 50
+    rarity: uncommon

@@ -43,7 +43,7 @@ class _ExerciseImageLibraryPickerState extends State<ExerciseImageLibraryPicker>
   Future<void> _loadSlugs() async {
     try {
       final csv = await rootBundle.loadString(
-        'assets/data/workout_icons_128px.csv',
+        'assets/data/workout_icons.csv',
       );
       final lines = csv.split('\n').skip(1); // header
       final slugs = <String>[];

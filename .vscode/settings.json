@@ -1,3 +1,21 @@
 {
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "files.exclude": {
+        "**/.flutter-plugins-dependencies": true,
+        "**/.idea": true,
+        "**/.metadata": true,
+        "**/.vscode": true,
+        "**/Get": true,
+        "**/Process": true,
+        "**/Run": true,
+        "**/analysis_options.yaml": true,
+        "**/linux": true,
+        "**/macos": true,
+        "**/nul": true,
+        "**/packages": true,
+        "**/solo_level_system.iml": true,
+        "**/update_lofi.bat": true,
+        "**/web": true,
+        "**/windows": true
+    }
 }

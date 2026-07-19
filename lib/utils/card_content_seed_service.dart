@@ -18,8 +18,7 @@ class CardContentSeedService {
 
   static const String _boxName = 'motivationItems';
   static const String _workoutsYaml = 'assets/data/default_workouts.yaml';
-  static const String _set1Yaml = 'assets/data/set1_workouts.yaml';
-  static const String _roomsYaml = 'assets/data/room_music_whitelist.yaml';
+  static const String _roomsYaml = 'assets/data/rooms.yml';
   static const String _iconDir = 'assets/images/icon/workout_icons_sliced';
 
   /// Default programs that ship LOCKED (must be acquired via a card).
@@ -44,16 +43,14 @@ class CardContentSeedService {
   // ---- exercises + programs -------------------------------------------------
 
   static Future<void> _seedWorkoutCards(Box<CardModel> box) async {
-    await _seedExerciseCards(box, _workoutsYaml, acquired: true);
-    await _seedExerciseCards(box, _set1Yaml, acquired: false);
+    await _seedExerciseCards(box, _workoutsYaml);
     await _seedProgramCards(box, _workoutsYaml);
   }
 
   static Future<void> _seedExerciseCards(
     Box<CardModel> box,
-    String path, {
-    required bool acquired,
-  }) async {
+    String path,
+  ) async {
     try {
       final doc = loadYaml(await rootBundle.loadString(path));
       final exercises = doc['exercises'];
@@ -66,6 +63,7 @@ class CardContentSeedService {
         final description = (e['description'] ?? '').toString().trim();
         final tags = _tags(e['tags']);
         final icon = (e['icon'] ?? '').toString().trim();
+        final acquired = e['starter'] != false;
         await _add(
           box,
           _makeCard(
@@ -87,10 +85,7 @@ class CardContentSeedService {
     }
   }
 
-  static Future<void> _seedProgramCards(
-    Box<CardModel> box,
-    String path,
-  ) async {
+  static Future<void> _seedProgramCards(Box<CardModel> box, String path) async {
     try {
       final doc = loadYaml(await rootBundle.loadString(path));
       final routines = doc['routines'];

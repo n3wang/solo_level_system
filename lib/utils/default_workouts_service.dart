@@ -94,34 +94,27 @@ class DefaultWorkoutsService {
   }
 
   static const String _yamlPath = 'assets/data/default_workouts.yaml';
-  static const String _set1YamlPath = 'assets/data/set1_workouts.yaml';
 
-  /// All exercise-source YAMLs. `default_workouts.yaml` exercises unlock by
-  /// default; `set1_workouts.yaml` exercises ship locked (card-gated). Both are
-  /// loaded so the ExerciseModel exists and can appear once its card is acquired.
-  static const List<String> _exerciseYamlPaths = [_yamlPath, _set1YamlPath];
-
-  /// Create all default exercises from every source YAML
+  /// Create all bundled exercises, including card-gated entries.
   static Future<List<ExerciseModel>> _createDefaultExercises() async {
     final now = DateTime.now();
     final exercises = <ExerciseModel>[];
     var idCounter = 0;
 
-    for (final path in _exerciseYamlPaths) {
-      try {
-        final String yamlString = await rootBundle.loadString(path);
-        final dynamic yamlMap = loadYaml(yamlString);
+    try {
+      final String yamlString = await rootBundle.loadString(_yamlPath);
+      final dynamic yamlMap = loadYaml(yamlString);
 
-        if (yamlMap is! Map) continue;
+      if (yamlMap is! Map) return exercises;
 
-        final exercisesList = yamlMap['exercises'] as YamlList?;
-        if (exercisesList == null) continue;
+      final exercisesList = yamlMap['exercises'] as YamlList?;
+      if (exercisesList == null) return exercises;
 
-        for (int i = 0; i < exercisesList.length; i++) {
-          idCounter++;
-          final exerciseData = exercisesList[i] as Map;
+      for (int i = 0; i < exercisesList.length; i++) {
+        idCounter++;
+        final exerciseData = exercisesList[i] as Map;
 
-          final name = exerciseData['name']?.toString() ?? '';
+        final name = exerciseData['name']?.toString() ?? '';
         final icon = exerciseData['icon']?.toString();
         final description = exerciseData['description']?.toString() ?? '';
         final instructions =
@@ -193,10 +186,9 @@ class DefaultWorkoutsService {
           audioFile: audioFile,
         );
         exercises.add(exercise);
-        }
-      } catch (e) {
-        print('Error loading exercises from $path: $e');
       }
+    } catch (e) {
+      print('Error loading exercises from $_yamlPath: $e');
     }
 
     return exercises;
@@ -404,10 +396,14 @@ class DefaultWorkoutsService {
 
       // Debug: Check if Jumping Jacks is in the map
       if (audioMap.containsKey('jumping jacks')) {
-        print('[AudioSync] ✓ "jumping jacks" found in audioMap: "${audioMap['jumping jacks']}"');
+        print(
+          '[AudioSync] ✓ "jumping jacks" found in audioMap: "${audioMap['jumping jacks']}"',
+        );
       } else {
         print('[AudioSync] ✗ "jumping jacks" NOT found in audioMap');
-        print('[AudioSync] Available keys: ${audioMap.keys.take(10).toList()}...');
+        print(
+          '[AudioSync] Available keys: ${audioMap.keys.take(10).toList()}...',
+        );
       }
 
       // Update existing exercises
