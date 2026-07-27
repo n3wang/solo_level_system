@@ -1,6 +1,41 @@
 import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
 
+/// A single entry (quote, creation, work) in a phy card with optional link to another card.
+///
+/// Backward compatible: parses both legacy string entries and structured map format.
+class PhyEntry {
+  final String text;
+  final String? linkedCardId;
+
+  const PhyEntry({required this.text, this.linkedCardId});
+
+  /// Parses a single entry from metadata. Handles:
+  /// - String: legacy format (just the text)
+  /// - Map: structured format with 'text' and optional 'linkedCardId'
+  factory PhyEntry.fromRaw(dynamic raw) {
+    if (raw is String) {
+      return PhyEntry(text: raw.trim());
+    }
+    if (raw is Map) {
+      return PhyEntry(
+        text: (raw['text'] ?? '').toString().trim(),
+        linkedCardId: raw['linkedCardId']?.toString(),
+      );
+    }
+    return PhyEntry(text: raw.toString().trim());
+  }
+
+  /// Converts to a map for storage. Only includes linkedCardId if non-null.
+  Map<String, dynamic> toJson() => {
+        'text': text,
+        if (linkedCardId != null) 'linkedCardId': linkedCardId,
+      };
+
+  /// Returns simple string if no link, otherwise full map.
+  dynamic toStorage() => linkedCardId == null ? text : toJson();
+}
+
 /// Unified, presentation-facing view of a catalog entry, regardless of whether
 /// it is backed by a [CardModel] or a (legacy) [RewardModel]. Screens consume
 /// [CatalogCard]; only the repository knows about the two source boxes.
@@ -33,6 +68,15 @@ class CatalogCard {
   final CardModel? sourceItem;
   final RewardModel? sourceReward;
 
+  /// True for timed workout programs (7 Minute Workout, etc.)
+  final bool isProgram;
+
+  /// Duration in seconds for program cards.
+  final int durationSeconds;
+
+  /// Exercise preview images for program cards (up to 3).
+  final List<String> exerciseImages;
+
   const CatalogCard({
     required this.id,
     required this.type,
@@ -52,10 +96,27 @@ class CatalogCard {
     this.isBookmarked = false,
     this.sourceItem,
     this.sourceReward,
+    this.isProgram = false,
+    this.durationSeconds = 0,
+    this.exerciseImages = const [],
   });
 
   /// Wire string of [type] (matches the hub filter values).
   String get typeWire => type.wire;
+
+  /// Formatted duration for program cards (e.g., "7 min").
+  String get formattedDuration {
+    if (durationSeconds <= 0) return '';
+    final minutes = durationSeconds ~/ 60;
+    final seconds = durationSeconds % 60;
+    if (minutes > 0 && seconds > 0) {
+      return '$minutes min $seconds sec';
+    } else if (minutes > 0) {
+      return '$minutes min';
+    } else {
+      return '$seconds sec';
+    }
+  }
 }
 
 /// Builds the merged hub catalog from both source boxes and hides
@@ -84,6 +145,11 @@ class CardRepository {
         : null;
     final visuals = _stringList(meta['visuals']);
     final bundled = meta['bundledMusicCount'];
+    final isProgram = meta['isProgram'] == true;
+    final durationSeconds = meta['durationSeconds'] is num
+        ? (meta['durationSeconds'] as num).toInt()
+        : 0;
+    final exerciseImages = _stringList(meta['exerciseImages']);
     return CatalogCard(
       id: item.id,
       type: item.cardType,
@@ -102,6 +168,9 @@ class CardRepository {
       unlockTargetId: item.unlockTargetId,
       isBookmarked: _isBookmarkedMeta(meta),
       sourceItem: item,
+      isProgram: isProgram,
+      durationSeconds: durationSeconds,
+      exerciseImages: exerciseImages,
     );
   }
 

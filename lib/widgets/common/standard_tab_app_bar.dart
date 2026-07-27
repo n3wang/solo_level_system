@@ -61,11 +61,11 @@ class StandardTabAppBar extends StatelessWidget implements PreferredSizeWidget {
       unselectedLabelColor: AppColorPalette.grey700,
       labelStyle: const TextStyle(
         fontWeight: FontWeight.w600,
-        fontSize: 12,
+        fontSize: AppUiSizes.sm + 2,
       ),
       unselectedLabelStyle: const TextStyle(
         fontWeight: FontWeight.w500,
-        fontSize: 12,
+        fontSize: AppUiSizes.sm + 2,
       ),
       tabs: [for (final label in labels) Tab(text: label)],
     );
@@ -100,21 +100,16 @@ class StandardTabAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ? LayoutBuilder(
                           builder: (context, constraints) {
                             final slotCount = visualSlotCount!;
-                            final width = constraints.maxWidth *
+                            final width =
+                                constraints.maxWidth *
                                 (labels.length / slotCount);
                             return Align(
                               alignment: Alignment.centerLeft,
-                              child: SizedBox(
-                                width: width,
-                                child: tabBar,
-                              ),
+                              child: SizedBox(width: width, child: tabBar),
                             );
                           },
                         )
-                      : Align(
-                          alignment: Alignment.centerLeft,
-                          child: tabBar,
-                        ),
+                      : Align(alignment: Alignment.centerLeft, child: tabBar),
                 ),
               ),
             ],

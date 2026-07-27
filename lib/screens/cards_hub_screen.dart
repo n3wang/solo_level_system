@@ -22,7 +22,7 @@ class CardsHubScreen extends StatefulWidget {
 }
 
 class _CardsHubScreenState extends State<CardsHubScreen> {
-  String _typeFilter = kCollectibleBookmarkFilter;
+  String _typeFilter = kCollectibleTypeFilters.first;
   String _scopeFilter = 'all'; // all | acquired
   bool _isReady = false;
 
@@ -97,11 +97,13 @@ class _CardsHubScreenState extends State<CardsHubScreen> {
                         return a.title.compareTo(b.title);
                       });
 
+                    final hasBookmarked = _hasBookmarkedCards(cards);
+
                     return Stack(
                       children: [
                         Column(
                           children: [
-                            _buildFilters(),
+                            _buildFilters(hasBookmarked: hasBookmarked),
                             Expanded(
                               child: visible.isEmpty
                                   ? Center(
@@ -185,7 +187,24 @@ class _CardsHubScreenState extends State<CardsHubScreen> {
     return true;
   }
 
-  Widget _buildFilters() {
+  /// Returns true if there are any bookmarked cards matching the current scope.
+  bool _hasBookmarkedCards(List<CatalogCard> cards) {
+    for (final card in cards) {
+      if (!card.isBookmarked) continue;
+      if (_scopeFilter == 'acquired' && !card.isAcquired) continue;
+      return true;
+    }
+    return false;
+  }
+
+  Widget _buildFilters({required bool hasBookmarked}) {
+    // If bookmark filter is selected but no bookmarked cards exist, reset to first type
+    if (_typeFilter == kCollectibleBookmarkFilter && !hasBookmarked) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _typeFilter = kCollectibleTypeFilters.first);
+      });
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppUiSizes.lg,
@@ -193,36 +212,42 @@ class _CardsHubScreenState extends State<CardsHubScreen> {
         AppUiSizes.lg,
         AppUiSizes.xs,
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: SettingsRectChipGroup<String>(
-              size: SettingsRectChipSize.compact,
-              spacing: AppUiSizes.xs,
-              runSpacing: AppUiSizes.xs,
-              value: _typeFilter,
-              onChanged: (v) => setState(() => _typeFilter = v),
-              options: [
+          // Row 1: all/acquired scope filter (right-aligned)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              SettingsRectChipGroup<String>(
+                size: SettingsRectChipSize.compact,
+                spacing: AppUiSizes.xs,
+                value: _scopeFilter,
+                onChanged: (v) => setState(() => _scopeFilter = v),
+                options: const [
+                  SettingsRectChipOption(value: 'all', label: 'all'),
+                  SettingsRectChipOption(value: 'acquired', label: 'acquired'),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: AppUiSizes.xs),
+          // Row 2: type filters (full width)
+          SettingsRectChipGroup<String>(
+            size: SettingsRectChipSize.compact,
+            spacing: AppUiSizes.xs,
+            runSpacing: AppUiSizes.xs,
+            value: _typeFilter,
+            onChanged: (v) => setState(() => _typeFilter = v),
+            options: [
+              if (hasBookmarked)
                 const SettingsRectChipOption(
                   value: kCollectibleBookmarkFilter,
                   label: '',
                   icon: Icons.bookmark,
                 ),
-                for (final t in kCollectibleTypeFilters)
-                  SettingsRectChipOption(value: t, label: t),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppUiSizes.xs),
-          SettingsRectChipGroup<String>(
-            size: SettingsRectChipSize.compact,
-            spacing: AppUiSizes.xs,
-            value: _scopeFilter,
-            onChanged: (v) => setState(() => _scopeFilter = v),
-            options: const [
-              SettingsRectChipOption(value: 'all', label: 'all'),
-              SettingsRectChipOption(value: 'acquired', label: 'acquired'),
+              for (final t in kCollectibleTypeFilters)
+                SettingsRectChipOption(value: t, label: t),
             ],
           ),
         ],

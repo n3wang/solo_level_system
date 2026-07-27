@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/utils/unlock_service.dart';
 
-/// A `?` control that appears on a screen only when a `guide` card mapped to
-/// [screenKey] has been unlocked in the Motivation hub. Tapping it opens a
-/// how-to modal sourced from the unlocked guide card.
+/// A `?` control that appears on a screen only when an `option` card (guide
+/// variant) mapped to [screenKey] has been unlocked in the Motivation hub.
+/// Tapping it opens a how-to modal sourced from the unlocked option card.
 ///
-/// Renders nothing (a zero-size box) when no guide is unlocked, so it is safe
-/// to drop into any AppBar `actions:` list unconditionally.
+/// Renders nothing (a zero-size box) when no guide option is unlocked, so it
+/// is safe to drop into any AppBar `actions:` list unconditionally.
 class HelpButton extends StatelessWidget {
   final String screenKey;
 

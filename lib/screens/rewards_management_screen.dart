@@ -576,7 +576,7 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                           value: 'collection',
                           label: Text('Collection'),
                         ),
-                        ButtonSegment(value: 'quote', label: Text('Quote')),
+                        ButtonSegment(value: 'phy', label: Text('Phy')),
                         ButtonSegment(value: 'reward', label: Text('Reward')),
                       ],
                       selected: {selectedType},
@@ -591,8 +591,8 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                     TextField(
                       controller: titleController,
                       decoration: InputDecoration(
-                        labelText: selectedType == 'quote'
-                            ? 'Person / Topic'
+                        labelText: selectedType == 'phy'
+                            ? 'Author / Creator'
                             : 'Title',
                       ),
                     ),
@@ -601,8 +601,8 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                       controller: descriptionController,
                       maxLines: 3,
                       decoration: InputDecoration(
-                        labelText: selectedType == 'quote'
-                            ? 'Description or quote context'
+                        labelText: selectedType == 'phy'
+                            ? 'Description or context'
                             : 'Description',
                       ),
                     ),
@@ -689,8 +689,8 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
                           pointsCost: points,
                           createdAt: DateTime.now(),
                           isSystem: false,
-                          quotePerson: selectedType == 'quote' ? title : null,
-                          quoteText: selectedType == 'quote'
+                          quotePerson: selectedType == 'phy' ? title : null,
+                          quoteText: selectedType == 'phy'
                               ? (description.isEmpty ? title : description)
                               : null,
                         ),

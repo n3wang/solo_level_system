@@ -381,54 +381,103 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     final focusColor = AppColorPalette.color2;
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildHeatmapRow(color: workoutColor, values: workoutMinutes),
-        const SizedBox(height: AppUiSizes.sm),
-        _buildHeatmapRow(color: focusColor, values: focusMinutes),
-        const SizedBox(height: AppUiSizes.sm),
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final layout = _heatmapLayoutForWidth(constraints.maxWidth);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ...List.generate(days.length, (index) {
-              final day = days[index];
-              final isToday = index == days.length - 1;
-              return Expanded(
+            Center(
+              child: SizedBox(
+                width: layout.totalWidth,
                 child: Column(
                   children: [
-                    Text(
-                      dayNames[day.weekday - 1],
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontSize: AppColorPalette.fontSizeSmall,
-                        fontWeight: isToday ? FontWeight.w700 : null,
-                      ),
+                    _buildHeatmapRow(
+                      color: workoutColor,
+                      values: workoutMinutes,
+                      cellSize: layout.cellSize,
+                      gap: layout.gap,
                     ),
-                    Text(
-                      '${day.month}/${day.day}',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        fontSize: AppColorPalette.fontSizeXSmall,
-                        color: AppColorPalette.textSecondary,
-                        fontWeight: isToday ? FontWeight.w600 : null,
-                      ),
+                    SizedBox(height: layout.gap),
+                    _buildHeatmapRow(
+                      color: focusColor,
+                      values: focusMinutes,
+                      cellSize: layout.cellSize,
+                      gap: layout.gap,
+                    ),
+                    const SizedBox(height: AppUiSizes.sm),
+                    Row(
+                      children: [
+                        for (var index = 0; index < days.length; index++) ...[
+                          if (index > 0) SizedBox(width: layout.gap),
+                          SizedBox(
+                            width: layout.cellSize,
+                            child: Column(
+                              children: [
+                                Text(
+                                  dayNames[days[index].weekday - 1],
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium
+                                      ?.copyWith(
+                                        fontSize: AppColorPalette.fontSizeSmall,
+                                        fontWeight: index == days.length - 1
+                                            ? FontWeight.w700
+                                            : null,
+                                      ),
+                                ),
+                                Text(
+                                  '${days[index].month}/${days[index].day}',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        fontSize:
+                                            AppColorPalette.fontSizeXSmall,
+                                        color: AppColorPalette.textSecondary,
+                                        fontWeight: index == days.length - 1
+                                            ? FontWeight.w600
+                                            : null,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
-              );
-            }),
+              ),
+            ),
+            const SizedBox(height: AppUiSizes.md),
+            Row(
+              children: [
+                _buildMinutesLegendChip('workout', workoutColor),
+                const SizedBox(width: AppUiSizes.sm),
+                _buildMinutesLegendChip('focus', focusColor),
+              ],
+            ),
           ],
-        ),
-        const SizedBox(height: AppUiSizes.md),
-        Row(
-          children: [
-            _buildMinutesLegendChip('workout', workoutColor),
-            const SizedBox(width: AppUiSizes.sm),
-            _buildMinutesLegendChip('focus', focusColor),
-          ],
-        ),
-      ],
+        );
+      },
     );
+  }
+
+  /// GitHub-style square cells with a small gap, centered in [maxWidth].
+  ({double cellSize, double gap, double totalWidth}) _heatmapLayoutForWidth(
+    double maxWidth,
+  ) {
+    const cellCount = 7;
+    const gap = 4.0;
+    const horizontalInset = AppUiSizes.xl * 2;
+    final usable = (maxWidth - horizontalInset).clamp(0.0, maxWidth);
+    final raw = (usable - gap * (cellCount - 1)) / cellCount;
+    final cellSize = raw.clamp(28.0, 44.0);
+    final totalWidth = cellSize * cellCount + gap * (cellCount - 1);
+    return (cellSize: cellSize, gap: gap, totalWidth: totalWidth);
   }
 
   /// Deterministic sample focus/workout minutes for [dayCount] days ending
@@ -452,32 +501,29 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   Widget _buildHeatmapRow({
     required Color color,
     required List<int> values,
+    required double cellSize,
+    required double gap,
   }) {
     final maxMinutes = values.fold<int>(0, (m, v) => v > m ? v : m);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        ...List.generate(values.length, (index) {
-          final minutes = values[index];
-          // Relative to the strongest day in this visible row (0 when empty).
-          final intensity = maxMinutes <= 0 || minutes <= 0
-              ? 0.0
-              : (minutes / maxMinutes).clamp(0.0, 1.0);
-          return Expanded(
-            child: Center(
-              child: minutes > 0
-                  ? _buildDayMinuteChip(
-                      '$minutes',
-                      color,
-                      intensity: intensity,
-                    )
-                  : const SizedBox(height: 28),
-            ),
-          );
-        }),
-      ],
-    );
+    final cells = <Widget>[];
+    for (var index = 0; index < values.length; index++) {
+      if (index > 0) cells.add(SizedBox(width: gap));
+      final minutes = values[index];
+      // Relative to the strongest day in this visible row (0 when empty).
+      final intensity = maxMinutes <= 0 || minutes <= 0
+          ? 0.0
+          : (minutes / maxMinutes).clamp(0.0, 1.0);
+      cells.add(
+        _buildDayMinuteChip(
+          minutes > 0 ? '$minutes' : '',
+          color,
+          intensity: intensity,
+          size: cellSize,
+        ),
+      );
+    }
+    return Row(children: cells);
   }
 
   Widget _buildMinutesLegendChip(String label, Color color) {
@@ -499,30 +545,39 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   /// [intensity] is 0–1 vs max minutes in the same row (day comparison).
+  /// Empty days render a muted square (GitHub-style contribution cell).
   Widget _buildDayMinuteChip(
     String value,
     Color color, {
     required double intensity,
+    required double size,
   }) {
+    final scheme = Theme.of(context).colorScheme;
+    final isEmpty = value.isEmpty;
     // Floor so low days stay readable; ceiling keeps the hottest day strong.
-    final alpha = 0.18 + (intensity * 0.72);
+    final fill = isEmpty
+        ? scheme.onSurface.withValues(alpha: 0.08)
+        : color.withValues(alpha: 0.22 + (intensity * 0.68));
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      width: size,
+      height: size,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: alpha),
-        borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+        color: fill,
+        // Near-square GitHub cells use a tight radius.
+        borderRadius: BorderRadius.circular(3),
       ),
-      child: Text(
-        value,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Colors.black,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+      child: isEmpty
+          ? null
+          : Text(
+              value,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: size >= 36 ? 11 : 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
     );
   }
 

@@ -6,14 +6,13 @@ part 'card_model.g.dart';
 /// string in [CardModel.type] for backward compatibility with existing Hive
 /// data (values `quote | collection | reward` predate the broader catalog).
 enum CardType {
-  quote('quote'),
+  /// Philosopher, author, creator, or source of knowledge/creations.
+  phy('phy'),
   collection('collection'),
   reward('reward'),
   room('room'),
   music('music'),
-  program('program'),
   exercise('exercise'),
-  guide('guide'),
   option('option');
 
   const CardType(this.wire);
@@ -53,8 +52,8 @@ enum CardRarity {
 }
 
 /// A collectible catalog entry. Acquiring a card unlocks the thing it
-/// represents in the rest of the app (a program, exercise set, room, track,
-/// screen guide, or a stackable capacity setting).
+/// represents in the rest of the app (an exercise or program, room, track,
+/// or a system option - either a stackable capacity setting or screen guide).
 ///
 /// Formerly `MotivationItemModel`. Hive `typeId` (26) and field indices are
 /// preserved so existing data reads without migration; the box remains
@@ -110,9 +109,9 @@ class CardModel extends HiveObject {
   @HiveField(15)
   List<DateTime> acquisitionHistory;
 
-  /// Id of the asset/setting this card unlocks: a program, exercise set, music
-  /// track, room, screen key (guides), or setting key (options). Null for
-  /// purely collectible cards (`quote` / `collection`).
+  /// Id of the asset/setting this card unlocks: an exercise (or program with
+  /// bundled exercises), music track, room, or option key (setting or screen).
+  /// Null for purely collectible cards (`quote` / `collection`).
   @HiveField(16)
   String? unlockTargetId;
 

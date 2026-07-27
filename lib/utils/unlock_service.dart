@@ -9,7 +9,7 @@ class SettingKeys {
   static const String roomSlots = 'room_slots';
 }
 
-/// How-to content surfaced by an unlocked `guide` card on its target screen.
+/// How-to content surfaced by an unlocked `option` card (guide variant) on its target screen.
 class GuideContent {
   final String title;
   final String body;
@@ -34,7 +34,7 @@ class UnlockService {
   static Box<CardModel>? get _box =>
       Hive.isBoxOpen(boxName) ? Hive.box<CardModel>(boxName) : null;
 
-  /// A content target (program / set / room / music) is unlocked unless a card
+  /// A content target (exercise / room / music) is unlocked unless a card
   /// explicitly gates it (`unlockTargetId == targetId`) and stays unacquired.
   /// Ungated targets are unlocked by default so nothing disappears until the
   /// catalog deliberately gates it.
@@ -85,18 +85,19 @@ class UnlockService {
     return total;
   }
 
-  /// How-to content for a screen, or null when no guide card is unlocked for it
-  /// (in which case the screen shows no `?` control).
+  /// How-to content for a screen, or null when no guide option card is unlocked
+  /// for it (in which case the screen shows no `?` control).
   static GuideContent? guideFor(String screenKey) {
     final box = _box;
     if (box == null) return null;
     for (final card in box.values) {
-      if (card.cardType != CardType.guide) continue;
+      if (card.cardType != CardType.option) continue;
       final key = card.metadata['screenKey'] ?? card.unlockTargetId;
       if (key != screenKey) continue;
       if (!card.hasAnyAcquisition) continue;
       final howTo = card.metadata['howTo'];
       final tips = card.metadata['tips'];
+      if (howTo == null && tips == null) continue;
       return GuideContent(
         title: card.title,
         body: howTo is String && howTo.trim().isNotEmpty

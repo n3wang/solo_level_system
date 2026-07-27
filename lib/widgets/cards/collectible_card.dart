@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/collectible_card_layout.dart';
@@ -18,20 +19,16 @@ import 'package:solo_level_system/widgets/common/button_components.dart';
 /// Icon for a card type wire string (or [CardType]).
 IconData collectibleTypeIcon(String type) {
   switch (CardType.parse(type)) {
-    case CardType.quote:
-      return Icons.format_quote;
+    case CardType.phy:
+      return Icons.person_outline;
     case CardType.reward:
       return Icons.card_giftcard;
     case CardType.room:
       return Icons.weekend_outlined;
     case CardType.music:
       return Icons.music_note;
-    case CardType.program:
-      return Icons.list_alt;
     case CardType.exercise:
       return Icons.fitness_center;
-    case CardType.guide:
-      return Icons.help_outline;
     case CardType.option:
       return Icons.tune;
     case CardType.collection:
@@ -85,14 +82,12 @@ const List<String> kRewardCategories = [
 
 /// Catalog type filters for Cards hub (no `all` — pick a specific type).
 const List<String> kCollectibleTypeFilters = [
-  'quote',
+  'phy',
   'collection',
   'reward',
   'room',
   'music',
-  'program',
   'exercise',
-  'guide',
   'option',
 ];
 
@@ -118,11 +113,8 @@ String collectibleAcquirePrompt(CardType type) {
   switch (type) {
     case CardType.music:
       return 'Acquire to listen.';
-    case CardType.quote:
-      return 'Acquire to read.';
-    case CardType.guide:
-      return 'Acquire to unlock help.';
-    case CardType.program:
+    case CardType.phy:
+      return 'Acquire to discover.';
     case CardType.exercise:
       return 'Acquire to unlock.';
     case CardType.room:
@@ -181,6 +173,11 @@ class CollectibleCardArt extends StatelessWidget {
       return CollectibleMysteryArt(size: size);
     }
 
+    // Program cards get special treatment: duration number + exercise icons
+    if (card.isProgram) {
+      return _buildProgramArt(context);
+    }
+
     final scheme = Theme.of(context).colorScheme;
     final fallback = Icon(
       collectibleTypeIcon(card.typeWire),
@@ -229,6 +226,64 @@ class CollectibleCardArt extends StatelessWidget {
     }
 
     return fallback;
+  }
+
+  /// Builds program card art: large duration number with exercise icons in corner.
+  Widget _buildProgramArt(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final minutes = (card.durationSeconds / 60).round();
+    final exerciseImages = card.exerciseImages.take(3).toList();
+    final iconSize = size * 0.18;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          // Large duration number in center
+          Center(
+            child: Text(
+              '$minutes',
+              style: TextStyle(
+                fontSize: size * 0.55,
+                fontWeight: FontWeight.w900,
+                color: scheme.onSurface,
+                height: 1,
+              ),
+            ),
+          ),
+          // Exercise icons in top-left corner
+          if (exerciseImages.isNotEmpty)
+            Positioned(
+              top: 0,
+              left: 0,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final imgPath in exerciseImages)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 2),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: Image.asset(
+                          imgPath,
+                          width: iconSize,
+                          height: iconSize,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Icon(
+                            Icons.fitness_center,
+                            size: iconSize * 0.8,
+                            color: scheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 
@@ -333,23 +388,41 @@ class CollectibleCardTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppUiSizes.xxs),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                card.isAcquired
-                    ? (card.acquisitionCount > 1
-                          ? 'owned x${card.acquisitionCount}'
-                          : 'owned')
-                    : '${card.pointsCost}',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: card.isAcquired
-                      ? scheme.onSurface.withValues(alpha: 0.65)
-                      : canAfford
-                      ? scheme.primary
-                      : scheme.error,
-                  fontWeight: FontWeight.w700,
+            Row(
+              children: [
+                if (card.isProgram && card.durationSeconds > 0) ...[
+                  Icon(
+                    Icons.timer_outlined,
+                    size: 12,
+                    color: scheme.primary.withValues(alpha: 0.8),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    card.formattedDuration,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: scheme.primary.withValues(alpha: 0.8),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                Text(
+                  card.isAcquired
+                      ? (card.acquisitionCount > 1
+                            ? 'owned x${card.acquisitionCount}'
+                            : 'owned')
+                      : '${card.pointsCost}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: card.isAcquired
+                        ? scheme.onSurface.withValues(alpha: 0.65)
+                        : canAfford
+                        ? scheme.primary
+                        : scheme.error,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -425,8 +498,8 @@ class _CollectibleCardDetailDialogState
   AudioPlayer? _previewPlayer;
   bool _isPreviewing = false;
   int _visualIndex = 0;
-  late List<String> _quoteOptions;
-  late String _currentQuote;
+  late List<PhyEntry> _phyEntries;
+  late PhyEntry _currentEntry;
   String _activeQuotePanel = '';
   late final TextEditingController _quoteEditorController;
   late final TextEditingController _descriptionEditorController;
@@ -439,13 +512,13 @@ class _CollectibleCardDetailDialogState
   void initState() {
     super.initState();
     _isBookmarked = card.isBookmarked;
-    _quoteOptions = _quotesFor(card);
-    _currentQuote = _quoteOptions.isNotEmpty
-        ? _quoteOptions.first
-        : card.description;
+    _phyEntries = _entriesFor(card);
+    _currentEntry = _phyEntries.isNotEmpty
+        ? _phyEntries.first
+        : PhyEntry(text: card.description);
     _currentDescription = card.description;
     _quoteEditorController = TextEditingController(
-      text: _quoteOptions.join('\n'),
+      text: _phyEntries.map((e) => e.text).join('\n'),
     );
     _descriptionEditorController = TextEditingController(
       text: card.description,
@@ -460,22 +533,38 @@ class _CollectibleCardDetailDialogState
     super.dispose();
   }
 
-  List<String> _quotesFor(CatalogCard c) {
+  List<PhyEntry> _entriesFor(CatalogCard c) {
     final item = c.sourceItem;
-    if (item == null || c.type != CardType.quote) return const [];
-    final quotes = <String>[];
-    final raw = item.metadata['quotes'];
+    if (item == null || c.type != CardType.phy) return const [];
+    final entries = <PhyEntry>[];
+    // Try new 'entries' key first, fall back to legacy 'quotes'
+    final raw = item.metadata['entries'] ?? item.metadata['quotes'];
     if (raw is List) {
       for (final q in raw) {
-        final text = q.toString().trim();
-        if (text.isNotEmpty) quotes.add(text);
+        final entry = PhyEntry.fromRaw(q);
+        if (entry.text.isNotEmpty) entries.add(entry);
       }
     }
     final single = item.quoteText?.trim();
-    if (quotes.isEmpty && single != null && single.isNotEmpty) {
-      quotes.add(single);
+    if (entries.isEmpty && single != null && single.isNotEmpty) {
+      entries.add(PhyEntry(text: single));
     }
-    return quotes;
+    return entries;
+  }
+
+  /// Looks up a linked card by ID from the same source box.
+  CatalogCard? _getLinkedCard(String? cardId) {
+    if (cardId == null || cardId.isEmpty) return null;
+    final sourceItem = card.sourceItem;
+    if (sourceItem == null) return null;
+    final box = sourceItem.box as Box<CardModel>?;
+    if (box == null) return null;
+    for (final item in box.values) {
+      if (item.id == cardId) {
+        return CardRepository.fromCardModel(item);
+      }
+    }
+    return null;
   }
 
   String? get _musicFilename {
@@ -560,7 +649,15 @@ class _CollectibleCardDetailDialogState
     if (lines.isEmpty) return;
     final editedDescription = _descriptionEditorController.text.trim();
     final metadata = Map<String, dynamic>.from(item.metadata);
-    metadata['quotes'] = lines;
+    // Preserve linked card associations when saving text-only edits
+    final newEntries = <dynamic>[];
+    for (var i = 0; i < lines.length; i++) {
+      final existingLink = i < _phyEntries.length ? _phyEntries[i].linkedCardId : null;
+      final entry = PhyEntry(text: lines[i], linkedCardId: existingLink);
+      newEntries.add(entry.toStorage());
+    }
+    metadata['entries'] = newEntries;
+    metadata.remove('quotes'); // Remove legacy key
     item.metadata = metadata;
     item.quoteText = lines.first;
     if (editedDescription.isNotEmpty) {
@@ -568,8 +665,8 @@ class _CollectibleCardDetailDialogState
     }
     await item.save();
     setState(() {
-      _quoteOptions = lines;
-      _currentQuote = lines.first;
+      _phyEntries = newEntries.map((e) => PhyEntry.fromRaw(e)).toList();
+      _currentEntry = _phyEntries.first;
       if (editedDescription.isNotEmpty) {
         _currentDescription = editedDescription;
       }
@@ -678,15 +775,16 @@ class _CollectibleCardDetailDialogState
       card,
       acquiredReveal: widget.acquiredReveal,
     );
-    final isQuote = card.type == CardType.quote;
+    final isPhy = card.type == CardType.phy;
     final visuals = revealed ? _roomVisuals : const <String>[];
     final musicFile = revealed ? _musicFilename : null;
     final heightFactor = widget.acquiredReveal
         ? CollectibleCardLayout.detailModalHeightFactor * 0.82
         : CollectibleCardLayout.detailModalHeightFactor;
     final bodyCopy = revealed
-        ? (isQuote ? _currentQuote : _currentDescription)
+        ? (isPhy ? _currentEntry.text : _currentDescription)
         : collectibleAcquirePrompt(card.type);
+    final linkedCard = isPhy && revealed ? _getLinkedCard(_currentEntry.linkedCardId) : null;
 
     return SizedBox(
       width: CollectibleCardLayout.detailModalWidth,
@@ -734,11 +832,13 @@ class _CollectibleCardDetailDialogState
           Center(
             child: visuals.isNotEmpty
                 ? _buildRoomVisualPreview(visuals, scheme)
-                : CollectibleCardArt(
-                    card: card,
-                    size: CollectibleCardLayout.modalArtSize,
-                    revealContents: revealed,
-                  ),
+                : linkedCard != null
+                    ? _buildDualCardArt(card, linkedCard, revealed)
+                    : CollectibleCardArt(
+                        card: card,
+                        size: CollectibleCardLayout.modalArtSize,
+                        revealContents: revealed,
+                      ),
           ),
           if (visuals.length > 1) ...[
             const SizedBox(height: AppUiSizes.sm),
@@ -783,12 +883,12 @@ class _CollectibleCardDetailDialogState
                   : scheme.error,
             ),
           ),
-          if (revealed && isQuote) ...[
+          if (revealed && isPhy) ...[
             const SizedBox(height: AppUiSizes.sm),
             _buildQuoteControls(scheme),
           ],
           const SizedBox(height: AppUiSizes.sm),
-          if (!revealed || !isQuote || _activeQuotePanel.isEmpty)
+          if (!revealed || !isPhy || _activeQuotePanel.isEmpty)
             Expanded(
               child: SingleChildScrollView(
                 child: Text(
@@ -929,6 +1029,40 @@ class _CollectibleCardDetailDialogState
     showAppSnack(context, text: 'Reward deleted');
   }
 
+  /// Shows two card images side by side: the phy card and its linked card.
+  Widget _buildDualCardArt(CatalogCard phyCard, CatalogCard linkedCard, bool revealed) {
+    const dualSize = CollectibleCardLayout.modalArtSize * 0.65;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CollectibleCardArt(
+          card: phyCard,
+          size: dualSize,
+          revealContents: revealed,
+        ),
+        const SizedBox(width: AppUiSizes.md),
+        Column(
+          children: [
+            CollectibleCardArt(
+              card: linkedCard,
+              size: dualSize,
+              revealContents: true,
+            ),
+            const SizedBox(height: AppUiSizes.xs),
+            Text(
+              linkedCard.title,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildRoomVisualPreview(List<String> visuals, ColorScheme scheme) {
     final path = visuals[_visualIndex.clamp(0, visuals.length - 1)];
     return ClipRRect(
@@ -948,19 +1082,19 @@ class _CollectibleCardDetailDialogState
   }
 
   Widget _buildQuoteControls(ColorScheme scheme) {
-    final showRandom = _quoteOptions.length > 1;
+    final showRandom = _phyEntries.length > 1;
     return Row(
       children: [
         if (showRandom)
           IconButton(
-            tooltip: 'Random quote',
+            tooltip: 'Random entry',
             onPressed: () {
-              final candidates = _quoteOptions
-                  .where((q) => q != _currentQuote)
+              final candidates = _phyEntries
+                  .where((e) => e.text != _currentEntry.text)
                   .toList();
               if (candidates.isEmpty) return;
               setState(() {
-                _currentQuote =
+                _currentEntry =
                     candidates[Random().nextInt(candidates.length)];
                 _activeQuotePanel = '';
               });
@@ -968,22 +1102,22 @@ class _CollectibleCardDetailDialogState
             icon: const Icon(Icons.casino_outlined),
           ),
         IconButton(
-          tooltip: 'Next quote',
-          onPressed: _quoteOptions.isEmpty
+          tooltip: 'Next entry',
+          onPressed: _phyEntries.isEmpty
               ? null
               : () {
-                  final i = _quoteOptions.indexOf(_currentQuote);
-                  final next = i < 0 ? 0 : (i + 1) % _quoteOptions.length;
+                  final i = _phyEntries.indexWhere((e) => e.text == _currentEntry.text);
+                  final next = i < 0 ? 0 : (i + 1) % _phyEntries.length;
                   setState(() {
-                    _currentQuote = _quoteOptions[next];
+                    _currentEntry = _phyEntries[next];
                     _activeQuotePanel = '';
                   });
                 },
           icon: const Icon(Icons.skip_next_outlined),
         ),
         IconButton(
-          tooltip: 'Show all quotes',
-          onPressed: _quoteOptions.isEmpty
+          tooltip: 'Show all entries',
+          onPressed: _phyEntries.isEmpty
               ? null
               : () {
                   setState(() {
@@ -998,7 +1132,7 @@ class _CollectibleCardDetailDialogState
           ),
         ),
         IconButton(
-          tooltip: 'Edit quotes',
+          tooltip: 'Edit entries',
           onPressed: card.sourceItem == null
               ? null
               : () {
@@ -1028,17 +1162,37 @@ class _CollectibleCardDetailDialogState
             horizontal: AppUiSizes.sm,
             vertical: AppUiSizes.xs,
           ),
-          itemCount: _quoteOptions.length,
+          itemCount: _phyEntries.length,
           separatorBuilder: (_, __) => Divider(
             height: AppUiSizes.md,
             color: scheme.outline.withValues(alpha: 0.32),
           ),
           itemBuilder: (context, index) {
+            final entry = _phyEntries[index];
+            final linkedCard = _getLinkedCard(entry.linkedCardId);
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: AppUiSizes.xs),
-              child: Text(
-                '${index + 1}. ${_quoteOptions[index]}',
-                style: Theme.of(context).textTheme.bodyMedium,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${index + 1}. ${entry.text}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  if (linkedCard != null) ...[
+                    const SizedBox(width: AppUiSizes.xs),
+                    Tooltip(
+                      message: linkedCard.title,
+                      child: CollectibleCardArt(
+                        card: linkedCard,
+                        size: 28,
+                        revealContents: true,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             );
           },
@@ -1053,7 +1207,7 @@ class _CollectibleCardDetailDialogState
             controller: _quoteEditorController,
             maxLines: 6,
             decoration: const InputDecoration(
-              hintText: 'One quote per line',
+              hintText: 'One entry per line',
               border: OutlineInputBorder(),
             ),
           ),
@@ -1070,7 +1224,7 @@ class _CollectibleCardDetailDialogState
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: _saveQuotes,
-              child: const Text('Save quotes'),
+              child: const Text('Save entries'),
             ),
           ),
         ],

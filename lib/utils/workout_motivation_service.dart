@@ -33,7 +33,7 @@ class WorkoutMotivationService {
 
     final quotePool = <WorkoutQuoteVm>[];
     for (final item in box.values) {
-      if (item.type != 'quote' || !item.hasAnyAcquisition) continue;
+      if (item.type != 'phy' || !item.hasAnyAcquisition) continue;
       final quotes = _quoteOptions(item);
       for (final quote in quotes) {
         quotePool.add(

@@ -8,7 +8,6 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/screens/add_edit_workout_set_screen.dart';
 import 'package:solo_level_system/screens/workout_exercises_screen.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
-import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 class WorkoutSetsScreen extends StatefulWidget {
   final Function(WorkoutSessionModel?)? onActiveSessionChanged;
@@ -351,10 +350,7 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
     final activeSetsCount = box.values.where((set) => set.isActive).length;
 
     if (activeSetsCount >= MAX_SETS) {
-      showAppSnack(
-        context,
-        text: 'Maximum of $MAX_SETS workout sets allowed',
-      );
+      showAppSnack(context, text: 'Maximum of $MAX_SETS workout sets allowed');
       return;
     }
 
@@ -381,10 +377,7 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
     final activeSetsCount = box.values.where((set) => set.isActive).length;
 
     if (activeSetsCount >= MAX_SETS) {
-      showAppSnack(
-        context,
-        text: 'Maximum of $MAX_SETS workout sets allowed',
-      );
+      showAppSnack(context, text: 'Maximum of $MAX_SETS workout sets allowed');
       return;
     }
 
@@ -428,10 +421,7 @@ class _WorkoutSetsScreenState extends State<WorkoutSetsScreen> {
             remainingSets[i].updatePosition(i);
           }
 
-          showAppSnack(
-      context,
-      text: 'Set deleted',
-    );
+          showAppSnack(context, text: 'Set deleted');
         },
       ),
     );

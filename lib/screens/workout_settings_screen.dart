@@ -1,8 +1,6 @@
 // lib/screens/workout_settings_screen.dart
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
-import 'package:solo_level_system/models/timed_workout_model.dart';
 
 class WorkoutSettingsScreen extends StatelessWidget {
   const WorkoutSettingsScreen({super.key});
@@ -90,11 +88,7 @@ class WorkoutSettingsScreen extends StatelessWidget {
             ),
           ),
         ),
-        Card(
-          child: Column(
-            children: children,
-          ),
-        ),
+        Card(child: Column(children: children)),
       ],
     );
   }

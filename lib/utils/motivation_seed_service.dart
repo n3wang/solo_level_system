@@ -38,7 +38,7 @@ class MotivationSeedService {
       final type = _typeFromCategory(category);
       final id = 'motivation_catalog_$number';
       final quotes = quoteMap[name] ?? _findQuotesByContains(quoteMap, name);
-      final quoteText = type == 'quote' && quotes.isNotEmpty
+      final phyText = type == 'phy' && quotes.isNotEmpty
           ? quotes.first
           : null;
       CardModel? existing;
@@ -49,13 +49,13 @@ class MotivationSeedService {
         }
       }
       if (existing != null) {
-        if (type == 'quote' && quotes.isNotEmpty) {
+        if (type == 'phy' && quotes.isNotEmpty) {
           var changed = false;
           final metadata = Map<String, dynamic>.from(existing.metadata);
-          final existingQuotes = metadata['quotes'];
-          final hasQuotes = existingQuotes is List && existingQuotes.isNotEmpty;
-          if (!hasQuotes) {
-            metadata['quotes'] = quotes;
+          final existingEntries = metadata['entries'];
+          final hasEntries = existingEntries is List && existingEntries.isNotEmpty;
+          if (!hasEntries) {
+            metadata['entries'] = quotes;
             existing.metadata = metadata;
             changed = true;
           }
@@ -84,13 +84,13 @@ class MotivationSeedService {
           pointsCost: _pointsCost(number: number, type: type),
           createdAt: DateTime.now(),
           isSystem: true,
-          quotePerson: type == 'quote' ? name : null,
-          quoteText: quoteText,
+          quotePerson: type == 'phy' ? name : null,
+          quoteText: phyText,
           imageIndex: number,
           rarity: _rarityFor(number),
           metadata: {
             'source': 'cards_catalog.csv',
-            if (type == 'quote' && quotes.isNotEmpty) 'quotes': quotes,
+            if (type == 'phy' && quotes.isNotEmpty) 'entries': quotes,
           },
         ),
       );
@@ -103,10 +103,10 @@ class MotivationSeedService {
     }
   }
 
-  /// Seeds guide and option cards from YAML while preserving player progress.
+  /// Seeds option cards (capacity settings and guides) from YAML while preserving player progress.
   static Future<void> _ensureConfiguredCards(Box<CardModel> box) async {
     await _seedConfiguredCards(box, _optionsPath, 'options', 'option');
-    await _seedConfiguredCards(box, _guidesPath, 'guides', 'guide');
+    await _seedConfiguredCards(box, _guidesPath, 'guides', 'option');
   }
 
   static Future<void> _seedConfiguredCards(
@@ -127,28 +127,29 @@ class MotivationSeedService {
 
       final copies = int.tryParse('${raw['starter_copies'] ?? 0}') ?? 0;
       final now = DateTime.now();
-      final targetKey = type == 'option' ? 'setting_key' : 'screen_key';
+      final isGuideSource = listKey == 'guides';
+      final targetKey = isGuideSource ? 'screen_key' : 'setting_key';
       final targetId = (raw[targetKey] ?? '').toString().trim();
       final metadata = <String, dynamic>{
-        'source': '${type}_yaml',
-        if (type == 'option') ...{
+        'source': '${listKey}_yaml',
+        if (!isGuideSource) ...{
           'settingKey': targetId,
           'capacityPerCopy':
               int.tryParse('${raw['capacity_per_copy'] ?? 1}') ?? 1,
         },
-        if (type == 'guide') ...{
+        if (isGuideSource) ...{
           'screenKey': targetId,
           'howTo': (raw['how_to'] ?? '').toString(),
           'tips': _yamlStringList(raw['tips']),
         },
       };
       final card = CardModel(
-        id: '${type}_$slug',
+        id: '${isGuideSource ? 'guide' : 'option'}_$slug',
         type: type,
         title: title,
         description: (raw['description'] ?? '').toString(),
         category: type,
-        pointsCost: AppEnvironment.isTest && type == 'option'
+        pointsCost: AppEnvironment.isTest
             ? 10
             : (int.tryParse('${raw['points_cost'] ?? 0}') ?? 0),
         createdAt: now,
@@ -198,11 +199,11 @@ class MotivationSeedService {
     final now = DateTime.now();
     final samples = <CardModel>[
       CardModel(
-        id: 'test_quote_gym_1',
-        type: 'quote',
+        id: 'test_phy_gym_1',
+        type: 'phy',
         title: 'Gym Focus',
         description: 'One more rep than yesterday. That is enough progress.',
-        category: 'quote',
+        category: 'phy',
         pointsCost: 5,
         createdAt: now,
         isSystem: true,
@@ -211,7 +212,7 @@ class MotivationSeedService {
         metadata: const {
           'source': _testSourceTag,
           'isTestSeed': true,
-          'quotes': [
+          'entries': [
             'One more rep than yesterday. That is enough progress.',
             'Do the hard set first, then everything else feels lighter.',
             'Consistency beats intensity when intensity is inconsistent.',
@@ -219,11 +220,11 @@ class MotivationSeedService {
         },
       ),
       CardModel(
-        id: 'test_quote_gym_2',
-        type: 'quote',
+        id: 'test_phy_gym_2',
+        type: 'phy',
         title: 'Gym Discipline',
         description: 'You do not need perfect energy. You need your next set.',
-        category: 'quote',
+        category: 'phy',
         pointsCost: 5,
         createdAt: now,
         isSystem: true,
@@ -232,7 +233,7 @@ class MotivationSeedService {
         metadata: const {
           'source': _testSourceTag,
           'isTestSeed': true,
-          'quotes': [
+          'entries': [
             'You do not need perfect energy. You need your next set.',
             'Discipline is deciding before motivation shows up.',
             'Small effort on low-energy days protects big goals.',
@@ -240,12 +241,12 @@ class MotivationSeedService {
         },
       ),
       CardModel(
-        id: 'test_quote_gym_3',
-        type: 'quote',
+        id: 'test_phy_gym_3',
+        type: 'phy',
         title: 'Gym Momentum',
         description:
             'Show up. Warm up. Start small. Momentum handles the rest.',
-        category: 'quote',
+        category: 'phy',
         pointsCost: 5,
         createdAt: now,
         isSystem: true,
@@ -254,7 +255,7 @@ class MotivationSeedService {
         metadata: const {
           'source': _testSourceTag,
           'isTestSeed': true,
-          'quotes': [
+          'entries': [
             'Show up. Warm up. Start small. Momentum handles the rest.',
             'Action creates motivation more often than waiting does.',
             'Finish today so tomorrow starts stronger.',
@@ -328,14 +329,14 @@ class MotivationSeedService {
   }
 
   static String _typeFromCategory(String category) {
-    if (category == 'philosopher') return 'quote';
+    if (category == 'philosopher') return 'phy';
     if (category == 'boardgame' || category == 'plant') return 'collection';
     return 'collection';
   }
 
   static int _pointsCost({required int number, required String type}) {
     if (number <= 3) return AppEnvironment.seededMotivationStarterCost;
-    if (type == 'quote') return AppEnvironment.isTest ? 10 : 15;
+    if (type == 'phy') return AppEnvironment.isTest ? 10 : 15;
     if (number <= 20) return AppEnvironment.isTest ? 15 : 30;
     return AppEnvironment.isTest ? 25 : 45;
   }

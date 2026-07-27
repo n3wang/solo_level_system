@@ -54,7 +54,7 @@ class TestModeBootstrapService {
     Box<CardModel> motivationBox,
   ) async {
     final quoteTargets = motivationBox.values
-        .where((item) => item.type == 'quote')
+        .where((item) => item.type == 'phy')
         .take(2)
         .toList();
     final collectionTargets = motivationBox.values

@@ -515,9 +515,6 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
 
   Widget _buildExerciseHistory() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBgColor = isDark
-        ? AppColorPalette.backgroundDarkSurface.withValues(alpha: 0.6)
-        : AppColorPalette.white.withValues(alpha: 0.8);
 
     return SizedBox(
       child: Column(
@@ -842,10 +839,6 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
     );
   }
 
-  Color _getMuscleGroupColor(String muscleGroup) {
-    return _accent;
-  }
-
   IconData _getMuscleGroupIcon(String muscleGroup) {
     switch (muscleGroup.toLowerCase()) {
       case 'chest':
@@ -932,10 +925,7 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
               exercise.delete();
               Navigator.pop(context); // Close dialog
               Navigator.pop(context); // Close detail
-              showAppSnack(
-      context,
-      text: 'Exercise deleted',
-    );
+              showAppSnack(context, text: 'Exercise deleted');
             },
             child: Text(
               'Delete',
@@ -973,9 +963,6 @@ class _ExerciseDetailsScreenState extends State<ExerciseDetailsScreen> {
   }
 
   void _viewFullHistory() {
-    showAppSnack(
-      context,
-      text: 'Full history view not implemented yet',
-    );
+    showAppSnack(context, text: 'Full history view not implemented yet');
   }
 }

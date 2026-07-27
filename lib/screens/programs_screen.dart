@@ -183,7 +183,7 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(color: AppColorPalette.grey300),
             ),
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,8 +193,8 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
                       ...List.generate(5, (index) {
                         final isCompleted = index < program.timesPerformed;
                         return Container(
-                          width: 20,
-                          height: 8,
+                          width: 16,
+                          height: 6,
                           margin: const EdgeInsets.only(right: 4),
                           decoration: BoxDecoration(
                             color: isCompleted
@@ -217,56 +217,57 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
                             color: program.isBookmarked
                                 ? AppColorPalette.color2
                                 : AppColorPalette.grey400,
-                            size: 24,
+                            size: 20,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
                     program.name,
                     style: const TextStyle(
-                      fontSize: 24,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.timer,
-                        size: 16,
-                        color: AppColorPalette.color2,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Duration: ${program.formattedDuration}',
-                        style: TextStyle(
-                          fontSize: 14,
+                  const SizedBox(height: 6),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.timer,
+                          size: 12,
                           color: AppColorPalette.color2,
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Icon(
-                        Icons.repeat,
-                        size: 16,
-                        color: AppColorPalette.color2,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Performed: ${program.timesPerformed}',
-                        style: TextStyle(
-                          fontSize: 14,
+                        const SizedBox(width: 4),
+                        Text(
+                          'Duration: ${program.formattedDuration}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColorPalette.color2,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.repeat,
+                          size: 12,
                           color: AppColorPalette.color2,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          'Performed: ${program.timesPerformed}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColorPalette.color2,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: _buildExerciseImageGrid(exerciseImages),
-                  ),
+                  const SizedBox(height: 12),
+                  _buildExerciseImageGrid(exerciseImages),
                 ],
               ),
             ),
@@ -286,33 +287,48 @@ class _ProgramsScreenState extends State<ProgramsScreen> {
   }
 
   /// Fixed 4×4 slots — no scrolling; empty cells when fewer than 16 images.
+  /// Uses LayoutBuilder to scale images based on available width.
   Widget _buildExerciseImageGrid(List<String?> exerciseImages) {
     const cols = 4;
     const rows = 4;
-    const spacing = 8.0;
+    const spacing = 6.0;
 
-    return Column(
-      children: [
-        for (var row = 0; row < rows; row++) ...[
-          if (row > 0) const SizedBox(height: spacing),
-          Expanded(
-            child: Row(
-              children: [
-                for (var col = 0; col < cols; col++) ...[
-                  if (col > 0) const SizedBox(width: spacing),
-                  Expanded(
-                    child: _buildGridCell(
-                      exerciseImages.length > row * cols + col
-                          ? exerciseImages[row * cols + col]
-                          : null,
-                    ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final cellSize = (availableWidth - (spacing * (cols - 1))) / cols;
+        final gridHeight = (cellSize * rows) + (spacing * (rows - 1));
+
+        return SizedBox(
+          height: gridHeight,
+          child: Column(
+            children: [
+              for (var row = 0; row < rows; row++) ...[
+                if (row > 0) const SizedBox(height: spacing),
+                SizedBox(
+                  height: cellSize,
+                  child: Row(
+                    children: [
+                      for (var col = 0; col < cols; col++) ...[
+                        if (col > 0) const SizedBox(width: spacing),
+                        SizedBox(
+                          width: cellSize,
+                          height: cellSize,
+                          child: _buildGridCell(
+                            exerciseImages.length > row * cols + col
+                                ? exerciseImages[row * cols + col]
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ],
+                ),
               ],
-            ),
+            ],
           ),
-        ],
-      ],
+        );
+      },
     );
   }
 
