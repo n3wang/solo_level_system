@@ -19,7 +19,7 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
     return UserSettingsModel(
       theme: fields[0] as String,
       primaryColor: fields[1] as String,
-      colorPalette: fields[21] as String,
+      colorPalette: fields[21] as String? ?? 'pastel',
       defaultWorkMinutes: fields[2] as int,
       defaultBreakMinutes: fields[3] as int,
       autoStartBreaks: fields[4] as bool,
@@ -31,21 +31,31 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
       audioFormat: fields[10] as String,
       defaultAudioPath: fields[11] as String,
       enableNoiseReduction: fields[12] as bool,
-      playAudioDuringWork: fields[19] as bool,
-      playAudioDuringBreaks: fields[20] as bool,
+      playAudioDuringWork: fields[19] as bool? ?? true,
+      playAudioDuringBreaks: fields[20] as bool? ?? false,
       language: fields[13] as String,
       dateFormat: fields[14] as String,
       timeFormat: fields[15] as String,
       enableAnalytics: fields[16] as bool,
       autoBackup: fields[17] as bool,
       backupPath: fields[18] as String,
+      developmentDataEnabled: fields[22] as bool? ?? true,
+      autoOpenJournalAfterFocus: fields[23] as bool? ?? true,
+      cardAcquisitionMode:
+          fields[24] as String? ?? 'session_completion',
+      sessionCompletionCardCount: fields[25] as int? ?? 1,
+      cardAcquireTiming: fields[26] as String? ?? 'after_break',
+      rogueChallengeList: (fields[27] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          List<String>.from(RogueChallengeDefaults.base),
     );
   }
 
   @override
   void write(BinaryWriter writer, UserSettingsModel obj) {
     writer
-      ..writeByte(22)
+      ..writeByte(28)
       ..writeByte(0)
       ..write(obj.theme)
       ..writeByte(1)
@@ -89,7 +99,19 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
       ..writeByte(17)
       ..write(obj.autoBackup)
       ..writeByte(18)
-      ..write(obj.backupPath);
+      ..write(obj.backupPath)
+      ..writeByte(22)
+      ..write(obj.developmentDataEnabled)
+      ..writeByte(23)
+      ..write(obj.autoOpenJournalAfterFocus)
+      ..writeByte(24)
+      ..write(obj.cardAcquisitionMode)
+      ..writeByte(25)
+      ..write(obj.sessionCompletionCardCount)
+      ..writeByte(26)
+      ..write(obj.cardAcquireTiming)
+      ..writeByte(27)
+      ..write(obj.rogueChallengeList);
   }
 
   @override

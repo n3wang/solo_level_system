@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/models/card_model.dart';
+import 'package:solo_level_system/utils/chrono_atlas_scoring.dart';
 import 'package:yaml/yaml.dart';
 
 class MotivationSeedService {
@@ -27,12 +28,12 @@ class MotivationSeedService {
     if (lines.length <= 1) return;
 
     for (var i = 1; i < lines.length; i++) {
-      final columns = _parse4Columns(lines[i]);
+      final columns = _parseCatalogRow(lines[i]);
       if (columns == null) continue;
-      final name = columns[0].trim();
-      final number = int.tryParse(columns[1].trim());
-      final description = columns[2].trim();
-      final category = columns[3].trim().toLowerCase();
+      final name = columns.name;
+      final number = columns.number;
+      final description = columns.description;
+      final category = columns.category;
       if (name.isEmpty || number == null) continue;
 
       final type = _typeFromCategory(category);
@@ -41,6 +42,7 @@ class MotivationSeedService {
       final phyText = type == 'phy' && quotes.isNotEmpty
           ? quotes.first
           : null;
+      final geoMeta = _geoMetadata(columns);
       CardModel? existing;
       for (final item in box.values) {
         if (item.id == id) {
@@ -49,14 +51,14 @@ class MotivationSeedService {
         }
       }
       if (existing != null) {
+        var changed = false;
+        final metadata = Map<String, dynamic>.from(existing.metadata);
         if (type == 'phy' && quotes.isNotEmpty) {
-          var changed = false;
-          final metadata = Map<String, dynamic>.from(existing.metadata);
           final existingEntries = metadata['entries'];
-          final hasEntries = existingEntries is List && existingEntries.isNotEmpty;
+          final hasEntries =
+              existingEntries is List && existingEntries.isNotEmpty;
           if (!hasEntries) {
             metadata['entries'] = quotes;
-            existing.metadata = metadata;
             changed = true;
           }
           if ((existing.quoteText?.trim().isEmpty ?? true)) {
@@ -67,9 +69,16 @@ class MotivationSeedService {
             existing.description = description;
             changed = true;
           }
-          if (changed) {
-            await existing.save();
+        }
+        for (final entry in geoMeta.entries) {
+          if (metadata[entry.key] != entry.value) {
+            metadata[entry.key] = entry.value;
+            changed = true;
           }
+        }
+        if (changed) {
+          existing.metadata = metadata;
+          await existing.save();
         }
         continue;
       }
@@ -91,6 +100,7 @@ class MotivationSeedService {
           metadata: {
             'source': 'cards_catalog.csv',
             if (type == 'phy' && quotes.isNotEmpty) 'entries': quotes,
+            ...geoMeta,
           },
         ),
       );
@@ -318,15 +328,74 @@ class MotivationSeedService {
     return const [];
   }
 
-  static List<String>? _parse4Columns(String line) {
+  /// Parses
+  /// `name,number,description,category[,year,year_kind,pins,place_label]`.
+  /// Trailing geo columns are read from the end so description commas stay safe.
+  static _CatalogRow? _parseCatalogRow(String line) {
     final parts = line.split(',');
     if (parts.length < 4) return null;
-    final name = parts[0];
-    final number = parts[1];
-    final category = parts.last;
-    final description = parts.sublist(2, parts.length - 1).join(',').trim();
-    return [name, number, description, category];
+
+    // Legacy 4-column rows (no geo).
+    if (parts.length == 4) {
+      return _CatalogRow(
+        name: parts[0].trim(),
+        number: int.tryParse(parts[1].trim()),
+        description: parts[2].trim(),
+        category: parts[3].trim().toLowerCase(),
+      );
+    }
+
+    if (parts.length < 8) {
+      // name,number,description...,category without full geo tail
+      final category = parts.last.trim().toLowerCase();
+      return _CatalogRow(
+        name: parts[0].trim(),
+        number: int.tryParse(parts[1].trim()),
+        description: parts.sublist(2, parts.length - 1).join(',').trim(),
+        category: category,
+      );
+    }
+
+    final placeLabel = parts.last.trim();
+    final pins = parts[parts.length - 2].trim();
+    final yearKind = parts[parts.length - 3].trim();
+    final yearRaw = parts[parts.length - 4].trim();
+    final category = parts[parts.length - 5].trim().toLowerCase();
+    final description = parts.sublist(2, parts.length - 5).join(',').trim();
+
+    return _CatalogRow(
+      name: parts[0].trim(),
+      number: int.tryParse(parts[1].trim()),
+      description: description,
+      category: category,
+      year: yearRaw.isEmpty ? null : int.tryParse(yearRaw),
+      yearKind: yearKind.isEmpty ? null : yearKind,
+      pinsRaw: pins.isEmpty ? null : pins,
+      placeLabel: placeLabel.isEmpty ? null : placeLabel,
+    );
   }
+
+  static Map<String, dynamic> _geoMetadata(_CatalogRow row) {
+    final pins = ChronoAtlasScoring.parsePins(row.pinsRaw);
+    return {
+      if (row.year != null) 'year': row.year,
+      if (row.yearKind != null && row.yearKind!.isNotEmpty)
+        'yearKind': row.yearKind,
+      if (pins.isNotEmpty)
+        'pins': pins
+            .map(
+              (p) => {
+                'lat': p.lat,
+                'lng': p.lng,
+                if (p.radiusKm != null) 'radiusKm': p.radiusKm,
+              },
+            )
+            .toList(),
+      if (row.placeLabel != null && row.placeLabel!.isNotEmpty)
+        'placeLabel': row.placeLabel,
+    };
+  }
+
 
   static String _typeFromCategory(String category) {
     if (category == 'philosopher') return 'phy';
@@ -340,4 +409,26 @@ class MotivationSeedService {
     if (number <= 20) return AppEnvironment.isTest ? 15 : 30;
     return AppEnvironment.isTest ? 25 : 45;
   }
+}
+
+class _CatalogRow {
+  const _CatalogRow({
+    required this.name,
+    required this.number,
+    required this.description,
+    required this.category,
+    this.year,
+    this.yearKind,
+    this.pinsRaw,
+    this.placeLabel,
+  });
+
+  final String name;
+  final int? number;
+  final String description;
+  final String category;
+  final int? year;
+  final String? yearKind;
+  final String? pinsRaw;
+  final String? placeLabel;
 }

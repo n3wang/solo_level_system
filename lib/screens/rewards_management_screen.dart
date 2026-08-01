@@ -7,6 +7,7 @@ import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
 import 'package:solo_level_system/screens/cards_hub_screen.dart';
+import 'package:solo_level_system/utils/dev_data.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
@@ -52,7 +53,9 @@ class _RewardsManagementScreenState extends State<RewardsManagementScreen>
       await RewardSeedService.ensureDefaultBoardgameRewards();
       await MotivationSeedService.ensureSeeded();
       final rewardsBox = Hive.box<RewardModel>('rewards');
-      rewards = rewardsBox.values.toList();
+      rewards = rewardsBox.values
+          .where((r) => DevData.showDevData || !DevData.isDevReward(r))
+          .toList();
 
       setState(() {
         isLoading = false;

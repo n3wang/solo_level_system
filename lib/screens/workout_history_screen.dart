@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
+import 'package:solo_level_system/utils/dev_data.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
 
 class WorkoutHistoryScreen extends StatefulWidget {
@@ -248,6 +249,10 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
     final now = DateTime.now();
 
     return sessions.where((session) {
+      if (!DevData.keepVisible(id: session.id, tags: session.tags)) {
+        return false;
+      }
+
       // Time period filter
       if (_selectedPeriod != 'all') {
         late DateTime cutoffDate;

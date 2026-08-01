@@ -1,63 +1,103 @@
 import 'package:hive/hive.dart';
+import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/models/project_model.dart';
 
 class ProjectSeedService {
   ProjectSeedService._();
 
-  static const String studiesProjectId = 'sample-project-deep-work-coding';
-  static const String gamesStudyingProjectId = 'sample-project-language-sprint';
+  static const String personalProjectsId = 'sample-project-personal';
+  static const String erpnextProjectsId = 'sample-project-erpnext';
+  static const String workProjectId = 'sample-project-work';
 
   static const String _projectsBoxName = 'projects';
-  static const String _studiesProjectId = studiesProjectId;
-  static const String _gamesStudyingProjectId = gamesStudyingProjectId;
+
+  /// Legacy sample IDs replaced by the current test defaults.
+  static const List<String> _legacySampleIds = [
+    'sample-project-deep-work-coding',
+    'sample-project-language-sprint',
+  ];
 
   static Future<void> ensureSampleProjects() async {
+    if (!AppEnvironment.isTest) return;
+
     if (!Hive.isBoxOpen(_projectsBoxName)) {
       await Hive.openBox<ProjectModel>(_projectsBoxName);
     }
     final box = Hive.box<ProjectModel>(_projectsBoxName);
 
+    await _removeLegacySamples(box);
+
     await _upsertSample(
       box,
       ProjectModel(
-        id: _studiesProjectId,
-        name: 'Studies Assignments',
-        description: 'Coursework, readings, and assignment blocks.',
+        id: personalProjectsId,
+        name: 'Personal Projects',
+        description: 'Personal builds, side projects, and learning.',
         color: '#3F51B5',
-        iconName: 'book',
-        priority: 3,
+        iconName: 'code',
+        priority: 1,
         targetType: 'daily',
-        dailySessionTarget: 1,
-        weeklySessionTarget: 5,
+        dailySessionTarget: 2,
+        weeklySessionTarget: 10,
         preferredWorkHour: 9,
         activeDays: const [1, 2, 3, 4, 5],
-        workDurationMinutes: 50,
-        breakDurationMinutes: 10,
+        workDurationMinutes: 25,
+        breakDurationMinutes: 5,
         createdAt: DateTime.now(),
-        tags: const ['study', 'assignments'],
+        tags: const ['personal'],
       ),
     );
 
     await _upsertSample(
       box,
       ProjectModel(
-        id: _gamesStudyingProjectId,
-        name: 'Games and Studying',
-        description: 'Short bursts for games, drills, and light study.',
-        color: '#FF9800',
-        iconName: 'school',
+        id: erpnextProjectsId,
+        name: 'ERPNext Projects',
+        description: 'ERPNext implementation and customization work.',
+        color: '#00897B',
+        iconName: 'business',
         priority: 2,
         targetType: 'daily',
         dailySessionTarget: 2,
         weeklySessionTarget: 10,
-        preferredWorkHour: 19,
-        activeDays: const [1, 3, 5, 6],
+        preferredWorkHour: 10,
+        activeDays: const [1, 2, 3, 4, 5],
+        workDurationMinutes: 25,
+        breakDurationMinutes: 5,
+        createdAt: DateTime.now(),
+        tags: const ['erpnext', 'work'],
+      ),
+    );
+
+    await _upsertSample(
+      box,
+      ProjectModel(
+        id: workProjectId,
+        name: 'Work',
+        description: 'General work sessions and day-to-day tasks.',
+        color: '#FF9800',
+        iconName: 'work',
+        priority: 3,
+        targetType: 'daily',
+        dailySessionTarget: 2,
+        weeklySessionTarget: 10,
+        preferredWorkHour: 14,
+        activeDays: const [1, 2, 3, 4, 5],
         workDurationMinutes: 15,
         breakDurationMinutes: 5,
         createdAt: DateTime.now(),
-        tags: const ['games', 'study'],
+        tags: const ['work'],
       ),
     );
+  }
+
+  static Future<void> _removeLegacySamples(Box<ProjectModel> box) async {
+    final toRemove = box.values
+        .where((p) => _legacySampleIds.contains(p.id))
+        .toList();
+    for (final project in toRemove) {
+      await project.delete();
+    }
   }
 
   /// Creates sample projects or refreshes their default fields if they already exist.

@@ -231,6 +231,28 @@ class TimerController {
     startTimer();
   }
 
+  /// Move into break with full break duration, paused (does not start ticking).
+  void prepareBreakPaused() {
+    _timer?.cancel();
+    _timer = null;
+    _soundEffectsService.playBreakTimeStarts();
+    _onBreak = true;
+    _isRunning = false;
+    _remainingSeconds = _breakMinutes * 60;
+    _notificationService.hideTimerNotification();
+    _notifyListeners();
+  }
+
+  /// Resume a break that was prepared paused after a focus session.
+  void resumePausedBreak() {
+    if (!_onBreak) {
+      startBreak();
+      return;
+    }
+    if (_isRunning) return;
+    startTimer();
+  }
+
   // Play background music
   Future<void> _playLofi() async {
     if (_backgroundMusicService.isPlaying) {

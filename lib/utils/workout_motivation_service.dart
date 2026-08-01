@@ -24,6 +24,15 @@ class WorkoutMotivationService {
 
   static final Random _random = Random();
 
+  static const WorkoutQuoteVm fallbackQuote = WorkoutQuoteVm(
+    itemId: 'fallback_quote',
+    quote:
+        'You have power over your mind—not outside events. Realize this, and you will find strength.',
+    author: 'Marcus Aurelius',
+    aboutAuthor: '',
+    imageIndex: null,
+  );
+
   static WorkoutQuoteVm? randomAcquiredQuote({
     String? excludeQuote,
     String? excludeItemId,

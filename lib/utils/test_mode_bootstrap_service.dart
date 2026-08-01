@@ -98,16 +98,18 @@ class TestModeBootstrapService {
 
     final alreadySeeded = pomodorosBox.values.any(
       (p) =>
-          p.project_id == ProjectSeedService.studiesProjectId ||
-          p.project_id == ProjectSeedService.gamesStudyingProjectId,
+          p.project_id == ProjectSeedService.personalProjectsId ||
+          p.project_id == ProjectSeedService.erpnextProjectsId ||
+          p.project_id == ProjectSeedService.workProjectId,
     );
     if (alreadySeeded) return;
 
     await ProjectSeedService.ensureSampleProjects();
 
     const projects = [
-      (ProjectSeedService.studiesProjectId, 'Studies Assignments'),
-      (ProjectSeedService.gamesStudyingProjectId, 'Games and Studying'),
+      (ProjectSeedService.personalProjectsId, 'Personal Projects'),
+      (ProjectSeedService.erpnextProjectsId, 'ERPNext Projects'),
+      (ProjectSeedService.workProjectId, 'Work'),
     ];
 
     final now = DateTime.now();

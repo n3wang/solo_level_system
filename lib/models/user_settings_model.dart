@@ -1,5 +1,6 @@
 // lib/models/user_settings_model.dart
 import 'package:hive/hive.dart';
+import 'package:solo_level_system/models/card_acquisition_settings.dart';
 part 'user_settings_model.g.dart';
 
 @HiveType(typeId: 1)
@@ -77,6 +78,33 @@ class UserSettingsModel extends HiveObject {
   @HiveField(18)
   String backupPath;
 
+  /// When true, seed/show development sample data (test rewards, sample
+  /// projects, demo history). When false, hide those records in the UI
+  /// without deleting them from Hive.
+  @HiveField(22)
+  bool developmentDataEnabled;
+
+  /// When true, focus sessions auto-open the journal after work completes.
+  /// Long-press the journal button on the pomodoro screen to toggle.
+  @HiveField(23)
+  bool autoOpenJournalAfterFocus;
+
+  /// `session_completion` | `rogue` | `disabled`
+  @HiveField(24)
+  String cardAcquisitionMode;
+
+  /// Cards granted per focus session in session-completion mode (1–5).
+  @HiveField(25)
+  int sessionCompletionCardCount;
+
+  /// `after_break` | `after_focus`
+  @HiveField(26)
+  String cardAcquireTiming;
+
+  /// Rogue challenge strings (persisted even when rogue mode is off).
+  @HiveField(27)
+  List<String> rogueChallengeList;
+
   UserSettingsModel({
     this.theme = 'system',
     this.primaryColor = 'green',
@@ -100,7 +128,29 @@ class UserSettingsModel extends HiveObject {
     this.enableAnalytics = false,
     this.autoBackup = true,
     this.backupPath = '',
-  });
+    this.developmentDataEnabled = true,
+    this.autoOpenJournalAfterFocus = true,
+    this.cardAcquisitionMode = 'session_completion',
+    this.sessionCompletionCardCount = 1,
+    this.cardAcquireTiming = 'after_break',
+    List<String>? rogueChallengeList,
+  }) : rogueChallengeList =
+            rogueChallengeList ?? List<String>.from(RogueChallengeDefaults.base);
+
+  CardAcquisitionMode get acquisitionMode =>
+      CardAcquisitionMode.fromWire(cardAcquisitionMode);
+
+  set acquisitionMode(CardAcquisitionMode mode) =>
+      cardAcquisitionMode = mode.wire;
+
+  CardAcquireTiming get acquireTiming =>
+      CardAcquireTiming.fromWire(cardAcquireTiming);
+
+  set acquireTiming(CardAcquireTiming timing) =>
+      cardAcquireTiming = timing.wire;
+
+  int get clampedSessionCardCount =>
+      sessionCompletionCardCount.clamp(1, 5).toInt();
 
   // Convenience methods
   bool get isDarkTheme => theme == 'dark';

@@ -55,6 +55,7 @@ dependencies:
   file_picker: ^10.3.10
   url_launcher: ^6.3.1
   uuid: ^4.5.1
+  syncfusion_flutter_maps: ^34.1.33
 
 dev_dependencies:
   flutter_test:

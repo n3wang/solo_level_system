@@ -14,11 +14,13 @@ import 'package:solo_level_system/utils/workout_service.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/utils/default_workouts_service.dart';
 import 'package:solo_level_system/screens/programs_screen.dart';
+import 'package:solo_level_system/screens/games_hub_screen.dart';
 import 'package:solo_level_system/screens/set_session_summary_screen.dart';
 import 'package:solo_level_system/screens/active_workout_session_screen.dart';
 import 'package:solo_level_system/screens/workout_summary_screen.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
+import 'package:solo_level_system/widgets/journal/journal_modal.dart';
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -47,7 +49,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {});
@@ -263,20 +265,37 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     super.dispose();
   }
 
+  Future<void> _openJournal() async {
+    await showJournalModal(context, source: 'workout');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: StandardTabAppBar(
         controller: _tabController,
-        labels: const ['Sets', 'Programs'],
+        labels: const ['Sets', 'Programs', 'Game'],
         isScrollable: false,
         visualSlotCount: 4,
       ),
       body: _isLoading
           ? LoadingIndicator(message: 'Loading...')
-          : TabBarView(
-              controller: _tabController,
-              children: [_buildSetsTab(), _buildTimedTab()],
+          : Stack(
+              children: [
+                TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildSetsTab(),
+                    _buildTimedTab(),
+                    _buildGameTab(),
+                  ],
+                ),
+                Positioned(
+                  top: 8,
+                  right: 16,
+                  child: JournalOpenButton(onPressed: _openJournal),
+                ),
+              ],
             ),
       floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
       floatingActionButton: _tabController.index == 0
@@ -1259,6 +1278,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
   Widget _buildTimedTab() {
     return ProgramsScreen();
+  }
+
+  Widget _buildGameTab() {
+    return const GamesHubScreen();
   }
 
   void _editSet(WorkoutSetCategoryModel setCategory) {

@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/utils/unlock_service.dart';
+import 'package:solo_level_system/utils/dev_data.dart';
 import 'package:solo_level_system/widgets/common/index.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
 
@@ -66,7 +67,9 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
       }
 
       final box = Hive.box<ProjectModel>('projects');
-      projects = box.values.toList();
+      projects = box.values
+          .where((p) => DevData.keepVisible(id: p.id))
+          .toList();
 
       print('Loaded ${projects.length} projects');
       for (var project in projects) {

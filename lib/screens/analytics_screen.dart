@@ -16,6 +16,7 @@ import 'package:solo_level_system/models/reward_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/screens/cards_hub_screen.dart';
 import 'package:solo_level_system/utils/card_repository.dart';
+import 'package:solo_level_system/utils/dev_data.dart';
 import 'package:solo_level_system/utils/motivation_points_service.dart';
 import 'package:solo_level_system/widgets/cards/collectible_card.dart';
 import 'package:solo_level_system/widgets/cards/create_reward_dialog.dart';
@@ -210,8 +211,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildWeeklyOverview(
-                                pomodoroBox.values.toList(),
-                                workoutBox.values.toList(),
+                                DevData.visibleOnly(
+                                  pomodoroBox.values,
+                                  idOf: (_) => null,
+                                  projectIdOf: (p) => p.project_id,
+                                ),
+                                DevData.visibleOnly(
+                                  workoutBox.values,
+                                  idOf: (s) => s.id,
+                                  tagsOf: (s) => s.tags,
+                                ),
                               ),
                               const SizedBox(height: AppUiSizes.xxl),
                               _OverviewNewCardsSection(catalog: catalog),
@@ -258,7 +267,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 'audioFiles',
               ).listenable(),
               builder: (context, Box<EnhancedAudioModel> audioBox, _) {
-                final sessions = box.values.toList();
+                final sessions = DevData.visibleOnly(
+                  box.values,
+                  idOf: (_) => null,
+                  projectIdOf: (p) => p.project_id,
+                );
                 final filteredSessions = _filterSessionsByPeriod(sessions);
                 final previousSessions = _filterSessionsByPreviousPeriod(
                   sessions,
@@ -314,7 +327,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             'workoutSessions',
           ).listenable(),
           builder: (context, Box<WorkoutSessionModel> box, _) {
-            final sessions = box.values.toList();
+            final sessions = DevData.visibleOnly(
+              box.values,
+              idOf: (s) => s.id,
+              tagsOf: (s) => s.tags,
+            );
             final filteredSessions = _filterWorkoutsByPeriod(sessions);
             final previousSessions = _filterWorkoutsByPreviousPeriod(sessions);
 

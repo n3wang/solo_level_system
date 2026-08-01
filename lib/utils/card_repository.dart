@@ -1,5 +1,6 @@
 import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
+import 'package:solo_level_system/utils/dev_data.dart';
 
 /// A single entry (quote, creation, work) in a phy card with optional link to another card.
 ///
@@ -206,10 +207,12 @@ class CardRepository {
     final result = <CatalogCard>[];
 
     for (final item in cards) {
+      if (!DevData.showDevData && DevData.isDevCard(item)) continue;
       result.add(fromCardModel(item));
     }
 
     for (final reward in rewards) {
+      if (!DevData.showDevData && DevData.isDevReward(reward)) continue;
       final isCollectibleSeed =
           reward.metadata['isCollectible'] == true ||
           reward.metadata['source'] == 'default_boardgame_csv' ||

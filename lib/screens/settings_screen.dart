@@ -16,6 +16,9 @@ import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
 import 'package:solo_level_system/widgets/common/on_off_toggle.dart';
 import 'package:solo_level_system/widgets/common/settings_slider.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
+import 'package:solo_level_system/utils/dev_data.dart';
+import 'package:solo_level_system/config/app_environment.dart';
+import 'package:solo_level_system/models/card_acquisition_settings.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -54,6 +57,10 @@ class _SettingsScreenState extends State<SettingsScreen>
       if (userBox.get('settings') == null) {
         await userBox.put('settings', userSettings);
       }
+      userSettings.rogueChallengeList = RogueChallengeDefaults.normalize(
+        userSettings.rogueChallengeList,
+        includeDev: AppEnvironment.isTest,
+      );
       
       // Migrate old palette names
       if (userSettings.colorPalette == 'original' ||
@@ -109,6 +116,12 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   Future<void> _saveUserSettings() async {
     try {
+      userSettings.rogueChallengeList = RogueChallengeDefaults.normalize(
+        userSettings.rogueChallengeList,
+        includeDev: AppEnvironment.isTest,
+      );
+      userSettings.sessionCompletionCardCount =
+          userSettings.sessionCompletionCardCount.clamp(1, 5);
       Box<UserSettingsModel> box;
       if (!Hive.isBoxOpen('userSettings')) {
         box = await Hive.openBox<UserSettingsModel>('userSettings');
@@ -337,8 +350,161 @@ class _SettingsScreenState extends State<SettingsScreen>
             await _saveUserSettings();
           },
         ),
+        Divider(),
+        _buildSectionHeader('Card Acquisition'),
+        SettingsRectChipGroup<CardAcquisitionMode>(
+          title: 'Mode',
+          value: userSettings.acquisitionMode,
+          options: const [
+            SettingsRectChipOption(
+              value: CardAcquisitionMode.sessionCompletion,
+              label: 'On Session Completion',
+            ),
+            SettingsRectChipOption(
+              value: CardAcquisitionMode.rogue,
+              label: 'Rogue Cards',
+            ),
+            SettingsRectChipOption(
+              value: CardAcquisitionMode.disabled,
+              label: 'Disabled',
+            ),
+          ],
+          onChanged: (mode) async {
+            setState(() => userSettings.acquisitionMode = mode);
+            await _saveUserSettings();
+          },
+        ),
+        if (userSettings.acquisitionMode ==
+            CardAcquisitionMode.sessionCompletion) ...[
+          const SizedBox(height: 8),
+          ListTile(
+            title: Text('Cards per session'),
+            subtitle: Text('${userSettings.clampedSessionCardCount}'),
+            trailing: SizedBox(
+              width: 120,
+              child: SettingsSlider(
+                value: userSettings.clampedSessionCardCount.toDouble(),
+                min: 1,
+                max: 5,
+                divisions: 4,
+                onChanged: (value) async {
+                  setState(() {
+                    userSettings.sessionCompletionCardCount = value.round();
+                  });
+                  await _saveUserSettings();
+                },
+              ),
+            ),
+          ),
+          SettingsRectChipGroup<CardAcquireTiming>(
+            title: 'Acquire when',
+            value: userSettings.acquireTiming,
+            options: const [
+              SettingsRectChipOption(
+                value: CardAcquireTiming.afterBreak,
+                label: 'After break',
+              ),
+              SettingsRectChipOption(
+                value: CardAcquireTiming.afterFocus,
+                label: 'After focus',
+              ),
+            ],
+            onChanged: (timing) async {
+              setState(() => userSettings.acquireTiming = timing);
+              await _saveUserSettings();
+            },
+          ),
+        ],
+          const SizedBox(height: 12),
+          _buildSectionHeader('Rogue challenge list'),
+          Text(
+            'Used when Rogue Cards is selected. Stored even if another mode is active.',
+            style: TextStyle(
+              color: AppColorPalette.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ..._buildRogueChallengeEditors(),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () async {
+                setState(() {
+                  userSettings.rogueChallengeList = [
+                    ...userSettings.rogueChallengeList,
+                    '',
+                  ];
+                });
+                await _saveUserSettings();
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Add challenge'),
+            ),
+          ),
+          if (AppEnvironment.isTest)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Dev: "${RogueChallengeDefaults.netflixDevOnly}" is available in the pool.',
+                style: TextStyle(
+                  color: AppColorPalette.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
+            ),
       ],
     );
+  }
+
+  List<Widget> _buildRogueChallengeEditors() {
+    final list = userSettings.rogueChallengeList;
+    return [
+      for (var i = 0; i < list.length; i++)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  key: ValueKey('rogue_challenge_$i'),
+                  initialValue: list[i],
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: const OutlineInputBorder(),
+                    hintText: 'Challenge ${i + 1}',
+                  ),
+                  onChanged: (value) {
+                    if (i < userSettings.rogueChallengeList.length) {
+                      userSettings.rogueChallengeList[i] = value;
+                    }
+                  },
+                  onFieldSubmitted: (_) async {
+                    await _saveUserSettings();
+                  },
+                  onEditingComplete: () async {
+                    await _saveUserSettings();
+                  },
+                ),
+              ),
+              IconButton(
+                tooltip: 'Remove',
+                onPressed: list.length <= 2
+                    ? null
+                    : () async {
+                        setState(() {
+                          userSettings.rogueChallengeList =
+                              List<String>.from(userSettings.rogueChallengeList)
+                                ..removeAt(i);
+                        });
+                        await _saveUserSettings();
+                      },
+                icon: const Icon(Icons.delete_outline),
+              ),
+            ],
+          ),
+        ),
+    ];
   }
 
   Widget _buildNotificationsTab() {
@@ -422,6 +588,30 @@ class _SettingsScreenState extends State<SettingsScreen>
               userSettings.autoBackup = value;
             });
             await _saveUserSettings();
+          },
+        ),
+        Divider(),
+        _buildSectionHeader('Developer'),
+        OnOffToggleListTile(
+          title: Text('Development data'),
+          subtitle: Text(
+            userSettings.developmentDataEnabled
+                ? 'Sample projects, test rewards, and demo history are shown'
+                : 'Dev samples stay in the database but are hidden from lists',
+          ),
+          value: userSettings.developmentDataEnabled,
+          onChanged: (value) async {
+            setState(() {
+              userSettings.developmentDataEnabled = value;
+            });
+            await DevData.setEnabled(value);
+            if (!mounted) return;
+            showAppSnack(
+              context,
+              text: value
+                  ? 'Development data enabled'
+                  : 'Development data hidden',
+            );
           },
         ),
       ],

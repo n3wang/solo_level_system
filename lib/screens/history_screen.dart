@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
+import 'package:solo_level_system/utils/dev_data.dart';
 import 'package:solo_level_system/widgets/audio_player.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   List<PomodoroModel> _filterSessions(List<PomodoroModel> all) {
     final now = DateTime.now();
     return all.where((session) {
+      if (!DevData.keepVisible(projectId: session.project_id)) return false;
       final time = session.startTime;
       switch (selectedTag) {
         case 'Today':

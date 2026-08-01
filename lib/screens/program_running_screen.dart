@@ -5,10 +5,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/timed_workout_model.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
-import 'package:solo_level_system/utils/workout_motivation_service.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/utils/exercise_audio_service.dart';
-import 'package:solo_level_system/widgets/game_icon_widget.dart';
 
 class ProgramRunningScreen extends StatefulWidget {
   final TimedWorkoutModel program;
@@ -29,7 +27,6 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
   bool _hasPlayed5SecondWarning = false;
   Set<int> _playedCountdownNumbers = {}; // Track which countdown numbers have been played
   final _audioService = ExerciseAudioService();
-  WorkoutQuoteVm? _motivationQuote;
 
   List<TimedWorkoutItem> get _workoutItems => widget.program.workoutOrder;
   TimedWorkoutItem? get _currentItem =>
@@ -47,7 +44,6 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
       _hasPlayed5SecondWarning = false;
       _playedCountdownNumbers.clear();
     }
-    _refreshMotivationQuote();
   }
 
   @override
@@ -68,12 +64,6 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
         setState(() {
           _remainingSeconds--;
           _totalElapsedSeconds++;
-          if (_totalElapsedSeconds % 45 == 0) {
-            _motivationQuote = WorkoutMotivationService.randomAcquiredQuote(
-              excludeQuote: _motivationQuote?.quote,
-              excludeItemId: _motivationQuote?.itemId,
-            );
-          }
 
           // Play "5 seconds left" warning when exactly 5 seconds remain
           if (_remainingSeconds == 5 && !_hasPlayed5SecondWarning) {
@@ -158,10 +148,6 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
     setState(() {
       _currentIndex = targetIndex;
       _remainingSeconds = _workoutItems[_currentIndex].time;
-      _motivationQuote = WorkoutMotivationService.randomAcquiredQuote(
-        excludeQuote: _motivationQuote?.quote,
-        excludeItemId: _motivationQuote?.itemId,
-      );
     });
 
     // Get current exercise to check if it's a break
@@ -171,103 +157,6 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
     if (_hasStarted) {
       _ensureTickTimer();
     }
-  }
-
-  void _refreshMotivationQuote() {
-    if (!mounted) return;
-    setState(() {
-      _motivationQuote = WorkoutMotivationService.randomAcquiredQuote(
-        excludeQuote: _motivationQuote?.quote,
-        excludeItemId: _motivationQuote?.itemId,
-      );
-    });
-  }
-
-  Future<void> _showMotivationQuoteDetails() async {
-    if (_motivationQuote == null) return;
-    final scheme = Theme.of(context).colorScheme;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        WorkoutQuoteVm current = _motivationQuote!;
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              contentPadding: const EdgeInsets.all(16),
-              content: SizedBox(
-                width: 340,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      current.author,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Center(
-                      child: current.imageIndex != null && current.imageIndex! > 0
-                          ? MotivationIconWidget(
-                              imageIndex: current.imageIndex!,
-                              size: 96,
-                            )
-                          : Icon(
-                              Icons.format_quote,
-                              size: 64,
-                              color: scheme.primary,
-                            ),
-                    ),
-                    if (current.aboutAuthor.trim().isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        current.aboutAuthor,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    Text(
-                      current.quote,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            final next = WorkoutMotivationService.randomAcquiredQuote(
-                              excludeQuote: current.quote,
-                              excludeItemId: current.itemId,
-                            );
-                            if (next == null) return;
-                            setState(() {
-                              _motivationQuote = next;
-                            });
-                            setDialogState(() {
-                              current = next;
-                            });
-                          },
-                          icon: const Icon(Icons.casino_outlined),
-                          label: const Text('Random'),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          child: const Text('Close'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 
   Future<void> _loadCurrentExerciseAndPlayAudio() async {
@@ -442,50 +331,6 @@ class _ProgramRunningScreenState extends State<ProgramRunningScreen> {
                 ],
               ),
             ),
-            if (_motivationQuote != null &&
-                _motivationQuote!.quote.trim().isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: _showMotivationQuoteDetails,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.format_quote,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _motivationQuote!.quote,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.casino_outlined,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
             // Main exercise display
             Expanded(
               child: GestureDetector(

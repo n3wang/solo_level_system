@@ -10,14 +10,30 @@ class AppEnvironment {
     defaultValue: false,
   );
 
-  /// Common demo/test gate. When true: Overview heatmap gets sample minutes
-  /// for the previous 25 days, cheaper unlocks, etc.
-  static const bool is_test = true;
+  /// Compile-time default used until [setDevelopmentDataEnabled] loads settings.
+  /// Prefer the Settings → Development data toggle at runtime.
+  static const bool defaultDevelopmentData = true;
+
+  static bool? _developmentDataEnabled;
 
   static String get name => _rawEnv.toLowerCase();
 
-  static bool get isTest =>
-      is_test || _explicitTestMode || name == 'test' || name == 'testing';
+  /// True when development / test seed data and demo behaviors are active.
+  static bool get isTest {
+    if (_developmentDataEnabled != null) return _developmentDataEnabled!;
+    return defaultDevelopmentData ||
+        _explicitTestMode ||
+        name == 'test' ||
+        name == 'testing';
+  }
+
+  /// Alias kept for older call sites (e.g. analytics heatmap samples).
+  static bool get is_test => isTest;
+
+  /// Apply the persisted Settings toggle (call after loading user settings).
+  static void setDevelopmentDataEnabled(bool enabled) {
+    _developmentDataEnabled = enabled;
+  }
 
   /// When false (prod), unacquired hub cards hide art/description until bought
   /// (Pokemon TCG style). Test / demo modes keep full preview for QA.

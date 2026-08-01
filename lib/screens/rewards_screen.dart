@@ -4,6 +4,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
+import 'package:solo_level_system/utils/dev_data.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 /// Progression is points + cards only (no XP / levels). This screen shows the
@@ -41,7 +42,9 @@ class _RewardsScreenState extends State<RewardsScreen>
         await Hive.openBox<RewardModel>('rewards');
       }
       final rewardsBox = Hive.box<RewardModel>('rewards');
-      rewards = rewardsBox.values.toList();
+      rewards = rewardsBox.values
+          .where((r) => DevData.showDevData || !DevData.isDevReward(r))
+          .toList();
 
       setState(() {
         isLoading = false;

@@ -23,9 +23,12 @@ import 'models/card_model.dart';
 import 'models/motivation_points_transaction_model.dart';
 import 'models/timed_workout_model.dart';
 import 'models/long_break_queue_item_model.dart';
+import 'models/journal_entry_model.dart';
 import 'utils/default_workouts_service.dart';
+import 'utils/journal_service.dart';
 import 'utils/card_content_seed_service.dart';
 import 'utils/test_mode_bootstrap_service.dart';
+import 'utils/dev_data.dart';
 import 'utils/programs_service.dart';
 import 'utils/palette_notifier.dart';
 import 'package:sprite_sheets/sprite_sheets.dart';
@@ -101,6 +104,7 @@ void main() async {
     Hive.registerAdapter(TimedWorkoutItemAdapter());
     Hive.registerAdapter(TimedWorkoutModelAdapter());
     Hive.registerAdapter(LongBreakQueueItemModelAdapter());
+    Hive.registerAdapter(JournalEntryModelAdapter());
 
     // Open all Hive boxes with detailed logging
     print('Opening Hive boxes...');
@@ -138,6 +142,9 @@ void main() async {
     // App initialization flags box (untyped, for simple boolean flags)
     await Hive.openBox('app_init_flags');
     print('✓ Opened app_init_flags box');
+
+    await JournalService.ensureBox();
+    print('✓ Opened journalEntries box');
 
     try {
       await Hive.openBox<LongBreakQueueItemModel>('longBreakQueue');
@@ -418,6 +425,10 @@ void main() async {
     }
 
     try {
+      await DevData.loadFromSettings();
+      print(
+        'Development data: ${AppEnvironment.isTest ? 'enabled' : 'hidden'}',
+      );
       await TestModeBootstrapService.ensureTestData();
     } catch (e) {
       print('⚠️ Error applying test bootstrap data: $e');

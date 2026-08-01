@@ -5,16 +5,17 @@ import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/workout_set_model.dart';
+import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/models/workout_routine_model.dart';
 import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/utils/workout_service.dart';
-import 'package:solo_level_system/utils/workout_motivation_service.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/widgets/common/settings_slider.dart';
-import 'package:solo_level_system/widgets/game_icon_widget.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
+import 'package:solo_level_system/widgets/journal/journal_modal.dart';
+import 'package:solo_level_system/utils/journal_service.dart';
 
 class ActiveWorkoutSessionScreen extends StatefulWidget {
   final WorkoutSessionModel session;
@@ -50,7 +51,6 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
   bool _isResting = false;
   Timer? _restTimer;
   Duration _restDuration = Duration.zero;
-  WorkoutQuoteVm? _motivationQuote;
 
   /// Default rest between sets (seconds). Editable from rest settings.
   int _defaultRestSeconds = 60;
@@ -89,7 +89,6 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       _tabController.addListener(_onTabChanged);
     }
     _initializeWorkout();
-    _motivationQuote = WorkoutMotivationService.randomAcquiredQuote();
     _startTimer();
   }
 
@@ -178,12 +177,6 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       if (!_isPaused) {
         setState(() {
           _workoutDuration = _workoutDuration + Duration(seconds: 1);
-          if (_workoutDuration.inSeconds % 45 == 0) {
-            _motivationQuote = WorkoutMotivationService.randomAcquiredQuote(
-              excludeQuote: _motivationQuote?.quote,
-              excludeItemId: _motivationQuote?.itemId,
-            );
-          }
         });
       }
     });
@@ -252,6 +245,18 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                 ],
               ),
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.menu_book_outlined),
+                  onPressed: () => showJournalModal(
+                    context,
+                    source: 'workout',
+                    workoutSessionId: widget.session.id,
+                    projectName: widget.session.routineName,
+                    preferSessionNotes: true,
+                    accentColorHex: _workoutGroupingAccentHex(),
+                  ),
+                  tooltip: 'Journal',
+                ),
                 if (widget.routine != null && !widget.sequentialMode)
                   IconButton(
                     icon: Icon(Icons.edit),
@@ -325,9 +330,6 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
               children: [
                 if (widget.sequentialMode && widget.exercises.length > 1)
                   _buildExerciseSwapBar(),
-                if (_motivationQuote != null &&
-                    _motivationQuote!.quote.trim().isNotEmpty)
-                  _buildMotivationQuoteBanner(),
                 Expanded(
                   child: widget.sequentialMode
                       ? (widget.exercises.isEmpty
@@ -457,138 +459,6 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           padding: EdgeInsets.zero,
         ),
       ],
-    );
-  }
-
-  Widget _buildMotivationQuoteBanner() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: _showMotivationQuoteDetails,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.format_quote,
-                color: Theme.of(context).colorScheme.primary,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _motivationQuote!.quote,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.casino_outlined,
-                size: 16,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showMotivationQuoteDetails() async {
-    if (_motivationQuote == null) return;
-    final scheme = Theme.of(context).colorScheme;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        WorkoutQuoteVm current = _motivationQuote!;
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              contentPadding: const EdgeInsets.all(16),
-              content: SizedBox(
-                width: 340,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      current.author,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Center(
-                      child: current.imageIndex != null && current.imageIndex! > 0
-                          ? MotivationIconWidget(
-                              imageIndex: current.imageIndex!,
-                              size: 96,
-                            )
-                          : Icon(
-                              Icons.format_quote,
-                              size: 64,
-                              color: scheme.primary,
-                            ),
-                    ),
-                    if (current.aboutAuthor.trim().isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        current.aboutAuthor,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    Text(
-                      current.quote,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            final next = WorkoutMotivationService.randomAcquiredQuote(
-                              excludeQuote: current.quote,
-                              excludeItemId: current.itemId,
-                            );
-                            if (next == null) return;
-                            setState(() {
-                              _motivationQuote = next;
-                            });
-                            setDialogState(() {
-                              current = next;
-                            });
-                          },
-                          icon: const Icon(Icons.casino_outlined),
-                          label: const Text('Random'),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          child: const Text('Close'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 
@@ -2090,6 +1960,23 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     );
   }
 
+  /// Set palette color for journal grouping; null means use theme primary.
+  String? _workoutGroupingAccentHex() {
+    final setId =
+        widget.session.additionalData['setCategoryId'] as String? ??
+        widget.session.routineId;
+    if (!Hive.isBoxOpen('workoutSetCategories')) return null;
+    for (final set
+        in Hive.box<WorkoutSetCategoryModel>('workoutSetCategories').values) {
+      if (set.id == setId) {
+        return AppColorPalette.colorToHex(
+          AppColorPalette.colorForSetPosition(set.position),
+        );
+      }
+    }
+    return null;
+  }
+
   Future<void> _endWorkout({bool shouldNavigate = true}) async {
     if (mounted) {
       setState(() => _isLoading = true);
@@ -2160,6 +2047,17 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
 
       // Save or update session using its ID as the key
       await sessionsBox.put(widget.session.id, widget.session);
+
+      final journalMinutes = widget.session.durationMinutes > 0
+          ? widget.session.durationMinutes
+          : 1;
+      await JournalService.finalizeWorkoutSessionNote(
+        workoutSessionId: widget.session.id,
+        minutes: journalMinutes,
+        routineName: widget.session.routineName,
+        fullyCompleted: allExercisesCompleted,
+        accentColorHex: _workoutGroupingAccentHex(),
+      );
 
       // Update routine completion count if all exercises are completed
       if (allExercisesCompleted && widget.routine != null) {

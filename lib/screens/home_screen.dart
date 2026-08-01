@@ -11,7 +11,6 @@ import 'package:solo_level_system/constants/color_palette.dart';
 
 import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/widgets/pomodoro/project_selector_widget.dart';
-import 'package:solo_level_system/utils/image_utils.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/config_model.dart';
@@ -19,34 +18,35 @@ import 'package:solo_level_system/models/user_settings_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/reward_model.dart';
 
-import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:solo_level_system/utils/database_utils.dart';
+import 'package:solo_level_system/utils/dev_data.dart';
 import 'package:solo_level_system/utils/background_music_service.dart';
 import 'package:solo_level_system/utils/sound_effects_service.dart';
-import 'package:solo_level_system/utils/audio_utils.dart';
 import 'package:solo_level_system/utils/notification_service.dart';
 import 'package:solo_level_system/utils/timer_controller.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/utils/session_reward_service.dart';
+import 'package:solo_level_system/models/card_acquisition_settings.dart';
+import 'package:solo_level_system/models/card_model.dart';
+import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
 import 'package:solo_level_system/widgets/common/session_loot_dialog.dart';
-import 'package:record/record.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:solo_level_system/widgets/cards/rogue_challenge_modal.dart';
 import 'package:solo_level_system/models/room_model.dart';
 
 // New imports for refactored widgets and constants
 import 'package:solo_level_system/utils/pomodoro_sizing.dart';
 import 'package:solo_level_system/widgets/pomodoro/compact_music_widget.dart';
 import 'package:solo_level_system/widgets/pomodoro/session_squares_widget.dart';
-import 'package:solo_level_system/widgets/pomodoro/session_recording_preview.dart';
 import 'package:solo_level_system/screens/room_management_screen.dart';
 import 'package:solo_level_system/screens/projects_management_screen.dart';
 import 'package:solo_level_system/utils/room_management_seed_service.dart';
 import 'package:solo_level_system/utils/unlock_service.dart';
-import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/utils/project_seed_service.dart';
+import 'package:solo_level_system/utils/journal_service.dart';
+import 'package:solo_level_system/widgets/journal/journal_modal.dart';
 import 'package:solo_level_system/models/room_management_model.dart';
 import 'package:solo_level_system/widgets/pomodoro/long_break_modal.dart';
 import 'package:solo_level_system/utils/lofi_service.dart';
@@ -67,12 +67,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int remainingSeconds = 1500;
   bool isRunning = false;
   bool onBreak = false;
-  bool showPlayer = false;
   String? audioPath;
-  EnhancedAudioModel? recordedAudio;
   String logStateMessage = "State: ";
   int countCompletedToday = 0;
   bool canSubmitLog = false;
+  bool _journalPromptedForSession = false;
+  bool _journalOpenInProgress = false;
+  bool _pendingBreakResume = false;
+  bool _savingCompletedSession = false;
+  bool _handlingBreakComplete = false;
+
+  /// Pending session-completion cards to grant after break.
+  int? _pendingAfterBreakCardCount;
+  int _pendingAfterBreakMinutes = 0;
+
+  /// Rogue pick reserved until break ends.
+  CardModel? _pendingRogueCard;
+  String? _pendingRogueChallenge;
   String? imagePath;
   String? currentlyPlayingTrack;
   ConfigModel? config;
@@ -128,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   ];
 
   void _showSessionPhaseSnack(List<String> messages) {
-    if (!mounted) return;
+    if (!mounted || !JournalService.campaignModeEnabled) return;
     showAppSnackMessage(context, messages: messages, random: _random);
   }
 
@@ -168,7 +179,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _onTimerStateChanged() {
     final wasRunning = isRunning;
+    final wasOnBreak = onBreak;
     final previousTrack = currentlyPlayingTrack;
+    var shouldCompleteWorkSession = false;
+    var shouldCompleteBreak = false;
     setState(() {
       // Update UI when timer state changes
       remainingSeconds = _timerController.remainingSeconds;
@@ -176,12 +190,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       onBreak = _timerController.onBreak;
       currentlyPlayingTrack = _timerController.getCurrentTrackTitle();
 
-      // If work session completed (not running, not on break, timer at 0)
+      // Work session hit 00: save, move to paused break, then open journal.
       if (!_timerController.isRunning &&
           !_timerController.onBreak &&
           _timerController.remainingSeconds == 0) {
         canSubmitLog = true;
-        logStateMessage = "State: Finished – Submit Log";
+        logStateMessage = "State: Finished – Journal";
+        if (!_journalPromptedForSession && !_savingCompletedSession) {
+          _journalPromptedForSession = true;
+          shouldCompleteWorkSession = true;
+        }
+      }
+
+      // Break finished: controller resets to work duration with onBreak=false.
+      if (wasOnBreak &&
+          !_timerController.onBreak &&
+          !_timerController.isRunning &&
+          !shouldCompleteWorkSession) {
+        shouldCompleteBreak = true;
       }
 
       // Hide room quick rail when a session starts.
@@ -189,6 +215,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _isRoomQuickPickerOpen = false;
       }
     });
+
+    if (shouldCompleteWorkSession) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_completeWorkSessionAndOpenJournal());
+      });
+    }
+    if (shouldCompleteBreak) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_onBreakSessionCompleted());
+      });
+    }
 
     if (previousTrack != null &&
         currentlyPlayingTrack != null &&
@@ -685,11 +722,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (isRunning) {
       return onBreak ? 'Break Time - Tap to Stop' : 'Focus Time - Tap to Stop';
     }
-    if (canSubmitLog) {
-      if (recordedAudio != null) {
-        return 'Session complete • Preview your note • Tap timer to submit';
-      }
-      return 'Session Complete - Tap to Submit!';
+    if (_pendingBreakResume || canSubmitLog) {
+      return 'Break ready • Close journal to start';
     }
     return 'Tap to Start • ↑ Finish • ↓ Reset';
   }
@@ -1191,31 +1225,308 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  void submitLog() {
-    saveSession();
-    setState(() {
-      audioPath = null;
-      recordedAudio = null;
-      showPlayer = false;
-      canSubmitLog = false;
-      logStateMessage = "State: Break";
-    });
-
-    _timerController.startBreak();
-    _showSessionPhaseSnack(_breakPhaseMessages);
+  bool get _autoOpenJournalAfterFocus {
+    // Prefer live Hive value so a settings toggle is never stale.
+    try {
+      if (Hive.isBoxOpen('userSettings')) {
+        final stored =
+            Hive.box<UserSettingsModel>('userSettings').get('settings');
+        if (stored != null) {
+          return stored.autoOpenJournalAfterFocus;
+        }
+      }
+    } catch (_) {}
+    return userSettings?.autoOpenJournalAfterFocus ?? true;
   }
 
-  void saveSession({cleanVariables = true}) async {
+  Future<void> _toggleAutoOpenJournalAfterFocus() async {
+    final settings = userSettings ??
+        (Hive.isBoxOpen('userSettings')
+            ? Hive.box<UserSettingsModel>('userSettings').get('settings')
+            : null) ??
+        UserSettingsModel();
+    final next = !settings.autoOpenJournalAfterFocus;
+    settings.autoOpenJournalAfterFocus = next;
+    try {
+      final box = Hive.box<UserSettingsModel>('userSettings');
+      await box.put('settings', settings);
+    } catch (e) {
+      print('Error saving auto-open journal setting: $e');
+    }
+    if (!mounted) return;
+    setState(() => userSettings = settings);
+    showAppSnack(
+      context,
+      text: next
+          ? 'Journal auto-opens after focus'
+          : 'Journal stays closed after focus',
+    );
+  }
+
+  UserSettingsModel _liveSettings() {
+    try {
+      if (Hive.isBoxOpen('userSettings')) {
+        final stored =
+            Hive.box<UserSettingsModel>('userSettings').get('settings');
+        if (stored != null) return stored;
+      }
+    } catch (_) {}
+    return userSettings ?? UserSettingsModel();
+  }
+
+  Future<void> _completeWorkSessionAndOpenJournal() async {
+    if (_savingCompletedSession || !mounted) return;
+    _savingCompletedSession = true;
+    final settings = _liveSettings();
+    final autoOpenJournal = settings.autoOpenJournalAfterFocus;
+    final mode = settings.acquisitionMode;
+    try {
+      _timerController.prepareBreakPaused();
+      setState(() {
+        canSubmitLog = false;
+        _pendingBreakResume = true;
+        remainingSeconds = _timerController.remainingSeconds;
+        isRunning = _timerController.isRunning;
+        onBreak = _timerController.onBreak;
+        logStateMessage =
+            autoOpenJournal ? 'State: Break (paused)' : 'State: Break';
+      });
+
+      final minutesSpent = workMinutes > 0 ? workMinutes : 1;
+
+      // Rogue: show the pick overlay immediately. Persist the session in the
+      // background so Hive/journal/audio work does not delay the UI.
+      if (mode == CardAcquisitionMode.rogue) {
+        unawaited(() async {
+          try {
+            await saveSession(showLootUi: false, grantCardsAndPoints: false);
+          } catch (e) {
+            print('Error saving focus session: $e');
+          }
+        }());
+        await _handleFocusAcquisition(
+          settings: settings,
+          mode: mode,
+          minutesSpent: minutesSpent,
+        );
+      } else {
+        try {
+          await saveSession(showLootUi: false, grantCardsAndPoints: false);
+        } catch (e) {
+          print('Error saving focus session: $e');
+        }
+        if (!mounted) return;
+        await _handleFocusAcquisition(
+          settings: settings,
+          mode: mode,
+          minutesSpent: minutesSpent,
+        );
+      }
+      if (!mounted) return;
+
+      if (autoOpenJournal) {
+        await _openJournal(awaitingBreakResume: true);
+      } else {
+        _resumeBreakAfterJournal();
+      }
+    } finally {
+      _savingCompletedSession = false;
+    }
+  }
+
+  Future<void> _handleFocusAcquisition({
+    required UserSettingsModel settings,
+    required CardAcquisitionMode mode,
+    required int minutesSpent,
+  }) async {
+    await _ensureUserProgress();
+
+    _pendingAfterBreakCardCount = null;
+    _pendingRogueCard = null;
+    _pendingRogueChallenge = null;
+
+    switch (mode) {
+      case CardAcquisitionMode.disabled:
+        SessionRewardService.grant(
+          minutes: minutesSpent,
+          kind: SessionKind.focus,
+          progress: userProgress,
+          cardCountOverride: 0,
+        );
+        return;
+      case CardAcquisitionMode.sessionCompletion:
+        final count = settings.clampedSessionCardCount;
+        if (settings.acquireTiming == CardAcquireTiming.afterFocus) {
+          try {
+            await MotivationSeedService.ensureSeeded();
+          } catch (_) {}
+          final loot = SessionRewardService.grant(
+            minutes: minutesSpent,
+            kind: SessionKind.focus,
+            progress: userProgress,
+            cardCountOverride: count,
+          );
+          if (mounted && loot.cards.isNotEmpty) {
+            await showSessionLootDialog(context, loot);
+          }
+        } else {
+          _pendingAfterBreakCardCount = count;
+          _pendingAfterBreakMinutes = minutesSpent;
+        }
+        return;
+      case CardAcquisitionMode.rogue:
+        // Draw first; seed only if the pool is empty so the overlay is instant.
+        await _promptRogueChallenge(minutesSpent: minutesSpent);
+        return;
+    }
+  }
+
+  Future<void> _promptRogueChallenge({required int minutesSpent}) async {
+    if (!mounted) return;
+    final settings = _liveSettings();
+    final challenges = RogueChallengeDefaults.normalize(
+      settings.rogueChallengeList,
+      includeDev: AppEnvironment.isTest,
+    );
+    var drawn = SessionRewardService.drawCards(2);
+    if (drawn.length < 2) {
+      try {
+        await MotivationSeedService.ensureSeeded();
+      } catch (_) {}
+      drawn = SessionRewardService.drawCards(2);
+    }
+    final options = buildRogueOptions(cards: drawn, challenges: challenges);
+    if (options.length < 2) {
+      if (mounted) {
+        showAppSnack(context, text: 'Need more cards/challenges for Rogue mode');
+      }
+      return;
+    }
+    final pick = await showRogueChallengeModal(
+      context: context,
+      options: options,
+      userProgress: userProgress ?? UserProgressModel(),
+    );
+    if (!mounted) return;
+    if (pick != null) {
+      _pendingRogueCard = pick.card;
+      _pendingRogueChallenge = pick.challenge;
+      _pendingAfterBreakMinutes = minutesSpent;
+    }
+  }
+
+  Future<void> _onBreakSessionCompleted() async {
+    if (_handlingBreakComplete || !mounted) return;
+    _handlingBreakComplete = true;
+    try {
+      await _ensureUserProgress();
+      SessionLoot? loot;
+
+      if (_pendingRogueCard != null) {
+        loot = SessionRewardService.grantDrawnCards(
+          minutes: _pendingAfterBreakMinutes > 0
+              ? _pendingAfterBreakMinutes
+              : (breakMinutes > 0 ? breakMinutes : 5),
+          kind: SessionKind.focus,
+          cards: [_pendingRogueCard!],
+          progress: userProgress,
+        );
+        if (_pendingRogueChallenge != null && mounted) {
+          showAppSnack(
+            context,
+            text: 'Challenge done: $_pendingRogueChallenge',
+          );
+        }
+      } else if (_pendingAfterBreakCardCount != null) {
+        loot = SessionRewardService.grant(
+          minutes: _pendingAfterBreakMinutes > 0
+              ? _pendingAfterBreakMinutes
+              : (workMinutes > 0 ? workMinutes : 1),
+          kind: SessionKind.focus,
+          progress: userProgress,
+          cardCountOverride: _pendingAfterBreakCardCount,
+        );
+      }
+
+      _pendingRogueCard = null;
+      _pendingRogueChallenge = null;
+      _pendingAfterBreakCardCount = null;
+      _pendingAfterBreakMinutes = 0;
+
+      if (mounted && loot != null && loot.cards.isNotEmpty) {
+        await showSessionLootDialog(context, loot);
+      }
+    } catch (e) {
+      print('Error granting after-break loot: $e');
+    } finally {
+      _handlingBreakComplete = false;
+    }
+  }
+
+  Future<void> _ensureUserProgress() async {
+    if (userProgress != null && userProgress!.isInBox) return;
+    await _loadUserProgress();
+  }
+
+  Future<void> _openJournal({bool awaitingBreakResume = false}) async {
+    if (_journalOpenInProgress || !mounted) return;
+    _journalOpenInProgress = true;
+    try {
+      final shouldResumeBreak = awaitingBreakResume || _pendingBreakResume;
+      final result = await showJournalModal(
+        context,
+        awaitingBreakResume: shouldResumeBreak,
+        source: 'focus',
+        projectName: selectedProject?.name,
+      );
+      if (!mounted) return;
+      if (result?.audioPath != null) {
+        audioPath = result!.audioPath;
+      }
+      if (result?.imagePath != null) {
+        imagePath = result!.imagePath;
+      }
+      if (shouldResumeBreak) {
+        _resumeBreakAfterJournal();
+      }
+    } catch (e) {
+      print('Error opening journal: $e');
+      if (awaitingBreakResume || _pendingBreakResume) {
+        _resumeBreakAfterJournal();
+      }
+    } finally {
+      _journalOpenInProgress = false;
+    }
+  }
+
+  void _resumeBreakAfterJournal() {
+    _pendingBreakResume = false;
+    _journalPromptedForSession = false;
+    canSubmitLog = false;
+    logStateMessage = "State: Break";
+    _timerController.resumePausedBreak();
+    _showSessionPhaseSnack(_breakPhaseMessages);
+    setState(() {
+      remainingSeconds = _timerController.remainingSeconds;
+      isRunning = _timerController.isRunning;
+      onBreak = _timerController.onBreak;
+    });
+  }
+
+  /// Persists the completed focus session.
+  ///
+  /// Card/points grants are controlled by [grantCardsAndPoints]. The focus
+  /// completion path usually passes false and handles acquisition via mode.
+  Future<SessionLoot?> saveSession({
+    cleanVariables = true,
+    bool showLootUi = true,
+    bool grantCardsAndPoints = true,
+  }) async {
     countCompletedToday++;
 
-    // Calculate actual minutes spent
-    int minutesSpent = workMinutes; // Default to planned minutes
-    if (sessionStartTime != null) {
-      final actualDuration = DateTime.now().difference(sessionStartTime!);
-      minutesSpent = actualDuration.inMinutes;
-      // Ensure minimum of 1 minute and maximum of planned minutes + 5 (for flexibility)
-      minutesSpent = minutesSpent.clamp(1, workMinutes + 5);
-    }
+    // Timer-completed sessions credit the planned work length. Wall-clock
+    // can be 0 on instant-finish / sub-minute runs and used to save "1 min".
+    final minutesSpent = workMinutes > 0 ? workMinutes : 1;
 
     final session = PomodoroModel(
       startTime: sessionStartTime ?? DateTime.now(),
@@ -1230,78 +1541,81 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final box = Hive.box<PomodoroModel>('pomodoros');
     await box.add(session);
 
+    await JournalService.addSessionCompleted(
+      minutes: minutesSpent,
+      projectName: selectedProject?.name,
+      source: 'focus',
+      accentColorHex: selectedProject?.color,
+    );
+
     // Update project statistics if a project is selected
     if (selectedProject != null) {
       selectedProject!.addPomodoroSession();
     }
 
-    // Record session stats + grant points and card loot (points + cards only).
+    SessionLoot? loot;
+    await _ensureUserProgress();
+    try {
+      await MotivationSeedService.ensureSeeded();
+    } catch (_) {}
     if (userProgress != null) {
       userProgress!.recordSession(sessionDate: session.startTime);
-      final loot = SessionRewardService.grant(
-        minutes: minutesSpent,
-        kind: SessionKind.focus,
-        progress: userProgress,
-      );
-      if (mounted) {
-        await showSessionLootDialog(context, loot);
+      if (grantCardsAndPoints) {
+        final settings = _liveSettings();
+        final count =
+            settings.acquisitionMode == CardAcquisitionMode.sessionCompletion
+                ? settings.clampedSessionCardCount
+                : 1;
+        loot = SessionRewardService.grant(
+          minutes: minutesSpent,
+          kind: SessionKind.focus,
+          progress: userProgress,
+          cardCountOverride: count,
+        );
+        if (showLootUi && mounted && loot.cards.isNotEmpty) {
+          await showSessionLootDialog(context, loot);
+        }
       }
     }
 
     print(
-      "Saved session at ${session.startTime} - Duration: $minutesSpent minutes",
+      "Saved session at ${session.startTime} - Duration: $minutesSpent minutes"
+      "${loot != null ? ', cards=${loot.cards.length}' : ''}",
     );
     if (cleanVariables) {
       audioPath = null;
-      recordedAudio = null;
       imagePath = null;
-      showPlayer = false;
       sessionStartTime = null;
     }
-  }
-
-  Future<void> _persistSessionRecording(EnhancedAudioModel audioModel) async {
-    try {
-      if (!Hive.isBoxOpen('audioFiles')) {
-        await Hive.openBox<EnhancedAudioModel>('audioFiles');
-      }
-      final box = Hive.box<EnhancedAudioModel>('audioFiles');
-      await box.add(audioModel);
-    } catch (e) {
-      if (!mounted) return;
-      showAppSnack(context, text: 'Could not save recording to library: $e');
-    }
-  }
-
-  void takePhoto() async {
-    String? path = await capturePhoto(context);
-
-    if (path != null) {
-      setState(() {
-        imagePath = path;
-      });
-    }
+    return loot;
   }
 
   void stopTimer() {
     _timerController.pauseTimer();
+    _clearPendingAcquisition();
     if (audioPath != null) {
       final file = File(audioPath!);
       if (file.existsSync()) file.deleteSync();
       audioPath = null;
     }
     setState(() {
-      recordedAudio = null;
-      showPlayer = false;
       sessionStartTime = null;
     });
   }
 
   void resetTimer() {
     _timerController.resetTimer();
+    _clearPendingAcquisition();
     setState(() {
       sessionStartTime = null;
     });
+  }
+
+  void _clearPendingAcquisition() {
+    _pendingAfterBreakCardCount = null;
+    _pendingAfterBreakMinutes = 0;
+    _pendingRogueCard = null;
+    _pendingRogueChallenge = null;
   }
 
   void toggleMute() {
@@ -1501,9 +1815,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
       final box = Hive.box<ProjectModel>('projects');
 
-      // Load only active projects (user-created projects)
+      // Load only active projects (hide sample/dev projects when toggled off)
       final allProjects = box.values.toList();
-      final activeProjects = allProjects.where((p) => p.isActive).toList();
+      final activeProjects = allProjects
+          .where((p) => p.isActive && DevData.keepVisible(id: p.id))
+          .toList();
 
       setState(() {
         projects = activeProjects;
@@ -1608,17 +1924,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               });
             }
           },
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                // Main Timer Display
-                _buildTimerSection(),
-
-                // Recording and Photo Section (conditional)
-                // _buildConditionalRecordingSection(),
-              ],
-            ),
+          child: Stack(
+            children: [
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: [
+                    _buildTimerSection(),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 16,
+                child: JournalOpenButton(
+                  autoOpenAfterSession: _autoOpenJournalAfterFocus,
+                  onPressed: () => _openJournal(
+                    awaitingBreakResume: _pendingBreakResume,
+                  ),
+                  onLongPress: _toggleAutoOpenJournalAfterFocus,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1666,7 +1993,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
-        canSubmitLog ? _buildTimerWithRecordingButtons() : _buildGestureTimer(),
+        _buildGestureTimer(),
       ],
     );
   }
@@ -1689,9 +2016,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (_timerController.isRunning) {
           print('[HOME] Calling pauseTimer()');
           _timerController.pauseTimer();
-        } else if (canSubmitLog) {
-          print('[HOME] Calling submitLog()');
-          submitLog();
+        } else if (_pendingBreakResume) {
+          if (_autoOpenJournalAfterFocus) {
+            print('[HOME] Opening journal before break resume');
+            unawaited(_openJournal(awaitingBreakResume: true));
+          } else {
+            print('[HOME] Resuming break without journal');
+            _resumeBreakAfterJournal();
+          }
         } else {
           print('[HOME] Calling startTimer()');
           startTimer();
@@ -1939,299 +2271,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildTimerWithRecordingButtons() {
-    return MediaQuery.of(context).size.width > 600
-        ? Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Album image with timer overlay (center)
-              SizedBox(
-                width: PomodoroSizing.getAlbumContainerSize(context),
-                height: PomodoroSizing.getAlbumContainerSize(context),
-                child: GestureDetector(
-                  onTap: () {
-                    if (canSubmitLog) {
-                      submitLog();
-                    }
-                  },
-                  onVerticalDragEnd: (details) {
-                    // Swipe up for instant finish, swipe down for reset
-                    if (details.velocity.pixelsPerSecond.dy < -300) {
-                      // Swipe up - instant finish current session (work or break)
-                      if (isRunning) {
-                        instantFinish();
-                      }
-                    } else if (details.velocity.pixelsPerSecond.dy > 300) {
-                      // Swipe down - reset timer
-                      if (!isRunning) {
-                        resetTimer();
-                      }
-                    }
-                  },
-                  child: Stack(
-                    children: [
-                      // Timer overlay with semi-transparent background
-                      Container(
-                        width: PomodoroSizing.getAlbumContainerSize(context),
-                        height: PomodoroSizing.getAlbumContainerSize(context),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.shadow.withValues(alpha: 0.3),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildAnimatedTimerText(),
-                            SizedBox(height: 8),
-                            _buildTimerOverlayText(),
-                            SizedBox(height: 8),
-                            SessionSquaresWidget(
-                              completedSessions: countCompletedToday,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (selectedProject != null)
-                        Positioned(
-                          top: 8,
-                          right: 10,
-                          child: _buildSelectedProjectOverlayText(),
-                        ),
-                      if (selectedRoom != null)
-                        Positioned(
-                          top: 8,
-                          left: 10,
-                          child: _buildSelectedRoomOverlayText(),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              // vertical stack for horizontal layout
-              Column(
-                children: [
-                  // Recording button (right side)
-                  if (config?.showAudioRecordButton == true)
-                    Container(
-                      margin: EdgeInsets.only(left: 20, top: 10, bottom: 10),
-                      child: _buildSimplifiedRecordingButton(),
-                    ),
-
-                  if (config?.showPhotoButton == true)
-                    Container(
-                      margin: EdgeInsets.only(left: 20, bottom: 10),
-                      child: _buildSquareEvidenceButton(),
-                    ),
-                  if (recordedAudio != null)
-                    Container(
-                      margin: const EdgeInsets.only(
-                        left: 20,
-                        top: 4,
-                        bottom: 8,
-                      ),
-                      constraints: const BoxConstraints(maxWidth: 300),
-                      child: SessionRecordingPreview(audio: recordedAudio!),
-                    ),
-                  if (isRunning || canSubmitLog)
-                    Container(
-                      width: PomodoroSizing.getMusicWidgetWidth(context),
-                      margin: EdgeInsets.only(left: 20, top: 10),
-                      child: CompactMusicWidget(
-                        allowMusic: _timerController.allowMusic,
-                        currentlyPlayingTrack: currentlyPlayingTrack,
-                        onToggleMusic: _toggleMusicPlayback,
-                        onChangeTrack: () {
-                          if (_timerController.allowMusic) {
-                            _playLofi();
-                          }
-                        },
-                        onLongPressTrackPicker: _openTrackPickerModal,
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          )
-        : Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top padding to match bottom spacing
-              SizedBox(height: 20),
-              // Album image with timer overlay for vertical layout
-              SizedBox(
-                width: PomodoroSizing.getAlbumContainerSize(context),
-                height: PomodoroSizing.getAlbumContainerSize(context),
-                child: GestureDetector(
-                  onTap: () {
-                    if (canSubmitLog) {
-                      submitLog();
-                    }
-                  },
-                  onVerticalDragEnd: (details) {
-                    // Swipe up for instant finish, swipe down for reset
-                    if (details.velocity.pixelsPerSecond.dy < -300) {
-                      // Swipe up - instant finish current session (work or break)
-                      if (isRunning) {
-                        instantFinish();
-                      }
-                    } else if (details.velocity.pixelsPerSecond.dy > 300) {
-                      // Swipe down - reset timer
-                      if (!isRunning) {
-                        resetTimer();
-                      }
-                    }
-                  },
-                  child: Stack(
-                    children: [
-                      // Timer overlay with semi-transparent background
-                      Container(
-                        width: PomodoroSizing.getAlbumContainerSize(context),
-                        height: PomodoroSizing.getAlbumContainerSize(context),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.shadow.withValues(alpha: 0.3),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildAnimatedTimerText(),
-                            SizedBox(height: 8),
-                            _buildTimerOverlayText(),
-                            SizedBox(height: 8),
-                            SessionSquaresWidget(
-                              completedSessions: countCompletedToday,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (selectedProject != null)
-                        Positioned(
-                          top: 8,
-                          right: 10,
-                          child: _buildSelectedProjectOverlayText(),
-                        ),
-                      if (selectedRoom != null)
-                        Positioned(
-                          top: 8,
-                          left: 10,
-                          child: _buildSelectedRoomOverlayText(),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Recording and camera buttons below timer for vertical layout
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Recording button
-                  if (config?.showAudioRecordButton == true) ...[
-                    _buildSimplifiedRecordingButton(),
-                    if (config?.showPhotoButton == true) SizedBox(width: 20),
-                  ],
-
-                  // Camera button
-                  if (config?.showPhotoButton == true)
-                    _buildSquareEvidenceButton(),
-                ],
-              ),
-
-              if (recordedAudio != null) ...[
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 420),
-                      child: SessionRecordingPreview(audio: recordedAudio!),
-                    ),
-                  ),
-                ),
-              ],
-
-              // Music widget below recording buttons for vertical layout
-              if (isRunning || canSubmitLog) ...[
-                SizedBox(height: 20),
-                SizedBox(
-                  width: PomodoroSizing.getAlbumContainerSize(
-                    context,
-                  ).clamp(150.0, 400.0),
-                  child: CompactMusicWidget(
-                    allowMusic: _timerController.allowMusic,
-                    currentlyPlayingTrack: currentlyPlayingTrack,
-                    onToggleMusic: _toggleMusicPlayback,
-                    onChangeTrack: () {
-                      if (_timerController.allowMusic) {
-                        _playLofi();
-                      }
-                    },
-                    onLongPressTrackPicker: _openTrackPickerModal,
-                  ),
-                ),
-              ],
-            ],
-          );
-  }
-
-  Widget _buildSquareEvidenceButton() {
-    final warningColor = AppColorPalette.warning;
-    final successColor = AppColorPalette.success;
-    return GestureDetector(
-      onTap: takePhoto,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          color: (imagePath != null)
-              ? successColor.withValues(alpha: 0.1)
-              : warningColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: (imagePath != null) ? successColor : warningColor,
-            width: 2,
-          ),
-        ),
-        child: Icon(
-          (imagePath != null) ? Icons.camera_alt : Icons.camera_alt_outlined,
-          size: 24,
-          color: (imagePath != null) ? successColor : warningColor,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSimplifiedRecordingButton() {
-    return _SimplifiedRecordingWidget(
-      onRecordingComplete: (audioModel) {
-        _soundEffectsService.playAudioRecordSubmitted();
-        _persistSessionRecording(audioModel);
-        setState(() {
-          audioPath = audioModel.filePath;
-          recordedAudio = audioModel;
-          showPlayer = true;
-          canSubmitLog = true;
-        });
-        showAppSnack(context, text: 'Recording completed successfully!');
-      },
-      onReset: () {
-        setState(() {
-          audioPath = null;
-          recordedAudio = null;
-          showPlayer = false;
-        });
-      },
-      hasRecording: audioPath != null,
-    );
-  }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -2395,326 +2434,3 @@ class _HomeSpeedControlledGifState extends State<_HomeSpeedControlledGif> {
   }
 }
 
-class _SimplifiedRecordingWidget extends StatefulWidget {
-  final Function(EnhancedAudioModel) onRecordingComplete;
-  final VoidCallback onReset;
-  final bool hasRecording;
-
-  const _SimplifiedRecordingWidget({
-    required this.onRecordingComplete,
-    required this.onReset,
-    required this.hasRecording,
-  });
-
-  @override
-  State<_SimplifiedRecordingWidget> createState() =>
-      _SimplifiedRecordingWidgetState();
-}
-
-class _SimplifiedRecordingWidgetState extends State<_SimplifiedRecordingWidget>
-    with TickerProviderStateMixin {
-  final _recorder = AudioRecorder();
-
-  bool _isRecording = false;
-  bool _stopRecordingInProgress = false;
-  double _smoothedMicLevel = 0;
-  Duration _recordingDuration = Duration.zero;
-  Timer? _timer;
-  Timer? _levelTimer;
-
-  final List<double> _audioLevels = [];
-
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      duration: Duration(milliseconds: 1000),
-      vsync: this,
-    );
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-  }
-
-  Future<void> _startRecording() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath =
-          '${directory.path}/recording_${DateTime.now().millisecondsSinceEpoch}.wav';
-
-      await _recorder.start(
-        const RecordConfig(
-          encoder: AudioEncoder.wav,
-          bitRate: 128000,
-          sampleRate: 44100,
-        ),
-        path: filePath,
-      );
-
-      setState(() {
-        _isRecording = true;
-        _recordingDuration = Duration.zero;
-        _audioLevels.clear();
-        _smoothedMicLevel = 0;
-      });
-
-      _pulseController.repeat(reverse: true);
-      _startTimer();
-      _startLevelMonitoring();
-    } catch (e) {
-      print('Error starting recording: $e');
-    }
-  }
-
-  Future<void> _stopRecording() async {
-    if (_stopRecordingInProgress || !_isRecording) return;
-    _stopRecordingInProgress = true;
-    _timer?.cancel();
-    _levelTimer?.cancel();
-    _pulseController.stop();
-    try {
-      final path = await _recorder.stop();
-
-      if (path != null) {
-        final audioModel = EnhancedAudioModel(
-          filePath: path,
-          fileName: path.split('/').last,
-          createdAt: DateTime.now(),
-          durationMs: _recordingDuration.inMilliseconds,
-          fileSizeBytes: 0, // Will be calculated later
-          format: 'wav',
-          bitRate: 128000,
-          sampleRate: 44100,
-          channels: 1,
-          title: 'Session Recording',
-          description: 'Pomodoro session recording',
-          tags: ['session'],
-          category: 'session',
-          waveformData: _audioLevels,
-        );
-        widget.onRecordingComplete(audioModel);
-      }
-
-      if (mounted) {
-        setState(() {
-          _isRecording = false;
-          _smoothedMicLevel = 0;
-        });
-      }
-    } catch (e) {
-      print('Error stopping recording: $e');
-      if (mounted) {
-        setState(() {
-          _isRecording = false;
-          _smoothedMicLevel = 0;
-        });
-      }
-    } finally {
-      _stopRecordingInProgress = false;
-    }
-  }
-
-  void _startTimer() {
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      setState(() {
-        _recordingDuration = Duration(
-          seconds: _recordingDuration.inSeconds + 1,
-        );
-      });
-    });
-  }
-
-  void _startLevelMonitoring() {
-    _levelTimer?.cancel();
-    _levelTimer = Timer.periodic(const Duration(milliseconds: 100), (
-      timer,
-    ) async {
-      if (!_isRecording || !mounted) return;
-      try {
-        final amplitude = await _recorder.getAmplitude();
-        final normalized = normalizeMicDb(amplitude.current);
-
-        if (!mounted || !_isRecording) return;
-        setState(() {
-          _smoothedMicLevel = _smoothedMicLevel * 0.74 + normalized * 0.26;
-          _audioLevels.add(_smoothedMicLevel);
-          if (_audioLevels.length > 50) {
-            _audioLevels.removeAt(0);
-          }
-        });
-      } catch (e) {
-        // Handle amplitude error silently
-      }
-    });
-  }
-
-  Widget _buildAudioLevelsVisualization(Color waveformAccent) {
-    if (!_isRecording) return SizedBox.shrink();
-
-    return IgnorePointer(
-      child: Positioned.fill(
-        child: CustomPaint(
-          painter: _AudioLevelsPainter(_audioLevels, waveformAccent),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _pulseAnimation,
-      builder: (context, child) {
-        final errorColor = AppColorPalette.error;
-        final successColor = AppColorPalette.success;
-        final infoColor = AppColorPalette.info;
-        final micHot = AppColorPalette.warning;
-        final rawLevel = _smoothedMicLevel.clamp(0.0, 1.0);
-        final intensity = pow(rawLevel, 0.34).toDouble().clamp(0.0, 1.0);
-        final recordingAccent = _isRecording
-            ? Color.lerp(errorColor, micHot, intensity)!
-            : errorColor;
-        final recordingFill = _isRecording
-            ? Color.lerp(
-                errorColor.withValues(alpha: 0.03),
-                micHot.withValues(alpha: 0.12 + 0.38 * intensity),
-                intensity,
-              )!
-            : errorColor.withValues(alpha: 0.1);
-        final recordingBorder = _isRecording ? recordingAccent : errorColor;
-        final recordingIconColor = _isRecording
-            ? recordingAccent
-            : AppColorPalette.error;
-        final borderWidth = _isRecording ? 2.0 + 5.5 * intensity : 2.0;
-
-        return Transform.scale(
-          scale: _isRecording ? _pulseAnimation.value : 1.0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              if (widget.hasRecording && !_isRecording) {
-                widget.onReset();
-              } else if (_isRecording) {
-                _stopRecording();
-              } else {
-                _startRecording();
-              }
-            },
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: _isRecording
-                    ? recordingFill
-                    : widget.hasRecording
-                    ? successColor.withValues(alpha: 0.1)
-                    : infoColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: _isRecording && intensity > 0.12
-                    ? [
-                        BoxShadow(
-                          color: recordingAccent.withValues(
-                            alpha: 0.15 + 0.55 * intensity,
-                          ),
-                          blurRadius: 4 + 14 * intensity,
-                          spreadRadius: -0.5,
-                        ),
-                      ]
-                    : null,
-                border: Border.all(
-                  color: _isRecording
-                      ? recordingBorder
-                      : widget.hasRecording
-                      ? successColor
-                      : infoColor,
-                  width: borderWidth,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  _buildAudioLevelsVisualization(recordingAccent),
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _isRecording
-                              ? Icons.stop
-                              : widget.hasRecording
-                              ? Icons.refresh
-                              : Icons.mic,
-                          size: 24,
-                          color: _isRecording
-                              ? recordingIconColor
-                              : widget.hasRecording
-                              ? AppColorPalette.success
-                              : AppColorPalette.info,
-                        ),
-                        if (_isRecording) ...[
-                          const SizedBox(height: AppUiSizes.xs),
-                          Text(
-                            '${_recordingDuration.inMinutes}:${(_recordingDuration.inSeconds % 60).toString().padLeft(2, '0')}',
-                            style: TextStyle(
-                              fontSize: AppColorPalette.fontSizeXSmall,
-                              color: recordingAccent,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _levelTimer?.cancel();
-    _pulseController.dispose();
-    _recorder.dispose();
-    super.dispose();
-  }
-}
-
-class _AudioLevelsPainter extends CustomPainter {
-  final List<double> levels;
-  final Color accent;
-
-  _AudioLevelsPainter(this.levels, this.accent);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (levels.isEmpty) return;
-
-    final paint = Paint()
-      ..color = accent.withValues(alpha: 0.35)
-      ..strokeWidth = 2;
-
-    final centerY = size.height / 2;
-    final barWidth = size.width / levels.length;
-
-    for (int i = 0; i < levels.length; i++) {
-      final barHeight = levels[i] * (size.height * 0.6);
-      final x = i * barWidth + barWidth / 2;
-
-      canvas.drawLine(
-        Offset(x, centerY - barHeight / 2),
-        Offset(x, centerY + barHeight / 2),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
