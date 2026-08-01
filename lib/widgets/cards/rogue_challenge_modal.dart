@@ -184,8 +184,7 @@ class _RogueChallengeOverlay extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.bold,
                   ),
             ),
           ),

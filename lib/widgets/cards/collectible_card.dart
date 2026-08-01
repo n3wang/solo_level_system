@@ -175,7 +175,7 @@ class CollectibleCardArt extends StatelessWidget {
 
     // Program cards get special treatment: duration number + exercise icons
     if (card.isProgram) {
-      return _buildProgramArt(context);
+      return _clipArt(_buildProgramArt(context));
     }
 
     final scheme = Theme.of(context).colorScheme;
@@ -189,9 +189,8 @@ class CollectibleCardArt extends StatelessWidget {
     if (local != null && local.isNotEmpty && !kIsWeb) {
       final file = File(local);
       if (file.existsSync()) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
-          child: Image.file(
+        return _clipArt(
+          Image.file(
             file,
             width: size,
             height: size,
@@ -204,18 +203,19 @@ class CollectibleCardArt extends StatelessWidget {
 
     final index = card.imageIndex;
     if (index != null && index > 0) {
-      return MotivationIconWidget(
-        imageIndex: index,
-        size: size,
-        placeholder: fallback,
+      return _clipArt(
+        MotivationIconWidget(
+          imageIndex: index,
+          size: size,
+          placeholder: fallback,
+        ),
       );
     }
 
     final asset = card.imageAsset;
     if (asset != null && asset.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
-        child: Image.asset(
+      return _clipArt(
+        Image.asset(
           asset,
           width: size,
           height: size,
@@ -226,6 +226,13 @@ class CollectibleCardArt extends StatelessWidget {
     }
 
     return fallback;
+  }
+
+  Widget _clipArt(Widget child) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(CollectibleCardLayout.artRadius),
+      child: child,
+    );
   }
 
   /// Builds program card art: large duration number with exercise icons in corner.
@@ -370,13 +377,21 @@ class CollectibleCardTile extends StatelessWidget {
               ],
             ),
             Expanded(
-              child: Center(
-                child: CollectibleCardArt(
-                  card: card,
-                  size: CollectibleCardLayout.tileArtSize,
-                  overrideLocalImagePath: overrideLocalImagePath,
-                  revealContents: revealed,
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final artSize = CollectibleCardLayout.artSizeForWidth(
+                    constraints.maxWidth,
+                    maxHeight: constraints.maxHeight,
+                  );
+                  return Center(
+                    child: CollectibleCardArt(
+                      card: card,
+                      size: artSize,
+                      overrideLocalImagePath: overrideLocalImagePath,
+                      revealContents: revealed,
+                    ),
+                  );
+                },
               ),
             ),
             Text(
