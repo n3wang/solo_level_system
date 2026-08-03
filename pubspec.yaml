@@ -91,6 +91,7 @@ flutter:
     - assets/images/icon/workout_icons_sliced/
     - assets/images/icon/c64x64_sliced/
     - assets/data/
+    - assets/maps/world_countries.geojson
 
 
 

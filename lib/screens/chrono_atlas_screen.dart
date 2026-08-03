@@ -9,6 +9,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/utils/card_repository.dart';
+import 'package:solo_level_system/utils/chrono_atlas_map_config.dart';
 import 'package:solo_level_system/utils/chrono_atlas_scoring.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/widgets/cards/collectible_card.dart';
@@ -55,7 +56,9 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   _RoundPhase _phase = _RoundPhase.guess;
 
   MapLatLng? _guessLatLng;
-  late MapTileLayerController _mapController;
+  late MapTileLayerController _tileController;
+  late MapShapeLayerController _shapeController;
+  late MapShapeSource _shapeSource;
   late _TapZoomPanBehavior _zoomPanBehavior;
   bool _zoomedToGuess = false;
 
@@ -91,7 +94,12 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   }
 
   void _createMapControllers() {
-    _mapController = MapTileLayerController();
+    _tileController = MapTileLayerController();
+    _shapeController = MapShapeLayerController();
+    _shapeSource = MapShapeSource.asset(
+      ChronoAtlasMapConfig.shapeAsset,
+      shapeDataField: ChronoAtlasMapConfig.shapeDataField,
+    );
     _zoomPanBehavior = _TapZoomPanBehavior(
       enablePanning: true,
       enablePinching: true,
@@ -207,23 +215,32 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
 
   void _setMarkers(List<_MarkerSpec> markers) {
     _markers = markers;
-    // Controller is only attached while the map is in the tree (not on
+    // Controllers are only attached while the map is in the tree (not on
     // summary / loading). Skip sync when detached so Play again can restart.
     try {
-      _mapController.clearMarkers();
-      for (var i = 0; i < markers.length; i++) {
-        _mapController.insertMarker(i);
+      if (ChronoAtlasMapConfig.useOfflineShape) {
+        _shapeController.clearMarkers();
+        for (var i = 0; i < markers.length; i++) {
+          _shapeController.insertMarker(i);
+        }
+      } else {
+        _tileController.clearMarkers();
+        for (var i = 0; i < markers.length; i++) {
+          _tileController.insertMarker(i);
+        }
       }
     } catch (_) {
-      // Detached MapTileLayerController — markers apply on next map mount
-      // via initialMarkersCount / a later _setMarkers after _startRound.
+      // Detached controller — markers apply on next map mount via
+      // initialMarkersCount / a later _setMarkers after _startRound.
     }
   }
 
   void _onMapTap(Offset localPosition) {
     if (_phase != _RoundPhase.guess) return;
     if (_current.mode != _RoundMode.place) return;
-    final latLng = _mapController.pixelToLatLng(localPosition);
+    final latLng = ChronoAtlasMapConfig.useOfflineShape
+        ? _shapeController.pixelToLatLng(localPosition)
+        : _tileController.pixelToLatLng(localPosition);
     final firstTap = !_zoomedToGuess;
     setState(() {
       _guessLatLng = latLng;
@@ -461,7 +478,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
           left: 8,
           bottom: MediaQuery.paddingOf(context).bottom + 8,
           child: Text(
-            '© OpenStreetMap',
+            ChronoAtlasMapConfig.useOfflineShape ? '' : '© OpenStreetMap',
             style: TextStyle(
               color: AppColorPalette.grey700,
               fontSize: 10,
@@ -658,37 +675,57 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   }
 
   Widget _buildMap() {
+    if (ChronoAtlasMapConfig.useOfflineShape) {
+      final scheme = Theme.of(context).colorScheme;
+      return SfMaps(
+        key: ObjectKey(_shapeController),
+        layers: [
+          MapShapeLayer(
+            source: _shapeSource,
+            zoomPanBehavior: _zoomPanBehavior,
+            controller: _shapeController,
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.85),
+            strokeColor: scheme.outline.withValues(alpha: 0.55),
+            strokeWidth: 0.6,
+            initialMarkersCount: _markers.length,
+            markerBuilder: _mapMarkerBuilder,
+          ),
+        ],
+      );
+    }
+
+    // Preserved online tile implementation for later connectivity switching.
     return SfMaps(
-      key: ObjectKey(_mapController),
+      key: ObjectKey(_tileController),
       layers: [
         MapTileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          urlTemplate: ChronoAtlasMapConfig.tileUrlTemplate,
           zoomPanBehavior: _zoomPanBehavior,
-          controller: _mapController,
+          controller: _tileController,
           initialMarkersCount: _markers.length,
-          markerBuilder: (context, index) {
-            if (index < 0 || index >= _markers.length) {
-              return const MapMarker(
-                latitude: 0,
-                longitude: 0,
-                child: SizedBox.shrink(),
-              );
-            }
-            final marker = _markers[index];
-            return MapMarker(
-              latitude: marker.lat,
-              longitude: marker.lng,
-              child: Icon(
-                marker.isGuess ? Icons.location_on : Icons.flag,
-                color: marker.isGuess
-                    ? Colors.redAccent
-                    : AppColorPalette.success,
-                size: marker.isGuess ? 32 : 28,
-              ),
-            );
-          },
+          markerBuilder: _mapMarkerBuilder,
         ),
       ],
+    );
+  }
+
+  MapMarker _mapMarkerBuilder(BuildContext context, int index) {
+    if (index < 0 || index >= _markers.length) {
+      return const MapMarker(
+        latitude: 0,
+        longitude: 0,
+        child: SizedBox.shrink(),
+      );
+    }
+    final marker = _markers[index];
+    return MapMarker(
+      latitude: marker.lat,
+      longitude: marker.lng,
+      child: Icon(
+        marker.isGuess ? Icons.location_on : Icons.flag,
+        color: marker.isGuess ? Colors.redAccent : AppColorPalette.success,
+        size: marker.isGuess ? 32 : 28,
+      ),
     );
   }
 
@@ -830,11 +867,17 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   }
 
   Widget _buildSummary() {
-    final boardEntries = (_highScores.isEmpty && _sessionFinishedAt != null
-            ? [_ChronoHighScore(score: _sessionScore, at: _sessionFinishedAt!)]
-            : _highScores)
-        .map((e) => RetroScoreEntry(score: e.score, at: e.at))
-        .toList();
+    final boardEntries =
+        (_highScores.isEmpty && _sessionFinishedAt != null
+                ? [
+                    _ChronoHighScore(
+                      score: _sessionScore,
+                      at: _sessionFinishedAt!,
+                    ),
+                  ]
+                : _highScores)
+            .map((e) => RetroScoreEntry(score: e.score, at: e.at))
+            .toList();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
@@ -853,9 +896,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
             child: ListView(
               children: [
                 for (var i = 0; i < _summaryVisibleRows; i++)
-                  _SummaryReveal(
-                    child: _buildSummaryRoundRow(i),
-                  ),
+                  _SummaryReveal(child: _buildSummaryRoundRow(i)),
                 if (_summaryShowTotal) ...[
                   const Divider(height: 24),
                   _SummaryReveal(
@@ -910,10 +951,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       child: Row(
         children: [
           if (round.card.imageIndex != null)
-            MotivationIconWidget(
-              imageIndex: round.card.imageIndex!,
-              size: 36,
-            )
+            MotivationIconWidget(imageIndex: round.card.imageIndex!, size: 36)
           else
             const SizedBox(width: 36, height: 36),
           const SizedBox(width: 12),
