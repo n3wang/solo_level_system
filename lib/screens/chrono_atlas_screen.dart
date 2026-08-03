@@ -19,15 +19,58 @@ import 'package:solo_level_system/widgets/game_icon_widget.dart';
 import 'package:solo_level_system/widgets/games/retro_scoreboard.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
 
+/// Which skill Chrono Atlas trains for a whole session.
+enum ChronoAtlasSessionMode {
+  /// Coin-flip place vs year when a card has both.
+  mixed,
+
+  /// Place-only rounds (cards must have pins).
+  geo,
+
+  /// Year-only rounds (cards must have a year).
+  time,
+}
+
+extension ChronoAtlasSessionModeX on ChronoAtlasSessionMode {
+  String get title => switch (this) {
+        ChronoAtlasSessionMode.mixed => 'Chrono Atlas',
+        ChronoAtlasSessionMode.geo => 'Atlas Geo',
+        ChronoAtlasSessionMode.time => 'Atlas Time',
+      };
+
+  String get subtitle => switch (this) {
+        ChronoAtlasSessionMode.mixed => 'Pin the place and year',
+        ChronoAtlasSessionMode.geo => 'Pin where it belongs',
+        ChronoAtlasSessionMode.time => 'Scrub when it happened',
+      };
+
+  String get highScoreKey => switch (this) {
+        ChronoAtlasSessionMode.mixed => 'chrono_atlas_high_scores',
+        ChronoAtlasSessionMode.geo => 'chrono_atlas_geo_high_scores',
+        ChronoAtlasSessionMode.time => 'chrono_atlas_time_high_scores',
+      };
+
+  IconData get hubIcon => switch (this) {
+        ChronoAtlasSessionMode.mixed => Icons.public,
+        ChronoAtlasSessionMode.geo => Icons.place_outlined,
+        ChronoAtlasSessionMode.time => Icons.timeline,
+      };
+}
+
 /// A round asks for one thing only: where it belongs, or when it happened.
 enum _RoundMode { place, year }
 
 enum _RoundPhase { guess, reveal, summary }
 
 class ChronoAtlasScreen extends StatefulWidget {
-  const ChronoAtlasScreen({super.key, this.roundsPerSession = 5});
+  const ChronoAtlasScreen({
+    super.key,
+    this.roundsPerSession = 5,
+    this.sessionMode = ChronoAtlasSessionMode.mixed,
+  });
 
   final int roundsPerSession;
+  final ChronoAtlasSessionMode sessionMode;
 
   @override
   State<ChronoAtlasScreen> createState() => _ChronoAtlasScreenState();
@@ -47,6 +90,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   /// empty bands under the tiles).
   static const double _worldZoom = 2.15;
   static const double _overlayCardWidth = 108.0;
+  static const double _miniatureCardWidth = 44.0;
 
   bool _loading = true;
   String? _error;
@@ -74,6 +118,13 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
 
   List<_MarkerSpec> _markers = const [];
   UserProgressModel? _userProgress;
+
+  /// Session breadcrumbs on the map (geo: past guesses; mixed: correct places).
+  final List<_SessionMapPin> _sessionPins = [];
+  bool _showSessionMiniatures = false;
+
+  /// Correct years from prior rounds (time / mixed year rounds).
+  final List<_SessionYearPin> _sessionYears = [];
 
   List<_ChronoHighScore> _highScores = const [];
   DateTime? _sessionFinishedAt;
@@ -108,7 +159,12 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       maxZoomLevel: 8,
       focalLatLng: const MapLatLng(20, 10),
       showToolbar: false,
-    )..onTap = _onMapTap;
+    )
+      ..onTap = _onMapTap
+      ..onZoomIn = () {
+        if (!mounted || !_showSessionMiniatures) return;
+        setState(_clearMiniaturesForInteraction);
+      };
   }
 
   static int get _defaultYear => ((_minYear + _maxYear) / 2).round();
@@ -130,12 +186,14 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       final playable = box.values
           .map(_PlayableCard.tryFrom)
           .whereType<_PlayableCard>()
+          .where(_fitsSessionMode)
           .toList();
       if (playable.isEmpty) {
         if (!mounted) return;
         setState(() {
           _loading = false;
-          _error = 'No Chrono Atlas cards found. Re-seed the catalog.';
+          _error =
+              'No cards for ${widget.sessionMode.title}. Re-seed the catalog.';
         });
         return;
       }
@@ -164,17 +222,32 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Failed to load Chrono Atlas: $e';
+        _error = 'Failed to load ${widget.sessionMode.title}: $e';
       });
     }
   }
 
-  /// Cards carrying both signals become a coin flip; others use what they have.
-  static _RoundMode _pickMode(_PlayableCard card, math.Random rng) {
-    if (card.hasPins && card.hasYear) {
-      return rng.nextBool() ? _RoundMode.place : _RoundMode.year;
+  bool _fitsSessionMode(_PlayableCard card) {
+    return switch (widget.sessionMode) {
+      ChronoAtlasSessionMode.geo => card.hasPins,
+      ChronoAtlasSessionMode.time => card.hasYear,
+      ChronoAtlasSessionMode.mixed => card.hasPins || card.hasYear,
+    };
+  }
+
+  /// Session mode can force place/year; mixed keeps the coin flip.
+  _RoundMode _pickMode(_PlayableCard card, math.Random rng) {
+    switch (widget.sessionMode) {
+      case ChronoAtlasSessionMode.geo:
+        return _RoundMode.place;
+      case ChronoAtlasSessionMode.time:
+        return _RoundMode.year;
+      case ChronoAtlasSessionMode.mixed:
+        if (card.hasPins && card.hasYear) {
+          return rng.nextBool() ? _RoundMode.place : _RoundMode.year;
+        }
+        return card.hasPins ? _RoundMode.place : _RoundMode.year;
     }
-    return card.hasPins ? _RoundMode.place : _RoundMode.year;
   }
 
   _Round get _current => _deck[_roundIndex];
@@ -187,6 +260,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
     _geoResult = null;
     _yearResult = null;
     _zoomedToGuess = false;
+    _showSessionMiniatures = false;
 
     if (round.mode == _RoundMode.year && round.card.hasPins) {
       final pin = round.card.pins.first;
@@ -196,9 +270,25 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       _setHomeView(focal, 4);
       _setMarkers(
         round.card.pins
-            .map((p) => _MarkerSpec(lat: p.lat, lng: p.lng, isGuess: false))
+            .map(
+              (p) => _MarkerSpec(
+                lat: p.lat,
+                lng: p.lng,
+                kind: _MarkerKind.answer,
+              ),
+            )
             .toList(),
       );
+    } else if (round.mode == _RoundMode.place) {
+      const focal = MapLatLng(20, 10);
+      _zoomPanBehavior.zoomLevel = _worldZoom;
+      _zoomPanBehavior.focalLatLng = focal;
+      _setHomeView(focal, _worldZoom);
+      // Geo / mixed: show prior session pins as card miniatures until first tap.
+      _showSessionMiniatures = _sessionPins.isNotEmpty &&
+          (widget.sessionMode == ChronoAtlasSessionMode.geo ||
+              widget.sessionMode == ChronoAtlasSessionMode.mixed);
+      _setMarkers(_sessionMiniatureMarkers());
     } else {
       const focal = MapLatLng(20, 10);
       _zoomPanBehavior.zoomLevel = _worldZoom;
@@ -206,6 +296,77 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       _setHomeView(focal, _worldZoom);
       _setMarkers(const []);
     }
+  }
+
+  List<_MarkerSpec> _sessionMiniatureMarkers() {
+    if (!_showSessionMiniatures) return const [];
+    return [
+      for (final pin in _sessionPins)
+        _MarkerSpec(
+          lat: pin.lat,
+          lng: pin.lng,
+          kind: _MarkerKind.miniature,
+          card: pin.card,
+        ),
+    ];
+  }
+
+  void _hideSessionMiniatures() {
+    if (!_showSessionMiniatures) return;
+    _showSessionMiniatures = false;
+  }
+
+  void _recordSessionPinAfterConfirm({
+    required _PlayableCard card,
+    required ChronoAtlasGeoResult? geo,
+    required MapLatLng? guess,
+  }) {
+    switch (widget.sessionMode) {
+      case ChronoAtlasSessionMode.geo:
+        if (guess == null) return;
+        _sessionPins.add(
+          _SessionMapPin(
+            lat: guess.latitude,
+            lng: guess.longitude,
+            card: card.source,
+          ),
+        );
+      case ChronoAtlasSessionMode.mixed:
+        // Correct places only (not guesses).
+        if (card.hasPins) {
+          final pin = geo?.nearestPin ?? card.pins.first;
+          _sessionPins.add(
+            _SessionMapPin(lat: pin.lat, lng: pin.lng, card: card.source),
+          );
+        }
+      case ChronoAtlasSessionMode.time:
+        break;
+    }
+  }
+
+  void _recordSessionYearAfterConfirm({
+    required _PlayableCard card,
+    required _RoundMode mode,
+  }) {
+    if (mode != _RoundMode.year || !card.hasYear) return;
+    if (widget.sessionMode == ChronoAtlasSessionMode.geo) return;
+    _sessionYears.add(
+      _SessionYearPin(year: card.year!, card: card.source),
+    );
+  }
+
+  double _yearTrackFraction(int year) {
+    final span = (_maxYear - _minYear).toDouble();
+    if (span <= 0) return 0.5;
+    return ((year - _minYear) / span).clamp(0.0, 1.0);
+  }
+
+  /// Matches [SettingsSlider] / Material track inset (overlay radius 12).
+  static const double _yearTrackInset = 12.0;
+
+  double _xForYear(double width, int year) {
+    final trackW = (width - 2 * _yearTrackInset).clamp(0.0, width);
+    return _yearTrackInset + _yearTrackFraction(year) * trackW;
   }
 
   void _setHomeView(MapLatLng focal, double zoom) {
@@ -244,8 +405,13 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
     final firstTap = !_zoomedToGuess;
     setState(() {
       _guessLatLng = latLng;
+      _hideSessionMiniatures();
       _setMarkers([
-        _MarkerSpec(lat: latLng.latitude, lng: latLng.longitude, isGuess: true),
+        _MarkerSpec(
+          lat: latLng.latitude,
+          lng: latLng.longitude,
+          kind: _MarkerKind.guess,
+        ),
       ]);
       if (firstTap) {
         _zoomedToGuess = true;
@@ -278,10 +444,14 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
         _MarkerSpec(
           lat: _guessLatLng!.latitude,
           lng: _guessLatLng!.longitude,
-          isGuess: true,
+          kind: _MarkerKind.guess,
         ),
         ...round.card.pins.map(
-          (p) => _MarkerSpec(lat: p.lat, lng: p.lng, isGuess: false),
+          (p) => _MarkerSpec(
+            lat: p.lat,
+            lng: p.lng,
+            kind: _MarkerKind.answer,
+          ),
         ),
       ]);
     } else {
@@ -291,6 +461,13 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       );
       score = year.score;
     }
+
+    _recordSessionPinAfterConfirm(
+      card: round.card,
+      geo: geo,
+      guess: _guessLatLng,
+    );
+    _recordSessionYearAfterConfirm(card: round.card, mode: round.mode);
 
     setState(() {
       _geoResult = geo;
@@ -318,6 +495,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
     final recorded = await _ChronoAtlasHighScores.record(
       score: _sessionScore,
       at: finishedAt,
+      storageKey: widget.sessionMode.highScoreKey,
     );
     if (!mounted) return;
     setState(() {
@@ -375,6 +553,9 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       _summaryShowBoard = false;
       _summaryAnimToken++;
       _markers = const [];
+      _sessionPins.clear();
+      _sessionYears.clear();
+      _showSessionMiniatures = false;
       _phase = _RoundPhase.guess;
       // Fresh controllers — old ones stay tied to the disposed summary-era map.
       _createMapControllers();
@@ -413,7 +594,31 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       _zoomPanBehavior.maxZoomLevel,
     );
     if (next == _zoomPanBehavior.zoomLevel) return;
-    setState(() => _zoomPanBehavior.zoomLevel = next);
+    setState(() {
+      _zoomPanBehavior.zoomLevel = next;
+      // Zooming in clears session breadcrumbs so the map stays readable.
+      if (delta > 0) _clearMiniaturesForInteraction();
+    });
+  }
+
+  /// Hide session miniatures once the player commits to this round's map work.
+  void _clearMiniaturesForInteraction() {
+    if (!_showSessionMiniatures) return;
+    if (_phase != _RoundPhase.guess || _current.mode != _RoundMode.place) {
+      return;
+    }
+    _hideSessionMiniatures();
+    if (_guessLatLng != null) {
+      _setMarkers([
+        _MarkerSpec(
+          lat: _guessLatLng!.latitude,
+          lng: _guessLatLng!.longitude,
+          kind: _MarkerKind.guess,
+        ),
+      ]);
+    } else {
+      _setMarkers(const []);
+    }
   }
 
   void _resetMapView() {
@@ -588,6 +793,10 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
 
   Widget _buildYearScrubber() {
     final locked = _phase != _RoundPhase.guess;
+    final answerYear =
+        _phase == _RoundPhase.reveal ? _current.card.year : null;
+    final showTrail = _sessionYears.isNotEmpty || answerYear != null;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -602,13 +811,101 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
           ),
         ),
         const SizedBox(height: 2),
-        SettingsSlider(
-          value: _yearGuess.toDouble(),
-          min: _minYear.toDouble(),
-          max: _maxYear.toDouble(),
-          onChanged: locked
-              ? null
-              : (value) => setState(() => _yearGuess = value.round()),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final miniH = _sessionYears.isNotEmpty
+                ? _miniatureCardWidth / CollectibleCardLayout.aspectRatio
+                : 0.0;
+            const miniGap = 6.0;
+            const sliderH = 40.0;
+            final labelH = showTrail ? 16.0 : 0.0;
+            final topPad = _sessionYears.isNotEmpty ? miniH + miniGap : 0.0;
+            final totalH = topPad + sliderH + labelH;
+
+            // Blue-gray past objectives; yellow = correct answer on reveal.
+            const pastColor = Color(0xFF78909C);
+            final answerColor = AppColorPalette.color4;
+
+            return SizedBox(
+              height: totalH,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  for (final pin in _sessionYears)
+                    Positioned(
+                      left: (_xForYear(width, pin.year) - _miniatureCardWidth / 2)
+                          .clamp(0.0, width - _miniatureCardWidth),
+                      top: 0,
+                      child: _buildSessionMiniature(pin.card),
+                    ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: topPad,
+                    height: sliderH,
+                    child: SettingsSlider(
+                      value: _yearGuess.toDouble(),
+                      min: _minYear.toDouble(),
+                      max: _maxYear.toDouble(),
+                      onChanged: locked
+                          ? null
+                          : (value) =>
+                              setState(() => _yearGuess = value.round()),
+                    ),
+                  ),
+                  for (final pin in _sessionYears)
+                    Positioned(
+                      left: _xForYear(width, pin.year) - 3.5,
+                      top: topPad + sliderH / 2 - 10,
+                      child: IgnorePointer(
+                        child: _TimelineYearTick(
+                          color: pastColor,
+                          width: 7,
+                          height: 20,
+                        ),
+                      ),
+                    ),
+                  if (answerYear != null)
+                    Positioned(
+                      left: _xForYear(width, answerYear) - 4,
+                      top: topPad + sliderH / 2 - 12,
+                      child: IgnorePointer(
+                        child: _TimelineYearTick(
+                          color: answerColor,
+                          width: 8,
+                          height: 24,
+                        ),
+                      ),
+                    ),
+                  for (final pin in _sessionYears)
+                    Positioned(
+                      left: (_xForYear(width, pin.year) - 28)
+                          .clamp(0.0, width - 56),
+                      width: 56,
+                      bottom: 0,
+                      child: IgnorePointer(
+                        child: Text(
+                          _formatYear(pin.year).toLowerCase(),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColorPalette.textMuted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            height: 1.1,
+                            shadows: const [
+                              Shadow(color: Colors.white, blurRadius: 6),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
         ),
       ],
     );
@@ -721,10 +1018,50 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
     return MapMarker(
       latitude: marker.lat,
       longitude: marker.lng,
-      child: Icon(
-        marker.isGuess ? Icons.location_on : Icons.flag,
-        color: marker.isGuess ? Colors.redAccent : AppColorPalette.success,
-        size: marker.isGuess ? 32 : 28,
+      child: switch (marker.kind) {
+        _MarkerKind.miniature => _buildSessionMiniature(marker.card!),
+        _MarkerKind.guess => const Icon(
+            Icons.location_on,
+            color: Colors.redAccent,
+            size: 32,
+          ),
+        _MarkerKind.answer => Icon(
+            Icons.flag,
+            color: AppColorPalette.success,
+            size: 28,
+          ),
+      },
+    );
+  }
+
+  /// Small collectible card used as a session breadcrumb on the map.
+  Widget _buildSessionMiniature(CardModel card) {
+    final catalog = CardRepository.fromCardModel(card);
+    final height = _miniatureCardWidth / CollectibleCardLayout.aspectRatio;
+    // Scale a full tile down so chrome stays recognizable at pin size.
+    const sourceWidth = 96.0;
+    final sourceHeight = sourceWidth / CollectibleCardLayout.aspectRatio;
+    return IgnorePointer(
+      child: SizedBox(
+        width: _miniatureCardWidth,
+        height: height,
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: SizedBox(
+            width: sourceWidth,
+            height: sourceHeight,
+            child: Material(
+              elevation: 3,
+              shadowColor: Colors.black45,
+              borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+              clipBehavior: Clip.antiAlias,
+              child: CollectibleCardTile(
+                card: catalog,
+                forceRevealContents: true,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1035,20 +1372,85 @@ class _TapZoomPanBehavior extends MapZoomPanBehavior {
   });
 
   void Function(Offset localPosition)? onTap;
+  VoidCallback? onZoomIn;
   Offset? _down;
+  double? _zoomAtGestureStart;
 
   @override
   void handleEvent(PointerEvent event) {
     if (event is PointerDownEvent) {
       _down = event.localPosition;
+      _zoomAtGestureStart = zoomLevel;
     } else if (event is PointerUpEvent && _down != null) {
       // Ignore pan releases; only short taps place a guess.
       if ((event.localPosition - _down!).distance < 12) {
         onTap?.call(event.localPosition);
       }
       _down = null;
+      _zoomAtGestureStart = null;
     }
     super.handleEvent(event);
+  }
+
+  @override
+  void onZooming(MapZoomDetails details) {
+    final before = zoomLevel;
+    super.onZooming(details);
+    if (zoomLevel > before ||
+        (_zoomAtGestureStart != null && zoomLevel > _zoomAtGestureStart!)) {
+      onZoomIn?.call();
+    }
+  }
+}
+
+enum _MarkerKind { guess, answer, miniature }
+
+class _SessionMapPin {
+  const _SessionMapPin({
+    required this.lat,
+    required this.lng,
+    required this.card,
+  });
+
+  final double lat;
+  final double lng;
+  final CardModel card;
+}
+
+class _SessionYearPin {
+  const _SessionYearPin({
+    required this.year,
+    required this.card,
+  });
+
+  final int year;
+  final CardModel card;
+}
+
+class _TimelineYearTick extends StatelessWidget {
+  const _TimelineYearTick({
+    required this.color,
+    required this.width,
+    required this.height,
+  });
+
+  final Color color;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(2),
+        boxShadow: const [
+          BoxShadow(color: Colors.white70, blurRadius: 3, spreadRadius: 0.6),
+        ],
+      ),
+    );
   }
 }
 
@@ -1056,12 +1458,14 @@ class _MarkerSpec {
   const _MarkerSpec({
     required this.lat,
     required this.lng,
-    required this.isGuess,
+    required this.kind,
+    this.card,
   });
 
   final double lat;
   final double lng;
-  final bool isGuess;
+  final _MarkerKind kind;
+  final CardModel? card;
 }
 
 class _Round {
@@ -1160,10 +1564,9 @@ class _ChronoHighScoreRecordResult {
   final int? insertedIndex;
 }
 
-/// Persists Chrono Atlas session totals in [app_init_flags].
+/// Persists Chrono Atlas session totals in [app_init_flags], keyed by mode.
 class _ChronoAtlasHighScores {
   static const _boxName = 'app_init_flags';
-  static const _key = 'chrono_atlas_high_scores';
   static const _maxEntries = 10;
 
   static Future<Box> _box() async {
@@ -1171,9 +1574,9 @@ class _ChronoAtlasHighScores {
     return Hive.openBox(_boxName);
   }
 
-  static Future<List<_ChronoHighScore>> load() async {
+  static Future<List<_ChronoHighScore>> load(String storageKey) async {
     final box = await _box();
-    final raw = box.get(_key);
+    final raw = box.get(storageKey);
     if (raw is! List) return const [];
     final scores =
         raw.map(_ChronoHighScore.fromMap).whereType<_ChronoHighScore>().toList()
@@ -1188,9 +1591,10 @@ class _ChronoAtlasHighScores {
   static Future<_ChronoHighScoreRecordResult> record({
     required int score,
     required DateTime at,
+    required String storageKey,
   }) async {
     final entry = _ChronoHighScore(score: score, at: at);
-    final board = [...await load(), entry]
+    final board = [...await load(storageKey), entry]
       ..sort((a, b) {
         final byScore = b.score.compareTo(a.score);
         if (byScore != 0) return byScore;
@@ -1204,7 +1608,7 @@ class _ChronoAtlasHighScores {
     );
 
     final box = await _box();
-    await box.put(_key, trimmed.map((e) => e.toMap()).toList());
+    await box.put(storageKey, trimmed.map((e) => e.toMap()).toList());
     return _ChronoHighScoreRecordResult(
       board: trimmed,
       insertedIndex: insertedIndex >= 0 ? insertedIndex : null,

@@ -15,7 +15,6 @@ class GamesHubScreen extends StatefulWidget {
 class _GamesHubScreenState extends State<GamesHubScreen> {
   static const _flagsBox = 'app_init_flags';
   static const _bookmarksKey = 'game_bookmarks';
-  static const _chronoAtlasId = 'chrono_atlas';
 
   final Set<String> _bookmarked = {};
 
@@ -34,11 +33,7 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
     setState(() {
       _bookmarked
         ..clear()
-        ..addAll(
-          raw is List
-              ? raw.whereType<String>()
-              : const <String>[],
-        );
+        ..addAll(raw is List ? raw.whereType<String>() : const <String>[]);
     });
   }
 
@@ -56,23 +51,32 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
     await Hive.box(_flagsBox).put(_bookmarksKey, _bookmarked.toList());
   }
 
+  void _openAtlas(ChronoAtlasSessionMode mode) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChronoAtlasScreen(sessionMode: mode),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final games = [
-      _GameEntry(
-        id: _chronoAtlasId,
-        title: 'Chrono Atlas',
-        subtitle: 'Pin the place and year',
-        icon: Icons.public,
-        accent: AppColorPalette.color1,
-        footer: 'Never played',
-        onOpen: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ChronoAtlasScreen()),
-          );
-        },
-      ),
+      for (final mode in ChronoAtlasSessionMode.values)
+        _GameEntry(
+          id: mode.highScoreKey,
+          title: mode.title,
+          subtitle: mode.subtitle,
+          icon: mode.hubIcon,
+          accent: switch (mode) {
+            ChronoAtlasSessionMode.mixed => AppColorPalette.color1,
+            ChronoAtlasSessionMode.geo => AppColorPalette.color2,
+            ChronoAtlasSessionMode.time => AppColorPalette.color3,
+          },
+          footer: 'Never played',
+          onOpen: () => _openAtlas(mode),
+        ),
     ];
 
     // Bookmarked games float to the top (same idea as Sets).
