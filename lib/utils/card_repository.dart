@@ -78,6 +78,14 @@ class CatalogCard {
   /// Exercise preview images for program cards (up to 3).
   final List<String> exerciseImages;
 
+  /// Chrono Atlas / catalog geo facts (from CSV metadata).
+  final int? year;
+  final String? yearKind;
+  final String? placeLabel;
+
+  /// Display lifespan / era label from CSV `year_label` (e.g. `4 BC–65 AD`).
+  final String? yearLabel;
+
   const CatalogCard({
     required this.id,
     required this.type,
@@ -100,10 +108,45 @@ class CatalogCard {
     this.isProgram = false,
     this.durationSeconds = 0,
     this.exerciseImages = const [],
+    this.year,
+    this.yearKind,
+    this.placeLabel,
+    this.yearLabel,
   });
 
   /// Wire string of [type] (matches the hub filter values).
   String get typeWire => type.wire;
+
+  bool get hasPlaceLabel =>
+      placeLabel != null && placeLabel!.trim().isNotEmpty;
+
+  bool get hasYearLabel =>
+      yearLabel != null && yearLabel!.trim().isNotEmpty;
+
+  /// True when there is at least one catalog fact worth showing in detail.
+  bool get hasCatalogFacts =>
+      category.trim().isNotEmpty ||
+      year != null ||
+      hasYearLabel ||
+      hasPlaceLabel;
+
+  /// Preferred year display: CSV `year_label`, else numeric year (+ kind).
+  String? get displayYearLabel {
+    if (hasYearLabel) return yearLabel!.trim();
+    final y = formattedYear;
+    if (y == null) return null;
+    final kind = yearKind?.trim();
+    if (kind != null && kind.isNotEmpty) return '$y ($kind)';
+    return y;
+  }
+
+  /// Formatted year for display (supports BCE via negative values).
+  String? get formattedYear {
+    final y = year;
+    if (y == null) return null;
+    if (y < 0) return '${y.abs()} BCE';
+    return '$y';
+  }
 
   /// Formatted duration for program cards (e.g., "7 min").
   String get formattedDuration {
@@ -151,6 +194,18 @@ class CardRepository {
         ? (meta['durationSeconds'] as num).toInt()
         : 0;
     final exerciseImages = _stringList(meta['exerciseImages']);
+    final year = meta['year'] is int
+        ? meta['year'] as int
+        : int.tryParse('${meta['year'] ?? ''}');
+    final yearKind = meta['yearKind'] is String
+        ? (meta['yearKind'] as String).trim()
+        : null;
+    final placeLabel = meta['placeLabel'] is String
+        ? (meta['placeLabel'] as String).trim()
+        : null;
+    final yearLabel = meta['yearLabel'] is String
+        ? (meta['yearLabel'] as String).trim()
+        : null;
     return CatalogCard(
       id: item.id,
       type: item.cardType,
@@ -172,6 +227,11 @@ class CardRepository {
       isProgram: isProgram,
       durationSeconds: durationSeconds,
       exerciseImages: exerciseImages,
+      year: year,
+      yearKind: yearKind != null && yearKind.isNotEmpty ? yearKind : null,
+      placeLabel:
+          placeLabel != null && placeLabel.isNotEmpty ? placeLabel : null,
+      yearLabel: yearLabel != null && yearLabel.isNotEmpty ? yearLabel : null,
     );
   }
 

@@ -456,6 +456,9 @@ Future<void> showCollectibleCardDetail({
   required UserProgressModel userProgress,
   bool allowAcquire = true,
   bool acquiredReveal = false,
+
+  /// When true, hide place / year catalog facts (e.g. Chrono Atlas pre-confirm).
+  bool hideCatalogFacts = false,
 }) {
   return showDialog<void>(
     context: context,
@@ -465,6 +468,7 @@ Future<void> showCollectibleCardDetail({
       userProgress: userProgress,
       allowAcquire: acquiredReveal ? false : allowAcquire,
       acquiredReveal: acquiredReveal,
+      hideCatalogFacts: hideCatalogFacts,
     ),
   );
 }
@@ -494,6 +498,7 @@ class CollectibleCardDetailDialog extends StatefulWidget {
   final UserProgressModel userProgress;
   final bool allowAcquire;
   final bool acquiredReveal;
+  final bool hideCatalogFacts;
 
   const CollectibleCardDetailDialog({
     super.key,
@@ -501,6 +506,7 @@ class CollectibleCardDetailDialog extends StatefulWidget {
     required this.userProgress,
     this.allowAcquire = true,
     this.acquiredReveal = false,
+    this.hideCatalogFacts = false,
   });
 
   @override
@@ -973,6 +979,13 @@ class _CollectibleCardDetailDialogState
               ),
             ),
           ],
+          if (revealed &&
+              !widget.hideCatalogFacts &&
+              (card.type == CardType.collection || card.type == CardType.phy) &&
+              card.hasCatalogFacts) ...[
+            const SizedBox(height: AppUiSizes.md),
+            _buildCollectionFacts(scheme),
+          ],
           const SizedBox(height: AppUiSizes.lg),
           if (widget.allowAcquire ||
               (card.type == CardType.reward && !widget.acquiredReveal))
@@ -1045,6 +1058,56 @@ class _CollectibleCardDetailDialogState
   }
 
   /// Shows two card images side by side: the phy card and its linked card.
+  Widget _buildCollectionFacts(ColorScheme scheme) {
+    final yearLine = card.displayYearLabel;
+    final category = card.category.trim();
+    final place = card.hasPlaceLabel ? card.placeLabel!.trim() : null;
+    final muted = scheme.onSurface.withValues(alpha: 0.72);
+    final labelStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: muted,
+          fontWeight: FontWeight.w600,
+        );
+    final valueStyle = Theme.of(context).textTheme.bodyMedium;
+
+    Widget row({
+      required IconData icon,
+      required String label,
+      required String value,
+    }) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: AppUiSizes.xs),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 16, color: muted),
+            const SizedBox(width: AppUiSizes.sm),
+            SizedBox(
+              width: 72,
+              child: Text(label, style: labelStyle),
+            ),
+            Expanded(child: Text(value, style: valueStyle)),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (yearLine != null)
+          row(icon: Icons.calendar_today_outlined, label: 'Year', value: yearLine),
+        if (category.isNotEmpty)
+          row(
+            icon: collectibleCategoryIcon(category),
+            label: 'Category',
+            value: category,
+          ),
+        if (place != null)
+          row(icon: Icons.place_outlined, label: 'Place', value: place),
+      ],
+    );
+  }
+
   Widget _buildDualCardArt(CatalogCard phyCard, CatalogCard linkedCard, bool revealed) {
     const dualSize = CollectibleCardLayout.modalArtSize * 0.65;
     return Row(

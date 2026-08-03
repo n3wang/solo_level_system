@@ -1229,8 +1229,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Prefer live Hive value so a settings toggle is never stale.
     try {
       if (Hive.isBoxOpen('userSettings')) {
-        final stored =
-            Hive.box<UserSettingsModel>('userSettings').get('settings');
+        final stored = Hive.box<UserSettingsModel>(
+          'userSettings',
+        ).get('settings');
         if (stored != null) {
           return stored.autoOpenJournalAfterFocus;
         }
@@ -1240,7 +1241,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _toggleAutoOpenJournalAfterFocus() async {
-    final settings = userSettings ??
+    final settings =
+        userSettings ??
         (Hive.isBoxOpen('userSettings')
             ? Hive.box<UserSettingsModel>('userSettings').get('settings')
             : null) ??
@@ -1266,8 +1268,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   UserSettingsModel _liveSettings() {
     try {
       if (Hive.isBoxOpen('userSettings')) {
-        final stored =
-            Hive.box<UserSettingsModel>('userSettings').get('settings');
+        final stored = Hive.box<UserSettingsModel>(
+          'userSettings',
+        ).get('settings');
         if (stored != null) return stored;
       }
     } catch (_) {}
@@ -1288,8 +1291,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         remainingSeconds = _timerController.remainingSeconds;
         isRunning = _timerController.isRunning;
         onBreak = _timerController.onBreak;
-        logStateMessage =
-            autoOpenJournal ? 'State: Break (paused)' : 'State: Break';
+        logStateMessage = autoOpenJournal
+            ? 'State: Break (paused)'
+            : 'State: Break';
       });
 
       final minutesSpent = workMinutes > 0 ? workMinutes : 1;
@@ -1366,6 +1370,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             progress: userProgress,
             cardCountOverride: count,
           );
+          if (loot.cards.isNotEmpty) {
+            unawaited(
+              JournalService.addCardsEarned(
+                cardTitles: loot.cards.map((c) => c.title).toList(),
+                source: 'focus',
+                modeWire: CardAcquisitionMode.sessionCompletion.wire,
+              ),
+            );
+          }
           if (mounted && loot.cards.isNotEmpty) {
             await showSessionLootDialog(context, loot);
           }
@@ -1398,7 +1411,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final options = buildRogueOptions(cards: drawn, challenges: challenges);
     if (options.length < 2) {
       if (mounted) {
-        showAppSnack(context, text: 'Need more cards/challenges for Rogue mode');
+        showAppSnack(
+          context,
+          text: 'Need more cards/challenges for Rogue mode',
+        );
       }
       return;
     }
@@ -1412,6 +1428,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _pendingRogueCard = pick.card;
       _pendingRogueChallenge = pick.challenge;
       _pendingAfterBreakMinutes = minutesSpent;
+      unawaited(
+        JournalService.addRogueChallengeSelected(
+          challenge: pick.challenge,
+          cardTitle: pick.card.title,
+          source: 'focus',
+        ),
+      );
     }
   }
 
@@ -1421,8 +1444,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       await _ensureUserProgress();
       SessionLoot? loot;
+      String? rogueChallengeForLog;
+      String? modeWireForLog;
 
       if (_pendingRogueCard != null) {
+        rogueChallengeForLog = _pendingRogueChallenge;
+        modeWireForLog = CardAcquisitionMode.rogue.wire;
         loot = SessionRewardService.grantDrawnCards(
           minutes: _pendingAfterBreakMinutes > 0
               ? _pendingAfterBreakMinutes
@@ -1438,6 +1465,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           );
         }
       } else if (_pendingAfterBreakCardCount != null) {
+        modeWireForLog = CardAcquisitionMode.sessionCompletion.wire;
         loot = SessionRewardService.grant(
           minutes: _pendingAfterBreakMinutes > 0
               ? _pendingAfterBreakMinutes
@@ -1453,8 +1481,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _pendingAfterBreakCardCount = null;
       _pendingAfterBreakMinutes = 0;
 
-      if (mounted && loot != null && loot.cards.isNotEmpty) {
-        await showSessionLootDialog(context, loot);
+      if (loot != null && loot.cards.isNotEmpty) {
+        unawaited(
+          JournalService.addCardsEarned(
+            cardTitles: loot.cards.map((c) => c.title).toList(),
+            source: 'focus',
+            modeWire: modeWireForLog,
+            rogueChallenge: rogueChallengeForLog,
+          ),
+        );
+        if (mounted) {
+          await showSessionLootDialog(context, loot);
+        }
       }
     } catch (e) {
       print('Error granting after-break loot: $e');
@@ -1564,14 +1602,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final settings = _liveSettings();
         final count =
             settings.acquisitionMode == CardAcquisitionMode.sessionCompletion
-                ? settings.clampedSessionCardCount
-                : 1;
+            ? settings.clampedSessionCardCount
+            : 1;
         loot = SessionRewardService.grant(
           minutes: minutesSpent,
           kind: SessionKind.focus,
           progress: userProgress,
           cardCountOverride: count,
         );
+        if (loot.cards.isNotEmpty) {
+          unawaited(
+            JournalService.addCardsEarned(
+              cardTitles: loot.cards.map((c) => c.title).toList(),
+              source: 'focus',
+              modeWire: settings.acquisitionMode.wire,
+            ),
+          );
+        }
         if (showLootUi && mounted && loot.cards.isNotEmpty) {
           await showSessionLootDialog(context, loot);
         }
@@ -1928,20 +1975,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               SingleChildScrollView(
                 padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    _buildTimerSection(),
-                  ],
-                ),
+                child: Column(children: [_buildTimerSection()]),
               ),
               Positioned(
                 top: 8,
                 right: 16,
                 child: JournalOpenButton(
                   autoOpenAfterSession: _autoOpenJournalAfterFocus,
-                  onPressed: () => _openJournal(
-                    awaitingBreakResume: _pendingBreakResume,
-                  ),
+                  onPressed: () =>
+                      _openJournal(awaitingBreakResume: _pendingBreakResume),
                   onLongPress: _toggleAutoOpenJournalAfterFocus,
                 ),
               ),
@@ -1961,7 +2003,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         // Timer with recording buttons when session complete
         if (projects.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: albumHorizontalInset),
+            padding: const EdgeInsets.symmetric(
+              horizontal: albumHorizontalInset,
+            ),
             child: Align(
               alignment: Alignment.centerLeft,
               child: ProjectSelectorWidget(
@@ -1979,17 +2023,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     if (project != null) {
                       workMinutes = project.workDurationMinutes;
                       breakMinutes = project.breakDurationMinutes;
-                      _timerController.updateDurations(workMinutes, breakMinutes);
+                      _timerController.updateDurations(
+                        workMinutes,
+                        breakMinutes,
+                      );
                     } else {
                       // No project selected, use user default settings
                       workMinutes = userSettings?.defaultWorkMinutes ?? 25;
                       breakMinutes = userSettings?.defaultBreakMinutes ?? 5;
-                      _timerController.updateDurations(workMinutes, breakMinutes);
+                      _timerController.updateDurations(
+                        workMinutes,
+                        breakMinutes,
+                      );
                     }
                   });
                   _loadSelectedRoomPhrases();
                 },
-                isCollapsed: false, // Always show full project info when visible
+                isCollapsed:
+                    false, // Always show full project info when visible
               ),
             ),
           ),
@@ -2433,4 +2484,3 @@ class _HomeSpeedControlledGifState extends State<_HomeSpeedControlledGif> {
     );
   }
 }
-

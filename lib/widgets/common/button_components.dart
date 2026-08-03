@@ -120,7 +120,7 @@ class SecondaryActionButton extends StatelessWidget {
 class CustomFloatingActionButton extends StatelessWidget {
   final String label;
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Color? backgroundColor;
   final Color? foregroundColor;
   final bool extended;

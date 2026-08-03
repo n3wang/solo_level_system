@@ -1,16 +1,24 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
+import 'package:solo_level_system/constants/app_ui_sizes.dart';
+import 'package:solo_level_system/constants/collectible_card_layout.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/card_model.dart';
+import 'package:solo_level_system/models/user_progress_model.dart';
+import 'package:solo_level_system/utils/card_repository.dart';
 import 'package:solo_level_system/utils/chrono_atlas_scoring.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
+import 'package:solo_level_system/widgets/cards/collectible_card.dart';
+import 'package:solo_level_system/widgets/common/button_components.dart';
 import 'package:solo_level_system/widgets/game_icon_widget.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
 
-enum _RoundPhase { place, year, reveal, summary }
+/// A round asks for one thing only: where it belongs, or when it happened.
+enum _RoundMode { place, year }
+
+enum _RoundPhase { guess, reveal, summary }
 
 class ChronoAtlasScreen extends StatefulWidget {
   const ChronoAtlasScreen({super.key, this.roundsPerSession = 5});
@@ -24,27 +32,39 @@ class ChronoAtlasScreen extends StatefulWidget {
 class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   static const String _boxName = 'motivationItems';
 
+  /// Timeline bounds, wide enough for the whole catalog and answer-agnostic.
+  static const int _minYear = -700;
+  static final int _maxYear = DateTime.now().year;
+
+  /// First place-tap zoom: nearby countries visible for finer placement.
+  static const double _placeDetailZoom = 5.0;
+
+  /// Slightly above world-fit so a tall phone viewport fills with map (no
+  /// empty bands under the tiles).
+  static const double _worldZoom = 2.15;
+  static const double _overlayCardWidth = 108.0;
+
   bool _loading = true;
   String? _error;
-  List<_PlayableCard> _deck = const [];
+  List<_Round> _deck = const [];
   int _roundIndex = 0;
   int _sessionScore = 0;
-  _RoundPhase _phase = _RoundPhase.place;
+  _RoundPhase _phase = _RoundPhase.guess;
 
   MapLatLng? _guessLatLng;
   late final MapTileLayerController _mapController;
   late final _TapZoomPanBehavior _zoomPanBehavior;
+  bool _zoomedToGuess = false;
 
-  late final TextEditingController _yearController;
-  int? _yearGuess;
+  late int _yearGuess;
 
   ChronoAtlasGeoResult? _geoResult;
   ChronoAtlasYearResult? _yearResult;
   int _roundScore = 0;
   final List<int> _roundScores = [];
 
-  /// Markers: index 0 = guess (optional), then answer pins.
-  int _markerCount = 0;
+  List<_MarkerSpec> _markers = const [];
+  UserProgressModel? _userProgress;
 
   @override
   void initState() {
@@ -53,20 +73,16 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
     _zoomPanBehavior = _TapZoomPanBehavior(
       enablePanning: true,
       enablePinching: true,
-      zoomLevel: 1.5,
+      zoomLevel: _worldZoom,
       minZoomLevel: 1,
       maxZoomLevel: 8,
       focalLatLng: const MapLatLng(20, 10),
     )..onTap = _onMapTap;
-    _yearController = TextEditingController();
+    _yearGuess = _defaultYear;
     _bootstrap();
   }
 
-  @override
-  void dispose() {
-    _yearController.dispose();
-    super.dispose();
-  }
+  static int get _defaultYear => ((_minYear + _maxYear) / 2).round();
 
   Future<void> _bootstrap() async {
     try {
@@ -74,6 +90,12 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       if (!Hive.isBoxOpen(_boxName)) {
         await Hive.openBox<CardModel>(_boxName);
       }
+      if (!Hive.isBoxOpen('userProgress')) {
+        await Hive.openBox<UserProgressModel>('userProgress');
+      }
+      _userProgress =
+          Hive.box<UserProgressModel>('userProgress').get('progress');
+
       final box = Hive.box<CardModel>(_boxName);
       final playable = box.values
           .map(_PlayableCard.tryFrom)
@@ -86,13 +108,19 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
         });
         return;
       }
-      playable.shuffle(math.Random());
+      final rng = math.Random();
+      playable.shuffle(rng);
       final take = math.min(widget.roundsPerSession, playable.length);
+      final deck = playable
+          .take(take)
+          .map((card) => _Round(card: card, mode: _pickMode(card, rng)))
+          .toList();
       setState(() {
-        _deck = playable.take(take).toList();
+        _deck = deck;
         _loading = false;
-        _phase = _deck.first.hasPins ? _RoundPhase.place : _RoundPhase.year;
+        _phase = _RoundPhase.guess;
       });
+      _startRound();
     } catch (e) {
       setState(() {
         _loading = false;
@@ -101,62 +129,104 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
     }
   }
 
-  _PlayableCard get _current => _deck[_roundIndex];
-
-  void _onMapTap(Offset localPosition) {
-    if (_phase != _RoundPhase.place) return;
-    final latLng = _mapController.pixelToLatLng(localPosition);
-    setState(() {
-      _guessLatLng = latLng;
-      _mapController.clearMarkers();
-      _markerCount = 1;
-      _mapController.insertMarker(0);
-    });
+  /// Cards carrying both signals become a coin flip; others use what they have.
+  static _RoundMode _pickMode(_PlayableCard card, math.Random rng) {
+    if (card.hasPins && card.hasYear) {
+      return rng.nextBool() ? _RoundMode.place : _RoundMode.year;
+    }
+    return card.hasPins ? _RoundMode.place : _RoundMode.year;
   }
 
-  void _confirmPlace() {
-    if (_guessLatLng == null) return;
-    if (_current.hasYear) {
-      setState(() => _phase = _RoundPhase.year);
+  _Round get _current => _deck[_roundIndex];
+
+  /// Year rounds hand the location over for free; place rounds start blank.
+  void _startRound() {
+    final round = _current;
+    _guessLatLng = null;
+    _yearGuess = _defaultYear;
+    _geoResult = null;
+    _yearResult = null;
+    _roundScore = 0;
+    _zoomedToGuess = false;
+
+    if (round.mode == _RoundMode.year && round.card.hasPins) {
+      final pin = round.card.pins.first;
+      _zoomPanBehavior.zoomLevel = 4;
+      _zoomPanBehavior.focalLatLng = MapLatLng(pin.lat, pin.lng);
+      _setMarkers(
+        round.card.pins
+            .map((p) => _MarkerSpec(lat: p.lat, lng: p.lng, isGuess: false))
+            .toList(),
+      );
     } else {
-      _reveal();
+      _zoomPanBehavior.zoomLevel = _worldZoom;
+      _zoomPanBehavior.focalLatLng = const MapLatLng(20, 10);
+      _setMarkers(const []);
     }
   }
 
-  void _confirmYear() {
-    final parsed = int.tryParse(_yearController.text.trim());
-    if (parsed == null) return;
-    _yearGuess = parsed;
-    _reveal();
+  void _setMarkers(List<_MarkerSpec> markers) {
+    _markers = markers;
+    _mapController.clearMarkers();
+    for (var i = 0; i < markers.length; i++) {
+      _mapController.insertMarker(i);
+    }
   }
 
-  void _reveal() {
+  void _onMapTap(Offset localPosition) {
+    if (_phase != _RoundPhase.guess) return;
+    if (_current.mode != _RoundMode.place) return;
+    final latLng = _mapController.pixelToLatLng(localPosition);
+    final firstTap = !_zoomedToGuess;
+    setState(() {
+      _guessLatLng = latLng;
+      _setMarkers([
+        _MarkerSpec(
+          lat: latLng.latitude,
+          lng: latLng.longitude,
+          isGuess: true,
+        ),
+      ]);
+      if (firstTap) {
+        _zoomedToGuess = true;
+        _zoomPanBehavior.zoomLevel = _placeDetailZoom;
+        _zoomPanBehavior.focalLatLng = latLng;
+      } else {
+        // Keep detail zoom; gently re-center on the new pin.
+        _zoomPanBehavior.focalLatLng = latLng;
+      }
+    });
+  }
+
+  void _confirmGuess() {
+    final round = _current;
     ChronoAtlasGeoResult? geo;
     ChronoAtlasYearResult? year;
     var score = 0;
 
-    if (_current.hasPins && _guessLatLng != null) {
+    if (round.mode == _RoundMode.place) {
+      if (_guessLatLng == null) return;
       geo = ChronoAtlasScoring.scoreGeo(
         guessLat: _guessLatLng!.latitude,
         guessLng: _guessLatLng!.longitude,
-        pins: _current.pins,
+        pins: round.card.pins,
       );
-      score += geo.score;
-    }
-    if (_current.hasYear && _yearGuess != null) {
+      score = geo.score;
+      _setMarkers([
+        _MarkerSpec(
+          lat: _guessLatLng!.latitude,
+          lng: _guessLatLng!.longitude,
+          isGuess: true,
+        ),
+        ...round.card.pins
+            .map((p) => _MarkerSpec(lat: p.lat, lng: p.lng, isGuess: false)),
+      ]);
+    } else {
       year = ChronoAtlasScoring.scoreYear(
-        guess: _yearGuess!,
-        answer: _current.year!,
+        guess: _yearGuess,
+        answer: round.card.year!,
       );
-      score += year.score;
-    }
-
-    if (_current.hasPins) {
-      _mapController.clearMarkers();
-      _markerCount = (_guessLatLng != null ? 1 : 0) + _current.pins.length;
-      for (var i = 0; i < _markerCount; i++) {
-        _mapController.insertMarker(i);
-      }
+      score = year.score;
     }
 
     setState(() {
@@ -176,17 +246,8 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
     }
     setState(() {
       _roundIndex++;
-      _guessLatLng = null;
-      _yearGuess = null;
-      _yearController.clear();
-      _geoResult = null;
-      _yearResult = null;
-      _roundScore = 0;
-      _markerCount = 0;
-      _mapController.clearMarkers();
-      _zoomPanBehavior.zoomLevel = 1.5;
-      _zoomPanBehavior.focalLatLng = const MapLatLng(20, 10);
-      _phase = _current.hasPins ? _RoundPhase.place : _RoundPhase.year;
+      _phase = _RoundPhase.guess;
+      _startRound();
     });
   }
 
@@ -199,41 +260,34 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       _sessionScore = 0;
       _roundScores.clear();
       _guessLatLng = null;
-      _yearGuess = null;
-      _yearController.clear();
+      _yearGuess = _defaultYear;
       _geoResult = null;
       _yearResult = null;
       _roundScore = 0;
-      _markerCount = 0;
-      _mapController.clearMarkers();
+      _zoomedToGuess = false;
+      _setMarkers(const []);
     });
     _bootstrap();
+  }
+
+  Future<void> _openObjectiveCard() async {
+    final progress = _userProgress;
+    if (progress == null || !mounted) return;
+    final catalog = CardRepository.fromCardModel(_current.card.source);
+    await showCollectibleCardDetail(
+      context: context,
+      card: catalog,
+      userProgress: progress,
+      allowAcquire: false,
+      // Place / year stay hidden until the player confirms their guess.
+      hideCatalogFacts: _phase == _RoundPhase.guess,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColorPalette.background,
-      appBar: AppBar(
-        title: const Text('Chrono Atlas'),
-        backgroundColor: AppColorPalette.backgroundSurface,
-        foregroundColor: AppColorPalette.textColor,
-        actions: [
-          if (!_loading && _error == null && _phase != _RoundPhase.summary)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: Text(
-                  '${_roundIndex + 1}/${_deck.length} · $_sessionScore',
-                  style: TextStyle(
-                    color: AppColorPalette.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
       body: _buildBody(),
     );
   }
@@ -243,293 +297,325 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(_error!, textAlign: TextAlign.center),
+      return SafeArea(
+        child: Stack(
+          children: [
+            _buildExitButton(),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(_error!, textAlign: TextAlign.center),
+              ),
+            ),
+          ],
         ),
       );
     }
     if (_phase == _RoundPhase.summary) {
-      return _buildSummary();
+      return SafeArea(child: _buildSummary());
     }
-    return Column(
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        _buildPromptHeader(),
-        Expanded(child: _buildPhaseBody()),
-        _buildBottomBar(),
+        // Force the tile map to the full scaffold — otherwise SfMaps sizes to
+        // its intrinsic tile strip and leaves a white band under the map.
+        Positioned.fill(child: _buildMap()),
+        SafeArea(child: _buildTopChrome()),
+        SafeArea(child: _buildObjectiveCardOverlay()),
+        if (_phase == _RoundPhase.reveal)
+          SafeArea(child: _buildRevealOverlay()),
+        SafeArea(child: _buildFloatConfirm()),
+        Positioned(
+          left: 8,
+          bottom: MediaQuery.paddingOf(context).bottom + 8,
+          child: Text(
+            '© OpenStreetMap',
+            style: TextStyle(
+              color: AppColorPalette.grey700,
+              fontSize: 10,
+              backgroundColor: Colors.white70,
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildPromptHeader() {
-    final card = _current;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      color: AppColorPalette.backgroundSurface,
-      child: Row(
+  Widget _buildExitButton() {
+    return Positioned(
+      top: 4,
+      left: 4,
+      child: _chromeIconButton(
+        icon: Icons.close,
+        tooltip: 'Exit',
+        onPressed: () => Navigator.pop(context),
+      ),
+    );
+  }
+
+  /// Top row: exit · year slider (when needed) · round progress.
+  Widget _buildTopChrome() {
+    final yearMode = _current.mode == _RoundMode.year;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 4, 8, 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (card.imageIndex != null)
-            MotivationIconWidget(imageIndex: card.imageIndex!, size: 48)
-          else
-            Icon(Icons.public, color: AppColorPalette.color1, size: 40),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  card.title,
-                  style: TextStyle(
-                    color: AppColorPalette.textColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _chromeIconButton(
+                icon: Icons.close,
+                tooltip: 'Exit',
+                onPressed: () => Navigator.pop(context),
+              ),
+              Expanded(
+                child: yearMode
+                    ? _buildCompactTimeline()
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          _phase == _RoundPhase.reveal
+                              ? 'Round score: $_roundScore'
+                              : 'Tap the map where this belongs',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppColorPalette.textColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            shadows: const [
+                              Shadow(
+                                color: Colors.white,
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.88),
+                  borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+                  border: Border.all(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    width: 1.2,
                   ),
                 ),
-                Text(
-                  card.category,
+                child: Text(
+                  '${_roundIndex + 1}/${_deck.length}',
                   style: TextStyle(
                     color: AppColorPalette.textSecondary,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _phaseHint(),
-                  style: TextStyle(
-                    color: AppColorPalette.color1,
+                    fontWeight: FontWeight.w700,
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          if (yearMode) ...[
+            const SizedBox(height: 2),
+            Text(
+              _formatYear(_yearGuess).toLowerCase(),
+              style: TextStyle(
+                color: AppColorPalette.textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+                shadows: const [
+                  Shadow(color: Colors.white, blurRadius: 8),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  String _phaseHint() {
-    switch (_phase) {
-      case _RoundPhase.place:
-        return 'Tap the map where this belongs';
-      case _RoundPhase.year:
-        return 'Guess the ${_yearKindLabel(_current.yearKind ?? 'year')}';
-      case _RoundPhase.reveal:
-        return 'Round score: $_roundScore';
-      case _RoundPhase.summary:
-        return '';
-    }
+  Widget _buildCompactTimeline() {
+    final locked = _phase != _RoundPhase.guess;
+    return SliderTheme(
+      data: SliderTheme.of(context).copyWith(
+        trackHeight: 3,
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+      ),
+      child: Slider(
+        value: _yearGuess.toDouble().clamp(
+              _minYear.toDouble(),
+              _maxYear.toDouble(),
+            ),
+        min: _minYear.toDouble(),
+        max: _maxYear.toDouble(),
+        activeColor: AppColorPalette.color1,
+        onChanged: locked
+            ? null
+            : (value) => setState(() => _yearGuess = value.round()),
+      ),
+    );
   }
 
-  Widget _buildPhaseBody() {
-    switch (_phase) {
-      case _RoundPhase.place:
-      case _RoundPhase.reveal:
-        return _buildMap();
-      case _RoundPhase.year:
-        return _buildYearInput();
-      case _RoundPhase.summary:
-        return _buildSummary();
-    }
+  Widget _buildObjectiveCardOverlay() {
+    final catalog = CardRepository.fromCardModel(_current.card.source);
+    final cardHeight = _overlayCardWidth / CollectibleCardLayout.aspectRatio;
+    // Sit under the top chrome so the card peeks onto the map.
+    final topInset = _current.mode == _RoundMode.year ? 72.0 : 48.0;
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Padding(
+        padding: EdgeInsets.only(left: 10, top: topInset),
+        child: SizedBox(
+          width: _overlayCardWidth,
+          height: cardHeight,
+          child: Material(
+            elevation: 5,
+            shadowColor: Colors.black54,
+            borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
+            child: CollectibleCardTile(
+              card: catalog,
+              forceRevealContents: true,
+              availablePoints: _userProgress?.availablePoints,
+              onTap: _openObjectiveCard,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildMap() {
-    final showAnswers = _phase == _RoundPhase.reveal;
-
-    return Column(
-      children: [
-        Expanded(
-          child: Stack(
-            children: [
-              SfMaps(
-                layers: [
-                  MapTileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    zoomPanBehavior: _zoomPanBehavior,
-                    controller: _mapController,
-                    initialMarkersCount: _markerCount,
-                    markerBuilder: (context, index) {
-                      if (_guessLatLng != null && index == 0) {
-                        return MapMarker(
-                          latitude: _guessLatLng!.latitude,
-                          longitude: _guessLatLng!.longitude,
-                          child: const Icon(
-                            Icons.location_on,
-                            color: Colors.redAccent,
-                            size: 32,
-                          ),
-                        );
-                      }
-                      final pinIndex =
-                          _guessLatLng != null ? index - 1 : index;
-                      if (pinIndex < 0 || pinIndex >= _current.pins.length) {
-                        return const MapMarker(
-                          latitude: 0,
-                          longitude: 0,
-                          child: SizedBox.shrink(),
-                        );
-                      }
-                      final pin = _current.pins[pinIndex];
-                      return MapMarker(
-                        latitude: pin.lat,
-                        longitude: pin.lng,
-                        child: Icon(
-                          Icons.flag,
-                          color: AppColorPalette.success,
-                          size: 28,
-                        ),
-                      );
-                    },
-                  ),
-                ],
+    return SfMaps(
+      layers: [
+        MapTileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          zoomPanBehavior: _zoomPanBehavior,
+          controller: _mapController,
+          initialMarkersCount: _markers.length,
+          markerBuilder: (context, index) {
+            if (index < 0 || index >= _markers.length) {
+              return const MapMarker(
+                latitude: 0,
+                longitude: 0,
+                child: SizedBox.shrink(),
+              );
+            }
+            final marker = _markers[index];
+            return MapMarker(
+              latitude: marker.lat,
+              longitude: marker.lng,
+              child: Icon(
+                marker.isGuess ? Icons.location_on : Icons.flag,
+                color: marker.isGuess
+                    ? Colors.redAccent
+                    : AppColorPalette.success,
+                size: marker.isGuess ? 32 : 28,
               ),
-              Positioned(
-                left: 8,
-                bottom: 8,
-                child: Text(
-                  '© OpenStreetMap',
-                  style: TextStyle(
-                    color: AppColorPalette.grey700,
-                    fontSize: 10,
-                    backgroundColor: Colors.white70,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
-        if (showAnswers) _buildRevealPanel(),
       ],
     );
   }
 
-  Widget _buildRevealPanel() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      color: AppColorPalette.backgroundSurface,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_current.placeLabel != null)
-            Text(
-              _current.placeLabel!,
-              style: TextStyle(
-                color: AppColorPalette.textColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          if (_geoResult != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              '${_geoResult!.distanceKm.round()} km · +${_geoResult!.score}',
-              style: TextStyle(color: AppColorPalette.textSecondary),
-            ),
-          ],
-          if (_current.hasYear) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Year: ${_formatYear(_current.year!)}'
-              '${_yearGuess != null ? ' (you: ${_formatYear(_yearGuess!)})' : ''}'
-              '${_yearResult != null ? ' · +${_yearResult!.score}' : ''}',
-              style: TextStyle(color: AppColorPalette.textSecondary),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildYearInput() {
-    final kind = _current.yearKind ?? 'year';
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'What ${_yearKindLabel(kind)}?',
-            style: TextStyle(
-              color: AppColorPalette.textColor,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Use negative numbers for BC (e.g. -470).',
-            style: TextStyle(color: AppColorPalette.textSecondary),
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _yearController,
-            keyboardType: const TextInputType.numberWithOptions(signed: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'-?\d*')),
-            ],
-            style: TextStyle(color: AppColorPalette.textColor, fontSize: 22),
-            decoration: InputDecoration(
-              labelText: 'Year',
-              border: const OutlineInputBorder(),
-              filled: true,
-              fillColor: AppColorPalette.backgroundSurface,
-            ),
-            onSubmitted: (_) => _confirmYear(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _yearKindLabel(String kind) {
-    switch (kind) {
-      case 'birth':
-        return 'birth year';
-      case 'invented':
-        return 'invention / publish year';
-      case 'described':
-        return 'scientific description year';
-      default:
-        return 'year';
-    }
-  }
-
-  Widget _buildBottomBar() {
-    if (_phase == _RoundPhase.summary) return const SizedBox.shrink();
-    late final String label;
-    late final VoidCallback? onPressed;
-    switch (_phase) {
-      case _RoundPhase.place:
-        label = 'Confirm place';
-        onPressed = _guessLatLng == null ? null : _confirmPlace;
-        break;
-      case _RoundPhase.year:
-        label = 'Confirm year';
-        onPressed = _confirmYear;
-        break;
-      case _RoundPhase.reveal:
-        label = _roundIndex >= _deck.length - 1 ? 'See results' : 'Next';
-        onPressed = _nextRound;
-        break;
-      case _RoundPhase.summary:
-        label = '';
-        onPressed = null;
-        break;
-    }
-    return SafeArea(
+  Widget _buildRevealOverlay() {
+    final round = _current;
+    return Align(
+      alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: onPressed,
-            child: Text(label),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 88),
+        child: Material(
+          elevation: 4,
+          color: Colors.white.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (round.card.placeLabel != null)
+                  Text(
+                    round.card.placeLabel!,
+                    style: TextStyle(
+                      color: AppColorPalette.textColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                if (_geoResult != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Off by ${_formatDistance(_geoResult!.distanceKm)} · '
+                    '+${_geoResult!.score}',
+                    style: TextStyle(color: AppColorPalette.textSecondary),
+                  ),
+                ],
+                if (_yearResult != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_formatYear(round.card.year!)} · you said '
+                    '${_formatYear(_yearGuess)} · off by '
+                    '${_yearResult!.deltaYears} yr · +${_yearResult!.score}',
+                    style: TextStyle(color: AppColorPalette.textSecondary),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFloatConfirm() {
+    late final String label;
+    late final IconData icon;
+    late final VoidCallback? onPressed;
+    if (_phase == _RoundPhase.reveal) {
+      final last = _roundIndex >= _deck.length - 1;
+      label = last ? 'Results' : 'Next';
+      icon = last ? Icons.flag_outlined : Icons.arrow_forward;
+      onPressed = _nextRound;
+    } else if (_current.mode == _RoundMode.place) {
+      label = 'Confirm';
+      icon = Icons.check;
+      onPressed = _guessLatLng == null ? null : _confirmGuess;
+    } else {
+      label = 'Confirm';
+      icon = Icons.check;
+      onPressed = _confirmGuess;
+    }
+
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+        child: CustomFloatingActionButton(
+          heroTag: 'chrono_atlas_action',
+          label: label,
+          icon: icon,
+          onPressed: onPressed,
+        ),
+      ),
+    );
+  }
+
+  Widget _chromeIconButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.9),
+      shape: const CircleBorder(),
+      elevation: 2,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, color: AppColorPalette.textColor),
+        visualDensity: VisualDensity.compact,
       ),
     );
   }
@@ -540,13 +626,25 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Session complete',
-            style: TextStyle(
-              color: AppColorPalette.textColor,
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            children: [
+              _chromeIconButton(
+                icon: Icons.close,
+                tooltip: 'Exit',
+                onPressed: () => Navigator.pop(context),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Session complete',
+                  style: TextStyle(
+                    color: AppColorPalette.textColor,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
@@ -563,19 +661,23 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
               itemCount: _deck.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, i) {
-                final card = _deck[i];
+                final round = _deck[i];
                 final score = i < _roundScores.length ? _roundScores[i] : 0;
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: card.imageIndex != null
+                  leading: round.card.imageIndex != null
                       ? MotivationIconWidget(
-                          imageIndex: card.imageIndex!,
+                          imageIndex: round.card.imageIndex!,
                           size: 36,
                         )
                       : null,
                   title: Text(
-                    card.title,
+                    round.card.title,
                     style: TextStyle(color: AppColorPalette.textColor),
+                  ),
+                  subtitle: Text(
+                    round.mode == _RoundMode.place ? 'Place' : 'Year',
+                    style: TextStyle(color: AppColorPalette.textSecondary),
                   ),
                   trailing: Text(
                     '+$score',
@@ -603,8 +705,14 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   }
 
   String _formatYear(int year) {
-    if (year < 0) return '${year.abs()} BC';
+    if (year < 0) return '${year.abs()} BCE';
     return '$year';
+  }
+
+  String _formatDistance(double km) {
+    if (km < 1) return '<1 km';
+    if (km < 10) return '${km.toStringAsFixed(1)} km';
+    return '${km.round()} km';
   }
 }
 
@@ -636,8 +744,28 @@ class _TapZoomPanBehavior extends MapZoomPanBehavior {
   }
 }
 
+class _MarkerSpec {
+  const _MarkerSpec({
+    required this.lat,
+    required this.lng,
+    required this.isGuess,
+  });
+
+  final double lat;
+  final double lng;
+  final bool isGuess;
+}
+
+class _Round {
+  const _Round({required this.card, required this.mode});
+
+  final _PlayableCard card;
+  final _RoundMode mode;
+}
+
 class _PlayableCard {
   const _PlayableCard({
+    required this.source,
     required this.title,
     required this.category,
     required this.pins,
@@ -647,6 +775,7 @@ class _PlayableCard {
     this.imageIndex,
   });
 
+  final CardModel source;
   final String title;
   final String category;
   final List<ChronoAtlasPin> pins;
@@ -678,6 +807,7 @@ class _PlayableCard {
         : int.tryParse('${meta['year'] ?? ''}');
     if (pins.isEmpty && year == null) return null;
     return _PlayableCard(
+      source: card,
       title: card.title,
       category: card.category,
       pins: pins,

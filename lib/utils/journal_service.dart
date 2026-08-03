@@ -304,6 +304,85 @@ class JournalService {
   static bool isCitation(JournalEntryModel entry) =>
       entry.isText && entry.metadata['citation'] == true;
 
+  static const String cardAcquisitionMetaKey = 'cardAcquisition';
+  static const String rogueChallengeMetaKey = 'rogueChallenge';
+  static const String acquisitionModeMetaKey = 'acquisitionMode';
+
+  /// Logs collectible cards granted from a focus (or other) session.
+  static Future<JournalEntryModel?> addCardsEarned({
+    required List<String> cardTitles,
+    String source = 'focus',
+    String? modeWire,
+    String? rogueChallenge,
+    String? parentSessionId,
+  }) async {
+    final titles = cardTitles
+        .map((t) => t.trim())
+        .where((t) => t.isNotEmpty)
+        .toList(growable: false);
+    if (titles.isEmpty) return null;
+
+    final label = titles.length == 1 ? 'Card earned' : 'Cards earned';
+    final buffer = StringBuffer('$label: ${titles.join(', ')}');
+    final challenge = rogueChallenge?.trim();
+    if (challenge != null && challenge.isNotEmpty) {
+      buffer.write('\nRogue challenge: $challenge');
+    }
+
+    final entry = JournalEntryModel(
+      id: _newId(),
+      type: 'text',
+      createdAt: DateTime.now(),
+      text: buffer.toString(),
+      source: source,
+      metadata: {
+        ..._metaWithParent(parentSessionId),
+        cardAcquisitionMetaKey: true,
+        if (modeWire != null && modeWire.isNotEmpty)
+          acquisitionModeMetaKey: modeWire,
+        if (challenge != null && challenge.isNotEmpty)
+          rogueChallengeMetaKey: challenge,
+        'cardTitles': titles,
+      },
+    );
+    final box = await ensureBox();
+    await box.add(entry);
+    return entry;
+  }
+
+  /// Logs the Rogue pick when the user selects a challenge (before grant).
+  static Future<JournalEntryModel?> addRogueChallengeSelected({
+    required String challenge,
+    required String cardTitle,
+    String source = 'focus',
+    String? parentSessionId,
+  }) async {
+    final c = challenge.trim();
+    if (c.isEmpty) return null;
+    final title = cardTitle.trim();
+    final text = title.isEmpty
+        ? 'Rogue challenge selected: $c'
+        : 'Rogue challenge selected: $c\nCard: $title';
+
+    final entry = JournalEntryModel(
+      id: _newId(),
+      type: 'text',
+      createdAt: DateTime.now(),
+      text: text,
+      source: source,
+      metadata: {
+        ..._metaWithParent(parentSessionId),
+        rogueChallengeMetaKey: c,
+        acquisitionModeMetaKey: 'rogue',
+        if (title.isNotEmpty) 'cardTitle': title,
+        'roguePick': true,
+      },
+    );
+    final box = await ensureBox();
+    await box.add(entry);
+    return entry;
+  }
+
   static Future<JournalEntryModel> addAudio({
     required String mediaPath,
     int? durationMs,

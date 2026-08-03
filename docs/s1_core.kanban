@@ -181,7 +181,7 @@
           "id": "8025a567-f098-4a40-8aea-11368c70b4fa",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
           "title": "Maps Game - Simple cards gamification and implementation",
-          "description": "This is a geo + time game.\ntime wise remember where was the last setted time for x action.",
+          "description": "This is a geo + time game.\ntime wise remember where was the last setted time for x action.\n\nMake the map game either pick map, or pick year.\n\nIf it is picking year, then show on the map \n\n",
           "labels": [],
           "checkboxes": [
             {

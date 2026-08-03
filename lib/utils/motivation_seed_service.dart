@@ -53,6 +53,14 @@ class MotivationSeedService {
       if (existing != null) {
         var changed = false;
         final metadata = Map<String, dynamic>.from(existing.metadata);
+        if (existing.title != name) {
+          existing.title = name;
+          changed = true;
+        }
+        if (type == 'phy' && existing.quotePerson != name) {
+          existing.quotePerson = name;
+          changed = true;
+        }
         if (type == 'phy' && quotes.isNotEmpty) {
           final existingEntries = metadata['entries'];
           final hasEntries =
@@ -70,9 +78,12 @@ class MotivationSeedService {
             changed = true;
           }
         }
-        for (final entry in geoMeta.entries) {
-          if (metadata[entry.key] != entry.value) {
-            metadata[entry.key] = entry.value;
+        for (final key in _geoKeys) {
+          if (!geoMeta.containsKey(key)) {
+            // Column cleared in the CSV: drop it so old seeds don't linger.
+            if (metadata.remove(key) != null) changed = true;
+          } else if (metadata[key] != geoMeta[key]) {
+            metadata[key] = geoMeta[key];
             changed = true;
           }
         }
@@ -329,7 +340,7 @@ class MotivationSeedService {
   }
 
   /// Parses
-  /// `name,number,description,category[,year,year_kind,pins,place_label]`.
+  /// `name,number,description,category[,year,year_kind,pins,place_label[,year_label]]`.
   /// Trailing geo columns are read from the end so description commas stay safe.
   static _CatalogRow? _parseCatalogRow(String line) {
     final parts = line.split(',');
@@ -356,12 +367,27 @@ class MotivationSeedService {
       );
     }
 
-    final placeLabel = parts.last.trim();
-    final pins = parts[parts.length - 2].trim();
-    final yearKind = parts[parts.length - 3].trim();
-    final yearRaw = parts[parts.length - 4].trim();
-    final category = parts[parts.length - 5].trim().toLowerCase();
-    final description = parts.sublist(2, parts.length - 5).join(',').trim();
+    // Optional trailing year_label (9th catalog column).
+    final hasYearLabel = parts.length >= 9;
+    final yearLabel = hasYearLabel ? parts.last.trim() : '';
+    final placeLabel =
+        (hasYearLabel ? parts[parts.length - 2] : parts.last).trim();
+    final pins =
+        (hasYearLabel ? parts[parts.length - 3] : parts[parts.length - 2])
+            .trim();
+    final yearKind =
+        (hasYearLabel ? parts[parts.length - 4] : parts[parts.length - 3])
+            .trim();
+    final yearRaw =
+        (hasYearLabel ? parts[parts.length - 5] : parts[parts.length - 4])
+            .trim();
+    final category =
+        (hasYearLabel ? parts[parts.length - 6] : parts[parts.length - 5])
+            .trim()
+            .toLowerCase();
+    final geoTail = hasYearLabel ? 6 : 5;
+    final description =
+        parts.sublist(2, parts.length - geoTail).join(',').trim();
 
     return _CatalogRow(
       name: parts[0].trim(),
@@ -372,8 +398,19 @@ class MotivationSeedService {
       yearKind: yearKind.isEmpty ? null : yearKind,
       pinsRaw: pins.isEmpty ? null : pins,
       placeLabel: placeLabel.isEmpty ? null : placeLabel,
+      yearLabel: yearLabel.isEmpty ? null : yearLabel,
     );
   }
+
+  /// Every metadata key `_geoMetadata` can emit, so cleared columns can be
+  /// pruned from cards that were seeded before the CSV changed.
+  static const List<String> _geoKeys = [
+    'year',
+    'yearKind',
+    'pins',
+    'placeLabel',
+    'yearLabel',
+  ];
 
   static Map<String, dynamic> _geoMetadata(_CatalogRow row) {
     final pins = ChronoAtlasScoring.parsePins(row.pinsRaw);
@@ -393,6 +430,8 @@ class MotivationSeedService {
             .toList(),
       if (row.placeLabel != null && row.placeLabel!.isNotEmpty)
         'placeLabel': row.placeLabel,
+      if (row.yearLabel != null && row.yearLabel!.isNotEmpty)
+        'yearLabel': row.yearLabel,
     };
   }
 
@@ -421,6 +460,7 @@ class _CatalogRow {
     this.yearKind,
     this.pinsRaw,
     this.placeLabel,
+    this.yearLabel,
   });
 
   final String name;
@@ -431,4 +471,5 @@ class _CatalogRow {
   final String? yearKind;
   final String? pinsRaw;
   final String? placeLabel;
+  final String? yearLabel;
 }
