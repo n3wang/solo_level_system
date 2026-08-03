@@ -1,67 +1,126 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/screens/chrono_atlas_screen.dart';
+import 'package:solo_level_system/widgets/common/outlined_entity_tile.dart';
 
 /// Workout → Game tab hub for mini-games.
-class GamesHubScreen extends StatelessWidget {
+class GamesHubScreen extends StatefulWidget {
   const GamesHubScreen({super.key});
 
   @override
+  State<GamesHubScreen> createState() => _GamesHubScreenState();
+}
+
+class _GamesHubScreenState extends State<GamesHubScreen> {
+  static const _flagsBox = 'app_init_flags';
+  static const _bookmarksKey = 'game_bookmarks';
+  static const _chronoAtlasId = 'chrono_atlas';
+
+  final Set<String> _bookmarked = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookmarks();
+  }
+
+  Future<void> _loadBookmarks() async {
+    if (!Hive.isBoxOpen(_flagsBox)) {
+      await Hive.openBox(_flagsBox);
+    }
+    final raw = Hive.box(_flagsBox).get(_bookmarksKey);
+    if (!mounted) return;
+    setState(() {
+      _bookmarked
+        ..clear()
+        ..addAll(
+          raw is List
+              ? raw.whereType<String>()
+              : const <String>[],
+        );
+    });
+  }
+
+  Future<void> _toggleBookmark(String gameId) async {
+    setState(() {
+      if (_bookmarked.contains(gameId)) {
+        _bookmarked.remove(gameId);
+      } else {
+        _bookmarked.add(gameId);
+      }
+    });
+    if (!Hive.isBoxOpen(_flagsBox)) {
+      await Hive.openBox(_flagsBox);
+    }
+    await Hive.box(_flagsBox).put(_bookmarksKey, _bookmarked.toList());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final games = [
+      _GameEntry(
+        id: _chronoAtlasId,
+        title: 'Chrono Atlas',
+        subtitle: 'Pin the place and year',
+        icon: Icons.public,
+        accent: AppColorPalette.color1,
+        footer: 'Never played',
+        onOpen: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ChronoAtlasScreen()),
+          );
+        },
+      ),
+    ];
+
+    // Bookmarked games float to the top (same idea as Sets).
+    final ordered = [...games]
+      ..sort((a, b) {
+        final aBook = _bookmarked.contains(a.id);
+        final bBook = _bookmarked.contains(b.id);
+        if (aBook == bBook) return 0;
+        return aBook ? -1 : 1;
+      });
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
       children: [
-        Text(
-          'Games',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColorPalette.textColor,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Short sessions between sets.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColorPalette.textSecondary,
-              ),
-        ),
         const SizedBox(height: 20),
-        Material(
-          color: AppColorPalette.backgroundSurface,
-          borderRadius: BorderRadius.circular(12),
-          child: ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: CircleAvatar(
-              backgroundColor: AppColorPalette.color1.withValues(alpha: 0.2),
-              child: Icon(Icons.public, color: AppColorPalette.color1),
+        for (final game in ordered)
+          OutlinedEntityTile(
+            title: game.title,
+            subtitle: game.subtitle,
+            footer: game.footer,
+            isBookmarked: _bookmarked.contains(game.id),
+            onBookmarkTap: () => _toggleBookmark(game.id),
+            onTap: game.onOpen,
+            leading: OutlinedEntityLeading(
+              child: Icon(game.icon, color: game.accent, size: 28),
             ),
-            title: Text(
-              'Chrono Atlas',
-              style: TextStyle(
-                color: AppColorPalette.textColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            subtitle: Text(
-              'Pin the place and year',
-              style: TextStyle(color: AppColorPalette.textSecondary),
-            ),
-            trailing: Icon(
-              Icons.chevron_right,
-              color: AppColorPalette.textSecondary,
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ChronoAtlasScreen(),
-                ),
-              );
-            },
           ),
-        ),
       ],
     );
   }
+}
+
+class _GameEntry {
+  const _GameEntry({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.accent,
+    required this.onOpen,
+    this.footer,
+  });
+
+  final String id;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color accent;
+  final VoidCallback onOpen;
+  final String? footer;
 }
