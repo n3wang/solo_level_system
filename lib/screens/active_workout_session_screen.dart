@@ -10,6 +10,7 @@ import 'package:solo_level_system/models/workout_routine_model.dart';
 import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/utils/workout_service.dart';
+import 'package:solo_level_system/utils/mini_games.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/widgets/common/settings_slider.dart';
@@ -437,7 +438,10 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         SizedBox(
           height: 40,
           child: ElevatedButton(
-            onPressed: () => _adjustRestTime(60),
+            onPressed: () => MiniGames.openRandom(
+              context,
+              exitLabel: MiniGames.workoutExitLabel,
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: accent,
               foregroundColor: AppColorPalette.white,
@@ -447,7 +451,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                 borderRadius: BorderRadius.circular(radius),
               ),
             ),
-            child: const Text('+60s'),
+            child: const Text('Game'),
           ),
         ),
         IconButton(
@@ -1166,15 +1170,6 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
           timer.cancel();
         }
       });
-    });
-  }
-
-  void _adjustRestTime(int seconds) {
-    setState(() {
-      _restDuration = _restDuration + Duration(seconds: seconds);
-      if (_restDuration.inSeconds <= 0) {
-        _skipRest();
-      }
     });
   }
 
@@ -1897,11 +1892,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       }
       return false;
     } else if (result == 'discard') {
-      // Discard workout without saving
-      if (mounted) {
-        Navigator.pop(context);
-      }
-      return true; // Allow pop
+      // PopScope will pop once when we return true — do not pop here.
+      return true;
     }
 
     return false; // Don't pop

@@ -108,11 +108,14 @@ class ChronoAtlasScoring {
     return math.max(0, (500 - km / 20).round());
   }
 
+  /// Close guesses score high; far misses taper to +25 / +10 at 50 / 100 years.
   static int _yearPoints(int delta) {
-    if (delta == 0) return 5000;
-    if (delta <= 5) return 4000;
-    if (delta <= 25) return 2500;
-    if (delta <= 100) return 1000;
+    if (delta <= 2) return 5000;
+    if (delta <= 5) return 3000;
+    if (delta <= 10) return 1500;
+    if (delta <= 20) return 750;
+    if (delta <= 50) return 25;
+    if (delta <= 100) return 10;
     return 0;
   }
 

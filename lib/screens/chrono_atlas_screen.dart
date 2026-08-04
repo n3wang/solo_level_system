@@ -62,15 +62,22 @@ enum _RoundMode { place, year }
 
 enum _RoundPhase { guess, reveal, summary }
 
+/// Coarse era before the year scrubber (narrower track → more accurate picks).
+enum _YearEra { bce, early, modern }
+
 class ChronoAtlasScreen extends StatefulWidget {
   const ChronoAtlasScreen({
     super.key,
     this.roundsPerSession = 5,
     this.sessionMode = ChronoAtlasSessionMode.mixed,
+    this.exitLabel = 'Back to games',
   });
 
   final int roundsPerSession;
   final ChronoAtlasSessionMode sessionMode;
+
+  /// Summary screen exit button (e.g. "Back to games" / "Back to workout").
+  final String exitLabel;
 
   @override
   State<ChronoAtlasScreen> createState() => _ChronoAtlasScreenState();
@@ -111,6 +118,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   double _homeZoom = _worldZoom;
 
   late int _yearGuess;
+  _YearEra? _selectedEra;
 
   ChronoAtlasGeoResult? _geoResult;
   ChronoAtlasYearResult? _yearResult;
@@ -168,6 +176,51 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   }
 
   static int get _defaultYear => ((_minYear + _maxYear) / 2).round();
+
+  static int _eraMin(_YearEra era) => switch (era) {
+        _YearEra.bce => _minYear,
+        _YearEra.early => 0,
+        _YearEra.modern => 1500,
+      };
+
+  static int _eraMax(_YearEra era) => switch (era) {
+        _YearEra.bce => -1,
+        _YearEra.early => 1500,
+        _YearEra.modern => _maxYear,
+      };
+
+  static String _eraLabel(_YearEra era) => switch (era) {
+        _YearEra.bce => 'BCE',
+        _YearEra.early => '0 – 1500',
+        _YearEra.modern => '1500+',
+      };
+
+  int get _scrubberMin {
+    final era = _selectedEra;
+    var min = era != null ? _eraMin(era) : _minYear;
+    final answer =
+        _phase == _RoundPhase.reveal ? _current.card.year : null;
+    if (answer != null && answer < min) min = answer;
+    return min;
+  }
+
+  int get _scrubberMax {
+    final era = _selectedEra;
+    var max = era != null ? _eraMax(era) : _maxYear;
+    final answer =
+        _phase == _RoundPhase.reveal ? _current.card.year : null;
+    if (answer != null && answer > max) max = answer;
+    return max;
+  }
+
+  void _selectEra(_YearEra era) {
+    final min = _eraMin(era);
+    final max = _eraMax(era);
+    setState(() {
+      _selectedEra = era;
+      _yearGuess = ((min + max) / 2).round();
+    });
+  }
 
   Future<void> _bootstrap() async {
     try {
@@ -257,6 +310,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
     final round = _current;
     _guessLatLng = null;
     _yearGuess = _defaultYear;
+    _selectedEra = null;
     _geoResult = null;
     _yearResult = null;
     _zoomedToGuess = false;
@@ -356,9 +410,11 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   }
 
   double _yearTrackFraction(int year) {
-    final span = (_maxYear - _minYear).toDouble();
+    final min = _scrubberMin;
+    final max = _scrubberMax;
+    final span = (max - min).toDouble();
     if (span <= 0) return 0.5;
-    return ((year - _minYear) / span).clamp(0.0, 1.0);
+    return ((year - min) / span).clamp(0.0, 1.0);
   }
 
   /// Matches [SettingsSlider] / Material track inset (overlay radius 12).
@@ -542,6 +598,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       _roundScores.clear();
       _guessLatLng = null;
       _yearGuess = _defaultYear;
+      _selectedEra = null;
       _geoResult = null;
       _yearResult = null;
       _zoomedToGuess = false;
@@ -752,7 +809,8 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
     final showReveal = _phase == _RoundPhase.reveal;
     final showConfirm =
         _phase == _RoundPhase.guess &&
-        (_current.mode != _RoundMode.place || _guessLatLng != null);
+        (_current.mode != _RoundMode.place || _guessLatLng != null) &&
+        (_current.mode != _RoundMode.year || _selectedEra != null);
 
     if (!yearMode && !showReveal && !showConfirm) {
       return const SizedBox.shrink();
@@ -795,118 +853,158 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
     final locked = _phase != _RoundPhase.guess;
     final answerYear =
         _phase == _RoundPhase.reveal ? _current.card.year : null;
-    final showTrail = _sessionYears.isNotEmpty || answerYear != null;
+    final showTimeline = _selectedEra != null || answerYear != null;
+    final visiblePins = _sessionYears
+        .where((p) => p.year >= _scrubberMin && p.year <= _scrubberMax)
+        .toList();
+    final showTrail = visiblePins.isNotEmpty || answerYear != null;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          _formatYear(_yearGuess).toLowerCase(),
-          style: TextStyle(
-            color: AppColorPalette.textColor,
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-            shadows: const [Shadow(color: Colors.white, blurRadius: 8)],
+        _buildEraPicker(locked: locked),
+        if (!showTimeline) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Pick an era first',
+            style: TextStyle(
+              color: AppColorPalette.textMuted,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              shadows: const [Shadow(color: Colors.white, blurRadius: 6)],
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final miniH = _sessionYears.isNotEmpty
-                ? _miniatureCardWidth / CollectibleCardLayout.aspectRatio
-                : 0.0;
-            const miniGap = 6.0;
-            const sliderH = 40.0;
-            final labelH = showTrail ? 16.0 : 0.0;
-            final topPad = _sessionYears.isNotEmpty ? miniH + miniGap : 0.0;
-            final totalH = topPad + sliderH + labelH;
+        ],
+        if (showTimeline) ...[
+          const SizedBox(height: 8),
+          Text(
+            _formatYear(_yearGuess).toLowerCase(),
+            style: TextStyle(
+              color: AppColorPalette.textColor,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+              shadows: const [Shadow(color: Colors.white, blurRadius: 8)],
+            ),
+          ),
+          const SizedBox(height: 2),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final miniH = visiblePins.isNotEmpty
+                  ? _miniatureCardWidth / CollectibleCardLayout.aspectRatio
+                  : 0.0;
+              const miniGap = 6.0;
+              const sliderH = 40.0;
+              final labelH = showTrail ? 16.0 : 0.0;
+              final topPad = visiblePins.isNotEmpty ? miniH + miniGap : 0.0;
+              final totalH = topPad + sliderH + labelH;
+              final scrubMin = _scrubberMin.toDouble();
+              final scrubMax = _scrubberMax.toDouble();
 
-            // Blue-gray past objectives; yellow = correct answer on reveal.
-            const pastColor = Color(0xFF78909C);
-            final answerColor = AppColorPalette.color4;
+              // Blue-gray past objectives; yellow = correct answer on reveal.
+              const pastColor = Color(0xFF78909C);
+              final answerColor = AppColorPalette.color4;
 
-            return SizedBox(
-              height: totalH,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  for (final pin in _sessionYears)
+              return SizedBox(
+                height: totalH,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    for (final pin in visiblePins)
+                      Positioned(
+                        left: (_xForYear(width, pin.year) -
+                                _miniatureCardWidth / 2)
+                            .clamp(0.0, width - _miniatureCardWidth),
+                        top: 0,
+                        child: _buildSessionMiniature(pin.card),
+                      ),
                     Positioned(
-                      left: (_xForYear(width, pin.year) - _miniatureCardWidth / 2)
-                          .clamp(0.0, width - _miniatureCardWidth),
-                      top: 0,
-                      child: _buildSessionMiniature(pin.card),
-                    ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    top: topPad,
-                    height: sliderH,
-                    child: SettingsSlider(
-                      value: _yearGuess.toDouble(),
-                      min: _minYear.toDouble(),
-                      max: _maxYear.toDouble(),
-                      onChanged: locked
-                          ? null
-                          : (value) =>
-                              setState(() => _yearGuess = value.round()),
-                    ),
-                  ),
-                  for (final pin in _sessionYears)
-                    Positioned(
-                      left: _xForYear(width, pin.year) - 3.5,
-                      top: topPad + sliderH / 2 - 10,
-                      child: IgnorePointer(
-                        child: _TimelineYearTick(
-                          color: pastColor,
-                          width: 7,
-                          height: 20,
-                        ),
+                      left: 0,
+                      right: 0,
+                      top: topPad,
+                      height: sliderH,
+                      child: SettingsSlider(
+                        value: _yearGuess.toDouble().clamp(scrubMin, scrubMax),
+                        min: scrubMin,
+                        max: scrubMax,
+                        onChanged: locked
+                            ? null
+                            : (value) =>
+                                setState(() => _yearGuess = value.round()),
                       ),
                     ),
-                  if (answerYear != null)
-                    Positioned(
-                      left: _xForYear(width, answerYear) - 4,
-                      top: topPad + sliderH / 2 - 12,
-                      child: IgnorePointer(
-                        child: _TimelineYearTick(
-                          color: answerColor,
-                          width: 8,
-                          height: 24,
-                        ),
-                      ),
-                    ),
-                  for (final pin in _sessionYears)
-                    Positioned(
-                      left: (_xForYear(width, pin.year) - 28)
-                          .clamp(0.0, width - 56),
-                      width: 56,
-                      bottom: 0,
-                      child: IgnorePointer(
-                        child: Text(
-                          _formatYear(pin.year).toLowerCase(),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppColorPalette.textMuted,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            height: 1.1,
-                            shadows: const [
-                              Shadow(color: Colors.white, blurRadius: 6),
-                            ],
+                    for (final pin in visiblePins)
+                      Positioned(
+                        left: _xForYear(width, pin.year) - 3.5,
+                        top: topPad + sliderH / 2 - 10,
+                        child: IgnorePointer(
+                          child: _TimelineYearTick(
+                            color: pastColor,
+                            width: 7,
+                            height: 20,
                           ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-            );
-          },
-        ),
+                    if (answerYear != null)
+                      Positioned(
+                        left: _xForYear(width, answerYear) - 4,
+                        top: topPad + sliderH / 2 - 12,
+                        child: IgnorePointer(
+                          child: _TimelineYearTick(
+                            color: answerColor,
+                            width: 8,
+                            height: 24,
+                          ),
+                        ),
+                      ),
+                    for (final pin in visiblePins)
+                      Positioned(
+                        left: (_xForYear(width, pin.year) - 28)
+                            .clamp(0.0, width - 56),
+                        width: 56,
+                        bottom: 0,
+                        child: IgnorePointer(
+                          child: Text(
+                            _formatYear(pin.year).toLowerCase(),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColorPalette.textMuted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              height: 1.1,
+                              shadows: const [
+                                Shadow(color: Colors.white, blurRadius: 6),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildEraPicker({required bool locked}) {
+    return Row(
+      children: [
+        for (final era in _YearEra.values) ...[
+          if (era != _YearEra.values.first) const SizedBox(width: 8),
+          Expanded(
+            child: _EraChip(
+              label: _eraLabel(era),
+              selected: _selectedEra == era,
+              onTap: locked ? null : () => _selectEra(era),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1273,7 +1371,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Back to games'),
+            child: Text(widget.exitLabel),
           ),
         ],
       ),
@@ -1425,6 +1523,53 @@ class _SessionYearPin {
 
   final int year;
   final CardModel card;
+}
+
+class _EraChip extends StatelessWidget {
+  const _EraChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = AppColorPalette.color1;
+    return Material(
+      color: selected
+          ? accent.withValues(alpha: 0.18)
+          : Colors.white.withValues(alpha: 0.88),
+      borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+        child: Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+            border: Border.all(
+              color: selected ? accent : AppColorPalette.grey300,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: selected ? accent : AppColorPalette.textColor,
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _TimelineYearTick extends StatelessWidget {

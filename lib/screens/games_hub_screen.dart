@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:solo_level_system/constants/color_palette.dart';
-import 'package:solo_level_system/screens/chrono_atlas_screen.dart';
+import 'package:solo_level_system/utils/mini_games.dart';
 import 'package:solo_level_system/widgets/common/outlined_entity_tile.dart';
 
 /// Workout → Game tab hub for mini-games.
@@ -51,33 +50,9 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
     await Hive.box(_flagsBox).put(_bookmarksKey, _bookmarked.toList());
   }
 
-  void _openAtlas(ChronoAtlasSessionMode mode) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChronoAtlasScreen(sessionMode: mode),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final games = [
-      for (final mode in ChronoAtlasSessionMode.values)
-        _GameEntry(
-          id: mode.highScoreKey,
-          title: mode.title,
-          subtitle: mode.subtitle,
-          icon: mode.hubIcon,
-          accent: switch (mode) {
-            ChronoAtlasSessionMode.mixed => AppColorPalette.color1,
-            ChronoAtlasSessionMode.geo => AppColorPalette.color2,
-            ChronoAtlasSessionMode.time => AppColorPalette.color3,
-          },
-          footer: 'Never played',
-          onOpen: () => _openAtlas(mode),
-        ),
-    ];
+    final games = MiniGames.catalog;
 
     // Bookmarked games float to the top (same idea as Sets).
     final ordered = [...games]
@@ -96,10 +71,10 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
           OutlinedEntityTile(
             title: game.title,
             subtitle: game.subtitle,
-            footer: game.footer,
+            footer: 'Never played',
             isBookmarked: _bookmarked.contains(game.id),
             onBookmarkTap: () => _toggleBookmark(game.id),
-            onTap: game.onOpen,
+            onTap: () => MiniGames.open(context, game),
             leading: OutlinedEntityLeading(
               child: Icon(game.icon, color: game.accent, size: 28),
             ),
@@ -107,24 +82,4 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
       ],
     );
   }
-}
-
-class _GameEntry {
-  const _GameEntry({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.accent,
-    required this.onOpen,
-    this.footer,
-  });
-
-  final String id;
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color accent;
-  final VoidCallback onOpen;
-  final String? footer;
 }

@@ -30,8 +30,13 @@ void main() {
 
     test('scoreYear bands', () {
       expect(ChronoAtlasScoring.scoreYear(guess: 2015, answer: 2015).score, 5000);
-      expect(ChronoAtlasScoring.scoreYear(guess: 2010, answer: 2015).score, 4000);
-      expect(ChronoAtlasScoring.scoreYear(guess: 2000, answer: 2015).score, 2500);
+      expect(ChronoAtlasScoring.scoreYear(guess: 2014, answer: 2015).score, 5000);
+      expect(ChronoAtlasScoring.scoreYear(guess: 2013, answer: 2015).score, 5000);
+      expect(ChronoAtlasScoring.scoreYear(guess: 2010, answer: 2015).score, 3000);
+      expect(ChronoAtlasScoring.scoreYear(guess: 2005, answer: 2015).score, 1500);
+      expect(ChronoAtlasScoring.scoreYear(guess: 1995, answer: 2015).score, 750);
+      expect(ChronoAtlasScoring.scoreYear(guess: 1965, answer: 2015).score, 25);
+      expect(ChronoAtlasScoring.scoreYear(guess: 1915, answer: 2015).score, 10);
       expect(ChronoAtlasScoring.scoreYear(guess: 1900, answer: 2015).score, 0);
     });
   });
