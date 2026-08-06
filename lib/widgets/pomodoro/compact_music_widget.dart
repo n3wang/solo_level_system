@@ -8,6 +8,8 @@ class CompactMusicWidget extends StatefulWidget {
   final VoidCallback onToggleMusic;
   final VoidCallback onChangeTrack;
   final VoidCallback? onLongPressTrackPicker;
+  /// Border/icon/text accent when music is active (work=red, break=green).
+  final Color accentColor;
 
   const CompactMusicWidget({
     super.key,
@@ -16,6 +18,7 @@ class CompactMusicWidget extends StatefulWidget {
     required this.onChangeTrack,
     this.onLongPressTrackPicker,
     this.currentlyPlayingTrack,
+    this.accentColor = const Color(0xFFE57373),
   });
 
   @override
@@ -108,7 +111,7 @@ class _CompactMusicWidgetState extends State<CompactMusicWidget>
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: widget.allowMusic
-                ? Colors.green.withValues(
+                ? widget.accentColor.withValues(
                     alpha: PomodoroConstants.containerOpacity,
                   )
                 : Colors.grey.withValues(
@@ -118,7 +121,7 @@ class _CompactMusicWidgetState extends State<CompactMusicWidget>
               PomodoroConstants.smallBorderRadius,
             ),
             border: Border.all(
-              color: widget.allowMusic ? Colors.green : Colors.grey,
+              color: widget.allowMusic ? widget.accentColor : Colors.grey,
               width: 1,
             ),
           ),
@@ -131,7 +134,7 @@ class _CompactMusicWidgetState extends State<CompactMusicWidget>
                   Icon(
                     widget.allowMusic ? Icons.music_note : Icons.volume_off,
                     size: 16,
-                    color: widget.allowMusic ? Colors.green : Colors.grey,
+                    color: widget.allowMusic ? widget.accentColor : Colors.grey,
                   ),
                   const SizedBox(width: PomodoroConstants.elementSpacing),
                   Flexible(
@@ -142,7 +145,9 @@ class _CompactMusicWidgetState extends State<CompactMusicWidget>
                       style: TextStyle(
                         fontSize: PomodoroConstants.musicWidgetFontSize,
                         fontWeight: FontWeight.w500,
-                        color: widget.allowMusic ? Colors.green : Colors.grey,
+                        color: widget.allowMusic
+                            ? widget.accentColor
+                            : Colors.grey,
                       ),
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,

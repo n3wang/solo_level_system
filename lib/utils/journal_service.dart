@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
+import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/journal_entry_model.dart';
 import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
+import 'package:solo_level_system/utils/card_repository.dart';
 import 'package:solo_level_system/utils/workout_motivation_service.dart';
 
 class JournalService {
@@ -354,12 +356,14 @@ class JournalService {
   static Future<JournalEntryModel?> addRogueChallengeSelected({
     required String challenge,
     required String cardTitle,
+    String? cardId,
     String source = 'focus',
     String? parentSessionId,
   }) async {
     final c = challenge.trim();
     if (c.isEmpty) return null;
     final title = cardTitle.trim();
+    final id = cardId?.trim() ?? '';
     final text = title.isEmpty
         ? 'Rogue challenge selected: $c'
         : 'Rogue challenge selected: $c\nCard: $title';
@@ -375,12 +379,36 @@ class JournalService {
         rogueChallengeMetaKey: c,
         acquisitionModeMetaKey: 'rogue',
         if (title.isNotEmpty) 'cardTitle': title,
+        if (id.isNotEmpty) 'cardId': id,
         'roguePick': true,
       },
     );
     final box = await ensureBox();
     await box.add(entry);
     return entry;
+  }
+
+  /// Resolves a catalog card from journal rogue-pick metadata (`cardId`).
+  /// Falls back to title match for older entries written before cardId existed.
+  static CatalogCard? resolveRoguePickCard(JournalEntryModel entry) {
+    final rawId = entry.metadata['cardId'];
+    final id = rawId is String ? rawId.trim() : '';
+    final title = (entry.metadata['cardTitle'] as String?)?.trim() ?? '';
+    try {
+      if (!Hive.isBoxOpen('motivationItems')) return null;
+      final box = Hive.box<CardModel>('motivationItems');
+      if (id.isNotEmpty) {
+        for (final card in box.values) {
+          if (card.id == id) return CardRepository.fromCardModel(card);
+        }
+      }
+      if (title.isNotEmpty) {
+        for (final card in box.values) {
+          if (card.title == title) return CardRepository.fromCardModel(card);
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   static Future<JournalEntryModel> addAudio({

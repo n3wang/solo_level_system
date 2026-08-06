@@ -81,8 +81,11 @@ Future<void> showAcquiredCardToast({
       return Positioned(
         right: AppUiSizes.lg,
         bottom: bottomInset + AppUiSizes.xxl + AppUiSizes.lg,
-        child: _AcquiredCardToastBubble(
+        child: CardRewardMiniature(
           card: card,
+          label: 'Acquired',
+          subtitle:
+              '${card.rarity.wire} [${card.acquisitionCount.clamp(1, 1 << 20)}]',
           onTap: openDetail,
         ),
       );
@@ -97,60 +100,99 @@ Future<void> showAcquiredCardToast({
   return completer.future;
 }
 
-class _AcquiredCardToastBubble extends StatelessWidget {
+/// Compact collectible card chrome used by acquisition toasts and pending
+/// Rogue challenge badges (bottom-right of the pomodoro screen).
+class CardRewardMiniature extends StatelessWidget {
   final CatalogCard card;
-  final VoidCallback onTap;
+  final String? label;
+  final String? subtitle;
+  final VoidCallback? onTap;
+  final Widget? footer;
+  final double width;
+  final bool forceRevealContents;
 
-  const _AcquiredCardToastBubble({
+  const CardRewardMiniature({
+    super.key,
     required this.card,
-    required this.onTap,
+    this.label,
+    this.subtitle,
+    this.onTap,
+    this.footer,
+    this.width = 118,
+    this.forceRevealContents = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final cardBody = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (label != null && label!.isNotEmpty) ...[
+          Text(
+            label!,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: scheme.tertiary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppUiSizes.xxs),
+        ],
+        AspectRatio(
+          aspectRatio: CollectibleCardLayout.aspectRatio,
+          child: CollectibleCardTile(
+            card: card,
+            forceRevealContents: forceRevealContents,
+          ),
+        ),
+        if (subtitle != null && subtitle!.isNotEmpty) ...[
+          const SizedBox(height: AppUiSizes.xxs),
+          Text(
+            subtitle!,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
+    );
+
+    final paddedCard = Container(
+      width: width,
+      padding: const EdgeInsets.all(AppUiSizes.xs),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
+        border: Border.all(color: scheme.tertiary.withValues(alpha: 0.7)),
+        color: scheme.surface,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          onTap == null
+              ? cardBody
+              : InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+                  child: cardBody,
+                ),
+          if (footer != null) ...[
+            const SizedBox(height: AppUiSizes.xs),
+            footer!,
+          ],
+        ],
+      ),
+    );
+
     return Material(
       elevation: 8,
       borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
       color: scheme.surface,
       shadowColor: Colors.black54,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
-        child: Container(
-          width: 118,
-          padding: const EdgeInsets.all(AppUiSizes.xs),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
-            border: Border.all(color: scheme.tertiary.withValues(alpha: 0.7)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Acquired',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: scheme.tertiary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: AppUiSizes.xxs),
-              AspectRatio(
-                aspectRatio: CollectibleCardLayout.aspectRatio,
-                child: CollectibleCardTile(card: card),
-              ),
-              const SizedBox(height: AppUiSizes.xxs),
-              Text(
-                '${card.rarity.wire} [${card.acquisitionCount.clamp(1, 1 << 20)}]',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
-      ),
+      child: paddedCard,
     );
   }
 }

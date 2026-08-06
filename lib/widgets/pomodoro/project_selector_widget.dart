@@ -94,8 +94,8 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
     // Show only selected project; unselecting returns to all projects.
     final projectsToShow = widget.selectedProject != null
         ? visibleProjects
-            .where((entry) => entry.project.id == widget.selectedProject!.id)
-            .toList()
+              .where((entry) => entry.project.id == widget.selectedProject!.id)
+              .toList()
         : visibleProjects;
     final showSingleSelectedChip =
         widget.selectedProject != null && projectsToShow.length == 1;
@@ -145,13 +145,23 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
     bool compact,
   ) {
     final baseColor = _parseColor(project.color);
-    final borderColor =
-        _chipBorderColor(context: context, accent: baseColor, selected: true);
-    final foregroundColor = _chipPrimaryTextColor(context: context, selected: true);
-    final secondaryColor =
-        _chipSecondaryTextColor(context: context, selected: true);
-    final tertiaryColor =
-        _chipSecondaryTextColor(context: context, selected: false);
+    final borderColor = _chipBorderColor(
+      context: context,
+      accent: baseColor,
+      selected: true,
+    );
+    final foregroundColor = _chipPrimaryTextColor(
+      context: context,
+      selected: true,
+    );
+    final secondaryColor = _chipSecondaryTextColor(
+      context: context,
+      selected: true,
+    );
+    final tertiaryColor = _chipSecondaryTextColor(
+      context: context,
+      selected: false,
+    );
     final targetWidth = widget.selectedExpandedWidth == null
         ? maxWidth
         : widget.selectedExpandedWidth!.clamp(0.0, maxWidth);
@@ -190,48 +200,57 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
                 child: Row(
                   mainAxisSize: MainAxisSize.max,
                   children: [
-                  if (project.iconName != null) ...[
-                    Icon(
-                      _getIconData(project.iconName!),
-                      size: compact ? 13 : 14,
-                      color: baseColor,
-                    ),
-                    const SizedBox(width: 4),
-                  ],
-                  Expanded(
-                    child: Text(
-                      project.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: compact ? 11 : 12,
-                        color: foregroundColor,
+                    if (project.isTodayComplete) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.check_circle,
+                        size: compact ? 14 : 15,
+                        color: baseColor,
+                      ),
+                    ],
+                    if (project.iconName != null &&
+                        !project.isTodayComplete) ...[
+                      Icon(
+                        _getIconData(project.iconName!),
+                        size: compact ? 13 : 14,
+                        color: baseColor,
+                      ),
+                      const SizedBox(width: 2),
+                    ],
+                    Expanded(
+                      child: Text(
+                        project.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: compact ? 11 : 12,
+                          color: foregroundColor,
+                        ),
                       ),
                     ),
-                  ),
-                  if (!widget.isCollapsed) ...[
-                    const SizedBox(width: 4),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          project.progressText,
-                          style: TextStyle(
-                            fontSize: compact ? 9 : 10,
-                            color: secondaryColor,
+                    if (!widget.isCollapsed) ...[
+                      const SizedBox(width: 4),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            project.progressText,
+                            style: TextStyle(
+                              fontSize: compact ? 9 : 10,
+                              color: secondaryColor,
+                            ),
                           ),
-                        ),
-                        Text(
-                          '${project.workDurationMinutes}-${project.breakDurationMinutes}',
-                          style: TextStyle(
-                            fontSize: compact ? 8 : 9,
-                            color: tertiaryColor,
-                            fontStyle: FontStyle.italic,
+                          Text(
+                            '${project.workDurationMinutes}-${project.breakDurationMinutes}',
+                            style: TextStyle(
+                              fontSize: compact ? 8 : 9,
+                              color: tertiaryColor,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -245,9 +264,11 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
   Widget _buildProjectChip(
     BuildContext context,
     ProjectModel project,
-    bool isSelected,
-    {bool expandToFullWidth = false, bool compact = false, double opacity = 1.0}
-  ) {
+    bool isSelected, {
+    bool expandToFullWidth = false,
+    bool compact = false,
+    double opacity = 1.0,
+  }) {
     final color = _parseColor(project.color);
     final chipColor = _chipBackgroundColor(
       context: context,
@@ -259,10 +280,14 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
       accent: color,
       selected: isSelected,
     );
-    final primaryTextColor =
-        _chipPrimaryTextColor(context: context, selected: isSelected);
-    final secondaryTextColor =
-        _chipSecondaryTextColor(context: context, selected: isSelected);
+    final primaryTextColor = _chipPrimaryTextColor(
+      context: context,
+      selected: isSelected,
+    );
+    final secondaryTextColor = _chipSecondaryTextColor(
+      context: context,
+      selected: isSelected,
+    );
 
     return GestureDetector(
       onTap: () {
@@ -290,87 +315,93 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
-            mainAxisSize: expandToFullWidth ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisSize: expandToFullWidth
+                ? MainAxisSize.max
+                : MainAxisSize.min,
             children: [
-            if (project.iconName != null) ...[
-              Icon(
-                _getIconData(project.iconName!),
-                size: compact ? 13 : 14,
-                color: color,
-              ),
-              SizedBox(width: 4),
-            ],
-            if (expandToFullWidth)
-              Expanded(
-                child: Text(
-                  project.name,
+              if (project.iconName != null) ...[
+                Icon(
+                  _getIconData(project.iconName!),
+                  size: compact ? 13 : 14,
+                  color: color,
+                ),
+                SizedBox(width: 4),
+              ],
+              if (expandToFullWidth)
+                Expanded(
+                  child: Text(
+                    project.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: compact ? 11 : 12,
+                      fontWeight: FontWeight.w500,
+                      color: primaryTextColor,
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  isSelected ? project.name : project.initials,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: compact ? 11 : 12,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                     color: primaryTextColor,
+                    letterSpacing: isSelected ? 0 : 0.4,
                   ),
                 ),
-              )
-            else
-              Text(
-                isSelected ? project.name : project.initials,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: compact ? 11 : 12,
-                  fontWeight: FontWeight.w600,
-                  color: primaryTextColor,
-                  letterSpacing: isSelected ? 0 : 0.4,
-                ),
-              ),
-            if (!widget.isCollapsed) ...[
-              SizedBox(width: 4),
-              if (expandToFullWidth) ...[
-                const Spacer(),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      project.progressText,
-                      style: TextStyle(
-                        fontSize: compact ? 9 : 10,
-                        color: secondaryTextColor,
+              if (project.isTodayComplete) ...[
+                SizedBox(width: 4),
+                Icon(Icons.check_circle, size: compact ? 13 : 14, color: color),
+              ],
+              if (!widget.isCollapsed) ...[
+                SizedBox(width: 4),
+                if (expandToFullWidth) ...[
+                  const Spacer(),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        project.progressText,
+                        style: TextStyle(
+                          fontSize: compact ? 9 : 10,
+                          color: secondaryTextColor,
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${project.workDurationMinutes}-${project.breakDurationMinutes}',
-                      style: TextStyle(
-                        fontSize: compact ? 8 : 9,
-                        color: secondaryTextColor.withValues(alpha: 0.9),
-                        fontStyle: FontStyle.italic,
+                      Text(
+                        '${project.workDurationMinutes}-${project.breakDurationMinutes}',
+                        style: TextStyle(
+                          fontSize: compact ? 8 : 9,
+                          color: secondaryTextColor.withValues(alpha: 0.9),
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ] else
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      project.progressText,
-                      style: TextStyle(
-                        fontSize: compact ? 9 : 10,
-                        color: secondaryTextColor,
+                    ],
+                  ),
+                ] else
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        project.progressText,
+                        style: TextStyle(
+                          fontSize: compact ? 9 : 10,
+                          color: secondaryTextColor,
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${project.workDurationMinutes}-${project.breakDurationMinutes}',
-                      style: TextStyle(
-                        fontSize: compact ? 8 : 9,
-                        color: secondaryTextColor.withValues(alpha: 0.9),
-                        fontStyle: FontStyle.italic,
+                      Text(
+                        '${project.workDurationMinutes}-${project.breakDurationMinutes}',
+                        style: TextStyle(
+                          fontSize: compact ? 8 : 9,
+                          color: secondaryTextColor.withValues(alpha: 0.9),
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-            ],
+                    ],
+                  ),
+              ],
             ],
           ),
         ),
@@ -392,9 +423,8 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
     final withinWindow = _isWithinBufferedWindow(
       now: now,
       project: project,
-      morningStart: _timeMeta(
-            meta['morning_start'],
-          ) ??
+      morningStart:
+          _timeMeta(meta['morning_start']) ??
           TimeOfDay(hour: project.preferredWorkHour ?? 9, minute: 0),
       afternoonStart:
           _timeMeta(meta['afternoon_start']) ??
@@ -402,7 +432,10 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
       eveningStart:
           _timeMeta(meta['evening_start']) ??
           const TimeOfDay(hour: 18, minute: 30),
-      dayStates: _dayStatesMeta(meta['day_states'], fallbackActiveDays: project.activeDays),
+      dayStates: _dayStatesMeta(
+        meta['day_states'],
+        fallbackActiveDays: project.activeDays,
+      ),
     );
 
     return _ProjectChipPresentation(
@@ -441,7 +474,10 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
     return TimeOfDay(hour: hour, minute: minute);
   }
 
-  Map<int, int> _dayStatesMeta(String? raw, {required List<int> fallbackActiveDays}) {
+  Map<int, int> _dayStatesMeta(
+    String? raw, {
+    required List<int> fallbackActiveDays,
+  }) {
     if (raw != null && raw.trim().isNotEmpty) {
       final parts = raw.split(',');
       if (parts.length == 7) {
@@ -458,7 +494,10 @@ class _ProjectSelectorWidgetState extends State<ProjectSelectorWidget> {
         if (allValid) return map;
       }
     }
-    return {for (int day = 1; day <= 7; day++) day: fallbackActiveDays.contains(day) ? 0 : 1};
+    return {
+      for (int day = 1; day <= 7; day++)
+        day: fallbackActiveDays.contains(day) ? 0 : 1,
+    };
   }
 
   bool _isWithinBufferedWindow({
@@ -550,7 +589,10 @@ class _ProjectChipPresentation {
   final ProjectModel project;
   final double opacity;
 
-  const _ProjectChipPresentation({required this.project, required this.opacity});
+  const _ProjectChipPresentation({
+    required this.project,
+    required this.opacity,
+  });
 }
 
 // Compact version for when space is limited

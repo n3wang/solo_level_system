@@ -519,6 +519,27 @@ class AppColorPalette {
   // Convenience getter for scaffold background (uses palette background)
   static Color get scaffoldBackground => background;
 
+  /// Pomodoro scaffold tint when "Color Background by Mode" is enabled.
+  /// Work → red, break → green. Soft in light mode, deeper in dark mode.
+  static Color? sessionModeBackground({
+    required bool enabled,
+    required bool onBreak,
+    required Brightness brightness,
+  }) {
+    if (!enabled) return null;
+    final isDark = brightness == Brightness.dark;
+    if (onBreak) {
+      return isDark ? const Color(0xFF1B3D2F) : const Color(0xFFC8E6C9);
+    }
+    return isDark ? const Color(0xFF4A1515) : const Color(0xFFFFCDD2);
+  }
+
+  /// Accent for pomodoro chrome (timer border, music card): red on work,
+  /// green on break. Uses palette color1 (red family) and success (green).
+  static Color sessionModeAccent({required bool onBreak}) {
+    return onBreak ? success : color1;
+  }
+
   // Theme fonts
   static String get fontPrimary => _activeTheme?.fonts.primary ?? 'Roboto';
   static String get fontSecondary => _activeTheme?.fonts.secondary ?? 'Poppins';

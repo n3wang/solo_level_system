@@ -105,6 +105,11 @@ class UserSettingsModel extends HiveObject {
   @HiveField(27)
   List<String> rogueChallengeList;
 
+  /// When true, the pomodoro screen background is red during work and green
+  /// during breaks instead of the normal white/black scaffold color.
+  @HiveField(28)
+  bool colorBackgroundBySessionMode;
+
   UserSettingsModel({
     this.theme = 'system',
     this.primaryColor = 'green',
@@ -134,6 +139,7 @@ class UserSettingsModel extends HiveObject {
     this.sessionCompletionCardCount = 1,
     this.cardAcquireTiming = 'after_break',
     List<String>? rogueChallengeList,
+    this.colorBackgroundBySessionMode = false,
   }) : rogueChallengeList =
             rogueChallengeList ?? List<String>.from(RogueChallengeDefaults.base);
 

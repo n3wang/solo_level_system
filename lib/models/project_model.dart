@@ -109,8 +109,10 @@ class ProjectModel extends HiveObject {
   String get initials {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return '?';
-    final words =
-        trimmed.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final words = trimmed
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
     if (words.length > 1) {
       return words.map((w) => w[0].toUpperCase()).take(4).join();
     }
@@ -194,7 +196,10 @@ class ProjectModel extends HiveObject {
     final dateKey =
         '${sessionDate.year}-${sessionDate.month.toString().padLeft(2, '0')}-${sessionDate.day.toString().padLeft(2, '0')}';
 
-    dailyStats[dateKey] = (dailyStats[dateKey] ?? 0) + 1;
+    // Reassign the map so Hive persists the change (in-place mutation is ignored).
+    final updated = Map<String, int>.from(dailyStats);
+    updated[dateKey] = (updated[dateKey] ?? 0) + 1;
+    dailyStats = updated;
     totalCompletedPomodoros++;
     lastWorkedOn = sessionDate;
 

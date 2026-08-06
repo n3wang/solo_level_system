@@ -101,7 +101,19 @@ class _RogueChallengeOverlay extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               const gap = AppUiSizes.md;
-              const labelBlock = 44.0;
+              final challengeStyle = Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    height: 1.25,
+                  );
+              final lineHeight =
+                  (challengeStyle?.fontSize ?? 16) *
+                  (challengeStyle?.height ?? 1.25);
+              // Always reserve exactly 2 text rows (+ padding + gap under card).
+              final challengeBoxHeight =
+                  lineHeight * 2 + AppUiSizes.sm * 2;
+              final labelBlock = challengeBoxHeight + AppUiSizes.md;
               final maxCardWidth = (constraints.maxWidth - gap) / 2;
               final maxCardHeight =
                   maxCardWidth / CollectibleCardLayout.aspectRatio;
@@ -122,6 +134,8 @@ class _RogueChallengeOverlay extends StatelessWidget {
                         options[i],
                         cardWidth: cardWidth,
                         cardHeight: cardHeight,
+                        challengeStyle: challengeStyle,
+                        challengeBoxHeight: challengeBoxHeight,
                       ),
                     ],
                   ],
@@ -139,6 +153,8 @@ class _RogueChallengeOverlay extends StatelessWidget {
     RogueChallengeOption option, {
     required double cardWidth,
     required double cardHeight,
+    required TextStyle? challengeStyle,
+    required double challengeBoxHeight,
   }) {
     final catalog = CardRepository.fromCardModel(option.card);
     return SizedBox(
@@ -169,10 +185,12 @@ class _RogueChallengeOverlay extends StatelessWidget {
           const SizedBox(height: AppUiSizes.md),
           Container(
             width: double.infinity,
+            height: challengeBoxHeight,
             padding: const EdgeInsets.symmetric(
               horizontal: AppUiSizes.md,
               vertical: AppUiSizes.sm,
             ),
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.82),
               borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
@@ -182,10 +200,7 @@ class _RogueChallengeOverlay extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: challengeStyle,
             ),
           ),
         ],

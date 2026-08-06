@@ -49,13 +49,15 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
               ?.map((e) => e.toString())
               .toList() ??
           List<String>.from(RogueChallengeDefaults.base),
+      colorBackgroundBySessionMode:
+          fields[28] as bool? ?? false,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserSettingsModel obj) {
     writer
-      ..writeByte(28)
+      ..writeByte(29)
       ..writeByte(0)
       ..write(obj.theme)
       ..writeByte(1)
@@ -111,7 +113,9 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
       ..writeByte(26)
       ..write(obj.cardAcquireTiming)
       ..writeByte(27)
-      ..write(obj.rogueChallengeList);
+      ..write(obj.rogueChallengeList)
+      ..writeByte(28)
+      ..write(obj.colorBackgroundBySessionMode);
   }
 
   @override

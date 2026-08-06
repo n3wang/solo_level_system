@@ -10,10 +10,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
+import 'package:solo_level_system/constants/collectible_card_layout.dart';
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:solo_level_system/models/journal_entry_model.dart';
+import 'package:solo_level_system/utils/card_repository.dart';
 import 'package:solo_level_system/utils/image_utils.dart';
 import 'package:solo_level_system/utils/journal_service.dart';
+import 'package:solo_level_system/widgets/cards/collectible_card.dart';
 import 'package:solo_level_system/widgets/common/centered_app_modal.dart';
 import 'package:solo_level_system/widgets/common/on_off_toggle.dart';
 import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
@@ -87,51 +90,43 @@ class JournalOpenButton extends StatelessWidget {
     final tip = autoOpen == null
         ? tooltip
         : autoOpen
-            ? 'Journal · Auto-open On (long-press to turn off)'
-            : 'Journal · Auto-open Off (long-press to turn on)';
+        ? 'Journal · Auto-open On (long-press to turn off)'
+        : 'Journal · Auto-open Off (long-press to turn on)';
     return Tooltip(
       message: tip,
-      child: Material(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.85,
-        ),
+      child: InkWell(
+        onTap: onPressed,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
-        child: InkWell(
-          onTap: onPressed,
-          onLongPress: onLongPress,
-          borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
-          child: SizedBox(
-            width: 40,
-            height: 40,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(
-                  autoOpen == false
-                      ? Icons.menu_book_outlined
-                      : Icons.menu_book,
-                  size: 22,
-                  color: theme.colorScheme.onSurface.withValues(
-                    alpha: autoOpen == false ? 0.55 : 0.85,
-                  ),
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(
+                autoOpen == false ? Icons.menu_book_outlined : Icons.menu_book,
+                size: 22,
+                color: theme.colorScheme.onSurface.withValues(
+                  alpha: autoOpen == false ? 0.55 : 0.85,
                 ),
-                if (autoOpen != null)
-                  Positioned(
-                    right: 6,
-                    bottom: 6,
-                    child: Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: autoOpen
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.outline.withValues(alpha: 0.7),
-                      ),
+              ),
+              if (autoOpen != null)
+                Positioned(
+                  right: 6,
+                  bottom: 6,
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: autoOpen
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outline.withValues(alpha: 0.7),
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
@@ -1221,11 +1216,74 @@ class _TextTile extends StatelessWidget {
   final JournalEntryModel entry;
   const _TextTile({required this.entry});
 
+  bool get _isRoguePick => entry.metadata['roguePick'] == true;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isCitation = JournalService.isCitation(entry);
     final author = (entry.metadata['author'] as String?)?.trim() ?? '';
+    final rogueCard = _isRoguePick
+        ? JournalService.resolveRoguePickCard(entry)
+        : null;
+    final challenge =
+        (entry.metadata[JournalService.rogueChallengeMetaKey] as String?)
+            ?.trim() ??
+        '';
+
+    Widget body;
+    if (isCitation) {
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            entry.text ?? '',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontStyle: FontStyle.italic,
+              height: 1.4,
+            ),
+          ),
+          if (author.isNotEmpty) ...[
+            const SizedBox(height: AppUiSizes.sm),
+            Text(
+              '--- $author',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: AppColorPalette.grey700,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ],
+      );
+    } else if (_isRoguePick) {
+      final challengeLabel = challenge.isNotEmpty
+          ? challenge
+          : (entry.text ?? '');
+      body = Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (rogueCard != null) ...[
+            _JournalRogueCardMini(card: rogueCard),
+            const SizedBox(width: AppUiSizes.sm),
+          ],
+          Expanded(
+            child: Text(
+              challengeLabel,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      body = Text(
+        entry.text ?? '',
+        style: theme.textTheme.bodyMedium?.copyWith(height: 1.35),
+      );
+    }
 
     return Container(
       width: double.infinity,
@@ -1236,34 +1294,40 @@ class _TextTile extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(AppUiSizes.radiusMd),
       ),
-      child: isCitation
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  entry.text ?? '',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    height: 1.4,
-                  ),
-                ),
-                if (author.isNotEmpty) ...[
-                  const SizedBox(height: AppUiSizes.sm),
-                  Text(
-                    '--- $author',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: AppColorPalette.grey700,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ],
-              ],
-            )
-          : Text(
-              entry.text ?? '',
-              style: theme.textTheme.bodyMedium?.copyWith(height: 1.35),
-            ),
+      child: body,
+    );
+  }
+}
+
+/// Tiny collectible preview shown beside a Rogue challenge journal line.
+class _JournalRogueCardMini extends StatelessWidget {
+  final CatalogCard card;
+  const _JournalRogueCardMini({required this.card});
+
+  static const double _width = 48;
+
+  @override
+  Widget build(BuildContext context) {
+    final height = _width / CollectibleCardLayout.aspectRatio;
+    const sourceWidth = 96.0;
+    final sourceHeight = sourceWidth / CollectibleCardLayout.aspectRatio;
+    return SizedBox(
+      width: _width,
+      height: height,
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: SizedBox(
+          width: sourceWidth,
+          height: sourceHeight,
+          child: Material(
+            elevation: 2,
+            shadowColor: Colors.black45,
+            borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+            clipBehavior: Clip.antiAlias,
+            child: CollectibleCardTile(card: card, forceRevealContents: true),
+          ),
+        ),
+      ),
     );
   }
 }

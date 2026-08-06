@@ -1,11 +1,13 @@
 // lib/screens/main_navigation_screen.dart
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/screens/home_screen.dart';
 import 'package:solo_level_system/screens/analytics_screen.dart';
 import 'package:solo_level_system/screens/settings_screen.dart';
 import 'package:solo_level_system/screens/workout_screen.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
+import 'package:solo_level_system/utils/timer_controller.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final Function(UserSettingsModel)? onSettingsChanged;
@@ -17,12 +19,14 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
+  final _timerController = TimerController();
 
   late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
+    _timerController.addListener(_onTimerStateChanged);
     _screens = [
       HomeScreen(onSettingsChanged: () => _notifySettingsChanged()),
       AnalyticsScreen(),
@@ -31,13 +35,46 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ];
   }
 
+  @override
+  void dispose() {
+    _timerController.removeListener(_onTimerStateChanged);
+    super.dispose();
+  }
+
+  void _onTimerStateChanged() {
+    if (!mounted || _currentIndex != 0) return;
+    setState(() {});
+  }
+
   void _notifySettingsChanged() {
     widget.onSettingsChanged?.call(UserSettingsModel());
+  }
+
+  bool get _colorBackgroundBySessionMode {
+    try {
+      if (!Hive.isBoxOpen('userSettings')) return false;
+      return Hive.box<UserSettingsModel>('userSettings')
+              .get('settings')
+              ?.colorBackgroundBySessionMode ??
+          false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Color? get _pomodoroScaffoldBackground {
+    if (_currentIndex != 0) return null;
+    return AppColorPalette.sessionModeBackground(
+      enabled: _colorBackgroundBySessionMode,
+      onBreak: _timerController.onBreak,
+      brightness: Theme.of(context).brightness,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _pomodoroScaffoldBackground,
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,

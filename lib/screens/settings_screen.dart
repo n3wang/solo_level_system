@@ -351,6 +351,21 @@ class _SettingsScreenState extends State<SettingsScreen>
           },
         ),
         Divider(),
+        _buildSectionHeader('Appearance'),
+        OnOffToggleListTile(
+          title: Text('Color Background by Mode'),
+          subtitle: Text(
+            'Red background during work, green during breaks',
+          ),
+          value: userSettings.colorBackgroundBySessionMode,
+          onChanged: (value) async {
+            setState(() {
+              userSettings.colorBackgroundBySessionMode = value;
+            });
+            await _saveUserSettings();
+          },
+        ),
+        Divider(),
         _buildSectionHeader('Card Acquisition'),
         SettingsRectChipGroup<CardAcquisitionMode>(
           title: 'Mode',

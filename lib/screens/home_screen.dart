@@ -33,8 +33,11 @@ import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
 import 'package:solo_level_system/widgets/common/session_loot_dialog.dart';
+import 'package:solo_level_system/widgets/cards/acquired_card_toast.dart';
+import 'package:solo_level_system/widgets/cards/collectible_card.dart';
 import 'package:solo_level_system/widgets/cards/rogue_challenge_modal.dart';
 import 'package:solo_level_system/models/room_model.dart';
+import 'package:solo_level_system/utils/card_repository.dart';
 
 // New imports for refactored widgets and constants
 import 'package:solo_level_system/utils/pomodoro_sizing.dart';
@@ -628,7 +631,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           playing: playing,
           fit: BoxFit.cover,
           errorChild: Container(
-            color: AppColorPalette.success.withValues(alpha: 0.1),
+            color: AppColorPalette.sessionModeAccent(
+              onBreak: onBreak,
+            ).withValues(alpha: 0.1),
           ),
         );
       }
@@ -1432,9 +1437,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         JournalService.addRogueChallengeSelected(
           challenge: pick.challenge,
           cardTitle: pick.card.title,
+          cardId: pick.card.id,
           source: 'focus',
         ),
       );
+      if (mounted) setState(() {});
     }
   }
 
@@ -1589,6 +1596,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Update project statistics if a project is selected
     if (selectedProject != null) {
       selectedProject!.addPomodoroSession();
+
+      final idx = projects.indexWhere((p) => p.id == selectedProject!.id);
+      if (idx > 0) {
+        projects[idx] == selectedProject!;
+      }
+      if (mounted) {
+        setState(() {});
+      }
     }
 
     SessionLoot? loot;
@@ -1663,6 +1678,57 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _pendingAfterBreakMinutes = 0;
     _pendingRogueCard = null;
     _pendingRogueChallenge = null;
+  }
+
+  bool get _showPendingRogueChallengeBadge =>
+      _pendingRogueCard != null && (onBreak || _pendingBreakResume);
+
+  void _cancelPendingRogueChallenge() {
+    final challenge = _pendingRogueChallenge?.trim();
+    _clearPendingAcquisition();
+    if (!mounted) return;
+    setState(() {});
+    showAppSnack(
+      context,
+      text: (challenge != null && challenge.isNotEmpty)
+          ? 'Challenge cancelled: $challenge'
+          : 'Challenge cancelled',
+    );
+  }
+
+  Widget _buildPendingRogueChallengeBadge() {
+    final card = _pendingRogueCard!;
+    final catalog = CardRepository.fromCardModel(card);
+    final challenge = _pendingRogueChallenge?.trim() ?? '';
+    return CardRewardMiniature(
+      card: catalog,
+      label: 'Challenge',
+      subtitle: challenge.isNotEmpty ? challenge : card.title,
+      forceRevealContents: true,
+      onTap: () {
+        unawaited(
+          showCollectibleCardDetail(
+            context: context,
+            card: catalog,
+            userProgress: userProgress ?? UserProgressModel(),
+            acquiredReveal: true,
+          ),
+        );
+      },
+      footer: SizedBox(
+        width: double.infinity,
+        child: TextButton(
+          onPressed: _cancelPendingRogueChallenge,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColorPalette.error,
+            padding: const EdgeInsets.symmetric(vertical: AppUiSizes.xs),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
   }
 
   void toggleMute() {
@@ -1956,9 +2022,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _loadProjects();
   }
 
+  Color? _sessionModeBackgroundColor(BuildContext context) {
+    return AppColorPalette.sessionModeBackground(
+      enabled: _liveSettings().colorBackgroundBySessionMode,
+      onBreak: onBreak,
+      brightness: Theme.of(context).brightness,
+    );
+  }
+
+  Color get _sessionModeAccent =>
+      AppColorPalette.sessionModeAccent(onBreak: onBreak);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _sessionModeBackgroundColor(context),
       floatingActionButton: _buildSideActionFabs(),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       body: SafeArea(
@@ -1972,6 +2050,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             }
           },
           child: Stack(
+            fit: StackFit.expand,
             children: [
               SingleChildScrollView(
                 padding: const EdgeInsets.all(24.0),
@@ -1987,6 +2066,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   onLongPress: _toggleAutoOpenJournalAfterFocus,
                 ),
               ),
+              if (_showPendingRogueChallengeBadge)
+                Positioned(
+                  right: AppUiSizes.lg,
+                  bottom: AppUiSizes.sm,
+                  child: _buildPendingRogueChallengeBadge(),
+                ),
             ],
           ),
         ),
@@ -2122,13 +2207,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: AppColorPalette.success,
+                                  color: _sessionModeAccent,
                                   width: 2,
                                 ),
                                 color: mediaWidget == null
-                                    ? AppColorPalette.success.withValues(
-                                        alpha: 0.1,
-                                      )
+                                    ? _sessionModeAccent.withValues(alpha: 0.1)
                                     : null,
                               ),
                               child: mediaWidget == null
@@ -2190,6 +2273,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           child: CompactMusicWidget(
                             allowMusic: _timerController.allowMusic,
                             currentlyPlayingTrack: currentlyPlayingTrack,
+                            accentColor: _sessionModeAccent,
                             onToggleMusic: _toggleMusicPlayback,
                             onChangeTrack: () {
                               if (_timerController.allowMusic) {
@@ -2224,13 +2308,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: AppColorPalette.success,
+                                  color: _sessionModeAccent,
                                   width: 2,
                                 ),
                                 color: mediaWidget == null
-                                    ? AppColorPalette.success.withValues(
-                                        alpha: 0.1,
-                                      )
+                                    ? _sessionModeAccent.withValues(alpha: 0.1)
                                     : null,
                               ),
                               child: mediaWidget == null
@@ -2293,6 +2375,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           child: CompactMusicWidget(
                             allowMusic: _timerController.allowMusic,
                             currentlyPlayingTrack: currentlyPlayingTrack,
+                            accentColor: _sessionModeAccent,
                             onToggleMusic: _toggleMusicPlayback,
                             onChangeTrack: () {
                               if (_timerController.allowMusic) {
