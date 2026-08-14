@@ -348,6 +348,26 @@
               "id": "73631de0-675e-499b-a715-995f00937373",
               "title": "Build  The First Case",
               "checked": false
+            },
+            {
+              "id": "ab2c21ac-c53b-4791-b8c8-5f0ddbe33890",
+              "title": "Collect audio for correct",
+              "checked": false
+            },
+            {
+              "id": "04efbf96-a537-451b-b8ce-1bb5bad8e6d4",
+              "title": "Collect audio for placing a pin",
+              "checked": false
+            },
+            {
+              "id": "988c3d3b-1317-4b13-92d9-bb664aa1ed45",
+              "title": "Collect audio for incorrect.",
+              "checked": false
+            },
+            {
+              "id": "bba08d64-602a-4043-9f8f-7e73d3e18c0f",
+              "title": "By default have it muted. ",
+              "checked": false
             }
           ],
           "comments": []

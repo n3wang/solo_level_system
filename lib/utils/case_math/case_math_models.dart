@@ -127,11 +127,15 @@ class CaseMathRoundTable {
     required this.definition,
     required this.yearLabels,
     required this.companies,
+    required this.displayValues,
   });
 
   final CaseMathCaseDefinition definition;
   final List<String> yearLabels;
   final List<CaseMathCompanyData> companies;
+
+  /// Session-stable row order (shuffled once per game, not per question).
+  final List<CaseMathValueDefinition> displayValues;
 
   CaseMathCompanyData company(String id) =>
       companies.firstWhere((company) => company.id == id);
@@ -161,12 +165,51 @@ class CaseMathWorkedAnswer {
     required this.formula,
     required this.solution,
     required this.type,
+    this.highlights = const [],
+    this.solutionParts = const [],
   });
 
   final double exact;
   final String formula;
   final String solution;
   final CaseMathValueFormat type;
+
+  /// Table cells used by the formula (colored in solution + table).
+  final List<CaseMathFormulaHighlight> highlights;
+
+  /// Structured solution for colored / tappable spans.
+  final List<CaseMathSolutionPart> solutionParts;
+}
+
+/// A table-backed value referenced by the active formula.
+class CaseMathFormulaHighlight {
+  const CaseMathFormulaHighlight({
+    required this.variableName,
+    required this.valueId,
+    required this.yearIndex,
+    required this.metricName,
+    required this.formattedValue,
+    required this.colorIndex,
+  });
+
+  final String variableName;
+  final String valueId;
+  final int yearIndex;
+  final String metricName;
+  final String formattedValue;
+
+  /// Index into the app primary palette (0 → color1 …).
+  final int colorIndex;
+}
+
+class CaseMathSolutionPart {
+  const CaseMathSolutionPart({
+    required this.text,
+    this.highlight,
+  });
+
+  final String text;
+  final CaseMathFormulaHighlight? highlight;
 }
 
 class CaseMathRound {

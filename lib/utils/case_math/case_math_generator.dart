@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:solo_level_system/utils/case_math/case_math_expression.dart';
+import 'package:solo_level_system/utils/case_math/case_math_highlights.dart';
 import 'package:solo_level_system/utils/case_math/case_math_models.dart';
 import 'package:solo_level_system/utils/case_math/case_math_scoring.dart';
 
@@ -11,10 +12,17 @@ class CaseMathGenerator {
     Random? random,
   }) : _random = random ?? Random() {
     _validateDefinition();
+    reshuffleDisplayOrder();
   }
 
   final CaseMathCaseDefinition definition;
   final Random _random;
+  late List<CaseMathValueDefinition> _displayValues;
+
+  /// Call once when a game session starts (not between questions).
+  void reshuffleDisplayOrder() {
+    _displayValues = [...definition.values]..shuffle(_random);
+  }
 
   CaseMathRound nextRound() {
     final startYear = 2019 + _random.nextInt(5);
@@ -32,17 +40,29 @@ class CaseMathGenerator {
       definition: definition,
       yearLabels: years,
       companies: companies,
+      displayValues: List.unmodifiable(_displayValues),
     );
     final question = _buildQuestion(table);
     final exact = CaseMathExpression.evaluate(
       question.definition.math,
       question.variables,
     );
+    final highlights = CaseMathHighlightBuilder.build(
+      table: table,
+      question: question,
+    );
+    final solutionParts = CaseMathHighlightBuilder.buildSolutionParts(
+      question: question,
+      exact: exact,
+      highlights: highlights,
+    );
     final answer = CaseMathWorkedAnswer(
       exact: exact,
       formula: question.definition.formula,
       solution: CaseMathScoring.buildSolution(question, exact),
       type: question.definition.answerType,
+      highlights: highlights,
+      solutionParts: solutionParts,
     );
     return CaseMathRound(table: table, question: question, answer: answer);
   }

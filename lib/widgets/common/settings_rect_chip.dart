@@ -75,11 +75,13 @@ class SettingsRectChipGroup<T> extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: titlePadding ??
+          padding:
+              titlePadding ??
               const EdgeInsets.only(left: 16, top: 8, bottom: 8),
           child: Text(
             title!,
-            style: titleStyle ??
+            style:
+                titleStyle ??
                 TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -124,8 +126,9 @@ class SettingsRectChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = activeColor ?? Theme.of(context).colorScheme.primary;
     final enabled = onTap != null;
-    final foreground =
-        selected ? AppColorPalette.white : AppColorPalette.grey800;
+    final foreground = selected
+        ? AppColorPalette.white
+        : AppColorPalette.grey800;
     final resolvedIconSize = iconSize ?? (_compact ? 14.0 : 16.0);
     final fontSize = _compact ? 11.0 : 13.0;
     final horizontal = _compact ? 8.0 : 14.0;

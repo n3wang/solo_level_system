@@ -62,6 +62,11 @@ void main() {
       expect(round.table.definition, same(case1Definition));
       expect(round.table.yearLabels, hasLength(4));
       expect(round.table.companies, hasLength(2));
+      expect(round.table.displayValues, hasLength(10));
+      expect(
+        round.table.displayValues.map((value) => value.id).toSet(),
+        case1Definition.values.map((value) => value.id).toSet(),
+      );
       for (final company in round.table.companies) {
         expect(
           company.values.keys.toSet(),
@@ -71,6 +76,38 @@ void main() {
           expect(company.series(value.id), hasLength(4));
         }
       }
+    });
+
+    test('row display order is stable across questions until reshuffled', () {
+      final generator = CaseMathGenerator(
+        definition: case1Definition,
+        random: Random(11),
+      );
+      final first = generator.nextRound().table.displayValues.map((v) => v.id);
+      final second = generator.nextRound().table.displayValues.map((v) => v.id);
+      expect(second, orderedEquals(first));
+
+      generator.reshuffleDisplayOrder();
+      final third = generator.nextRound().table.displayValues.map((v) => v.id);
+      expect(third.toSet(), first.toSet());
+      expect(third, isNot(orderedEquals(first)));
+    });
+
+    test('formula highlights map table cells with distinct colors', () {
+      final round = CaseMathGenerator(
+        definition: case1Definition,
+        random: Random(21),
+      ).nextRound();
+      expect(round.answer.highlights, isNotEmpty);
+      expect(round.answer.solutionParts, isNotEmpty);
+      final keys = round.answer.highlights
+          .map((h) => '${h.valueId}@${h.yearIndex}')
+          .toSet();
+      expect(keys.length, round.answer.highlights.length);
+      expect(
+        round.answer.solutionParts.any((part) => part.highlight != null),
+        isTrue,
+      );
     });
 
     test('every generated answer equals its declared expression', () {
