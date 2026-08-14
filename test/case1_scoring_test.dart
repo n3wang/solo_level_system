@@ -183,46 +183,83 @@ void main() {
       expect(CaseMathScoring.parseGuess(''), isNull);
     });
 
-    test('uses relative and percentage tolerances', () {
-      const priceAnswer = CaseMathWorkedAnswer(
+    test('adds thousand separators to integer digits only', () {
+      expect(CaseMathScoring.withThousandSeparators('1234'), '1,234');
+      expect(CaseMathScoring.withThousandSeparators('1234567.89'), '1,234,567.89');
+      expect(CaseMathScoring.withThousandSeparators('-1234.'), '-1,234.');
+      expect(CaseMathScoring.withThousandSeparators('.5'), '.5');
+      expect(
+        CaseMathScoring.withThousandSeparatorsInExpression('1234+56.7*1000'),
+        '1,234+56.7*1,000',
+      );
+      expect(
+        CaseMathScoring.formatValue(1234.5, CaseMathValueFormat.number),
+        '1,234.50',
+      );
+    });
+
+    test('scales tolerance by variable usage count', () {
+      expect(
+        CaseMathScoring.countVariableUsages(
+          'revenue - costs',
+          ['revenue', 'costs'],
+        ),
+        2,
+      );
+      expect(
+        CaseMathScoring.countVariableUsages(
+          '(revenue - costs) / revenue * 100',
+          ['revenue', 'costs'],
+        ),
+        3,
+      );
+      expect(
+        CaseMathScoring.countVariableUsages(
+          '((revenue - costs) - (oldRevenue - oldCosts)) / (oldRevenue - oldCosts) * 100',
+          ['revenue', 'costs', 'oldRevenue', 'oldCosts'],
+        ),
+        6,
+      );
+
+      // 2 usages → accept ±5%, precise ±2%.
+      const twoUses = CaseMathWorkedAnswer(
         exact: 1000000,
         formula: 'f',
         solution: 's',
         type: CaseMathValueFormat.price,
+        variableUsageCount: 2,
       );
       expect(
-        CaseMathScoring.score(
-          guess: 1015000,
-          answer: priceAnswer,
-        ).correct,
-        isTrue,
+        CaseMathScoring.score(guess: 1020000, answer: twoUses).points,
+        CaseMathScoring.precisePoints,
       );
       expect(
-        CaseMathScoring.score(
-          guess: 1100000,
-          answer: priceAnswer,
-        ).correct,
+        CaseMathScoring.score(guess: 1040000, answer: twoUses).points,
+        CaseMathScoring.acceptPoints,
+      );
+      expect(
+        CaseMathScoring.score(guess: 1060000, answer: twoUses).correct,
         isFalse,
       );
 
-      const percentageAnswer = CaseMathWorkedAnswer(
-        exact: 18.71,
+      // 3 usages → accept ±7.5%, precise ±3%.
+      const threeUses = CaseMathWorkedAnswer(
+        exact: 100.0,
         formula: 'f',
         solution: 's',
         type: CaseMathValueFormat.percentage,
+        variableUsageCount: 3,
       );
       expect(
-        CaseMathScoring.score(
-          guess: 18.9,
-          answer: percentageAnswer,
-        ).correct,
-        isTrue,
+        CaseMathScoring.score(guess: 103.0, answer: threeUses).points,
+        CaseMathScoring.precisePoints,
       );
       expect(
-        CaseMathScoring.score(
-          guess: 20.5,
-          answer: percentageAnswer,
-        ).correct,
+        CaseMathScoring.score(guess: 107.0, answer: threeUses).points,
+        CaseMathScoring.acceptPoints,
+      );
+      expect(
+        CaseMathScoring.score(guess: 108.0, answer: threeUses).correct,
         isFalse,
       );
     });

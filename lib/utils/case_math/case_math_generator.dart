@@ -61,6 +61,10 @@ class CaseMathGenerator {
       formula: question.definition.formula,
       solution: CaseMathScoring.buildSolution(question, exact),
       type: question.definition.answerType,
+      variableUsageCount: CaseMathScoring.countVariableUsages(
+        question.definition.math,
+        question.variables.keys,
+      ),
       highlights: highlights,
       solutionParts: solutionParts,
     );

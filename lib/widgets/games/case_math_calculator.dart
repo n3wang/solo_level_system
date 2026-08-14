@@ -3,19 +3,22 @@ import 'package:flutter/rendering.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/utils/case_math/case_math_expression.dart';
+import 'package:solo_level_system/utils/case_math/case_math_scoring.dart';
 import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
 import 'package:solo_level_system/widgets/games/case_math_keypad.dart';
 
 /// Compact solution calculator: digits + + − × ÷ ( ) = C.
 /// Transparent chrome — only keys / display are opaque so content below shows.
-/// Table cell taps insert values via [insertValue].
+/// Table cell and results-list taps insert values via [insertValue].
 class CaseMathCalculator extends StatefulWidget {
   const CaseMathCalculator({
     super.key,
     this.width = 208,
+    this.historyWidth = 88,
   });
 
   final double width;
+  final double historyWidth;
 
   @override
   State<CaseMathCalculator> createState() => CaseMathCalculatorState();
@@ -25,16 +28,28 @@ class CaseMathCalculatorState extends State<CaseMathCalculator> {
   String _expression = '';
   String? _error;
   double? _result;
+  final List<String> _history = [];
+  final _historyScroll = ScrollController();
 
   String get expression => _expression;
 
-  void clear() {
+  @override
+  void dispose() {
+    _historyScroll.dispose();
+    super.dispose();
+  }
+
+  void clear({bool clearHistory = false}) {
     setState(() {
       _expression = '';
       _error = null;
       _result = null;
+      if (clearHistory) _history.clear();
     });
   }
+
+  /// Clears pad + history (e.g. when advancing to the next question).
+  void resetForNewQuestion() => clear(clearHistory: true);
 
   /// Insert a table cell value as the next operand.
   void insertValue(double value) {
@@ -98,10 +113,16 @@ class CaseMathCalculatorState extends State<CaseMathCalculator> {
     if (_expression.trim().isEmpty) return;
     try {
       final value = CaseMathExpression.evaluate(_expression, const {});
+      final formatted = _formatInsert(value);
       setState(() {
         _result = value;
         _error = null;
-        _expression = _formatInsert(value);
+        _expression = formatted;
+        _history.add(formatted);
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_historyScroll.hasClients) return;
+        _historyScroll.jumpTo(_historyScroll.position.maxScrollExtent);
       });
     } catch (_) {
       setState(() {
@@ -124,132 +145,258 @@ class CaseMathCalculatorState extends State<CaseMathCalculator> {
   Widget build(BuildContext context) {
     final surface = Theme.of(context).scaffoldBackgroundColor;
     return _HitTestPassthrough(
-      child: SizedBox(
-        width: widget.width,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Material(
-              color: surface,
-              elevation: 1,
-              borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
-              child: Container(
-                constraints: const BoxConstraints(minHeight: 44),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Colors.black.withValues(alpha: 0.45),
-                  ),
-                  borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      _expression.isEmpty ? '0' : _expression,
-                      textAlign: TextAlign.right,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        color: _expression.isEmpty
-                            ? AppColorPalette.textSecondary
-                            : null,
-                      ),
-                    ),
-                    if (_error != null)
-                      Text(
-                        _error!,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColorPalette.error,
-                        ),
-                      )
-                    else if (_result != null)
-                      Text(
-                        '= ${_formatInsert(_result!)}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColorPalette.textSecondary,
-                        ),
-                      )
-                    else
-                      Text(
-                        'Tap table cells to fill',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: AppColorPalette.textSecondary,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: widget.width,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  flex: 3,
-                  child: CaseMathDigitPad(
-                    compact: true,
-                    opaqueKeys: true,
-                    onKeyTap: _append,
-                    onBackspace: _backspace,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  flex: 1,
+                _CalcSurface(
+                  surface: surface,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      for (final op in const ['/', '*', '-', '+']) ...[
-                        SizedBox(
-                          height: 36,
-                          width: double.infinity,
-                          child: CaseMathKeypadButton(
-                            label: op == '*'
-                                ? '×'
-                                : op == '/'
-                                    ? '÷'
-                                    : op,
-                            compact: true,
-                            opaque: true,
-                            onPressed: () => _append(op),
+                      Text(
+                        _expression.isEmpty
+                            ? '0'
+                            : CaseMathScoring.withThousandSeparatorsInExpression(
+                                _expression,
+                              ),
+                        textAlign: TextAlign.right,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          color: _expression.isEmpty
+                              ? AppColorPalette.textSecondary
+                              : null,
+                        ),
+                      ),
+                      if (_error != null)
+                        Text(
+                          _error!,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColorPalette.error,
+                          ),
+                        )
+                      else if (_result != null)
+                        Text(
+                          '= ${CaseMathScoring.withThousandSeparators(_formatInsert(_result!))}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColorPalette.textSecondary,
+                          ),
+                        )
+                      else
+                        Text(
+                          'Tap table cells to fill',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColorPalette.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                      ],
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                for (final entry in [
-                  ('(', () => _append('(')),
-                  (')', () => _append(')')),
-                  ('C', clear),
-                  ('=', _evaluate),
-                ].indexed) ...[
-                  if (entry.$1 > 0) const SizedBox(width: 4),
-                  Expanded(
-                    child: CaseMathKeypadButton(
-                      label: entry.$2.$1,
-                      compact: true,
-                      opaque: true,
-                      onPressed: entry.$2.$2,
+                const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: CaseMathDigitPad(
+                        compact: true,
+                        opaqueKeys: true,
+                        onKeyTap: _append,
+                        onBackspace: _backspace,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        children: [
+                          for (final op in const ['/', '*', '-', '+']) ...[
+                            SizedBox(
+                              height: 36,
+                              width: double.infinity,
+                              child: CaseMathKeypadButton(
+                                label: op == '*'
+                                    ? '×'
+                                    : op == '/'
+                                        ? '÷'
+                                        : op,
+                                compact: true,
+                                opaque: true,
+                                onPressed: () => _append(op),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    for (final entry in [
+                      ('(', () => _append('(')),
+                      (')', () => _append(')')),
+                      ('C', () => clear()),
+                      ('=', _evaluate),
+                    ].indexed) ...[
+                      if (entry.$1 > 0) const SizedBox(width: 4),
+                      Expanded(
+                        child: CaseMathKeypadButton(
+                          label: entry.$2.$1,
+                          compact: true,
+                          opaque: true,
+                          onPressed: entry.$2.$2,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
-          ],
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: widget.historyWidth,
+            child: _CalcHistoryBox(
+              surface: surface,
+              history: _history,
+              scrollController: _historyScroll,
+              onResultTap: (text) {
+                final value = double.tryParse(text);
+                if (value == null) return;
+                insertValue(value);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalcSurface extends StatelessWidget {
+  const _CalcSurface({
+    required this.surface,
+    required this.child,
+  });
+
+  final Color surface;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: surface,
+      elevation: 1,
+      borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 44),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.black.withValues(alpha: 0.45)),
+          borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _CalcHistoryBox extends StatelessWidget {
+  const _CalcHistoryBox({
+    required this.surface,
+    required this.history,
+    required this.scrollController,
+    required this.onResultTap,
+  });
+
+  final Color surface;
+  final List<String> history;
+  final ScrollController scrollController;
+  final ValueChanged<String> onResultTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 220,
+      child: Material(
+        color: surface,
+        elevation: 1,
+        borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black.withValues(alpha: 0.45)),
+            borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Results',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: AppColorPalette.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Expanded(
+                child: history.isEmpty
+                    ? Text(
+                        'Press =',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColorPalette.textSecondary,
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        padding: EdgeInsets.zero,
+                        itemCount: history.length,
+                        itemBuilder: (context, index) {
+                          final n = index + 1;
+                          final text = history[index];
+                          return InkWell(
+                            onTap: () => onResultTap(text),
+                            borderRadius: BorderRadius.circular(4),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 3,
+                              ),
+                              child: Text(
+                                '$n. ${CaseMathScoring.withThousandSeparators(text)}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  fontFeatures: [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

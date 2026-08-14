@@ -165,6 +165,7 @@ class CaseMathWorkedAnswer {
     required this.formula,
     required this.solution,
     required this.type,
+    this.variableUsageCount = 1,
     this.highlights = const [],
     this.solutionParts = const [],
   });
@@ -173,6 +174,10 @@ class CaseMathWorkedAnswer {
   final String formula;
   final String solution;
   final CaseMathValueFormat type;
+
+  /// How many times formula variables appear in the math expression.
+  /// Drives relative scoring tolerance (2.5% accept / 1% precise per use).
+  final int variableUsageCount;
 
   /// Table cells used by the formula (colored in solution + table).
   final List<CaseMathFormulaHighlight> highlights;

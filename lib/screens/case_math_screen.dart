@@ -73,11 +73,13 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
   }
 
   void _setAnswerText(String value) {
-    _answerText = value;
-    if (_systemAnswerController.text != value) {
+    final stripped = value.replaceAll(',', '');
+    _answerText = stripped;
+    final formatted = CaseMathScoring.withThousandSeparators(stripped);
+    if (_systemAnswerController.text != formatted) {
       _systemAnswerController.value = TextEditingValue(
-        text: value,
-        selection: TextSelection.collapsed(offset: value.length),
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
       );
     }
   }
@@ -130,6 +132,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       });
       return;
     }
+    _calculatorKey.currentState?.resetForNewQuestion();
     setState(() {
       _roundIndex += 1;
       _round = _generator.nextRound();
@@ -142,6 +145,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
   }
 
   void _restart() {
+    _calculatorKey.currentState?.resetForNewQuestion();
     setState(() {
       _roundIndex = 0;
       _sessionScore = 0;
@@ -278,16 +282,17 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
                   ),
                   // Room so the floating calc does not cover the prompt.
                   if (_phase == _CaseMathPhase.reveal && _calculatorVisible)
-                    const SizedBox(height: 220),
+                    const SizedBox(height: 240),
                 ],
               ),
               if (_phase == _CaseMathPhase.reveal && _calculatorVisible)
                 Positioned(
-                  right: 16,
+                  right: 8,
                   bottom: 8,
                   child: CaseMathCalculator(
                     key: _calculatorKey,
-                    width: 220,
+                    width: 200,
+                    historyWidth: 92,
                   ),
                 ),
             ],
@@ -390,12 +395,12 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
               signed: true,
             ),
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.\-]')),
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.\-,]')),
             ],
             decoration: InputDecoration(
               hintText: _round.answer.type == CaseMathValueFormat.percentage
                   ? 'e.g. 18.7'
-                  : 'e.g. 4462719',
+                  : 'e.g. 4,462,719',
               errorText: _parseError,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
@@ -407,7 +412,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
             ),
             onChanged: (value) => setState(() {
               _parseError = null;
-              _answerText = value;
+              _setAnswerText(value);
             }),
             onSubmitted: (_) => _checkAnswer(),
           ),
@@ -422,7 +427,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
           ),
         ] else ...[
           _AnswerDisplay(
-            value: _answerText,
+            value: CaseMathScoring.withThousandSeparators(_answerText),
             type: _round.answer.type,
             error: _parseError,
             compact: _inputMode == _InputMode.mini,
