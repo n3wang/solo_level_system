@@ -236,11 +236,42 @@ class CaseMathScoreResult {
     required this.exact,
     required this.relativeError,
     required this.points,
+    this.rawPoints,
+    this.calculatorPenalty = 0,
   });
 
   final bool correct;
   final double guess;
   final double exact;
   final double relativeError;
+
+  /// Points awarded after calculator digit penalty (never negative).
   final int points;
+
+  /// Points before calculator penalty. Defaults to [points] when omitted.
+  final int? rawPoints;
+
+  /// Amount subtracted for calculator digits (capped by raw points).
+  final int calculatorPenalty;
+}
+
+/// A successful calculator evaluation (`expression` → `result`).
+class CaseMathComputation {
+  const CaseMathComputation({
+    required this.expression,
+    required this.result,
+  });
+
+  final String expression;
+  final double result;
+
+  @override
+  bool operator ==(Object other) {
+    return other is CaseMathComputation &&
+        other.expression == expression &&
+        other.result == result;
+  }
+
+  @override
+  int get hashCode => Object.hash(expression, result);
 }

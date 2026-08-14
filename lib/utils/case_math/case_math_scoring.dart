@@ -18,9 +18,22 @@ class CaseMathScoring {
   static const int precisePoints = 1000;
   static const int acceptPoints = 500;
 
+  /// Points removed per calculator digit typed while solving.
+  static const int calculatorDigitPenalty = 60;
+
+  /// Relative error allowed when recalling a calculator result.
+  static const double recallRelativeTolerance = 0.03;
+
+  /// Absolute floor for near-zero recall answers.
+  static const double recallAbsoluteTolerance = 0.05;
+
+  /// Points awarded for each correct calculator-recall answer.
+  static const int recallRewardPoints = 10;
+
   static CaseMathScoreResult score({
     required double guess,
     required CaseMathWorkedAnswer answer,
+    int calculatorDigitsUsed = 0,
   }) {
     final exact = answer.exact;
     final usages = math.max(1, answer.variableUsageCount);
@@ -38,9 +51,13 @@ class CaseMathScoring {
         ? absoluteError <= absoluteTolerance * 0.4
         : relativeError <= preciseTol;
 
-    final points = !withinAccept
+    final rawPoints = !withinAccept
         ? 0
         : (withinPrecise ? precisePoints : acceptPoints);
+    final penalty = applyCalculatorPenalty(
+      digitEntries: calculatorDigitsUsed,
+    );
+    final points = math.max(0, rawPoints - penalty);
 
     return CaseMathScoreResult(
       correct: withinAccept,
@@ -48,7 +65,70 @@ class CaseMathScoring {
       exact: exact,
       relativeError: relativeError,
       points: points,
+      rawPoints: rawPoints,
+      calculatorPenalty: math.min(penalty, rawPoints),
     );
+  }
+
+  static int applyCalculatorPenalty({
+    required int digitEntries,
+    int perDigit = calculatorDigitPenalty,
+  }) {
+    if (digitEntries <= 0) return 0;
+    return digitEntries * perDigit;
+  }
+
+  /// Whether [guess] is close enough to [exact] for calculator recall.
+  ///
+  /// Both values are rounded to 2 decimals first (human-scale precision), then
+  /// compared with ±[recallRelativeTolerance] (or the near-zero absolute floor).
+  static bool isRecallCorrect({
+    required double guess,
+    required double exact,
+  }) {
+    final roundedGuess = roundToRecallPrecision(guess);
+    final roundedExact = roundToRecallPrecision(exact);
+    final absoluteError = (roundedGuess - roundedExact).abs();
+    if (roundedExact.abs() < 1e-9) {
+      return absoluteError <= recallAbsoluteTolerance;
+    }
+    return absoluteError / roundedExact.abs() <= recallRelativeTolerance;
+  }
+
+  /// Rounds to 2 decimal places for recall grading and display.
+  static double roundToRecallPrecision(double value) {
+    return (value * 100).round() / 100;
+  }
+
+  /// Human-scale recall number (2 decimals, trailing zeros trimmed).
+  static String formatRecallNumber(double value) {
+    final rounded = roundToRecallPrecision(value);
+    if ((rounded - rounded.roundToDouble()).abs() < 1e-9) {
+      return withThousandSeparators(rounded.round().toString());
+    }
+    var text = rounded.toStringAsFixed(2);
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    text = text.replaceFirst(RegExp(r'\.$'), '');
+    return withThousandSeparators(text);
+  }
+
+  /// Appends [item] only when an identical expression/result is not already
+  /// present (avoids duplicate drills from repeated `=` presses).
+  static void recordUniqueComputation(
+    List<CaseMathComputation> history,
+    CaseMathComputation item,
+  ) {
+    if (!history.contains(item)) history.add(item);
+  }
+
+  /// Wrong answers move to the end; correct answers are removed.
+  static void advanceRecallQueue<T>({
+    required List<T> queue,
+    required bool correct,
+  }) {
+    if (queue.isEmpty) return;
+    final current = queue.removeAt(0);
+    if (!correct) queue.add(current);
   }
 
   /// Counts how many times [variableNames] appear as tokens in [expression].
@@ -134,14 +214,14 @@ class CaseMathScoring {
 
   static String _money(double value) {
     final negative = value < 0;
-    final absolute = value.abs();
-    final whole = absolute.floor();
-    final fraction = absolute - whole;
+    // Round to cents first so 5.998 → $6, not "$5.100".
+    final centsTotal = (value.abs() * 100).round();
+    final whole = centsTotal ~/ 100;
+    final cents = centsTotal % 100;
     final wholeText = _withCommas(whole);
     final prefix = negative ? '-\$' : '\$';
-    if (fraction < 0.005) return '$prefix$wholeText';
-    final cents = (fraction * 100).round().toString().padLeft(2, '0');
-    return '$prefix$wholeText.$cents';
+    if (cents == 0) return '$prefix$wholeText';
+    return '$prefix$wholeText.${cents.toString().padLeft(2, '0')}';
   }
 
   static String _number(double value) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
@@ -15,9 +17,41 @@ import 'package:solo_level_system/widgets/games/case_math_keypad.dart';
 import 'package:solo_level_system/widgets/games/case_math_table.dart';
 import 'package:solo_level_system/widgets/games/retro_scoreboard.dart';
 
-enum _CaseMathPhase { guess, reveal, summary }
+enum _CaseMathPhase { guess, reveal, calculatorRecap, summary }
 
 enum _InputMode { system, pad, mini }
+
+class _CaseMathRoundResult {
+  const _CaseMathRoundResult({
+    required this.prompt,
+    required this.guess,
+    required this.exact,
+    required this.type,
+    required this.points,
+  });
+
+  final String prompt;
+  final double guess;
+  final double exact;
+  final CaseMathValueFormat type;
+  final int points;
+}
+
+class _RecallFeedback {
+  const _RecallFeedback({
+    required this.correct,
+    required this.expression,
+    required this.guess,
+    required this.exact,
+    this.points = 0,
+  });
+
+  final bool correct;
+  final String expression;
+  final double guess;
+  final double exact;
+  final int points;
+}
 
 /// Fixed mini keypad / Check / Next width so reveal does not jump.
 const double _caseMathMiniActionWidth = 168;
@@ -53,18 +87,34 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
   int _selectedCompanyIndex = 0;
   _InputMode _inputMode = _InputMode.mini;
   bool _calculatorVisible = false;
+  int _calculatorDigitsUsed = 0;
   String _answerText = '';
   CaseMathScoreResult? _lastScore;
   String? _parseError;
 
   List<_CaseMathHighScore> _highScores = const [];
   int? _highlightHighScoreIndex;
+  final List<_CaseMathRoundResult> _roundResults = [];
+  final List<CaseMathComputation> _sessionComputations = [];
+  final List<CaseMathComputation> _recallQueue = [];
+  int _recallInitialCount = 0;
+  int _recallBonusEarned = 0;
+  _RecallFeedback? _recallFeedback;
+
+  /// Summary reveal: round rows → total → scoreboard (~200ms steps).
+  int _summaryVisibleRows = 0;
+  bool _summaryShowTotal = false;
+  bool _summaryShowBoard = false;
+  int _summaryAnimToken = 0;
+
+  bool get _isAnsweringPhase =>
+      _phase == _CaseMathPhase.guess || _phase == _CaseMathPhase.calculatorRecap;
 
   bool get _capturesHardwareKeys {
-    if (_phase == _CaseMathPhase.guess) {
+    if (_calculatorVisible) return true;
+    if (_isAnsweringPhase) {
       return _inputMode == _InputMode.pad || _inputMode == _InputMode.mini;
     }
-    if (_phase == _CaseMathPhase.reveal) return _calculatorVisible;
     return false;
   }
 
@@ -88,8 +138,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
     if (_capturesHardwareKeys) {
       _systemAnswerFocus.unfocus();
       _keyboardFocus.requestFocus();
-    } else if (_inputMode == _InputMode.system &&
-        _phase == _CaseMathPhase.guess) {
+    } else if (_inputMode == _InputMode.system && _isAnsweringPhase) {
       _keyboardFocus.unfocus();
     }
   }
@@ -106,18 +155,35 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
     }
   }
 
+  /// Keeps at most one leading minus; strips other sign characters.
+  String _normalizeSignedInput(String value) {
+    final stripped = value.replaceAll(',', '').replaceAll('−', '-');
+    final negative = stripped.contains('-');
+    final body = stripped.replaceAll('-', '');
+    if (!negative) return body;
+    return '-$body';
+  }
+
   void _clearAnswer() {
     _setAnswerText('');
     _parseError = null;
   }
 
   Future<void> _checkAnswer() async {
+    if (_phase == _CaseMathPhase.calculatorRecap) {
+      _checkRecallAnswer();
+      return;
+    }
     final parsed = CaseMathScoring.parseGuess(_answerText);
     if (parsed == null) {
       setState(() => _parseError = 'Enter a number');
       return;
     }
-    final result = CaseMathScoring.score(guess: parsed, answer: _round.answer);
+    final result = CaseMathScoring.score(
+      guess: parsed,
+      answer: _round.answer,
+      calculatorDigitsUsed: _calculatorDigitsUsed,
+    );
     final companyIndex = _round.table.companies.indexWhere(
       (company) => company.id == _round.question.companyId,
     );
@@ -128,8 +194,90 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       _phase = _CaseMathPhase.reveal;
       _calculatorVisible = false;
       if (companyIndex >= 0) _selectedCompanyIndex = companyIndex;
+      _roundResults.add(
+        _CaseMathRoundResult(
+          prompt: _round.question.prompt,
+          guess: result.guess,
+          exact: result.exact,
+          type: _round.answer.type,
+          points: result.points,
+        ),
+      );
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
+  }
+
+  void _onCalculatorComputation(CaseMathComputation computation) {
+    CaseMathScoring.recordUniqueComputation(
+      _sessionComputations,
+      computation,
+    );
+  }
+
+  void _checkRecallAnswer() {
+    if (_recallQueue.isEmpty) {
+      unawaited(_enterSummary());
+      return;
+    }
+    final parsed = CaseMathScoring.parseGuess(_answerText);
+    if (parsed == null) {
+      setState(() => _parseError = 'Enter a number');
+      return;
+    }
+    final current = _recallQueue.first;
+    final correct = CaseMathScoring.isRecallCorrect(
+      guess: parsed,
+      exact: current.result,
+    );
+    setState(() {
+      _parseError = null;
+      CaseMathScoring.advanceRecallQueue(
+        queue: _recallQueue,
+        correct: correct,
+      );
+      if (correct) {
+        _sessionScore += CaseMathScoring.recallRewardPoints;
+        _recallBonusEarned += CaseMathScoring.recallRewardPoints;
+      }
+      _recallFeedback = _RecallFeedback(
+        correct: correct,
+        expression: current.expression,
+        guess: parsed,
+        exact: current.result,
+        points: correct ? CaseMathScoring.recallRewardPoints : 0,
+      );
+      _clearAnswer();
+    });
+    if (_recallQueue.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 900));
+        if (!mounted || _phase != _CaseMathPhase.calculatorRecap) return;
+        await _enterSummary();
+      });
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
+  }
+
+  Future<void> _enterCalculatorRecap() async {
+    _calculatorKey.currentState?.resetForNewQuestion();
+    setState(() {
+      _recallQueue
+        ..clear()
+        ..addAll(_sessionComputations);
+      _recallInitialCount = _recallQueue.length;
+      _recallBonusEarned = 0;
+      _recallFeedback = null;
+      _calculatorVisible = false;
+      _calculatorDigitsUsed = 0;
+      _clearAnswer();
+      _phase = _CaseMathPhase.calculatorRecap;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
+  }
+
+  Future<void> _skipCalculatorRecap() async {
+    await _enterSummary();
   }
 
   void _showQuestionCompany() {
@@ -142,17 +290,11 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
 
   Future<void> _next() async {
     if (_roundIndex + 1 >= widget.roundsPerSession) {
-      final recorded = await _CaseMathHighScores.record(
-        score: _sessionScore,
-        at: DateTime.now(),
-        storageKey: CaseMathScreen.highScoreKey,
-      );
-      if (!mounted) return;
-      setState(() {
-        _phase = _CaseMathPhase.summary;
-        _highScores = recorded.board;
-        _highlightHighScoreIndex = recorded.insertedIndex;
-      });
+      if (_sessionComputations.isNotEmpty) {
+        await _enterCalculatorRecap();
+      } else {
+        await _enterSummary();
+      }
       return;
     }
     _calculatorKey.currentState?.resetForNewQuestion();
@@ -163,9 +305,50 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       _selectedCompanyIndex = 0;
       _lastScore = null;
       _calculatorVisible = false;
+      _calculatorDigitsUsed = 0;
       _phase = _CaseMathPhase.guess;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
+  }
+
+  Future<void> _enterSummary() async {
+    final recorded = await _CaseMathHighScores.record(
+      score: _sessionScore,
+      at: DateTime.now(),
+      storageKey: CaseMathScreen.highScoreKey,
+    );
+    if (!mounted) return;
+    setState(() {
+      _phase = _CaseMathPhase.summary;
+      _highScores = recorded.board;
+      _highlightHighScoreIndex = recorded.insertedIndex;
+      _summaryVisibleRows = 0;
+      _summaryShowTotal = false;
+      _summaryShowBoard = false;
+    });
+    unawaited(_runSummaryReveal());
+  }
+
+  Future<void> _runSummaryReveal() async {
+    final token = ++_summaryAnimToken;
+    const step = Duration(milliseconds: 200);
+
+    for (var i = 0; i < _roundResults.length; i++) {
+      await Future<void>.delayed(step);
+      if (!mounted || token != _summaryAnimToken) return;
+      if (_phase != _CaseMathPhase.summary) return;
+      setState(() => _summaryVisibleRows = i + 1);
+    }
+
+    await Future<void>.delayed(step);
+    if (!mounted || token != _summaryAnimToken) return;
+    if (_phase != _CaseMathPhase.summary) return;
+    setState(() => _summaryShowTotal = true);
+
+    await Future<void>.delayed(step);
+    if (!mounted || token != _summaryAnimToken) return;
+    if (_phase != _CaseMathPhase.summary) return;
+    setState(() => _summaryShowBoard = true);
   }
 
   void _restart() {
@@ -179,20 +362,45 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       _selectedCompanyIndex = 0;
       _lastScore = null;
       _calculatorVisible = false;
+      _calculatorDigitsUsed = 0;
       _phase = _CaseMathPhase.guess;
       _highScores = const [];
       _highlightHighScoreIndex = null;
+      _roundResults.clear();
+      _sessionComputations.clear();
+      _recallQueue.clear();
+      _recallInitialCount = 0;
+      _recallBonusEarned = 0;
+      _recallFeedback = null;
+      _summaryVisibleRows = 0;
+      _summaryShowTotal = false;
+      _summaryShowBoard = false;
+      _summaryAnimToken++;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
   }
 
   void _appendAnswer(String key) {
     if (key == '.' && _answerText.contains('.')) return;
-    if (key == '-' && _answerText.isNotEmpty) return;
+    if (key == '-') {
+      _toggleAnswerSign();
+      return;
+    }
     if (_answerText.length >= 16) return;
     setState(() {
       _parseError = null;
       _setAnswerText('$_answerText$key');
+    });
+  }
+
+  void _toggleAnswerSign() {
+    setState(() {
+      _parseError = null;
+      if (_answerText.startsWith('-')) {
+        _setAnswerText(_answerText.substring(1));
+      } else {
+        _setAnswerText('-$_answerText');
+      }
     });
   }
 
@@ -222,13 +430,13 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       return KeyEventResult.ignored;
     }
 
-    if (_phase == _CaseMathPhase.reveal && _calculatorVisible) {
+    if (_calculatorVisible) {
       final handled =
           _calculatorKey.currentState?.handleHardwareKey(event) ?? false;
       return handled ? KeyEventResult.handled : KeyEventResult.ignored;
     }
 
-    if (_phase != _CaseMathPhase.guess) return KeyEventResult.ignored;
+    if (!_isAnsweringPhase) return KeyEventResult.ignored;
 
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.backspace ||
@@ -253,10 +461,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
     if (character != null && character.isNotEmpty) {
       if (RegExp(r'^[0-9]$').hasMatch(character)) return character;
       if (character == '.') return '.';
-      if (character == '-' || character == '−') {
-        // Allow a leading minus for signed answers.
-        if (_answerText.isEmpty) return '-';
-      }
+      if (character == '-' || character == '−') return '-';
     }
 
     final key = event.logicalKey;
@@ -266,7 +471,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
     }
     if (key == LogicalKeyboardKey.numpadSubtract ||
         key == LogicalKeyboardKey.minus) {
-      if (_answerText.isEmpty) return '-';
+      return '-';
     }
     if (key == LogicalKeyboardKey.digit0 || key == LogicalKeyboardKey.numpad0) {
       return '0';
@@ -306,19 +511,31 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: _phase == _CaseMathPhase.summary
-            ? _buildSummary(context)
-            : Focus(
-                focusNode: _keyboardFocus,
-                onKeyEvent: _onHardwareKey,
-                child: Listener(
-                  behavior: HitTestBehavior.translucent,
-                  onPointerDown: (_) {
-                    if (_capturesHardwareKeys) _syncKeyboardFocus();
-                  },
-                  child: _buildPlay(context),
-                ),
+        child: switch (_phase) {
+          _CaseMathPhase.summary => _buildSummary(context),
+          _CaseMathPhase.calculatorRecap => Focus(
+              focusNode: _keyboardFocus,
+              onKeyEvent: _onHardwareKey,
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) {
+                  if (_capturesHardwareKeys) _syncKeyboardFocus();
+                },
+                child: _buildCalculatorRecap(context),
               ),
+            ),
+          _ => Focus(
+              focusNode: _keyboardFocus,
+              onKeyEvent: _onHardwareKey,
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) {
+                  if (_capturesHardwareKeys) _syncKeyboardFocus();
+                },
+                child: _buildPlay(context),
+              ),
+            ),
+        },
       ),
     );
   }
@@ -403,11 +620,10 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
                     ),
                   ),
                   // Room so the floating calc does not cover the prompt.
-                  if (_phase == _CaseMathPhase.reveal && _calculatorVisible)
-                    const SizedBox(height: 240),
+                  if (_calculatorVisible) const SizedBox(height: 240),
                 ],
               ),
-              if (_phase == _CaseMathPhase.reveal && _calculatorVisible)
+              if (_calculatorVisible)
                 Positioned(
                   right: 8,
                   bottom: 8,
@@ -415,6 +631,10 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
                     key: _calculatorKey,
                     width: 200,
                     historyWidth: 92,
+                    onDigitEntered: _phase == _CaseMathPhase.guess
+                        ? _onCalculatorDigitEntered
+                        : null,
+                    onComputation: _onCalculatorComputation,
                   ),
                 ),
             ],
@@ -427,15 +647,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    CaseMathCalculatorPanel(
-                      visible: _calculatorVisible,
-                      calculatorKey: _calculatorKey,
-                      onVisibilityChanged: (visible) {
-                        setState(() => _calculatorVisible = visible);
-                        WidgetsBinding.instance
-                            .addPostFrameCallback((_) => _syncKeyboardFocus());
-                      },
-                    ),
+                    _buildCalculatorToggle(),
                     const SizedBox(height: AppUiSizes.sm),
                     _RevealCard(
                       score: _lastScore!,
@@ -447,6 +659,203 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
                   ],
                 ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildCalculatorRecap(BuildContext context) {
+    final remaining = _recallQueue.length;
+    final current = _recallQueue.isEmpty ? null : _recallQueue.first;
+    final solved = _recallInitialCount - remaining;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: 'Close',
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+              const Expanded(
+                child: Text(
+                  'Calculator recall',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: _skipCalculatorRecap,
+                child: const Text('Skip'),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(
+            'Recall each calc result (±3%) · Score $_sessionScore'
+            '${_recallBonusEarned > 0 ? ' · +$_recallBonusEarned recall' : ''}',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColorPalette.textSecondary,
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            children: [
+              Text(
+                remaining == 0
+                    ? 'All recalled'
+                    : 'Left $remaining · Done $solved/$_recallInitialCount',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppUiSizes.md),
+              if (current != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.black.withValues(alpha: 0.35),
+                    ),
+                    borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'What was the result?',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColorPalette.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${CaseMathScoring.withThousandSeparatorsInExpression(current.expression)} = ?',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          height: 1.35,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (_recallFeedback != null) ...[
+                const SizedBox(height: AppUiSizes.md),
+                _buildRecallFeedbackCard(_recallFeedback!),
+              ],
+            ],
+          ),
+        ),
+        if (current != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: _buildAnswerEntryControls(
+              hintText: 'e.g. 1,234.5',
+              showPercentageSuffix: false,
+              onCheck: _checkRecallAnswer,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRecallFeedbackCard(_RecallFeedback feedback) {
+    final color =
+        feedback.correct ? AppColorPalette.success : AppColorPalette.error;
+    final expression =
+        CaseMathScoring.withThousandSeparatorsInExpression(feedback.expression);
+    final exactText = CaseMathScoring.formatRecallNumber(feedback.exact);
+    final guessDisplay = CaseMathScoring.formatRecallNumber(feedback.guess);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: color.withValues(alpha: 0.7)),
+        borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            feedback.correct
+                ? 'Correct · +${feedback.points}'
+                : 'Not quite · moved to end of queue',
+            style: TextStyle(fontWeight: FontWeight.w800, color: color),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$expression = $exactText',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Your answer: $guessDisplay',
+            style: const TextStyle(fontSize: 13),
+          ),
+          Text(
+            'Exact: $exactText',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onCalculatorDigitEntered() {
+    if (_phase != _CaseMathPhase.guess) return;
+    setState(() => _calculatorDigitsUsed += 1);
+  }
+
+  Widget _buildCalculatorToggle() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CaseMathCalculatorPanel(
+          visible: _calculatorVisible,
+          calculatorKey: _calculatorKey,
+          onVisibilityChanged: (visible) {
+            setState(() => _calculatorVisible = visible);
+            WidgetsBinding.instance
+                .addPostFrameCallback((_) => _syncKeyboardFocus());
+          },
+        ),
+        if (_phase == _CaseMathPhase.guess && _calculatorVisible)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                _calculatorDigitsUsed == 0
+                    ? '−${CaseMathScoring.calculatorDigitPenalty} pts / digit'
+                    : '−${_calculatorDigitsUsed * CaseMathScoring.calculatorDigitPenalty} pts'
+                        ' ($_calculatorDigitsUsed digits)',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColorPalette.textSecondary,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -464,9 +873,10 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
   }
 
   Widget _buildAdvanceButton() {
-    final label = _roundIndex + 1 >= widget.roundsPerSession
-        ? 'See summary'
-        : 'Next';
+    final isLast = _roundIndex + 1 >= widget.roundsPerSession;
+    final label = !isLast
+        ? 'Next'
+        : (_sessionComputations.isNotEmpty ? 'Continue' : 'See summary');
     final button = PrimaryActionButton(text: label, onPressed: _next);
 
     // Match Check placement/width for the active input mode.
@@ -484,6 +894,31 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
   }
 
   Widget _buildGuessControls() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildCalculatorToggle(),
+        const SizedBox(height: AppUiSizes.sm),
+        _buildAnswerEntryControls(
+          hintText: _round.answer.type == CaseMathValueFormat.percentage
+              ? 'e.g. -10.5'
+              : 'e.g. 4,462,719',
+          showPercentageSuffix:
+              _round.answer.type == CaseMathValueFormat.percentage,
+          onCheck: _checkAnswer,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnswerEntryControls({
+    required String hintText,
+    required bool showPercentageSuffix,
+    required VoidCallback onCheck,
+  }) {
+    final displayType = showPercentageSuffix
+        ? CaseMathValueFormat.percentage
+        : CaseMathValueFormat.number;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -524,9 +959,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.\-,]')),
             ],
             decoration: InputDecoration(
-              hintText: _round.answer.type == CaseMathValueFormat.percentage
-                  ? 'e.g. 18.7'
-                  : 'e.g. 4,462,719',
+              hintText: hintText,
               errorText: _parseError,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
@@ -538,9 +971,9 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
             ),
             onChanged: (value) => setState(() {
               _parseError = null;
-              _setAnswerText(value);
+              _setAnswerText(_normalizeSignedInput(value));
             }),
-            onSubmitted: (_) => _checkAnswer(),
+            onSubmitted: (_) => onCheck(),
           ),
           const SizedBox(height: AppUiSizes.sm),
           Align(
@@ -548,13 +981,13 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
             child: PrimaryActionButton(
               text: 'Check',
               icon: Icons.check,
-              onPressed: _checkAnswer,
+              onPressed: onCheck,
             ),
           ),
         ] else ...[
           _AnswerDisplay(
             value: CaseMathScoring.withThousandSeparators(_answerText),
-            type: _round.answer.type,
+            type: displayType,
             error: _parseError,
             compact: _inputMode == _InputMode.mini,
           ),
@@ -563,7 +996,8 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
             CaseMathDigitPad(
               onKeyTap: _appendAnswer,
               onBackspace: _backspaceAnswer,
-              onAction: _checkAnswer,
+              onToggleSign: _toggleAnswerSign,
+              onAction: onCheck,
               actionLabel: 'Check answer',
             )
           else
@@ -575,7 +1009,8 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
                   compact: true,
                   onKeyTap: _appendAnswer,
                   onBackspace: _backspaceAnswer,
-                  onAction: _checkAnswer,
+                  onToggleSign: _toggleAnswerSign,
+                  onAction: onCheck,
                   actionLabel: 'Check',
                 ),
               ),
@@ -590,7 +1025,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
         .map((e) => RetroScoreEntry(score: e.score, at: e.at))
         .toList();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -602,22 +1037,57 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
               icon: const Icon(Icons.close),
             ),
           ),
-          const SizedBox(height: 8),
           const Text(
             'Session complete',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
-            'Score $_sessionScore · ${widget.roundsPerSession} rounds',
-            style: TextStyle(color: AppColorPalette.textSecondary),
+            _recallBonusEarned > 0
+                ? '${widget.roundsPerSession} rounds · +$_recallBonusEarned recall'
+                : '${widget.roundsPerSession} rounds',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColorPalette.textSecondary,
+            ),
           ),
-          const SizedBox(height: AppUiSizes.xl),
-          RetroScoreboard(
-            entries: board,
-            highlightIndex: _highlightHighScoreIndex,
+          const SizedBox(height: AppUiSizes.md),
+          Expanded(
+            child: ListView(
+              children: [
+                if (_summaryVisibleRows > 0)
+                  _SummaryReveal(child: _buildSummaryHeader()),
+                for (var i = 0; i < _summaryVisibleRows; i++)
+                  _SummaryReveal(child: _buildSummaryRoundRow(i)),
+                if (_summaryShowTotal) ...[
+                  const Divider(height: 24),
+                  _SummaryReveal(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '$_sessionScore',
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                if (_summaryShowBoard) ...[
+                  const SizedBox(height: 20),
+                  _SummaryReveal(
+                    child: RetroScoreboard(
+                      entries: board,
+                      highlightIndex: _highlightHighScoreIndex,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ],
+            ),
           ),
-          const Spacer(),
           PrimaryActionButton(text: 'Play again', onPressed: _restart),
           const SizedBox(height: AppUiSizes.sm),
           SecondaryActionButton(
@@ -626,6 +1096,114 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSummaryHeader() {
+    final style = TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      color: AppColorPalette.textSecondary,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          SizedBox(width: 28, child: Text('#', style: style)),
+          Expanded(flex: 3, child: Text('Question', style: style)),
+          Expanded(child: Text('Yours', style: style, textAlign: TextAlign.right)),
+          Expanded(child: Text('Exact', style: style, textAlign: TextAlign.right)),
+          SizedBox(
+            width: 52,
+            child: Text('Pts', style: style, textAlign: TextAlign.right),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRoundRow(int index) {
+    final round = _roundResults[index];
+    final guessText = CaseMathScoring.formatValue(round.guess, round.type);
+    final exactText = CaseMathScoring.formatValue(round.exact, round.type);
+    final pointsText = round.points > 0 ? '+${round.points}' : '0';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 28,
+            child: Text(
+              '${index + 1}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              round.prompt,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, height: 1.3),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              guessText,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: round.points > 0
+                    ? AppColorPalette.success
+                    : AppColorPalette.error,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              exactText,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ),
+          SizedBox(
+            width: 52,
+            child: Text(
+              pointsText,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Short fade + rise used by the Case Math summary stagger.
+class _SummaryReveal extends StatelessWidget {
+  const _SummaryReveal({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) {
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, (1 - t) * 10),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
@@ -776,7 +1354,11 @@ class _RevealCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            ok ? 'Correct · +${score.points}' : 'Not quite · +0',
+            ok
+                ? (score.calculatorPenalty > 0
+                    ? 'Correct · +${score.points} (−${score.calculatorPenalty} calc)'
+                    : 'Correct · +${score.points}')
+                : 'Not quite · +0',
             style: TextStyle(fontWeight: FontWeight.w800, color: color),
           ),
           const SizedBox(height: 8),

@@ -198,6 +198,25 @@ void main() {
       );
     });
 
+    test('money formatting carries cents that round to 100', () {
+      expect(
+        CaseMathScoring.formatValue(5.998332, CaseMathValueFormat.price),
+        r'$6',
+      );
+      expect(
+        CaseMathScoring.formatValue(27049033 / 4509426, CaseMathValueFormat.price),
+        r'$6',
+      );
+      expect(
+        CaseMathScoring.formatValue(12.345, CaseMathValueFormat.price),
+        r'$12.35',
+      );
+      expect(
+        CaseMathScoring.formatValue(-1.999, CaseMathValueFormat.price),
+        r'-$2',
+      );
+    });
+
     test('scales tolerance by variable usage count', () {
       expect(
         CaseMathScoring.countVariableUsages(
@@ -262,6 +281,100 @@ void main() {
         CaseMathScoring.score(guess: 108.0, answer: threeUses).correct,
         isFalse,
       );
+    });
+
+    test('calculator digits reduce score by 60 each, floored at 0', () {
+      const answer = CaseMathWorkedAnswer(
+        exact: 1000000,
+        formula: 'f',
+        solution: 's',
+        type: CaseMathValueFormat.price,
+        variableUsageCount: 2,
+      );
+      final scored = CaseMathScoring.score(
+        guess: 1000000,
+        answer: answer,
+        calculatorDigitsUsed: 3,
+      );
+      expect(scored.rawPoints, CaseMathScoring.precisePoints);
+      expect(scored.calculatorPenalty, 180);
+      expect(scored.points, CaseMathScoring.precisePoints - 180);
+
+      final wiped = CaseMathScoring.score(
+        guess: 1000000,
+        answer: answer,
+        calculatorDigitsUsed: 20,
+      );
+      expect(wiped.points, 0);
+      expect(wiped.calculatorPenalty, CaseMathScoring.precisePoints);
+      expect(wiped.correct, isTrue);
+    });
+
+    test('calculator recall accepts 3% relative error', () {
+      expect(
+        CaseMathScoring.isRecallCorrect(guess: 103, exact: 100),
+        isTrue,
+      );
+      expect(
+        CaseMathScoring.isRecallCorrect(guess: 97, exact: 100),
+        isTrue,
+      );
+      expect(
+        CaseMathScoring.isRecallCorrect(guess: 104, exact: 100),
+        isFalse,
+      );
+      expect(
+        CaseMathScoring.isRecallCorrect(guess: 0.04, exact: 0),
+        isTrue,
+      );
+      expect(
+        CaseMathScoring.isRecallCorrect(guess: 0.06, exact: 0),
+        isFalse,
+      );
+    });
+
+    test('recall grades after rounding to 2 decimals', () {
+      const exact = 2.7 / 37; // ≈ 0.072973 → 0.07
+      expect(CaseMathScoring.roundToRecallPrecision(exact), closeTo(0.07, 1e-12));
+      expect(CaseMathScoring.formatRecallNumber(exact), '0.07');
+      expect(
+        CaseMathScoring.isRecallCorrect(guess: 0.07, exact: exact),
+        isTrue,
+      );
+      expect(
+        CaseMathScoring.isRecallCorrect(guess: 0.072973, exact: exact),
+        isTrue,
+      );
+      // Outside ±3% of the rounded exact 0.07.
+      expect(
+        CaseMathScoring.isRecallCorrect(guess: 0.08, exact: exact),
+        isFalse,
+      );
+      expect(
+        CaseMathScoring.isRecallCorrect(guess: 1234.567, exact: 1234.561),
+        isTrue,
+      );
+      expect(CaseMathScoring.formatRecallNumber(1234.567), '1,234.57');
+    });
+
+    test('records unique computations and requeues wrong recalls', () {
+      final history = <CaseMathComputation>[];
+      const first = CaseMathComputation(expression: '1+2', result: 3);
+      const duplicate = CaseMathComputation(expression: '1+2', result: 3);
+      const second = CaseMathComputation(expression: '10/2', result: 5);
+      CaseMathScoring.recordUniqueComputation(history, first);
+      CaseMathScoring.recordUniqueComputation(history, duplicate);
+      CaseMathScoring.recordUniqueComputation(history, second);
+      expect(history, [first, second]);
+
+      final queue = [first, second];
+      CaseMathScoring.advanceRecallQueue(queue: queue, correct: false);
+      expect(queue, [second, first]);
+      CaseMathScoring.advanceRecallQueue(queue: queue, correct: true);
+      expect(queue, [first]);
+      CaseMathScoring.advanceRecallQueue(queue: queue, correct: true);
+      expect(queue, isEmpty);
+      expect(CaseMathScoring.recallRewardPoints, 10);
     });
   });
 }

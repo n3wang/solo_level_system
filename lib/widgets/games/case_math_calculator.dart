@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/utils/case_math/case_math_expression.dart';
+import 'package:solo_level_system/utils/case_math/case_math_models.dart';
 import 'package:solo_level_system/utils/case_math/case_math_scoring.dart';
 import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
 import 'package:solo_level_system/widgets/games/case_math_keypad.dart';
@@ -16,10 +17,18 @@ class CaseMathCalculator extends StatefulWidget {
     super.key,
     this.width = 208,
     this.historyWidth = 88,
+    this.onDigitEntered,
+    this.onComputation,
   });
 
   final double width;
   final double historyWidth;
+
+  /// Fired once per digit key (`0`–`9`) successfully appended.
+  final VoidCallback? onDigitEntered;
+
+  /// Fired after a successful `=` evaluation.
+  final ValueChanged<CaseMathComputation>? onComputation;
 
   @override
   State<CaseMathCalculator> createState() => CaseMathCalculatorState();
@@ -73,6 +82,8 @@ class CaseMathCalculatorState extends State<CaseMathCalculator> {
   }
 
   void _append(String token) {
+    final isDigit = RegExp(r'^\d$').hasMatch(token);
+    var didAppendDigit = false;
     setState(() {
       _error = null;
       _result = null;
@@ -90,7 +101,9 @@ class CaseMathCalculatorState extends State<CaseMathCalculator> {
         }
       }
       _expression += token;
+      didAppendDigit = isDigit;
     });
+    if (didAppendDigit) widget.onDigitEntered?.call();
   }
 
   bool get _currentNumberContainsDecimal {
@@ -112,8 +125,9 @@ class CaseMathCalculatorState extends State<CaseMathCalculator> {
 
   void _evaluate() {
     if (_expression.trim().isEmpty) return;
+    final sourceExpression = _expression;
     try {
-      final value = CaseMathExpression.evaluate(_expression, const {});
+      final value = CaseMathExpression.evaluate(sourceExpression, const {});
       final formatted = _formatInsert(value);
       setState(() {
         _result = value;
@@ -121,6 +135,9 @@ class CaseMathCalculatorState extends State<CaseMathCalculator> {
         _expression = formatted;
         _history.add(formatted);
       });
+      widget.onComputation?.call(
+        CaseMathComputation(expression: sourceExpression, result: value),
+      );
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!_historyScroll.hasClients) return;
         _historyScroll.jumpTo(_historyScroll.position.maxScrollExtent);

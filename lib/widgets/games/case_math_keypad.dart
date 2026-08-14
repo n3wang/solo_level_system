@@ -60,6 +60,7 @@ class CaseMathDigitPad extends StatelessWidget {
     super.key,
     required this.onKeyTap,
     required this.onBackspace,
+    this.onToggleSign,
     this.onAction,
     this.actionLabel,
     this.actionIcon = Icons.check,
@@ -69,6 +70,7 @@ class CaseMathDigitPad extends StatelessWidget {
 
   final ValueChanged<String> onKeyTap;
   final VoidCallback onBackspace;
+  final VoidCallback? onToggleSign;
   final VoidCallback? onAction;
   final String? actionLabel;
   final IconData actionIcon;
@@ -77,7 +79,8 @@ class CaseMathDigitPad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0'];
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    final gap = compact ? 4.0 : 8.0;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -86,8 +89,8 @@ class CaseMathDigitPad extends StatelessWidget {
           childAspectRatio: compact ? 1.55 : 1.7,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: compact ? 4 : 8,
-          crossAxisSpacing: compact ? 4 : 8,
+          mainAxisSpacing: gap,
+          crossAxisSpacing: gap,
           children: [
             for (final key in keys)
               CaseMathKeypadButton(
@@ -96,12 +99,49 @@ class CaseMathDigitPad extends StatelessWidget {
                 opaque: opaqueKeys,
                 onPressed: () => onKeyTap(key),
               ),
-            CaseMathKeypadButton(
-              icon: Icons.backspace_outlined,
-              semanticLabel: 'Backspace',
-              compact: compact,
-              opaque: opaqueKeys,
-              onPressed: onBackspace,
+          ],
+        ),
+        SizedBox(height: gap),
+        Row(
+          children: [
+            if (onToggleSign != null) ...[
+              Expanded(
+                child: CaseMathKeypadButton(
+                  label: '±',
+                  semanticLabel: 'Toggle sign',
+                  compact: compact,
+                  opaque: opaqueKeys,
+                  onPressed: onToggleSign!,
+                ),
+              ),
+              SizedBox(width: gap),
+            ],
+            Expanded(
+              child: CaseMathKeypadButton(
+                label: '.',
+                compact: compact,
+                opaque: opaqueKeys,
+                onPressed: () => onKeyTap('.'),
+              ),
+            ),
+            SizedBox(width: gap),
+            Expanded(
+              child: CaseMathKeypadButton(
+                label: '0',
+                compact: compact,
+                opaque: opaqueKeys,
+                onPressed: () => onKeyTap('0'),
+              ),
+            ),
+            SizedBox(width: gap),
+            Expanded(
+              child: CaseMathKeypadButton(
+                icon: Icons.backspace_outlined,
+                semanticLabel: 'Backspace',
+                compact: compact,
+                opaque: opaqueKeys,
+                onPressed: onBackspace,
+              ),
             ),
           ],
         ),
