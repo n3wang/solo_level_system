@@ -26,6 +26,7 @@ import 'package:solo_level_system/utils/sound_effects_service.dart';
 import 'package:solo_level_system/utils/notification_service.dart';
 import 'package:solo_level_system/utils/timer_controller.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
+import 'package:solo_level_system/utils/collectible_deck_seed_service.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/utils/session_reward_service.dart';
 import 'package:solo_level_system/models/card_acquisition_settings.dart';
@@ -1368,6 +1369,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (settings.acquireTiming == CardAcquireTiming.afterFocus) {
           try {
             await MotivationSeedService.ensureSeeded();
+            await CollectibleDeckSeedService.ensureSeeded();
           } catch (_) {}
           final loot = SessionRewardService.grant(
             minutes: minutesSpent,
@@ -1406,12 +1408,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       settings.rogueChallengeList,
       includeDev: AppEnvironment.isTest,
     );
-    var drawn = SessionRewardService.drawCards(2);
+    var drawn = SessionRewardService.drawCards(2, kind: SessionKind.focus);
     if (drawn.length < 2) {
       try {
         await MotivationSeedService.ensureSeeded();
+        await CollectibleDeckSeedService.ensureSeeded();
       } catch (_) {}
-      drawn = SessionRewardService.drawCards(2);
+      drawn = SessionRewardService.drawCards(2, kind: SessionKind.focus);
     }
     final options = buildRogueOptions(cards: drawn, challenges: challenges);
     if (options.length < 2) {

@@ -6,6 +6,7 @@ import 'package:solo_level_system/constants/collectible_card_layout.dart';
 import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/utils/card_repository.dart';
+import 'package:solo_level_system/utils/character_stats_service.dart';
 import 'package:solo_level_system/widgets/cards/collectible_card.dart';
 
 class RogueChallengeOption {
@@ -157,6 +158,10 @@ class _RogueChallengeOverlay extends StatelessWidget {
     required double challengeBoxHeight,
   }) {
     final catalog = CardRepository.fromCardModel(option.card);
+    final stat = CharacterStatsService.statForCard(option.card);
+    final statDelta = stat == null
+        ? null
+        : CharacterStatsService.deltaForNextAcquisition(option.card);
     return SizedBox(
       width: cardWidth,
       child: Column(
@@ -165,21 +170,31 @@ class _RogueChallengeOverlay extends StatelessWidget {
           SizedBox(
             width: cardWidth,
             height: cardHeight,
-            child: AspectRatio(
-              aspectRatio: CollectibleCardLayout.aspectRatio,
-              child: CollectibleCardTile(
-                card: catalog,
-                forceRevealContents: true,
-                availablePoints: userProgress.availablePoints,
-                onTap: () {
-                  Navigator.of(context).pop(
-                    RogueChallengePick(
-                      card: option.card,
-                      challenge: option.challenge,
-                    ),
-                  );
-                },
-              ),
+            child: Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: CollectibleCardLayout.aspectRatio,
+                  child: CollectibleCardTile(
+                    card: catalog,
+                    forceRevealContents: true,
+                    availablePoints: userProgress.availablePoints,
+                    onTap: () {
+                      Navigator.of(context).pop(
+                        RogueChallengePick(
+                          card: option.card,
+                          challenge: option.challenge,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                if (stat != null && statDelta != null)
+                  Positioned(
+                    top: AppUiSizes.xs,
+                    right: AppUiSizes.xs,
+                    child: _StatEffectBadge(stat: stat, delta: statDelta),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: AppUiSizes.md),
@@ -204,6 +219,43 @@ class _RogueChallengeOverlay extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Small pill showing the stat this pick would raise, e.g. "STR +1" for a
+/// first-time acquisition or "STR +0.2" for a repeat.
+class _StatEffectBadge extends StatelessWidget {
+  const _StatEffectBadge({required this.stat, required this.delta});
+
+  final CharacterStat stat;
+  final double delta;
+
+  String get _formattedDelta =>
+      delta == delta.roundToDouble()
+          ? delta.toInt().toString()
+          : delta.toStringAsFixed(1);
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppUiSizes.sm,
+          vertical: 2,
+        ),
+        child: Text(
+          '${stat.abbreviation} +$_formattedDelta',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

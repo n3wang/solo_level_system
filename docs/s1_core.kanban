@@ -5,15 +5,6 @@
       "title": "Backlog [move n sprint]",
       "cards": [
         {
-          "id": "01e685b2-8aec-4463-997b-3ef4099ce64d",
-          "listId": "1a85af95-8733-4f4a-9df3-94e7d1bddb67",
-          "title": "Chrome Extension",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
           "id": "e2eb75c4-1ad5-4730-a6cd-aebe64352f6a",
           "listId": "1a85af95-8733-4f4a-9df3-94e7d1bddb67",
           "title": "Building chrome extension more than anything for the pomodoro Tracking Situation",
@@ -129,40 +120,6 @@
           "comments": []
         },
         {
-          "id": "ca5eabb0-b10f-4720-a86c-43c10f1b9ffb",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Allies mechanics",
-          "description": "",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "9e20df80-28fe-44c3-a71c-cb6eaee1c0b5",
-              "title": "Make the Snack as conversations (another clone) as talking  from ally",
-              "checked": false
-            },
-            {
-              "id": "ea364646-cc6e-4e97-918d-47535b889faf",
-              "title": "Mkae the allies also randomnly increase their skill",
-              "checked": false
-            }
-          ],
-          "comments": []
-        },
-        {
-          "id": "f783882b-bb25-48d9-b7c5-d8eb1eb2bde7",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Dungeon Crawler Core Game",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": [
-            {
-              "id": "aa33ba33-47ac-4f7d-b588-d45db00029ad",
-              "comment": "Lets make the game where feeds the markdown for the crawl. Of events random events to happen, then  lets make the majority a difference grabber, and even steal the monsters from the undernauts."
-            }
-          ]
-        },
-        {
           "id": "ba13d195-1b63-4332-9a00-9758e936db01",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "Make the \"journal\" something u can access.",
@@ -175,33 +132,6 @@
           "id": "4bf5d7f5-cdf4-463d-95ee-54fbe0264e82",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "Bushcraft First AID Add",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "ab656fb3-f38b-4eb8-ad58-553c60181105",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Bushcraft Add",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "a5e80319-8b7f-48d2-93dc-8776cebbda72",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Treelore Add",
-          "description": "",
-          "labels": [],
-          "checkboxes": [],
-          "comments": []
-        },
-        {
-          "id": "c6ba395e-3fb8-43a1-8281-30373cf4a3fa",
-          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
-          "title": "Stripped Bare The Art of Animal Add",
           "description": "",
           "labels": [],
           "checkboxes": [],
@@ -281,12 +211,116 @@
           "comments": []
         },
         {
-          "id": "66e5b877-48cf-44aa-8ffe-e8d11cdc38ff",
+          "id": "0c0ed0da-07e7-4b52-b42c-36f200957e85",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Journal + Rewards Revision",
+          "title": "build core afk mechanic",
+          "description": "The core mechanic can be just done with a few icons characters and a couple skills. The core mechanic refers to one single character working out and improving stats\n\nFor the afk mechanic. We will have the following effects:\n- those random items will get the character some random effects.\n\n\n\n\n",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "24a5c789-096f-480e-8746-3665db82d2c8",
+              "title": "Designate effects for the card games",
+              "checked": true
+            },
+            {
+              "id": "11ca8e72-f429-434c-9565-e76ea2260261",
+              "title": "Designate effects for the plants",
+              "checked": true
+            },
+            {
+              "id": "be70e7c6-6c65-47a9-8468-5e773b1ab835",
+              "title": "Rework on the markdown how these works in cards",
+              "checked": true
+            },
+            {
+              "id": "8902b3b2-523b-49d6-9426-892ef943f1d6",
+              "title": "Repeated character cards represent better relationship with people",
+              "checked": true
+            },
+            {
+              "id": "ecc91aca-2a0f-4cc6-a77f-8f0d7ad5a90e",
+              "title": "Adquire images for dnd monsters",
+              "checked": true
+            },
+            {
+              "id": "5bd81d5a-2ff7-4466-b72c-7c202d0814a6",
+              "title": "Export the heroes allies",
+              "checked": true
+            },
+            {
+              "id": "e6b9484a-94de-4f45-9527-f111f0a36c53",
+              "title": "Implementation of cards + pickup pool",
+              "checked": false
+            },
+            {
+              "id": "5fe97892-490a-4132-923c-ca6259b09cea",
+              "title": "Cleanup | Reformat cards csv",
+              "checked": false
+            },
+            {
+              "id": "617b70d3-0a2e-4c94-92d1-2ef2fe6477c5",
+              "title": "Finsih populating the LIFE images into there",
+              "checked": false
+            },
+            {
+              "id": "21f521cd-7f03-45ea-bcee-ded97d4fdb09",
+              "title": "Implementation of random pool proper",
+              "checked": false
+            },
+            {
+              "id": "51838685-ecf7-422b-b3c5-efb185920732",
+              "title": "Implementation of nonlinear depending of type of enemy defeated  ",
+              "checked": false
+            },
+            {
+              "id": "a20c5348-4ba1-4f0d-b3af-a8e419897b12",
+              "title": "Make this whole rpg setting an optional setting",
+              "checked": false
+            },
+            {
+              "id": "475d0f8d-24a4-45d9-9aea-b43cb75d1ca6",
+              "title": "Design different cards depending on size and improve overall look of the cards",
+              "checked": false
+            },
+            {
+              "id": "10160f1f-50ef-4cee-b785-e918eb620250",
+              "title": "Add up to 10 characters at least",
+              "checked": false
+            }
+          ],
+          "comments": [
+            {
+              "id": "9331ff64-5d7f-4444-8a8a-50ece0db723c",
+              "comment": "I mean does it make even sense if is going  already the card based, and the journal system? wont it be too much? I know I am not taking adavantage of the workout improvement and others, and not sure how to implemnt? Maybe the level up thing or reward possibility "
+            },
+            {
+              "id": "de498392-177f-4036-8817-f7e3ef9a0b02",
+              "comment": "The idea I think, is that the reward points, are not deterministic but based on the damage and hit you do, make some cards more rare than others, naturally and more expensive for some random reason. It could be some photos and bird collections. To aek them more expensive. Then jsut random attack cards of type mob (from the dnd would be nice as well)"
+            },
+            {
+              "id": "a340b97d-27a6-4ce6-b7a2-4dce031ae22a",
+              "comment": "1. For now just create in a dashboard an rpg like overview of the stats of the character, also when choosing in rogue reward card have the Stat increase effect e.g. \"STR+1\"\n2. Wire the npcx250x360 for npc cards type collection\n3. Wire the decks in cards_128x185.csv with c128x185 (as type collection, but category depends on csv)\n4. Wire the dndmonsters in dnd5e.csv and dnd5e\n\n\n\neach card acquired of the following types increase the stat as follows:\n\nFirst unique card assigns a full point, then each repeated only adds 20% of the effect meaning the second, the third repeated only adds 0.2 damage\n\nAssign as follows:\ndnd5e: Strenght +1-> Influences on attack damage by. 1\nOrnithograpy/animals: Dexterity+1: Infleunces on attack speed by 1\nPhi\\Art: Wisdom +1-> Infleunces on ARMOR by 1\nplants\\exercise: Constitution+1: max health health + 1\nhistory (such as photography): inteligence+1:  increases attack critcial rate and evasion rate (each odd point to critical rate by 1%, each even point to evasion rate by 1% )\nnpc: charisma+1 -> Increases luck on events.\n\n\nFor now the retrieval pool as follows:  Set the pool for rogue acquisition or random card acquisition pool for cards that contribute depending on the activity completed. For the each workout completed have on the same screen or end screen (wokrout saved) 2 selection on rogue acquisition card mode for the cards\n\nThe random pool card as reward selection should be: choose first (equal chances for the allowed card contribution type e.g. INTELIGENCE, WISDOM, STRENGTH has all equal chances) and then from that choose a random card , if i tis rogue selection (the one that shows 2 options) then is choose 2 contribution type, and then for each choose a random card belonging to those\n- Focus: INTELIGENCE, WISDOM, STRENGTH\n- workout: CONSTITUTION, DEXTERITY, WISDOM\n\n"
+            }
+          ]
+        },
+        {
+          "id": "ca5eabb0-b10f-4720-a86c-43c10f1b9ffb",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Allies mechanics",
           "description": "",
           "labels": [],
-          "checkboxes": [],
+          "checkboxes": [
+            {
+              "id": "9e20df80-28fe-44c3-a71c-cb6eaee1c0b5",
+              "title": "Make the Snack as conversations (another clone) as talking  from ally",
+              "checked": false
+            },
+            {
+              "id": "ea364646-cc6e-4e97-918d-47535b889faf",
+              "title": "Mkae the allies also randomnly increase their skill",
+              "checked": false
+            }
+          ],
           "comments": []
         },
         {
@@ -296,6 +330,26 @@
           "description": "",
           "labels": [],
           "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "0251c1c9-3890-41d4-8e73-8ee8d0b5b9c4",
+          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
+          "title": "Build and Improve minigame: Math",
+          "description": "One another idea: is to have different ways of inputs (for configuration alter)\n\n1. They are in a random language: arabic, korean, japanese, indian etc and remixed so you dont know which. (after pressing the first it dissapears)\n2. If the answer is less than 200 then sum it using the atomc period table\n3. Can only estimate using binary\n5. Estimate using Hexa and even show the color the value represents.\n4. Use regular button press for entering the correct digit, \n\n\n\nThe games are made from core business questions. from reading a table and then doing the business math required. \n\nThe user can answer throught. anumber \n",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "910d4576-a58a-4e60-adae-86c6ae0d086d",
+              "title": "Lets build on 3 types. of input",
+              "checked": false
+            },
+            {
+              "id": "73631de0-675e-499b-a715-995f00937373",
+              "title": "Build  The First Case",
+              "checked": false
+            }
+          ],
           "comments": []
         }
       ]
@@ -325,38 +379,21 @@
           "comments": []
         },
         {
-          "id": "0c0ed0da-07e7-4b52-b42c-36f200957e85",
+          "id": "66e5b877-48cf-44aa-8ffe-e8d11cdc38ff",
           "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
-          "title": "build core afk mechanic",
-          "description": "The core mechanic can be just done with a few icons characters and a couple skills. The core mechanic refers to one single character working out and improving stats\n\nFor the afk mechanic. We will have the following effects:\n- those random items will get the character some random effects.\n\n\n\n\n",
+          "title": "Journal + Rewards Revision",
+          "description": "",
           "labels": [],
-          "checkboxes": [
-            {
-              "id": "24a5c789-096f-480e-8746-3665db82d2c8",
-              "title": "Designate effects for the card games",
-              "checked": false
-            },
-            {
-              "id": "11ca8e72-f429-434c-9565-e76ea2260261",
-              "title": "Designate effects for the plants",
-              "checked": false
-            },
-            {
-              "id": "be70e7c6-6c65-47a9-8468-5e773b1ab835",
-              "title": "Rework on the markdown how these works in cards",
-              "checked": false
-            },
-            {
-              "id": "8902b3b2-523b-49d6-9426-892ef943f1d6",
-              "title": "Repeated character cards represent better relationship with people",
-              "checked": false
-            },
-            {
-              "id": "0c072feb-ea78-47d6-9791-3a4003b65d9c",
-              "title": "Add rpg effect cards (inspired by dnd)",
-              "checked": false
-            }
-          ],
+          "checkboxes": [],
+          "comments": []
+        },
+        {
+          "id": "01e685b2-8aec-4463-997b-3ef4099ce64d",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Chrome Extension",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
           "comments": []
         },
         {
@@ -367,6 +404,20 @@
           "labels": [],
           "checkboxes": [],
           "comments": []
+        },
+        {
+          "id": "f783882b-bb25-48d9-b7c5-d8eb1eb2bde7",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Dungeon Crawler Core Game",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
+          "comments": [
+            {
+              "id": "aa33ba33-47ac-4f7d-b588-d45db00029ad",
+              "comment": "Lets make the game where feeds the markdown for the crawl. Of events random events to happen, then  lets make the majority a difference grabber, and even steal the monsters from the undernauts."
+            }
+          ]
         },
         {
           "id": "5d3e0edb-8d9d-4f59-a3c8-ba3a5bed089c",
@@ -386,6 +437,15 @@
               "checked": false
             }
           ],
+          "comments": []
+        },
+        {
+          "id": "c6ba395e-3fb8-43a1-8281-30373cf4a3fa",
+          "listId": "82f60a07-ae7a-4efa-8995-5cec62c12f1a",
+          "title": "Stripped Bare The Art of Animal Add",
+          "description": "",
+          "labels": [],
+          "checkboxes": [],
           "comments": []
         },
         {

@@ -5,6 +5,8 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/models/exercise_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
+import 'package:solo_level_system/utils/collectible_deck_seed_service.dart';
+import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/utils/session_reward_service.dart';
 import 'package:solo_level_system/widgets/common/session_loot_dialog.dart';
 
@@ -48,6 +50,11 @@ class _WorkoutSummaryScreenState extends State<WorkoutSummaryScreen> {
     final progressBox = Hive.box<UserProgressModel>('userProgress');
     final progress = progressBox.get('progress');
     progress?.recordSession(sessionDate: session.startTime);
+
+    try {
+      await MotivationSeedService.ensureSeeded();
+      await CollectibleDeckSeedService.ensureSeeded();
+    } catch (_) {}
 
     final loot = SessionRewardService.grant(
       minutes: duration.inMinutes,

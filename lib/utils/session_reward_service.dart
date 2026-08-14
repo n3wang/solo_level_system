@@ -2,10 +2,31 @@ import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/utils/card_drop_service.dart';
+import 'package:solo_level_system/utils/character_stats_service.dart';
 import 'package:solo_level_system/utils/motivation_points_service.dart';
 
 /// What kind of session produced the reward (drives the transaction source).
 enum SessionKind { focus, workout }
+
+/// The 3 ability stats each session type's card pool is restricted to (per
+/// the "retrieval pool" design: Focus levels STR/WIS/INT, Workout levels
+/// CON/DEX/WIS). Cards with no stat mapping are never restricted by this.
+Set<CharacterStat> allowedStatsForSession(SessionKind kind) {
+  switch (kind) {
+    case SessionKind.focus:
+      return const {
+        CharacterStat.strength,
+        CharacterStat.wisdom,
+        CharacterStat.intelligence,
+      };
+    case SessionKind.workout:
+      return const {
+        CharacterStat.constitution,
+        CharacterStat.dexterity,
+        CharacterStat.wisdom,
+      };
+  }
+}
 
 /// Result of a completed session: points earned + cards dropped.
 class SessionLoot {
@@ -75,9 +96,11 @@ class SessionRewardService {
             ? 1
             : (safeMinutes ~/ minutesPerCard).clamp(1, 1 << 20));
     // Defense in depth: never grant reward cards from session loot.
-    final drops = CardDropService.draw(cardCount)
-        .where(CardDropService.isDroppable)
-        .toList();
+    final drops =
+        CardDropService.draw(
+          cardCount,
+          allowedStats: allowedStatsForSession(kind),
+        ).where(CardDropService.isDroppable).toList();
     for (final card in drops) {
       try {
         card.recordAcquisition();
@@ -99,11 +122,13 @@ class SessionRewardService {
     );
   }
 
-  /// Draws cards without acquiring (for rogue pick UI).
-  static List<CardModel> drawCards(int count) {
-    return CardDropService.draw(count)
-        .where(CardDropService.isDroppable)
-        .toList();
+  /// Draws cards without acquiring (for rogue pick UI). When [kind] is
+  /// given, the draw is restricted to that session type's stat pool.
+  static List<CardModel> drawCards(int count, {SessionKind? kind}) {
+    return CardDropService.draw(
+      count,
+      allowedStats: kind == null ? null : allowedStatsForSession(kind),
+    ).where(CardDropService.isDroppable).toList();
   }
 
   /// Grants already-drawn cards (e.g. rogue pick) without drawing again.

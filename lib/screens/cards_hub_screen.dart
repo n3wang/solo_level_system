@@ -8,6 +8,7 @@ import 'package:solo_level_system/models/reward_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/utils/card_content_seed_service.dart';
 import 'package:solo_level_system/utils/card_repository.dart';
+import 'package:solo_level_system/utils/collectible_deck_seed_service.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/utils/reward_seed_service.dart';
 import 'package:solo_level_system/widgets/cards/collectible_card.dart';
@@ -23,7 +24,7 @@ class CardsHubScreen extends StatefulWidget {
 
 class _CardsHubScreenState extends State<CardsHubScreen> {
   String _typeFilter = kCollectibleTypeFilters.first;
-  String _scopeFilter = 'all'; // all | acquired
+  String _scopeFilter = 'acquired'; // all | acquired
   bool _isReady = false;
 
   @override
@@ -51,6 +52,7 @@ class _CardsHubScreenState extends State<CardsHubScreen> {
       await RewardSeedService.ensureDefaultBoardgameRewards();
       await MotivationSeedService.ensureSeeded();
       await CardContentSeedService.ensureSeeded();
+      await CollectibleDeckSeedService.ensureSeeded();
     } catch (e) {
       debugPrint('CardsHub init fallback: $e');
     } finally {

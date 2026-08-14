@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/card_model.dart';
+import 'package:solo_level_system/utils/character_stats_service.dart';
 
 /// Rarity-weighted random draw over the card catalog for session loot.
 ///
@@ -26,10 +27,17 @@ class CardDropService {
 
   /// Draw [count] cards from the pool. Returns live box objects so callers can
   /// `recordAcquisition()` on them. Empty if the pool is empty.
-  static List<CardModel> draw(int count) {
+  ///
+  /// When [allowedStats] is provided, cards whose
+  /// `CharacterStatsService.statForCard` maps to a stat outside that set are
+  /// excluded — cards with no stat mapping (room/music/option/boardgame/...)
+  /// are never restricted by this filter.
+  static List<CardModel> draw(int count, {Set<CharacterStat>? allowedStats}) {
     if (count <= 0 || !Hive.isBoxOpen(boxName)) return const [];
-    final pool =
-        Hive.box<CardModel>(boxName).values.where(isDroppable).toList();
+    final pool = Hive.box<CardModel>(boxName).values
+        .where(isDroppable)
+        .where((card) => _matchesAllowedStats(card, allowedStats))
+        .toList();
     if (pool.isEmpty) return const [];
 
     final result = <CardModel>[];
@@ -53,6 +61,16 @@ class CardDropService {
       return false;
     }
     return true;
+  }
+
+  static bool _matchesAllowedStats(
+    CardModel card,
+    Set<CharacterStat>? allowedStats,
+  ) {
+    if (allowedStats == null) return true;
+    final stat = CharacterStatsService.statForCard(card);
+    if (stat == null) return true;
+    return allowedStats.contains(stat);
   }
 
   static CardModel? _weightedPick(List<CardModel> pool) {

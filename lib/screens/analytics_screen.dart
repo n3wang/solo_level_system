@@ -26,6 +26,7 @@ import 'package:solo_level_system/widgets/common/settings_rect_chip.dart';
 import 'package:solo_level_system/widgets/common/stats_period_chips.dart';
 import 'package:solo_level_system/utils/stats_breakdown.dart';
 import 'package:solo_level_system/widgets/analytics/stacked_period_bar_chart.dart';
+import 'package:solo_level_system/widgets/character/character_stat_panel.dart';
 
 extension StringExtension on String {
   String capitalizeFirst() {
@@ -210,6 +211,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              CharacterStatPanel(
+                                cards: motivationBox.values.toList(),
+                              ),
+                              const SizedBox(height: AppUiSizes.xxl),
                               _buildWeeklyOverview(
                                 DevData.visibleOnly(
                                   pomodoroBox.values,

@@ -20,7 +20,6 @@ import 'package:solo_level_system/screens/active_workout_session_screen.dart';
 import 'package:solo_level_system/screens/workout_summary_screen.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
-import 'package:solo_level_system/widgets/journal/journal_modal.dart';
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -265,10 +264,6 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     super.dispose();
   }
 
-  Future<void> _openJournal() async {
-    await showJournalModal(context, source: 'workout');
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -280,21 +275,12 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       ),
       body: _isLoading
           ? LoadingIndicator(message: 'Loading...')
-          : Stack(
+          : TabBarView(
+              controller: _tabController,
               children: [
-                TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildSetsTab(),
-                    _buildTimedTab(),
-                    _buildGameTab(),
-                  ],
-                ),
-                Positioned(
-                  top: 8,
-                  right: 16,
-                  child: JournalOpenButton(onPressed: _openJournal),
-                ),
+                _buildSetsTab(),
+                _buildTimedTab(),
+                _buildGameTab(),
               ],
             ),
       floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
