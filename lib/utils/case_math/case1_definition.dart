@@ -107,7 +107,7 @@ const case1Definition = CaseMathCaseDefinition(
       id: 'operating_profit',
       caseId: 'case_1',
       questionText:
-          'What was {company} ({companyId}) operating profit in {year}?',
+          'What was {company} operating profit in {year}?',
       math: 'revenue - costs',
       formula: 'Operating profit = Revenue − Operating costs',
       answerType: CaseMathValueFormat.price,
@@ -120,7 +120,7 @@ const case1Definition = CaseMathCaseDefinition(
       id: 'profit_margin',
       caseId: 'case_1',
       questionText:
-          'What was {company} ({companyId}) profit margin in {year}? (as %)',
+          'What was {company} profit margin in {year}? (as %)',
       math: '(revenue - costs) / revenue * 100',
       formula: 'Profit margin = (Revenue − Operating costs) ÷ Revenue',
       answerType: CaseMathValueFormat.percentage,
@@ -133,7 +133,7 @@ const case1Definition = CaseMathCaseDefinition(
       id: 'revenue_growth',
       caseId: 'case_1',
       questionText:
-          'By what percentage did {company} ({companyId}) revenue change from {previousYear} to {year}? (as %)',
+          'By what percentage did {company} revenue change from {previousYear} to {year}? (as %)',
       math: '(revenue - oldRevenue) / oldRevenue * 100',
       formula: '% change = (New − Old) ÷ Old',
       answerType: CaseMathValueFormat.percentage,
@@ -148,7 +148,7 @@ const case1Definition = CaseMathCaseDefinition(
       id: 'profit_growth',
       caseId: 'case_1',
       questionText:
-          'By what percentage did {company} ({companyId}) operating profit change from {previousYear} to {year}? (as %)',
+          'By what percentage did {company} operating profit change from {previousYear} to {year}? (as %)',
       math:
           '((revenue - costs) - (oldRevenue - oldCosts)) / (oldRevenue - oldCosts) * 100',
       formula: '% change = (New profit − Old profit) ÷ Old profit',
@@ -167,7 +167,7 @@ const case1Definition = CaseMathCaseDefinition(
       id: 'revenue_per_store_growth',
       caseId: 'case_1',
       questionText:
-          'What was the percentage change in {company} ({companyId}) revenue per store from {previousYear} to {year}? (as %)',
+          'What was the percentage change in {company} revenue per store from {previousYear} to {year}? (as %)',
       math:
           '((revenue / stores) - (oldRevenue / oldStores)) / (oldRevenue / oldStores) * 100',
       formula:
@@ -187,7 +187,7 @@ const case1Definition = CaseMathCaseDefinition(
       id: 'revenue_per_customer',
       caseId: 'case_1',
       questionText:
-          'What was {company} ({companyId}) average revenue per customer in {year}?',
+          'What was {company} average revenue per customer in {year}?',
       math: 'revenue / customers',
       formula: 'Revenue per customer = Revenue ÷ Customers',
       answerType: CaseMathValueFormat.price,
@@ -200,7 +200,7 @@ const case1Definition = CaseMathCaseDefinition(
       id: 'max_costs',
       caseId: 'case_1',
       questionText:
-          'If {company} ({companyId}) wants to increase {year} profit by {upliftPercent}%, while keeping revenue constant, what is the maximum operating cost?',
+          'If {company} wants to increase {year} profit by {upliftPercent}%, while keeping revenue constant, what is the maximum operating cost?',
       math: 'revenue - ((revenue - costs) * (1 + upliftPercent / 100))',
       formula:
           'Target profit = Current profit × (1 + uplift); Max costs = Revenue − Target profit',

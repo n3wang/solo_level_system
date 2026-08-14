@@ -101,7 +101,7 @@ class _CompanyBlock extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             color: Colors.black.withValues(alpha: 0.04),
             child: Text(
-              '${company.name} (${company.id})',
+              company.name,
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
@@ -145,9 +145,8 @@ class _CompanyBlock extends StatelessWidget {
                         highlight: _cellColor(valueDefinition.id, i),
                         onTap: onCellTap == null
                             ? null
-                            : () => onCellTap!(
-                                  company.at(valueDefinition.id, i),
-                                ),
+                            : () =>
+                                  onCellTap!(company.at(valueDefinition.id, i)),
                       ),
                   ],
                 ),
@@ -210,11 +209,7 @@ class _MetricCell extends StatelessWidget {
 }
 
 class _ValueCell extends StatelessWidget {
-  const _ValueCell({
-    required this.text,
-    this.highlight,
-    this.onTap,
-  });
+  const _ValueCell({required this.text, this.highlight, this.onTap});
 
   final String text;
   final Color? highlight;

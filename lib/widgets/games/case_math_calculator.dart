@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/utils/case_math/case_math_expression.dart';
@@ -130,6 +131,112 @@ class CaseMathCalculatorState extends State<CaseMathCalculator> {
         _result = null;
       });
     }
+  }
+
+  /// Handles hardware / software keyboard input. Returns true if consumed.
+  bool handleHardwareKey(KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return false;
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.backspace ||
+        key == LogicalKeyboardKey.delete) {
+      _backspace();
+      return true;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      _evaluate();
+      return true;
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      clear();
+      return true;
+    }
+
+    final token = _tokenForHardwareKey(event);
+    if (token == null) return false;
+    if (token == '=') {
+      _evaluate();
+      return true;
+    }
+    if (token == 'C') {
+      clear();
+      return true;
+    }
+    _append(token);
+    return true;
+  }
+
+  String? _tokenForHardwareKey(KeyEvent event) {
+    final character = event.character;
+    if (character != null && character.isNotEmpty) {
+      if (RegExp(r'^[0-9]$').hasMatch(character)) return character;
+      switch (character) {
+        case '.':
+          return '.';
+        case '+':
+          return '+';
+        case '-':
+        case '−':
+          return '-';
+        case '*':
+        case 'x':
+        case 'X':
+        case '×':
+          return '*';
+        case '/':
+        case '÷':
+          return '/';
+        case '(':
+          return '(';
+        case ')':
+          return ')';
+        case '=':
+          return '=';
+        case 'c':
+        case 'C':
+          return 'C';
+      }
+    }
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.numpadAdd) return '+';
+    if (key == LogicalKeyboardKey.numpadSubtract) return '-';
+    if (key == LogicalKeyboardKey.numpadMultiply) return '*';
+    if (key == LogicalKeyboardKey.numpadDivide) return '/';
+    if (key == LogicalKeyboardKey.numpadDecimal) return '.';
+    if (key == LogicalKeyboardKey.numpadEqual) return '=';
+    if (key == LogicalKeyboardKey.digit0 || key == LogicalKeyboardKey.numpad0) {
+      return '0';
+    }
+    if (key == LogicalKeyboardKey.digit1 || key == LogicalKeyboardKey.numpad1) {
+      return '1';
+    }
+    if (key == LogicalKeyboardKey.digit2 || key == LogicalKeyboardKey.numpad2) {
+      return '2';
+    }
+    if (key == LogicalKeyboardKey.digit3 || key == LogicalKeyboardKey.numpad3) {
+      return '3';
+    }
+    if (key == LogicalKeyboardKey.digit4 || key == LogicalKeyboardKey.numpad4) {
+      return '4';
+    }
+    if (key == LogicalKeyboardKey.digit5 || key == LogicalKeyboardKey.numpad5) {
+      return '5';
+    }
+    if (key == LogicalKeyboardKey.digit6 || key == LogicalKeyboardKey.numpad6) {
+      return '6';
+    }
+    if (key == LogicalKeyboardKey.digit7 || key == LogicalKeyboardKey.numpad7) {
+      return '7';
+    }
+    if (key == LogicalKeyboardKey.digit8 || key == LogicalKeyboardKey.numpad8) {
+      return '8';
+    }
+    if (key == LogicalKeyboardKey.digit9 || key == LogicalKeyboardKey.numpad9) {
+      return '9';
+    }
+    return null;
   }
 
   String _formatInsert(double value) {

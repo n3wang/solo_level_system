@@ -43,6 +43,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
   final _generator = CaseMathGenerator(definition: case1Definition);
   final _systemAnswerController = TextEditingController();
   final _systemAnswerFocus = FocusNode();
+  final _keyboardFocus = FocusNode();
   final _calculatorKey = GlobalKey<CaseMathCalculatorState>();
 
   late CaseMathRound _round;
@@ -59,17 +60,38 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
   List<_CaseMathHighScore> _highScores = const [];
   int? _highlightHighScoreIndex;
 
+  bool get _capturesHardwareKeys {
+    if (_phase == _CaseMathPhase.guess) {
+      return _inputMode == _InputMode.pad || _inputMode == _InputMode.mini;
+    }
+    if (_phase == _CaseMathPhase.reveal) return _calculatorVisible;
+    return false;
+  }
+
   @override
   void initState() {
     super.initState();
     _round = _generator.nextRound();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
   }
 
   @override
   void dispose() {
     _systemAnswerController.dispose();
     _systemAnswerFocus.dispose();
+    _keyboardFocus.dispose();
     super.dispose();
+  }
+
+  void _syncKeyboardFocus() {
+    if (!mounted) return;
+    if (_capturesHardwareKeys) {
+      _systemAnswerFocus.unfocus();
+      _keyboardFocus.requestFocus();
+    } else if (_inputMode == _InputMode.system &&
+        _phase == _CaseMathPhase.guess) {
+      _keyboardFocus.unfocus();
+    }
   }
 
   void _setAnswerText(String value) {
@@ -107,6 +129,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       _calculatorVisible = false;
       if (companyIndex >= 0) _selectedCompanyIndex = companyIndex;
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
   }
 
   void _showQuestionCompany() {
@@ -142,6 +165,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       _calculatorVisible = false;
       _phase = _CaseMathPhase.guess;
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
   }
 
   void _restart() {
@@ -159,10 +183,12 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       _highScores = const [];
       _highlightHighScoreIndex = null;
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
   }
 
   void _appendAnswer(String key) {
     if (key == '.' && _answerText.contains('.')) return;
+    if (key == '-' && _answerText.isNotEmpty) return;
     if (_answerText.length >= 16) return;
     setState(() {
       _parseError = null;
@@ -186,7 +212,93 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       });
     } else {
       _systemAnswerFocus.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
     }
+  }
+
+  KeyEventResult _onHardwareKey(FocusNode node, KeyEvent event) {
+    if (!_capturesHardwareKeys) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    if (_phase == _CaseMathPhase.reveal && _calculatorVisible) {
+      final handled =
+          _calculatorKey.currentState?.handleHardwareKey(event) ?? false;
+      return handled ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    if (_phase != _CaseMathPhase.guess) return KeyEventResult.ignored;
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.backspace ||
+        key == LogicalKeyboardKey.delete) {
+      _backspaceAnswer();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      _checkAnswer();
+      return KeyEventResult.handled;
+    }
+
+    final token = _guessTokenForHardwareKey(event);
+    if (token == null) return KeyEventResult.ignored;
+    _appendAnswer(token);
+    return KeyEventResult.handled;
+  }
+
+  String? _guessTokenForHardwareKey(KeyEvent event) {
+    final character = event.character;
+    if (character != null && character.isNotEmpty) {
+      if (RegExp(r'^[0-9]$').hasMatch(character)) return character;
+      if (character == '.') return '.';
+      if (character == '-' || character == '−') {
+        // Allow a leading minus for signed answers.
+        if (_answerText.isEmpty) return '-';
+      }
+    }
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.numpadDecimal ||
+        key == LogicalKeyboardKey.period) {
+      return '.';
+    }
+    if (key == LogicalKeyboardKey.numpadSubtract ||
+        key == LogicalKeyboardKey.minus) {
+      if (_answerText.isEmpty) return '-';
+    }
+    if (key == LogicalKeyboardKey.digit0 || key == LogicalKeyboardKey.numpad0) {
+      return '0';
+    }
+    if (key == LogicalKeyboardKey.digit1 || key == LogicalKeyboardKey.numpad1) {
+      return '1';
+    }
+    if (key == LogicalKeyboardKey.digit2 || key == LogicalKeyboardKey.numpad2) {
+      return '2';
+    }
+    if (key == LogicalKeyboardKey.digit3 || key == LogicalKeyboardKey.numpad3) {
+      return '3';
+    }
+    if (key == LogicalKeyboardKey.digit4 || key == LogicalKeyboardKey.numpad4) {
+      return '4';
+    }
+    if (key == LogicalKeyboardKey.digit5 || key == LogicalKeyboardKey.numpad5) {
+      return '5';
+    }
+    if (key == LogicalKeyboardKey.digit6 || key == LogicalKeyboardKey.numpad6) {
+      return '6';
+    }
+    if (key == LogicalKeyboardKey.digit7 || key == LogicalKeyboardKey.numpad7) {
+      return '7';
+    }
+    if (key == LogicalKeyboardKey.digit8 || key == LogicalKeyboardKey.numpad8) {
+      return '8';
+    }
+    if (key == LogicalKeyboardKey.digit9 || key == LogicalKeyboardKey.numpad9) {
+      return '9';
+    }
+    return null;
   }
 
   @override
@@ -196,7 +308,17 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       body: SafeArea(
         child: _phase == _CaseMathPhase.summary
             ? _buildSummary(context)
-            : _buildPlay(context),
+            : Focus(
+                focusNode: _keyboardFocus,
+                onKeyEvent: _onHardwareKey,
+                child: Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (_) {
+                    if (_capturesHardwareKeys) _syncKeyboardFocus();
+                  },
+                  child: _buildPlay(context),
+                ),
+              ),
       ),
     );
   }
@@ -308,8 +430,11 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
                     CaseMathCalculatorPanel(
                       visible: _calculatorVisible,
                       calculatorKey: _calculatorKey,
-                      onVisibilityChanged: (visible) =>
-                          setState(() => _calculatorVisible = visible),
+                      onVisibilityChanged: (visible) {
+                        setState(() => _calculatorVisible = visible);
+                        WidgetsBinding.instance
+                            .addPostFrameCallback((_) => _syncKeyboardFocus());
+                      },
                     ),
                     const SizedBox(height: AppUiSizes.sm),
                     _RevealCard(
@@ -330,6 +455,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
     if (!_calculatorVisible) {
       setState(() => _calculatorVisible = true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        _syncKeyboardFocus();
         _calculatorKey.currentState?.insertValue(value);
       });
       return;
@@ -531,7 +657,7 @@ class _CompanyTableSwitcher extends StatelessWidget {
         for (var i = 0; i < companies.length; i++)
           SettingsRectChipOption(
             value: i,
-            label: '${companies[i].name} (${companies[i].id})',
+            label: companies[i].name,
           ),
       ],
       onChanged: onChanged,
