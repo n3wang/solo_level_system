@@ -15,7 +15,6 @@ class CaseMathHighlightBuilder {
     final seen = <String>{};
     var colorIndex = 0;
 
-    // Prefer variable order as they appear in the math expression.
     final orderedNames = _variableOrder(
       question.definition.math,
       question.variables.keys,
@@ -26,27 +25,75 @@ class CaseMathHighlightBuilder {
       final valueId = binding.valueId;
       if (valueId == null) continue;
 
+      final tableId = binding.tableId ??
+          question.focusTableId ??
+          table.views.first.definition.id;
+      final view = table.view(tableId);
       final yearIndex = question.yearIndex + binding.yearOffset;
-      final key = '$valueId@$yearIndex';
+
+      String entityId;
+      String metricId;
+      String metricName;
+      if (view.definition.kind == CaseMathTableKind.fixedCosts) {
+        entityId = binding.entityRef ?? valueId;
+        metricId = 'amount';
+        metricName = view.entity(entityId).name;
+      } else {
+        entityId = _resolveEntityId(
+          table: table,
+          view: view,
+          binding: binding,
+          focusEntityId: question.companyId,
+        );
+        metricId = valueId;
+        metricName = view.definition.metrics
+            .firstWhere((metric) => metric.id == valueId)
+            .name;
+      }
+
+      final key = '$tableId|$entityId|$metricId@$yearIndex';
       if (!seen.add(key)) continue;
 
-      final metric = table.definition.value(valueId);
       highlights.add(
         CaseMathFormulaHighlight(
           variableName: name,
-          valueId: valueId,
+          valueId: metricId,
           yearIndex: yearIndex,
-          metricName: metric.name,
+          metricName: metricName,
           formattedValue: CaseMathScoring.formatValue(
             question.variables[name]!,
             question.variableFormats[name]!,
           ),
           colorIndex: colorIndex % paletteSize,
+          tableId: tableId,
+          entityId: entityId,
         ),
       );
       colorIndex++;
     }
     return highlights;
+  }
+
+  static String _resolveEntityId({
+    required CaseMathRoundTable table,
+    required CaseMathTableView view,
+    required CaseMathVariableBinding binding,
+    required String focusEntityId,
+  }) {
+    final ref = binding.entityRef;
+    if (ref == null || ref == 'focus') return focusEntityId;
+    if (ref.startsWith('shared')) {
+      final index = int.tryParse(ref.replaceFirst('shared', '')) ?? 0;
+      return table.sharedProductIds[index];
+    }
+    if (ref.startsWith('slot')) {
+      final index = int.tryParse(ref.replaceFirst('slot', '')) ?? 0;
+      return view.entities[index].id;
+    }
+    if (ref.startsWith('entity:')) {
+      return ref.substring('entity:'.length);
+    }
+    return ref;
   }
 
   static List<CaseMathSolutionPart> buildSolutionParts({

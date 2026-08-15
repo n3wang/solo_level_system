@@ -5,7 +5,7 @@ import 'package:solo_level_system/utils/case_math/case_math_highlights.dart';
 import 'package:solo_level_system/utils/case_math/case_math_models.dart';
 import 'package:solo_level_system/utils/case_math/case_math_scoring.dart';
 
-/// Generates any case from its value and question definitions.
+/// Generates any case from its table and question definitions.
 class CaseMathGenerator {
   CaseMathGenerator({
     required this.definition,
@@ -17,30 +17,39 @@ class CaseMathGenerator {
 
   final CaseMathCaseDefinition definition;
   final Random _random;
-  late List<CaseMathValueDefinition> _displayValues;
+
+  /// tableId → shuffled metrics for display.
+  late Map<String, List<CaseMathValueDefinition>> _displayMetrics;
 
   /// Call once when a game session starts (not between questions).
   void reshuffleDisplayOrder() {
-    _displayValues = [...definition.values]..shuffle(_random);
+    _displayMetrics = {
+      for (final table in definition.tables)
+        table.id: [...table.metrics]..shuffle(_random),
+    };
   }
 
   CaseMathRound nextRound() {
-    final startYear = 2019 + _random.nextInt(5);
-    final years =
-        List.generate(definition.yearCount, (index) => '${startYear + index}');
-    final names = [...definition.companyNames]..shuffle(_random);
-    final companies = List.generate(
-      2,
-      (index) => _generateCompany(
-        id: String.fromCharCode(65 + index),
-        name: names[index],
-      ),
-    );
+    final views = <CaseMathTableView>[];
+    final sharedProductIds = <String>[];
+
+    for (final tableDef in definition.tables) {
+      final view = _generateTableView(tableDef);
+      views.add(view);
+      if (tableDef.kind == CaseMathTableKind.entityMetric &&
+          tableDef.sharedProductCount > 0) {
+        sharedProductIds.addAll(
+          view.entities
+              .take(tableDef.sharedProductCount)
+              .map((entity) => entity.id),
+        );
+      }
+    }
+
     final table = CaseMathRoundTable(
       definition: definition,
-      yearLabels: years,
-      companies: companies,
-      displayValues: List.unmodifiable(_displayValues),
+      views: views,
+      sharedProductIds: List.unmodifiable(sharedProductIds),
     );
     final question = _buildQuestion(table);
     final exact = CaseMathExpression.evaluate(
@@ -71,24 +80,88 @@ class CaseMathGenerator {
     return CaseMathRound(table: table, question: question, answer: answer);
   }
 
-  CaseMathCompanyData _generateCompany({
+  CaseMathTableView _generateTableView(CaseMathTableDefinition tableDef) {
+    final yearCount = max(1, tableDef.yearCount);
+    final startYear = 2019 + _random.nextInt(5);
+    final years = tableDef.kind == CaseMathTableKind.companyYears
+        ? List.generate(yearCount, (index) => '${startYear + index}')
+        : const <String>['Amount'];
+
+    final entities = <CaseMathEntityData>[];
+    if (tableDef.kind == CaseMathTableKind.fixedCosts) {
+      for (final metric in tableDef.metrics) {
+        entities.add(
+          CaseMathEntityData(
+            id: metric.id,
+            name: metric.name,
+            values: {
+              'amount': [_makeUgly(_randomIn(metric.range), metric.decimalPlaces)],
+            },
+          ),
+        );
+      }
+    } else {
+      final names = [...tableDef.entityNamePool]..shuffle(_random);
+      final count = min(tableDef.entityCount, names.length);
+      for (var index = 0; index < count; index++) {
+        entities.add(
+          _generateEntity(
+            id: tableDef.kind == CaseMathTableKind.companyYears
+                ? String.fromCharCode(65 + index)
+                : 'p$index',
+            name: names[index],
+            metrics: tableDef.metrics,
+            yearCount: yearCount,
+          ),
+        );
+      }
+    }
+
+    final displayMetrics = tableDef.kind == CaseMathTableKind.fixedCosts
+        ? [
+            const CaseMathValueDefinition(
+              id: 'amount',
+              name: 'Amount',
+              caseId: '',
+              range: CaseMathRange(0, 0),
+              format: CaseMathValueFormat.price,
+            ),
+          ]
+        : List<CaseMathValueDefinition>.unmodifiable(
+            _displayMetrics[tableDef.id]!,
+          );
+
+    return CaseMathTableView(
+      definition: tableDef,
+      yearLabels: years,
+      entities: entities,
+      displayMetrics: displayMetrics,
+    );
+  }
+
+  CaseMathEntityData _generateEntity({
     required String id,
     required String name,
+    required List<CaseMathValueDefinition> metrics,
+    required int yearCount,
   }) {
-    return CaseMathCompanyData(
+    return CaseMathEntityData(
       id: id,
       name: name,
       values: {
-        for (final value in definition.values)
-          value.id: _generateSeries(value),
+        for (final metric in metrics)
+          metric.id: _generateSeries(metric, yearCount),
       },
     );
   }
 
-  List<double> _generateSeries(CaseMathValueDefinition definition) {
+  List<double> _generateSeries(
+    CaseMathValueDefinition definition,
+    int yearCount,
+  ) {
     final values = <double>[];
     var current = _randomIn(definition.range);
-    for (var year = 0; year < this.definition.yearCount; year++) {
+    for (var year = 0; year < yearCount; year++) {
       if (year > 0) {
         current *= _randomIn(definition.growthRange);
       }
@@ -100,60 +173,170 @@ class CaseMathGenerator {
   CaseMathQuestion _buildQuestion(CaseMathRoundTable table) {
     final definition =
         this.definition.questions[_random.nextInt(this.definition.questions.length)];
-    final company =
-        table.companies[_random.nextInt(table.companies.length)];
+    final focusTableId =
+        definition.focusTableId ?? table.views.first.definition.id;
+    final focusView = table.view(focusTableId);
+
+    CaseMathEntityData focusEntity;
+    if (focusView.definition.kind == CaseMathTableKind.fixedCosts) {
+      focusEntity = focusView.entities.first;
+    } else {
+      focusEntity =
+          focusView.entities[_random.nextInt(focusView.entities.length)];
+    }
+
+    final yearCount = focusView.yearLabels.length;
     final availableYears =
-        table.yearLabels.length - definition.minimumPreviousYears;
+        max(1, yearCount - definition.minimumPreviousYears);
     final yearIndex =
         definition.minimumPreviousYears + _random.nextInt(availableYears);
+
     final variables = <String, double>{};
     final variableFormats = <String, CaseMathValueFormat>{};
+    final bindingEntities = <String, String>{};
 
     for (final entry in definition.variables.entries) {
       final binding = entry.value;
-      variableFormats[entry.key] =
-          binding.format ?? _formatForBinding(binding);
-      if (binding.valueId != null) {
-        variables[entry.key] = company.at(
-          binding.valueId!,
-          yearIndex + binding.yearOffset,
-        );
-      } else {
+      if (binding.valueId == null) {
+        variableFormats[entry.key] =
+            binding.format ?? CaseMathValueFormat.number;
         variables[entry.key] = _randomParameter(binding.randomRange!);
+        continue;
+      }
+
+      final resolved = _resolveCell(
+        table: table,
+        binding: binding,
+        focusEntity: focusEntity,
+        focusTableId: focusTableId,
+        yearIndex: yearIndex,
+      );
+      variables[entry.key] = resolved.value;
+      variableFormats[entry.key] = resolved.format;
+      bindingEntities[entry.key] = resolved.entityId;
+    }
+
+    final focusLabel = focusView.definition.kind == CaseMathTableKind.entityMetric
+        ? '{product}'
+        : '{company}';
+    var prompt = definition.questionText
+        .replaceAll('{company}', focusEntity.name)
+        .replaceAll('{product}', focusEntity.name)
+        .replaceAll('{companyId}', focusEntity.id)
+        .replaceAll(focusLabel, focusEntity.name)
+        .replaceAll('{year}', focusView.yearLabels[yearIndex])
+        .replaceAll(
+          '{previousYear}',
+          focusView.yearLabels[max(0, yearIndex - 1)],
+        );
+
+    // Named shared products for prompts.
+    if (table.sharedProductIds.isNotEmpty) {
+      final products = table.view(
+        definition.focusTableId ??
+            table.views
+                .firstWhere(
+                  (view) =>
+                      view.definition.kind == CaseMathTableKind.entityMetric,
+                )
+                .definition
+                .id,
+      );
+      for (var i = 0; i < table.sharedProductIds.length; i++) {
+        final entity = products.entity(table.sharedProductIds[i]);
+        prompt = prompt
+            .replaceAll('{sharedProduct$i}', entity.name)
+            .replaceAll('{shared$i}', entity.name);
       }
     }
 
-    var prompt = definition.questionText
-        .replaceAll('{company}', company.name)
-        .replaceAll('{companyId}', company.id)
-        .replaceAll('{year}', table.yearLabels[yearIndex])
-        .replaceAll(
-          '{previousYear}',
-          table.yearLabels[max(0, yearIndex - 1)],
-        );
     for (final entry in variables.entries) {
-      final binding = definition.variables[entry.key]!;
-      final format = binding.format ?? _formatForBinding(binding);
-      final text = CaseMathScoring.formatValue(entry.value, format);
+      final text = CaseMathScoring.formatValue(
+        entry.value,
+        variableFormats[entry.key]!,
+      );
       prompt = prompt.replaceAll('{${entry.key}}', text);
     }
 
     return CaseMathQuestion(
       definition: definition,
-      companyId: company.id,
+      companyId: focusEntity.id,
       yearIndex: yearIndex,
       prompt: prompt,
       variables: variables,
       variableFormats: variableFormats,
+      focusTableId: focusTableId,
     );
   }
 
-  CaseMathValueFormat _formatForBinding(CaseMathVariableBinding binding) {
-    return definition.value(binding.valueId!).format;
+  ({double value, CaseMathValueFormat format, String entityId}) _resolveCell({
+    required CaseMathRoundTable table,
+    required CaseMathVariableBinding binding,
+    required CaseMathEntityData focusEntity,
+    required String focusTableId,
+    required int yearIndex,
+  }) {
+    final tableId = binding.tableId ?? focusTableId;
+    final view = table.view(tableId);
+    final entity = _entityForRef(
+      table: table,
+      view: view,
+      ref: binding.entityRef,
+      focusEntity: focusEntity,
+    );
+
+    if (view.definition.kind == CaseMathTableKind.fixedCosts) {
+      final lineId = binding.entityRef ?? binding.valueId!;
+      final entity = view.entity(lineId);
+      final metric = view.definition.metrics.firstWhere(
+        (item) => item.id == lineId,
+      );
+      return (
+        value: entity.at('amount'),
+        format: binding.format ?? metric.format,
+        entityId: entity.id,
+      );
+    }
+
+    final metric = view.definition.metrics.firstWhere(
+      (item) => item.id == binding.valueId,
+    );
+    final idx = yearIndex + binding.yearOffset;
+    return (
+      value: entity.at(binding.valueId!, idx),
+      format: binding.format ?? metric.format,
+      entityId: entity.id,
+    );
+  }
+
+  CaseMathEntityData _entityForRef({
+    required CaseMathRoundTable table,
+    required CaseMathTableView view,
+    required String? ref,
+    required CaseMathEntityData focusEntity,
+  }) {
+    if (ref == null || ref == 'focus') {
+      return view.entities.firstWhere(
+        (entity) => entity.id == focusEntity.id,
+        orElse: () => view.entities.first,
+      );
+    }
+    if (ref.startsWith('shared')) {
+      final index = int.tryParse(ref.replaceFirst('shared', '')) ?? 0;
+      final id = table.sharedProductIds[index];
+      return view.entity(id);
+    }
+    if (ref.startsWith('slot')) {
+      final index = int.tryParse(ref.replaceFirst('slot', '')) ?? 0;
+      return view.entities[index];
+    }
+    if (ref.startsWith('entity:')) {
+      return view.entity(ref.substring('entity:'.length));
+    }
+    return view.entity(ref);
   }
 
   double _randomParameter(CaseMathRange range) {
-    // Question parameters use clean 5-point steps while table values stay ugly.
     final min = range.min.round();
     final max = range.max.round();
     final steps = ((max - min) ~/ 5) + 1;
@@ -179,25 +362,69 @@ class CaseMathGenerator {
   }
 
   void _validateDefinition() {
-    if (definition.companyNames.length < 2) {
-      throw ArgumentError('A case needs at least two company names');
+    if (definition.tables.isEmpty || definition.questions.isEmpty) {
+      throw ArgumentError('A case needs tables and questions');
     }
-    if (definition.values.isEmpty || definition.questions.isEmpty) {
-      throw ArgumentError('A case needs values and questions');
+    final tableIds = definition.tables.map((table) => table.id).toSet();
+    if (tableIds.length != definition.tables.length) {
+      throw ArgumentError('Case table IDs must be unique');
     }
-    final ids = definition.values.map((value) => value.id).toSet();
-    if (ids.length != definition.values.length) {
-      throw ArgumentError('Case value IDs must be unique');
+    final valueIds = <String>{};
+    for (final table in definition.tables) {
+      if (table.kind != CaseMathTableKind.fixedCosts &&
+          table.entityNamePool.length < table.entityCount) {
+        throw ArgumentError('Table ${table.id} needs enough entity names');
+      }
+      for (final metric in table.metrics) {
+        if (metric.caseId != definition.id && metric.caseId.isNotEmpty) {
+          throw ArgumentError('Metric ${metric.id} has the wrong case ID');
+        }
+        if (table.kind != CaseMathTableKind.fixedCosts &&
+            !valueIds.add('${table.id}:${metric.id}')) {
+          throw ArgumentError('Duplicate metric ${metric.id} in ${table.id}');
+        }
+      }
     }
     for (final question in definition.questions) {
       if (question.caseId != definition.id) {
         throw ArgumentError('Question ${question.id} has the wrong case ID');
       }
+      final focusId = question.focusTableId ?? definition.tables.first.id;
+      if (!tableIds.contains(focusId)) {
+        throw ArgumentError('Question ${question.id} has unknown focus table');
+      }
       for (final binding in question.variables.values) {
-        if (binding.valueId != null && !ids.contains(binding.valueId)) {
+        if (binding.valueId == null) continue;
+        final tableId = binding.tableId ?? focusId;
+        if (!tableIds.contains(tableId)) {
           throw ArgumentError(
-            'Question ${question.id} references ${binding.valueId}',
+            'Question ${question.id} references unknown table $tableId',
           );
+        }
+        final table = definition.table(tableId);
+        if (table.kind == CaseMathTableKind.fixedCosts) {
+          final ok = table.metrics.any((metric) => metric.id == binding.valueId) ||
+              binding.entityRef == binding.valueId ||
+              binding.valueId == 'amount';
+          if (!ok && binding.entityRef == null) {
+            // Allow valueId to be the cost line id via entityRef-less form:
+            // valueId names the cost line when table is fixedCosts.
+            final lineOk =
+                table.metrics.any((metric) => metric.id == binding.valueId);
+            if (!lineOk) {
+              throw ArgumentError(
+                'Question ${question.id} references ${binding.valueId}',
+              );
+            }
+          }
+        } else {
+          final ok =
+              table.metrics.any((metric) => metric.id == binding.valueId);
+          if (!ok) {
+            throw ArgumentError(
+              'Question ${question.id} references ${binding.valueId}',
+            );
+          }
         }
       }
     }

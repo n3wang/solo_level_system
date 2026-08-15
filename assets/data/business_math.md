@@ -1,5 +1,7 @@
 ## Case Math Practice Set
 
+> **Design direction (no code yet):** extend cases with extra tables + finance vocabulary, keep arithmetic mental-friendly, and use **join questions** that pull keyed rows across tables. See [Multi-table design](#multi-table-design-roadmap) at the bottom.
+
 ### Case 1 — Coffee Chain Performance
 
 A coffee chain operates 127 stores.
@@ -107,6 +109,8 @@ The factory has fixed costs of **$1,247,839 per year**.
 # Case 3 — Market Entry
 
 A company is considering entering a new market.
+
+> **Redesign notes:** split into `segments` / `competitors` / `entrant` tables; add company types (Incumbent / Challenger / Niche) and segment stages (Mature / Growing / Emerging). Full join catalog in [Multi-table design roadmap](#multi-table-design-roadmap).
 
 ### Market Size
 
@@ -671,108 +675,206 @@ The company expects **14.7% of customers to cancel before renewing each year**.
 
 ---
 
-## Quick-fire Fraction & Percentage Drills
+# Multi-table design roadmap
 
-These are intentionally short so you can build the "automatic" calculations needed during a case.
+Design only — do not implement until schemas + question lists below are agreed.
 
-115. A company's revenue rises from $78,492,183 to $97,638,729. What is the percentage increase?
-    - **Formula:** % increase = (New − Old) ÷ Old
-    - **Solution:** ($97,638,729 − $78,492,183) ÷ $78,492,183 = **24.39%**
+## Goals
 
-116. Revenue falls from $118,472,836 to $89,384,572. What is the percentage decrease?
-    - **Formula:** % decrease = (New − Old) ÷ Old
-    - **Solution:** ($89,384,572 − $118,472,836) ÷ $118,472,836 = **−24.55%** (24.55% decrease)
+1. **More tables, same mental bar** — answers still need 1–3 arithmetic steps (+/−/×/÷ and small %). No Σ of huge lists unless totals are pre-shown or limited to 2–3 named rows.
+2. **Teach terms by using them** — prompts name the metric (`gross margin`, `utilization`, `relative market share`); formulas stay one line.
+3. **Join across tables** — questions always name the join key (company / product / segment / line). Player looks up related rows the way a JOIN uses a foreign key.
+4. **Distractors stay** — unused rows train “don’t grab the shiny number.”
+5. **Ugly figures** — keep non-round prices/units so estimation skill matters; scoring tolerance already scales with variable use.
 
-117. A company has a 3:5 ratio of domestic to international sales. If total sales are $63,847,291, what are domestic sales?
-    - **Formula:** Domestic = Total × 3 ÷ (3 + 5)
-    - **Solution:** $63,847,291 × 3 ÷ 8 = **$23,942,734.13**
+## Mental-math tiers
 
-118. A factory produces 7,384 units out of a maximum 9,847. What is utilization?
-    - **Formula:** Utilization = Produced ÷ Capacity
-    - **Solution:** 7,384 ÷ 9,847 = **74.99%**
+| Tier | Ops | Typical form | Session mix |
+| ---- | --- | ------------ | ----------- |
+| Easy | 1–2 | subtract, divide, × then − | ~40% |
+| Standard | 2–3 | YoY %, share of total, simple join | ~40% |
+| Stretch | 3 + small shock | allocation, mix shift, target reverse | ~20% |
 
-119. A product has a 38.7% gross margin. If sales are $24,183,947, what is gross profit?
-    - **Formula:** Gross profit = Sales × Gross margin
-    - **Solution:** $24,183,947 × 0.387 = **$9,359,187.49**
+Avoid: nested CAGR roots, long multi-product Σ in one mental step, NPV/discounting (save for optional later cases).
 
-120. A company's profit margin is 11.8%. Revenue is $73,492,183. What is profit?
-    - **Formula:** Profit = Revenue × Profit margin
-    - **Solution:** $73,492,183 × 0.118 = **$8,672,077.59**
+## Join patterns (reuse across cases)
 
-121. A company has $19,847,293 of profit and a 23.7% profit margin. What is revenue?
-    - **Formula:** Revenue = Profit ÷ Profit margin
-    - **Solution:** $19,847,293 ÷ 0.237 = **$83,743,852.32**
+Think of each case as a tiny warehouse. Questions are SQL-shaped but spoken in finance English.
 
-122. A product's price is $78.64 and variable cost is $49.17. What is its contribution margin?
-    - **Formula:** CM = Price − Variable cost
-    - **Solution:** $78.64 − $49.17 = **$29.47**
+| Pattern | Join key | Example prompt shape |
+| ------- | -------- | -------------------- |
+| **Lookup** | entity id | “Using {product} units and the shared line setup amount…” |
+| **Ratio join** | entity ↔ cost pool | “Allocate rent to {product} by unit share of shared products.” |
+| **Bridge metric** | same year / company | “Gross profit from P&L ÷ Stores from Ops = gross profit / store.” |
+| **Share join** | segment ↔ competitor | “Alpha’s revenue = Alpha share × total market from Market Size.” |
+| **Capacity join** | product ↔ line | “{product} demand ÷ Line B capacity = required utilization.” |
+| **Channel join** | plan/SKU ↔ channel mix | “Website revenue × {plan} mix % = plan revenue on web.” |
+| **Target reverse** | any | “What max VC keeps CM% at X given price?” |
 
-123. A company has $2,847,193 fixed costs and a $28.47 contribution margin per unit. What is its break-even volume?
-    - **Formula:** Break-even = Fixed costs ÷ CM per unit
-    - **Solution:** $2,847,193 ÷ $28.47 = **100,006.78 ≈ 100,007 units**
+Implementation hint later: bindings already support `tableId` + `entityRef` (`shared0`, `slot0`, `focus`). New joins only need clearer naming + maybe a `joinKey` field on rows — no new math engine.
 
-124. A company's market share is 11.8%. The total market is $487,293,816. What is company revenue?
-    - **Formula:** Revenue = Market share × Total market
-    - **Solution:** 0.118 × $487,293,816 = **$57,500,670.29**
+## Vocabulary to introduce (by case)
 
-125. Company A has 19.4% market share and Company B has 4.7%. How many times larger is A's market share?
-    - **Formula:** Multiple = A share ÷ B share
-    - **Solution:** 19.4% ÷ 4.7% = **4.13×**
+Keep definitions short in the Formulas modal; use the term in the question text so players learn by repetition.
 
-126. A $3,847,291 investment generates $947,183 annual profit. What is the simple payback period?
-    - **Formula:** Payback = Investment ÷ Annual profit
-    - **Solution:** $3,847,291 ÷ $947,183 = **4.06 years**
-
-127. A $9,728,461 investment generates $1,847,293 profit. What is the ROI?
-    - **Formula:** ROI = Profit ÷ Investment
-    - **Solution:** $1,847,293 ÷ $9,728,461 = **18.99%**
-
-128. A company's revenue grows from $23,847,291 to $97,638,729 over 4 years. What is the approximate CAGR?
-    - **Formula:** CAGR = (Ending ÷ Beginning)^(1/4) − 1
-    - **Solution:** ($97,638,729 ÷ $23,847,291)^(1/4) − 1 = **42.25%**
-
-129. A company's costs increase from $38,472,183 to $47,283,916. What is the percentage increase?
-    - **Formula:** % increase = (New − Old) ÷ Old
-    - **Solution:** ($47,283,916 − $38,472,183) ÷ $38,472,183 = **22.90%**
-
-130. A company's revenue increases 23.8%, then decreases 18.7%. Is it back at its original level? What is the net percentage change?
-    - **Formula:** Ending index = 1 × 1.238 × (1 − 0.187)
-    - **Solution:** 1.238 × 0.813 = 1.006494 → **No**; net change ≈ **+0.65%**
-
-131. A company's revenue consists of 58.4% Product A and 41.6% Product B. A has a 9.7% margin and B has a 28.3% margin. What is the weighted average margin?
-    - **Formula:** Wtd margin = (Share A × Margin A) + (Share B × Margin B)
-    - **Solution:** (0.584 × 0.097) + (0.416 × 0.283) = 0.056648 + 0.117728 = **17.44%**
-
-132. There is a 28.7% probability of making $97,638,729 and a 71.3% probability of making $38,472,183. What is expected value?
-    - **Formula:** EV = Σ (Probability × Outcome)
-    - **Solution:** (0.287 × $97,638,729) + (0.713 × $38,472,183) = **$55,452,981.70**
-
-133. A factory has 3 machines. Each produces 947 units per hour. If they operate at 78.4% utilization for 6 hours, how many units are produced?
-    - **Formula:** Units = Machines × Rate × Utilization × Hours
-    - **Solution:** 3 × 947 × 0.784 × 6 = **13,364.06 ≈ 13,364 units**
-
-134. A company's revenue increased 47.3% to $118,472,836. What was revenue before the increase?
-    - **Formula:** Old revenue = New ÷ (1 + Growth)
-    - **Solution:** $118,472,836 ÷ 1.473 = **$80,429,623.90**
-
-135. A product's price is reduced by 18.7%. By what percentage must volume increase to keep revenue unchanged?
-    - **Formula:** Required volume increase = 1 ÷ (1 − Price cut) − 1
-    - **Solution:** 1 ÷ 0.813 − 1 = 1.2300 − 1 = **23.00%**
+| Domain | Terms |
+| ------ | ----- |
+| P&L / retail | Revenue, COGS, Gross profit, Gross margin, OpEx, Operating profit, Operating margin, SG&A (distractor) |
+| Unit economics | Price, Variable cost, Contribution margin (unit / total), CM%, Break-even units |
+| Allocation | Shared fixed cost, Unit-share allocation, Allocated fixed, Product profit after allocation |
+| Market | TAM / segment revenue, Market share, Relative market share, Captured revenue, Addressable mix |
+| Ops / capacity | Capacity, Throughput, Utilization, Spare capacity, Bottleneck line |
+| Growth | YoY %, Revenue / store, Mix shift, Volume vs price effect |
+| Risk (light) | Expected value, Probability-weighted profit (Case 6+) |
 
 ---
 
-## Suggested difficulty progression
+## Case 1 enrichment — Coffee Chain (2–3 tables)
 
-For actual case-interview preparation, I'd do these in this order:
+**Today:** one company×years table (ops + finance mixed).
 
-| Level | Questions | Main skill                 |
-| ----- | --------: | -------------------------- |
-| 1     |   115–125 | Mental math                |
-| 2     |      1–18 | Profitability              |
-| 3     |     19–35 | Market + operations        |
-| 4     |     36–55 | Multi-step calculations    |
-| 5     |     56–82 | Weighted averages + tables |
-| 6     |    83–100 | Growth + synthesis         |
-| 7     |   101–114 | Full case-style math       |
+**Proposed tables**
 
-**Important:** For the harder cases, don't calculate everything in the table. Practice first identifying **which 2–4 numbers actually matter**. That's a major difference between ordinary math exercises and case interview math.
+### Table A — `ops` (company × years)
+
+| Metric | Purpose |
+| ------ | ------- |
+| Stores | density / per-store |
+| Customers | ARPU-style |
+| Transactions (optional) | vs customers |
+| Avg ticket (price) | check vs revenue/customers |
+
+### Table B — `pnl` (company × years)
+
+| Metric | Purpose |
+| ------ | ------- |
+| Revenue | core |
+| COGS | new — enables gross profit |
+| Operating costs (OpEx) | keep |
+| Rent / SG&A / Depreciation | distractors |
+
+Optional later: Table C — `stores_by_region` only if we want region joins.
+
+**Join examples (mental)**
+
+1. **Gross profit** = Revenue − COGS *(pnl only, Easy)*  
+2. **Gross margin %** = Gross profit ÷ Revenue *(Easy)*  
+3. **Operating profit** = Gross profit − OpEx *(Standard)*  
+4. **Gross profit / store** = (Revenue − COGS) ÷ Stores *(Bridge join ops↔pnl)*  
+5. **OpEx / customer** = OpEx ÷ Customers *(Bridge)*  
+6. **YoY gross margin pts** = GM%_t − GM%_{t−1} *(Standard; teach “percentage points”)*  
+7. **If COGS rises X% with revenue flat, new operating profit** *(Stretch shock)*  
+
+Keep current profit-margin / revenue-growth / max-cost questions; rephrase “operating costs” vs COGS so players must pick the right row.
+
+---
+
+## Case 2 enrichment — Manufacturing Plant (3 tables)
+
+**Today:** `products` + `fixed` with unit-share allocation on two shared products.
+
+**Proposed tables**
+
+### Table A — `products` (entity × metrics)
+
+Add (keep units / price / VC):
+
+| Metric | Role |
+| ------ | ---- |
+| Units, Price, Variable cost | core |
+| CM / unit (optional computed display later) | or leave as question-only |
+| Scrap rate, Changeover, Shelf life | distractors |
+| **Assigned line** (A/B/C text or id) | join key → capacity |
+
+### Table B — `fixed` (cost lines)
+
+Keep shared vs plant-wide; label which lines are **shared across product pair** vs **common plant**.
+
+### Table C — `lines` (NEW — capacity)
+
+| Line | Daily capacity | Days / year | Current load (optional) |
+| ---- | -------------: | ----------: | ----------------------: |
+| Line A/B/C | ugly units | ~240–260 | optional distractor |
+
+**Join examples**
+
+1. Existing: revenue, CM, allocation, post-allocation profit.  
+2. **CM%** = (Price − VC) ÷ Price *(Easy term)*  
+3. **Break-even units for {product}** = Allocated shared fixed ÷ CM/unit *(Join fixed↔product; Stretch but 2 ops after allocation)*  
+4. **Required utilization** = {product} annual units ÷ (Line capacity × days) *(Capacity join)*  
+5. **Spare annual capacity on {line}** after loading shared products *(Standard join)*  
+6. **Mix:** if {product} volume +10% and price −5%, Δ revenue *(Stretch)*  
+
+Rule for mental load: allocation questions always name the two shared products and one cost line — never “sum all fixed then allocate.”
+
+---
+
+## Case 3 redesign — Market Entry (3 tables)
+
+Replace the single-note “add stages/companies” with explicit tables.
+
+### Table A — `segments` (Market Size)
+
+| Segment | Annual revenue | Growth % (optional) | Stage tag |
+| ------- | -------------: | ------------------: | --------- |
+| Enterprise / Mid / SMB | ugly $ | small % | Mature / Growing / Emerging |
+
+### Table B — `competitors`
+
+| Company | Type (Incumbent / Challenger / Niche) | Share % | Focus segment (optional) |
+| ------- | ------------------------------------- | ------: | ------------------------ |
+
+### Table C — `entrant` (our plan — 1-row or metric list)
+
+| Metric | Value |
+| ------ | ----: |
+| Planned Y1 revenue | $… |
+| Target segment mix (Ent / Mid / SMB %) | or separate rows |
+| CAC or launch cost (optional) | distractor / stretch |
+
+**Join examples**
+
+1. **Market share** = Planned ÷ Total market *(Easy)*  
+2. **Competitor revenue** = Share × Total *(Share join)*  
+3. **Relative share** = Us ÷ Alpha *(Standard term)*  
+4. **Captured segment revenue** = Capture% × Segment size *(Lookup)*  
+5. **Blended capture** = 8% Mid + 5% SMB *(2-term join, still mental)*  
+6. **Gap to 10% share** = 0.10×TAM − Planned *(Target reverse)*  
+7. **If market +g% and we flat, new share** *(Standard)*  
+8. **Attack Alpha’s focus segment:** capture X% of that segment only → revenue *(Join competitor.focus → segments)*  
+
+Stage tags are flavor + filters for prompts (“in the Growing mid-market…”), not extra math.
+
+---
+
+## Case 4 sketch — Capacity (align with Case 2 Table C)
+
+Can stay standalone or become the capacity half of Case 2.
+
+Tables: `lines` + `demand` (SKU or customer orders) + optional `shifts` (hours × lines).
+
+Joins: utilization, spare, “can we absorb +20%?”, bottleneck share of output.
+
+---
+
+## Question-writing checklist
+
+- [ ] Prompt uses the **finance term** and the **join key** by name  
+- [ ] Formula line matches the Formulas modal entry  
+- [ ] ≤3 distinct table cells for Easy/Standard; Stretch may add one random % shock  
+- [ ] At least one **distractor-adjacent** metric exists so wrong-row mistakes are possible  
+- [ ] Answer type is $ or % (no “which product” multiple choice until UI supports it)  
+- [ ] Shared-cost questions name both products and the cost line  
+
+## Suggested build order (when coding resumes)
+
+1. Case 1: split `ops` / `pnl`, add COGS + gross-margin question family  
+2. Case 2: add `lines` table + utilization / break-even joins  
+3. Case 3: new definition with segments / competitors / entrant  
+4. Expand Formulas modal with short term glossary per case  
+
+## Out of scope for v1 of this design
+
+NPV / WACC, full income statement tax lines, inventory turns, working-capital cycles, regression or CAGR roots in mental mode (Case 10 can stay calculator-friendly later).
+
+

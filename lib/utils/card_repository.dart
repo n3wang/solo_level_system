@@ -86,6 +86,9 @@ class CatalogCard {
   /// Display lifespan / era label from CSV `year_label` (e.g. `4 BC–65 AD`).
   final String? yearLabel;
 
+  /// Clockwise rotation applied to [imageAsset] / local art (e.g. CSV `258r` → 90).
+  final int imageRotateDegrees;
+
   const CatalogCard({
     required this.id,
     required this.type,
@@ -112,6 +115,7 @@ class CatalogCard {
     this.yearKind,
     this.placeLabel,
     this.yearLabel,
+    this.imageRotateDegrees = 0,
   });
 
   /// Wire string of [type] (matches the hub filter values).
@@ -206,6 +210,10 @@ class CardRepository {
     final yearLabel = meta['yearLabel'] is String
         ? (meta['yearLabel'] as String).trim()
         : null;
+    final rotateRaw = meta['imageRotateDegrees'];
+    final imageRotateDegrees = rotateRaw is num
+        ? rotateRaw.toInt()
+        : int.tryParse('$rotateRaw') ?? 0;
     return CatalogCard(
       id: item.id,
       type: item.cardType,
@@ -232,6 +240,7 @@ class CardRepository {
       placeLabel:
           placeLabel != null && placeLabel.isNotEmpty ? placeLabel : null,
       yearLabel: yearLabel != null && yearLabel.isNotEmpty ? yearLabel : null,
+      imageRotateDegrees: imageRotateDegrees,
     );
   }
 

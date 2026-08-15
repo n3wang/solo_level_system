@@ -6,6 +6,7 @@ import 'package:hive/hive.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/utils/case_math/case1_definition.dart';
+import 'package:solo_level_system/utils/case_math/case2_definition.dart';
 import 'package:solo_level_system/utils/case_math/case_math_generator.dart';
 import 'package:solo_level_system/utils/case_math/case_math_models.dart';
 import 'package:solo_level_system/utils/case_math/case_math_scoring.dart';
@@ -17,7 +18,7 @@ import 'package:solo_level_system/widgets/games/case_math_keypad.dart';
 import 'package:solo_level_system/widgets/games/case_math_table.dart';
 import 'package:solo_level_system/widgets/games/retro_scoreboard.dart';
 
-enum _CaseMathPhase { guess, reveal, calculatorRecap, summary }
+enum _CaseMathPhase { pickCase, guess, reveal, calculatorRecap, summary }
 
 enum _InputMode { system, pad, mini }
 
@@ -56,35 +57,49 @@ class _RecallFeedback {
 /// Fixed mini keypad / Check / Next width so reveal does not jump.
 const double _caseMathMiniActionWidth = 168;
 
-/// Minimal Case Math mini-game — Case 1 coffee chain (extensible later).
+/// Case Math mini-game with selectable case definitions.
 class CaseMathScreen extends StatefulWidget {
   const CaseMathScreen({
     super.key,
     this.roundsPerSession = 5,
     this.exitLabel = 'Back to games',
+    this.definition,
+    this.availableCases = const [case1Definition, case2Definition],
   });
 
   final int roundsPerSession;
   final String exitLabel;
 
+  /// When set, skips the case picker and starts this case immediately.
+  final CaseMathCaseDefinition? definition;
+
+  /// Cases shown on the picker when [definition] is null.
+  final List<CaseMathCaseDefinition> availableCases;
+
+  /// Catalog / hub identity (not per-case high-score storage).
   static const highScoreKey = 'case_math_high_scores';
+
+  static String storageKeyFor(CaseMathCaseDefinition definition) =>
+      definition.highScoreKey ?? highScoreKey;
 
   @override
   State<CaseMathScreen> createState() => _CaseMathScreenState();
 }
 
 class _CaseMathScreenState extends State<CaseMathScreen> {
-  final _generator = CaseMathGenerator(definition: case1Definition);
   final _systemAnswerController = TextEditingController();
   final _systemAnswerFocus = FocusNode();
   final _keyboardFocus = FocusNode();
   final _calculatorKey = GlobalKey<CaseMathCalculatorState>();
 
-  late CaseMathRound _round;
-  _CaseMathPhase _phase = _CaseMathPhase.guess;
+  CaseMathCaseDefinition? _definition;
+  CaseMathGenerator? _generator;
+  CaseMathRound? _round;
+  late _CaseMathPhase _phase;
   int _roundIndex = 0;
   int _sessionScore = 0;
-  int _selectedCompanyIndex = 0;
+  int _selectedViewIndex = 0;
+  int _selectedEntityIndex = 0;
   _InputMode _inputMode = _InputMode.mini;
   bool _calculatorVisible = false;
   int _calculatorDigitsUsed = 0;
@@ -99,13 +114,21 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
   final List<CaseMathComputation> _recallQueue = [];
   int _recallInitialCount = 0;
   int _recallBonusEarned = 0;
+  bool _recallCompleted = false;
   _RecallFeedback? _recallFeedback;
 
-  /// Summary reveal: round rows → total → scoreboard (~200ms steps).
+  /// Summary reveal: round rows → recall bonus → total → scoreboard.
   int _summaryVisibleRows = 0;
+  bool _summaryShowRecall = false;
   bool _summaryShowTotal = false;
   bool _summaryShowBoard = false;
   int _summaryAnimToken = 0;
+
+  CaseMathCaseDefinition get _case => _definition!;
+  CaseMathGenerator get _gen => _generator!;
+  CaseMathRound get _current => _round!;
+
+  String get _storageKey => CaseMathScreen.storageKeyFor(_case);
 
   bool get _isAnsweringPhase =>
       _phase == _CaseMathPhase.guess || _phase == _CaseMathPhase.calculatorRecap;
@@ -121,8 +144,58 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
   @override
   void initState() {
     super.initState();
-    _round = _generator.nextRound();
+    final initial = widget.definition;
+    if (initial != null) {
+      _phase = _CaseMathPhase.guess;
+      _beginCase(initial, resetSession: true);
+    } else {
+      _phase = _CaseMathPhase.pickCase;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
+  }
+
+  void _beginCase(CaseMathCaseDefinition definition, {required bool resetSession}) {
+    _definition = definition;
+    _generator = CaseMathGenerator(definition: definition);
+    _round = _generator!.nextRound();
+    _selectedViewIndex = _defaultViewIndex(_round!);
+    _selectedEntityIndex = _focusEntityIndex(_round!);
+    if (resetSession) {
+      _roundIndex = 0;
+      _sessionScore = 0;
+      _lastScore = null;
+      _calculatorVisible = false;
+      _calculatorDigitsUsed = 0;
+      _roundResults.clear();
+      _sessionComputations.clear();
+      _recallQueue.clear();
+      _recallInitialCount = 0;
+      _recallBonusEarned = 0;
+      _recallCompleted = false;
+      _recallFeedback = null;
+      _highScores = const [];
+      _highlightHighScoreIndex = null;
+      _clearAnswer();
+    }
+  }
+
+  int _defaultViewIndex(CaseMathRound round) {
+    final focusId = round.question.focusTableId;
+    if (focusId != null) {
+      final index =
+          round.table.views.indexWhere((view) => view.definition.id == focusId);
+      if (index >= 0) return index;
+    }
+    return 0;
+  }
+
+  int _focusEntityIndex(CaseMathRound round) {
+    final viewIndex = _defaultViewIndex(round);
+    final view = round.table.views[viewIndex];
+    final index = view.entities.indexWhere(
+      (entity) => entity.id == round.question.companyId,
+    );
+    return index >= 0 ? index : 0;
   }
 
   @override
@@ -181,11 +254,8 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
     }
     final result = CaseMathScoring.score(
       guess: parsed,
-      answer: _round.answer,
+      answer: _current.answer,
       calculatorDigitsUsed: _calculatorDigitsUsed,
-    );
-    final companyIndex = _round.table.companies.indexWhere(
-      (company) => company.id == _round.question.companyId,
     );
     setState(() {
       _parseError = null;
@@ -193,13 +263,14 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       _sessionScore += result.points;
       _phase = _CaseMathPhase.reveal;
       _calculatorVisible = false;
-      if (companyIndex >= 0) _selectedCompanyIndex = companyIndex;
+      _selectedViewIndex = _defaultViewIndex(_current);
+      _selectedEntityIndex = _focusEntityIndex(_current);
       _roundResults.add(
         _CaseMathRoundResult(
-          prompt: _round.question.prompt,
+          prompt: _current.question.prompt,
           guess: result.guess,
           exact: result.exact,
-          type: _round.answer.type,
+          type: _current.answer.type,
           points: result.points,
         ),
       );
@@ -252,7 +323,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await Future<void>.delayed(const Duration(milliseconds: 900));
         if (!mounted || _phase != _CaseMathPhase.calculatorRecap) return;
-        await _enterSummary();
+        await _enterSummary(recallCompleted: true);
       });
       return;
     }
@@ -267,6 +338,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
         ..addAll(_sessionComputations);
       _recallInitialCount = _recallQueue.length;
       _recallBonusEarned = 0;
+      _recallCompleted = false;
       _recallFeedback = null;
       _calculatorVisible = false;
       _calculatorDigitsUsed = 0;
@@ -277,15 +349,24 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
   }
 
   Future<void> _skipCalculatorRecap() async {
-    await _enterSummary();
+    await _enterSummary(recallCompleted: false);
   }
 
-  void _showQuestionCompany() {
-    final companyIndex = _round.table.companies.indexWhere(
-      (company) => company.id == _round.question.companyId,
-    );
-    if (companyIndex < 0 || companyIndex == _selectedCompanyIndex) return;
-    setState(() => _selectedCompanyIndex = companyIndex);
+  void _showQuestionSource([CaseMathFormulaHighlight? highlight]) {
+    final round = _current;
+    final tableId = highlight?.tableId ??
+        round.question.focusTableId ??
+        round.table.primaryView.definition.id;
+    final viewIndex =
+        round.table.views.indexWhere((view) => view.definition.id == tableId);
+    if (viewIndex < 0) return;
+    final view = round.table.views[viewIndex];
+    final entityId = highlight?.entityId ?? round.question.companyId;
+    final entityIndex = view.entities.indexWhere((entity) => entity.id == entityId);
+    setState(() {
+      _selectedViewIndex = viewIndex;
+      if (entityIndex >= 0) _selectedEntityIndex = entityIndex;
+    });
   }
 
   Future<void> _next() async {
@@ -300,9 +381,10 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
     _calculatorKey.currentState?.resetForNewQuestion();
     setState(() {
       _roundIndex += 1;
-      _round = _generator.nextRound();
+      _round = _gen.nextRound();
       _clearAnswer();
-      _selectedCompanyIndex = 0;
+      _selectedViewIndex = _defaultViewIndex(_current);
+      _selectedEntityIndex = _focusEntityIndex(_current);
       _lastScore = null;
       _calculatorVisible = false;
       _calculatorDigitsUsed = 0;
@@ -311,18 +393,20 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
   }
 
-  Future<void> _enterSummary() async {
+  Future<void> _enterSummary({bool recallCompleted = false}) async {
     final recorded = await _CaseMathHighScores.record(
       score: _sessionScore,
       at: DateTime.now(),
-      storageKey: CaseMathScreen.highScoreKey,
+      storageKey: _storageKey,
     );
     if (!mounted) return;
     setState(() {
       _phase = _CaseMathPhase.summary;
+      _recallCompleted = recallCompleted;
       _highScores = recorded.board;
       _highlightHighScoreIndex = recorded.insertedIndex;
       _summaryVisibleRows = 0;
+      _summaryShowRecall = false;
       _summaryShowTotal = false;
       _summaryShowBoard = false;
     });
@@ -340,6 +424,13 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       setState(() => _summaryVisibleRows = i + 1);
     }
 
+    if (_recallCompleted) {
+      await Future<void>.delayed(step);
+      if (!mounted || token != _summaryAnimToken) return;
+      if (_phase != _CaseMathPhase.summary) return;
+      setState(() => _summaryShowRecall = true);
+    }
+
     await Future<void>.delayed(step);
     if (!mounted || token != _summaryAnimToken) return;
     if (_phase != _CaseMathPhase.summary) return;
@@ -353,29 +444,51 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
 
   void _restart() {
     _calculatorKey.currentState?.resetForNewQuestion();
+    if (widget.definition == null) {
+      setState(() {
+        _definition = null;
+        _generator = null;
+        _round = null;
+        _phase = _CaseMathPhase.pickCase;
+        _roundIndex = 0;
+        _sessionScore = 0;
+        _clearAnswer();
+        _lastScore = null;
+        _calculatorVisible = false;
+        _calculatorDigitsUsed = 0;
+        _highScores = const [];
+        _highlightHighScoreIndex = null;
+        _roundResults.clear();
+        _sessionComputations.clear();
+        _recallQueue.clear();
+        _recallInitialCount = 0;
+        _recallBonusEarned = 0;
+        _recallCompleted = false;
+        _recallFeedback = null;
+        _summaryVisibleRows = 0;
+        _summaryShowRecall = false;
+        _summaryShowTotal = false;
+        _summaryShowBoard = false;
+        _summaryAnimToken++;
+      });
+      return;
+    }
     setState(() {
-      _roundIndex = 0;
-      _sessionScore = 0;
-      _generator.reshuffleDisplayOrder();
-      _round = _generator.nextRound();
-      _clearAnswer();
-      _selectedCompanyIndex = 0;
-      _lastScore = null;
-      _calculatorVisible = false;
-      _calculatorDigitsUsed = 0;
+      _beginCase(widget.definition!, resetSession: true);
       _phase = _CaseMathPhase.guess;
-      _highScores = const [];
-      _highlightHighScoreIndex = null;
-      _roundResults.clear();
-      _sessionComputations.clear();
-      _recallQueue.clear();
-      _recallInitialCount = 0;
-      _recallBonusEarned = 0;
-      _recallFeedback = null;
       _summaryVisibleRows = 0;
+      _summaryShowRecall = false;
       _summaryShowTotal = false;
       _summaryShowBoard = false;
       _summaryAnimToken++;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
+  }
+
+  void _pickCase(CaseMathCaseDefinition definition) {
+    setState(() {
+      _beginCase(definition, resetSession: true);
+      _phase = _CaseMathPhase.guess;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardFocus());
   }
@@ -512,6 +625,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: switch (_phase) {
+          _CaseMathPhase.pickCase => _buildCasePicker(context),
           _CaseMathPhase.summary => _buildSummary(context),
           _CaseMathPhase.calculatorRecap => Focus(
               focusNode: _keyboardFocus,
@@ -540,7 +654,117 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
     );
   }
 
+  Widget _buildCasePicker(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: 'Close',
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+              const Expanded(
+                child: Text(
+                  'Case Math',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 48),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Text(
+            'Choose a case',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColorPalette.textSecondary,
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            itemCount: widget.availableCases.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final definition = widget.availableCases[index];
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+                  onTap: () => _pickCase(definition),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        width: AppUiSizes.smallBorderWidth,
+                      ),
+                      borderRadius: BorderRadius.circular(AppUiSizes.radiusSm),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          definition.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          definition.subtitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColorPalette.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${definition.tables.length} tables · ${definition.questions.length} question types',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColorPalette.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPlay(BuildContext context) {
+    final round = _current;
+    final views = round.table.views;
+    final selectedView = views[_selectedViewIndex.clamp(0, views.length - 1)];
+    final showEntitySwitcher =
+        selectedView.definition.kind == CaseMathTableKind.companyYears &&
+            selectedView.entities.length > 1;
+    final highlights = _phase == _CaseMathPhase.reveal
+        ? round.answer.highlights
+            .where(
+              (h) => (h.tableId ?? selectedView.definition.id) ==
+                  selectedView.definition.id,
+            )
+            .toList()
+        : const <CaseMathFormulaHighlight>[];
     final roundLabel = 'Round ${_roundIndex + 1}/${widget.roundsPerSession}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -556,7 +780,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
               ),
               Expanded(
                 child: Text(
-                  'Case Math · $roundLabel',
+                  '${_case.title} · $roundLabel',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
@@ -567,7 +791,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
               TextButton(
                 onPressed: () => showCaseMathFormulasModal(
                   context,
-                  definition: case1Definition,
+                  definition: _case,
                 ),
                 child: const Text('Formulas'),
               ),
@@ -577,7 +801,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
-            '${case1Definition.subtitle} · Score $_sessionScore',
+            '${_case.subtitle} · Score $_sessionScore',
             style: TextStyle(
               fontSize: 12,
               color: AppColorPalette.textSecondary,
@@ -591,28 +815,38 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
               ListView(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 children: [
-                  _CompanyTableSwitcher(
-                    companies: _round.table.companies,
-                    selectedIndex: _selectedCompanyIndex,
-                    onChanged: (index) =>
-                        setState(() => _selectedCompanyIndex = index),
-                  ),
-                  const SizedBox(height: AppUiSizes.sm),
+                  if (views.length > 1) ...[
+                    _TableViewSwitcher(
+                      views: views,
+                      selectedIndex: _selectedViewIndex,
+                      onChanged: (index) =>
+                          setState(() => _selectedViewIndex = index),
+                    ),
+                    const SizedBox(height: AppUiSizes.sm),
+                  ],
+                  if (showEntitySwitcher) ...[
+                    _CompanyTableSwitcher(
+                      companies: selectedView.entities,
+                      selectedIndex: _selectedEntityIndex.clamp(
+                        0,
+                        selectedView.entities.length - 1,
+                      ),
+                      onChanged: (index) =>
+                          setState(() => _selectedEntityIndex = index),
+                    ),
+                    const SizedBox(height: AppUiSizes.sm),
+                  ],
                   CaseMathTable(
-                    table: _round.table,
-                    companyIndex: _selectedCompanyIndex,
-                    highlights: _phase == _CaseMathPhase.reveal &&
-                            _round.table.companies[_selectedCompanyIndex].id ==
-                                _round.question.companyId
-                        ? _round.answer.highlights
-                        : const [],
+                    view: selectedView,
+                    entityIndex: _selectedEntityIndex,
+                    highlights: highlights,
                     onCellTap: _phase == _CaseMathPhase.reveal
                         ? _insertCalculatorValue
                         : null,
                   ),
                   const SizedBox(height: AppUiSizes.md),
                   Text(
-                    _round.question.prompt,
+                    round.question.prompt,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -651,8 +885,8 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
                     const SizedBox(height: AppUiSizes.sm),
                     _RevealCard(
                       score: _lastScore!,
-                      answer: _round.answer,
-                      onHighlightTap: _showQuestionCompany,
+                      answer: round.answer,
+                      onHighlightTap: _showQuestionSource,
                     ),
                     const SizedBox(height: AppUiSizes.md),
                     _buildAdvanceButton(),
@@ -699,7 +933,7 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
-            'Recall each calc result (±3%) · Score $_sessionScore'
+            'Recall each calc result (±3% or ±0.05) · Score $_sessionScore'
             '${_recallBonusEarned > 0 ? ' · +$_recallBonusEarned recall' : ''}',
             style: TextStyle(
               fontSize: 12,
@@ -900,11 +1134,11 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
         _buildCalculatorToggle(),
         const SizedBox(height: AppUiSizes.sm),
         _buildAnswerEntryControls(
-          hintText: _round.answer.type == CaseMathValueFormat.percentage
+          hintText: _current.answer.type == CaseMathValueFormat.percentage
               ? 'e.g. -10.5'
               : 'e.g. 4,462,719',
           showPercentageSuffix:
-              _round.answer.type == CaseMathValueFormat.percentage,
+              _current.answer.type == CaseMathValueFormat.percentage,
           onCheck: _checkAnswer,
         ),
       ],
@@ -1059,6 +1293,8 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
                   _SummaryReveal(child: _buildSummaryHeader()),
                 for (var i = 0; i < _summaryVisibleRows; i++)
                   _SummaryReveal(child: _buildSummaryRoundRow(i)),
+                if (_summaryShowRecall)
+                  _SummaryReveal(child: _buildSummaryRecallRow()),
                 if (_summaryShowTotal) ...[
                   const Divider(height: 24),
                   _SummaryReveal(
@@ -1116,6 +1352,57 @@ class _CaseMathScreenState extends State<CaseMathScreen> {
           SizedBox(
             width: 52,
             child: Text('Pts', style: style, textAlign: TextAlign.right),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRecallRow() {
+    final pointsText =
+        _recallBonusEarned > 0 ? '+$_recallBonusEarned' : '0';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(
+            width: 28,
+            child: Text(
+              '★',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          const Expanded(
+            flex: 3,
+            child: Text(
+              'Calculator recall',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, height: 1.3),
+            ),
+          ),
+          const Expanded(
+            child: Text(
+              '—',
+              textAlign: TextAlign.right,
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              '$_recallInitialCount done',
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ),
+          SizedBox(
+            width: 52,
+            child: Text(
+              pointsText,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            ),
           ),
         ],
       ),
@@ -1204,6 +1491,40 @@ class _SummaryReveal extends StatelessWidget {
         );
       },
       child: child,
+    );
+  }
+}
+
+class _TableViewSwitcher extends StatelessWidget {
+  const _TableViewSwitcher({
+    required this.views,
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  final List<CaseMathTableView> views;
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    if (views.length <= 1) return const SizedBox.shrink();
+    return SettingsRectChipGroup<int>(
+      titlePadding: EdgeInsets.zero,
+      padding: EdgeInsets.zero,
+      titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+      value: selectedIndex,
+      size: SettingsRectChipSize.compact,
+      activeColor: AppColorPalette.color4,
+      spacing: 8,
+      options: [
+        for (var i = 0; i < views.length; i++)
+          SettingsRectChipOption(
+            value: i,
+            label: views[i].definition.title,
+          ),
+      ],
+      onChanged: onChanged,
     );
   }
 }
@@ -1327,7 +1648,7 @@ class _RevealCard extends StatelessWidget {
 
   final CaseMathScoreResult score;
   final CaseMathWorkedAnswer answer;
-  final VoidCallback onHighlightTap;
+  final void Function([CaseMathFormulaHighlight? highlight]) onHighlightTap;
 
   static Color _paletteColor(int index) {
     return switch (index % 5) {
@@ -1399,7 +1720,7 @@ class _ColoredFormulaText extends StatelessWidget {
 
   final String formula;
   final List<CaseMathFormulaHighlight> highlights;
-  final VoidCallback onHighlightTap;
+  final void Function([CaseMathFormulaHighlight? highlight]) onHighlightTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1444,7 +1765,7 @@ class _ColoredFormulaText extends StatelessWidget {
           alignment: PlaceholderAlignment.baseline,
           baseline: TextBaseline.alphabetic,
           child: GestureDetector(
-            onTap: onHighlightTap,
+            onTap: () => onHighlightTap(bestHighlight),
             child: Text(
               bestHighlight.metricName,
               style: TextStyle(
@@ -1478,7 +1799,7 @@ class _ColoredSolutionText extends StatelessWidget {
   });
 
   final List<CaseMathSolutionPart> parts;
-  final VoidCallback onHighlightTap;
+  final void Function([CaseMathFormulaHighlight? highlight]) onHighlightTap;
   final Color Function(int index) colorFor;
 
   @override
@@ -1495,7 +1816,7 @@ class _ColoredSolutionText extends StatelessWidget {
                 alignment: PlaceholderAlignment.baseline,
                 baseline: TextBaseline.alphabetic,
                 child: GestureDetector(
-                  onTap: onHighlightTap,
+                  onTap: () => onHighlightTap(part.highlight),
                   child: Text(
                     part.text,
                     style: TextStyle(

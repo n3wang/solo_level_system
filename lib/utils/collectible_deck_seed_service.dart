@@ -166,6 +166,40 @@ class CollectibleDeckSeedService {
 
   // ---- decks (cards_128x185.csv) -----------------------------------------
 
+  /// Parses CSV `number` tokens like `258` or `258r`.
+  ///
+  /// A trailing `r` (case-insensitive) means the source page/image should be
+  /// rotated 90° clockwise when extracted / displayed. Digits are the page id
+  /// used for `c128x185/{page}.png`.
+  static ({int? page, int rotateDegrees}) parseDeckPageToken(String raw) {
+    final token = raw.trim();
+    if (token.isEmpty) return (page: null, rotateDegrees: 0);
+
+    final match = RegExp(r'^(\d+)\s*([rR])?$').firstMatch(token);
+    if (match != null) {
+      return (
+        page: int.tryParse(match.group(1)!),
+        rotateDegrees: match.group(2) != null ? 90 : 0,
+      );
+    }
+
+    // Fall back: first digit run, rotate if any `r` appears in the token.
+    final digits = RegExp(r'\d+').firstMatch(token);
+    final rotate = RegExp(r'[rR]').hasMatch(token) ? 90 : 0;
+    return (
+      page: digits != null ? int.tryParse(digits.group(0)!) : null,
+      rotateDegrees: rotate,
+    );
+  }
+
+  /// Degrees from the optional `orientation` column (`90`, `r`, `rotate`, …).
+  static int _orientationDegreesFromCsv(String raw) {
+    final value = raw.trim().toLowerCase();
+    if (value.isEmpty) return 0;
+    if (value == 'r' || value == 'rotate' || value == 'rotated') return 90;
+    return int.tryParse(value) ?? 0;
+  }
+
   static Future<void> _seedDecks(Box<CardModel> box) async {
     try {
       final rows = await _loadCsvRows(_decksPath, lenientUtf8: true);
@@ -175,12 +209,11 @@ class CollectibleDeckSeedService {
         if (name.isEmpty) continue;
 
         final description = (row['description'] ?? '').trim();
-        final numberMatch = RegExp(
-          r'\d+',
-        ).firstMatch((row['number'] ?? '').trim());
-        final number = numberMatch != null
-            ? int.tryParse(numberMatch.group(0)!)
-            : null;
+        final pageToken = parseDeckPageToken(row['number'] ?? '');
+        final number = pageToken.page;
+        final rotateDegrees = pageToken.rotateDegrees != 0
+            ? pageToken.rotateDegrees
+            : _orientationDegreesFromCsv(row['orientation'] ?? '');
 
         final category = _categoryForDeckRow(
           (row['category'] ?? '').trim().toLowerCase(),
@@ -209,6 +242,7 @@ class CollectibleDeckSeedService {
             rarity: 'common',
             imageAsset: '$_decksImageDir/$imageKey.png',
             source: 'cards_128x185_csv',
+            imageRotateDegrees: rotateDegrees,
           ),
         );
       }
@@ -242,6 +276,7 @@ class CollectibleDeckSeedService {
     required String rarity,
     required String imageAsset,
     required String source,
+    int imageRotateDegrees = 0,
   }) {
     final now = DateTime.now();
     return CardModel(
@@ -254,7 +289,11 @@ class CollectibleDeckSeedService {
       createdAt: now,
       isSystem: true,
       rarity: rarity,
-      metadata: {'source': source, 'imageAsset': imageAsset},
+      metadata: {
+        'source': source,
+        'imageAsset': imageAsset,
+        if (imageRotateDegrees != 0) 'imageRotateDegrees': imageRotateDegrees,
+      },
     );
   }
 

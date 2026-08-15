@@ -56,7 +56,7 @@ class MiniGames {
         MiniGameEntry(
           id: CaseMathScreen.highScoreKey,
           title: 'Case Math',
-          subtitle: 'Coffee chain profitability',
+          subtitle: 'Coffee chain & manufacturing cases',
           icon: Icons.calculate_outlined,
           accent: AppColorPalette.color4,
           build: ({required String exitLabel}) => CaseMathScreen(

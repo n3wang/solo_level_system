@@ -24,7 +24,7 @@ class CaseMathScoring {
   /// Relative error allowed when recalling a calculator result.
   static const double recallRelativeTolerance = 0.03;
 
-  /// Absolute floor for near-zero recall answers.
+  /// Absolute floor for near-zero / small decimal recall answers.
   static const double recallAbsoluteTolerance = 0.05;
 
   /// Points awarded for each correct calculator-recall answer.
@@ -80,8 +80,9 @@ class CaseMathScoring {
 
   /// Whether [guess] is close enough to [exact] for calculator recall.
   ///
-  /// Both values are rounded to 2 decimals first (human-scale precision), then
-  /// compared with ±[recallRelativeTolerance] (or the near-zero absolute floor).
+  /// Both values are rounded to 2 decimals first, then accepted if either:
+  /// - absolute error ≤ [recallAbsoluteTolerance] (±0.05), or
+  /// - relative error ≤ [recallRelativeTolerance] (±3%).
   static bool isRecallCorrect({
     required double guess,
     required double exact,
@@ -89,9 +90,8 @@ class CaseMathScoring {
     final roundedGuess = roundToRecallPrecision(guess);
     final roundedExact = roundToRecallPrecision(exact);
     final absoluteError = (roundedGuess - roundedExact).abs();
-    if (roundedExact.abs() < 1e-9) {
-      return absoluteError <= recallAbsoluteTolerance;
-    }
+    if (absoluteError <= recallAbsoluteTolerance) return true;
+    if (roundedExact.abs() < 1e-9) return false;
     return absoluteError / roundedExact.abs() <= recallRelativeTolerance;
   }
 

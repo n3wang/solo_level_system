@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:solo_level_system/utils/case_math/case1_definition.dart';
+import 'package:solo_level_system/utils/case_math/case2_definition.dart';
 import 'package:solo_level_system/utils/case_math/case_math_expression.dart';
 import 'package:solo_level_system/utils/case_math/case_math_generator.dart';
 import 'package:solo_level_system/utils/case_math/case_math_models.dart';
@@ -101,7 +102,7 @@ void main() {
       expect(round.answer.highlights, isNotEmpty);
       expect(round.answer.solutionParts, isNotEmpty);
       final keys = round.answer.highlights
-          .map((h) => '${h.valueId}@${h.yearIndex}')
+          .map((h) => '${h.tableId}|${h.entityId}|${h.valueId}@${h.yearIndex}')
           .toSet();
       expect(keys.length, round.answer.highlights.length);
       expect(
@@ -132,27 +133,36 @@ void main() {
         id: 'case_custom',
         title: 'Custom',
         subtitle: 'Multiplication',
-        companyNames: ['One', 'Two'],
-        yearCount: 1,
-        values: [
-          CaseMathValueDefinition(
-            id: 'price',
-            name: 'Price',
-            caseId: 'case_custom',
-            range: CaseMathRange(10, 20),
-            format: CaseMathValueFormat.price,
-          ),
-          CaseMathValueDefinition(
-            id: 'units',
-            name: 'Units',
-            caseId: 'case_custom',
-            range: CaseMathRange(100, 200),
+        tables: [
+          CaseMathTableDefinition(
+            id: 'companies',
+            title: 'Companies',
+            kind: CaseMathTableKind.companyYears,
+            entityNamePool: ['One', 'Two'],
+            entityCount: 2,
+            yearCount: 1,
+            metrics: [
+              CaseMathValueDefinition(
+                id: 'price',
+                name: 'Price',
+                caseId: 'case_custom',
+                range: CaseMathRange(10, 20),
+                format: CaseMathValueFormat.price,
+              ),
+              CaseMathValueDefinition(
+                id: 'units',
+                name: 'Units',
+                caseId: 'case_custom',
+                range: CaseMathRange(100, 200),
+              ),
+            ],
           ),
         ],
         questions: [
           CaseMathQuestionDefinition(
             id: 'revenue',
             caseId: 'case_custom',
+            focusTableId: 'companies',
             questionText: 'How much revenue did {company} make in {year}?',
             math: 'price * units',
             formula: 'Revenue = Price × Units',
@@ -172,6 +182,120 @@ void main() {
         round.answer.exact,
         round.question.variables['price']! *
             round.question.variables['units']!,
+      );
+    });
+  });
+
+  group('data-defined Case 2', () {
+    test('declares products and fixed-cost tables with linked questions', () {
+      expect(case2Definition.id, 'case_2');
+      expect(case2Definition.tables, hasLength(2));
+      expect(case2Definition.table('products').kind, CaseMathTableKind.entityMetric);
+      expect(case2Definition.table('fixed').kind, CaseMathTableKind.fixedCosts);
+      expect(case2Definition.table('products').sharedProductCount, 2);
+      expect(case2Definition.questions.length, greaterThanOrEqualTo(10));
+      expect(
+        case2Definition.questions.every((q) => q.caseId == 'case_2'),
+        isTrue,
+      );
+    });
+
+    test('generator builds three products and fixed-cost lines', () {
+      final round = CaseMathGenerator(
+        definition: case2Definition,
+        random: Random(42),
+      ).nextRound();
+      final products = round.table.view('products');
+      final fixed = round.table.view('fixed');
+      expect(products.entities, hasLength(3));
+      expect(fixed.entities, hasLength(case2Definition.table('fixed').metrics.length));
+      expect(round.table.sharedProductIds, hasLength(2));
+      expect(
+        round.table.sharedProductIds.toSet(),
+        products.entities.take(2).map((e) => e.id).toSet(),
+      );
+      for (final product in products.entities) {
+        expect(product.values.containsKey('units'), isTrue);
+        expect(product.values.containsKey('price'), isTrue);
+        expect(product.values.containsKey('variableCost'), isTrue);
+      }
+      for (final line in fixed.entities) {
+        expect(line.at('amount'), greaterThan(0));
+      }
+    });
+
+    test('unit-share allocation of shared fixed costs is exhaustive', () {
+      final generator = CaseMathGenerator(
+        definition: case2Definition,
+        random: Random(19),
+      );
+      var sawAllocation = false;
+      for (var i = 0; i < 120; i++) {
+        final round = generator.nextRound();
+        if (round.question.definition.id != 'shared_setup_allocation' &&
+            round.question.definition.id != 'shared_lab_allocation') {
+          continue;
+        }
+        sawAllocation = true;
+        final vars = round.question.variables;
+        final sharedCost = vars['setup'] ?? vars['lab']!;
+        final unitsA = vars['unitsA']!;
+        final unitsB = vars['unitsB']!;
+        final allocatedA = sharedCost * unitsA / (unitsA + unitsB);
+        final allocatedB = sharedCost * unitsB / (unitsA + unitsB);
+        expect(allocatedA + allocatedB, closeTo(sharedCost, 1e-6));
+        expect(round.answer.exact, closeTo(
+          round.question.definition.id == 'shared_setup_allocation'
+              ? allocatedA
+              : allocatedB,
+          1e-8,
+        ));
+      }
+      expect(sawAllocation, isTrue);
+    });
+
+    test('cross-table highlights include products and fixed costs', () {
+      final generator = CaseMathGenerator(
+        definition: case2Definition,
+        random: Random(5),
+      );
+      var sawCrossTable = false;
+      for (var i = 0; i < 100; i++) {
+        final round = generator.nextRound();
+        if (round.question.definition.id != 'plant_profit_after_fixed' &&
+            round.question.definition.id != 'post_allocation_profit_shared0') {
+          continue;
+        }
+        final tableIds =
+            round.answer.highlights.map((h) => h.tableId).whereType<String>().toSet();
+        expect(tableIds.contains('products'), isTrue);
+        expect(tableIds.contains('fixed'), isTrue);
+        sawCrossTable = true;
+        break;
+      }
+      expect(sawCrossTable, isTrue);
+    });
+
+    test('every generated Case 2 answer equals its declared expression', () {
+      final generator = CaseMathGenerator(
+        definition: case2Definition,
+        random: Random(13),
+      );
+      final seen = <String>{};
+      for (var i = 0; i < 150; i++) {
+        final round = generator.nextRound();
+        seen.add(round.question.definition.id);
+        final recomputed = CaseMathExpression.evaluate(
+          round.question.definition.math,
+          round.question.variables,
+        );
+        expect(round.answer.exact, closeTo(recomputed, 1e-8));
+        expect(round.question.prompt, isNot(contains('{')));
+        expect(round.answer.highlights, isNotEmpty);
+      }
+      expect(
+        seen,
+        containsAll(case2Definition.questions.map((q) => q.id)),
       );
     });
   });
@@ -310,7 +434,7 @@ void main() {
       expect(wiped.correct, isTrue);
     });
 
-    test('calculator recall accepts 3% relative error', () {
+    test('calculator recall accepts 3% relative or ±0.05 absolute', () {
       expect(
         CaseMathScoring.isRecallCorrect(guess: 103, exact: 100),
         isTrue,
@@ -331,6 +455,15 @@ void main() {
         CaseMathScoring.isRecallCorrect(guess: 0.06, exact: 0),
         isFalse,
       );
+      // 2/21 ≈ 0.095 → 0.10; 0.09 is within ±0.05.
+      expect(
+        CaseMathScoring.isRecallCorrect(guess: 0.09, exact: 2 / 21),
+        isTrue,
+      );
+      expect(
+        CaseMathScoring.isRecallCorrect(guess: 0.04, exact: 2 / 21),
+        isFalse,
+      );
     });
 
     test('recall grades after rounding to 2 decimals', () {
@@ -345,9 +478,8 @@ void main() {
         CaseMathScoring.isRecallCorrect(guess: 0.072973, exact: exact),
         isTrue,
       );
-      // Outside ±3% of the rounded exact 0.07.
       expect(
-        CaseMathScoring.isRecallCorrect(guess: 0.08, exact: exact),
+        CaseMathScoring.isRecallCorrect(guess: 0.13, exact: exact),
         isFalse,
       );
       expect(

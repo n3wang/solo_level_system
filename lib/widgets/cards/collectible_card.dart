@@ -229,8 +229,25 @@ class CollectibleCardArt extends StatelessWidget {
   }
 
   Widget _clipArt(Widget child) {
+    final rotated = _applyImageRotation(child);
     return ClipRRect(
       borderRadius: BorderRadius.circular(CollectibleCardLayout.artRadius),
+      child: rotated,
+    );
+  }
+
+  /// CSV page tokens like `258r` seed [CatalogCard.imageRotateDegrees] (90° CW).
+  Widget _applyImageRotation(Widget child) {
+    final degrees = card.imageRotateDegrees % 360;
+    if (degrees == 0) return child;
+    if (degrees % 90 == 0) {
+      return RotatedBox(
+        quarterTurns: (degrees ~/ 90) % 4,
+        child: child,
+      );
+    }
+    return Transform.rotate(
+      angle: degrees * pi / 180,
       child: child,
     );
   }
