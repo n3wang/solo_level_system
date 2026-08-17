@@ -230,6 +230,17 @@ class CollectibleDeckSeedService {
         usedIds.add(id);
 
         final imageKey = number != null ? '$number' : _slug(name);
+        final yearRaw = (row['year'] ?? '').trim();
+        final yearKind = (row['year_kind'] ?? '').trim();
+        final placeLabel = (row['place_label'] ?? '').trim();
+        final yearEnd = (row['year_end'] ?? '').trim();
+        final parsedYear = int.tryParse(yearRaw);
+        // Non-numeric years (e.g. "1st century") display via yearLabel.
+        final yearLabel = parsedYear == null && yearRaw.isNotEmpty
+            ? yearRaw
+            : (yearEnd.isNotEmpty && parsedYear != null
+                ? '$yearRaw–$yearEnd'
+                : '');
 
         await _upsert(
           box,
@@ -243,6 +254,10 @@ class CollectibleDeckSeedService {
             imageAsset: '$_decksImageDir/$imageKey.png',
             source: 'cards_128x185_csv',
             imageRotateDegrees: rotateDegrees,
+            year: parsedYear,
+            yearKind: yearKind.isEmpty ? null : yearKind,
+            placeLabel: placeLabel.isEmpty ? null : placeLabel,
+            yearLabel: yearLabel.isEmpty ? null : yearLabel,
           ),
         );
       }
@@ -277,6 +292,10 @@ class CollectibleDeckSeedService {
     required String imageAsset,
     required String source,
     int imageRotateDegrees = 0,
+    int? year,
+    String? yearKind,
+    String? placeLabel,
+    String? yearLabel,
   }) {
     final now = DateTime.now();
     return CardModel(
@@ -293,6 +312,11 @@ class CollectibleDeckSeedService {
         'source': source,
         'imageAsset': imageAsset,
         if (imageRotateDegrees != 0) 'imageRotateDegrees': imageRotateDegrees,
+        if (year != null) 'year': year,
+        if (yearKind != null && yearKind.isNotEmpty) 'yearKind': yearKind,
+        if (placeLabel != null && placeLabel.isNotEmpty)
+          'placeLabel': placeLabel,
+        if (yearLabel != null && yearLabel.isNotEmpty) 'yearLabel': yearLabel,
       },
     );
   }
@@ -303,13 +327,17 @@ class CollectibleDeckSeedService {
       await box.add(card);
       return;
     }
+    final bookmarked = existing.metadata['isBookmarked'] == true;
     existing
       ..title = card.title
       ..description = card.description
       ..category = card.category
       ..pointsCost = card.pointsCost
       ..rarity = card.rarity
-      ..metadata = card.metadata;
+      ..metadata = {
+        ...card.metadata,
+        if (bookmarked) 'isBookmarked': true,
+      };
     await existing.save();
   }
 
