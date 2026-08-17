@@ -16,8 +16,6 @@ import 'package:solo_level_system/widgets/cards/collectible_card.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
 
 /// Shared Create Reward dialog (Cards hub + Stats Overview FAB).
-///
-/// Sized like [CollectibleCardDetailDialog] (fixed width + height factor).
 Future<void> showCreateRewardDialog(BuildContext context) async {
   if (!Hive.isBoxOpen('rewards')) {
     await Hive.openBox<RewardModel>('rewards');

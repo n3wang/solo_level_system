@@ -5,6 +5,7 @@ import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/constants/collectible_card_layout.dart';
+import 'package:solo_level_system/constants/heatmap_layout.dart';
 import 'package:solo_level_system/models/enhanced_audio_model.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
@@ -405,7 +406,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final layout = _heatmapLayoutForWidth(constraints.maxWidth);
+        final layout = HeatmapLayout.forWidth(constraints.maxWidth);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -486,20 +487,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         );
       },
     );
-  }
-
-  /// GitHub-style square cells with a small gap, centered in [maxWidth].
-  ({double cellSize, double gap, double totalWidth}) _heatmapLayoutForWidth(
-    double maxWidth,
-  ) {
-    const cellCount = 7;
-    const gap = 4.0;
-    const horizontalInset = AppUiSizes.xl * 2;
-    final usable = (maxWidth - horizontalInset).clamp(0.0, maxWidth);
-    final raw = (usable - gap * (cellCount - 1)) / cellCount;
-    final cellSize = raw.clamp(28.0, 44.0);
-    final totalWidth = cellSize * cellCount + gap * (cellCount - 1);
-    return (cellSize: cellSize, gap: gap, totalWidth: totalWidth);
   }
 
   /// Deterministic sample focus/workout minutes for [dayCount] days ending
