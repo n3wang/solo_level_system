@@ -31,6 +31,10 @@ class PomodoroModel extends HiveObject {
   @HiveField(7)
   int? durationMinutes;
 
+  /// Stable id for cloud sync. Assigned on save or first sync.
+  @HiveField(8)
+  String? clientId;
+
   PomodoroModel({
     required this.startTime,
     this.audioPath,
@@ -40,6 +44,7 @@ class PomodoroModel extends HiveObject {
     this.project_id,
     this.project_name,
     this.durationMinutes,
+    this.clientId,
   });
 
   /// Resolved focus minutes: [durationMinutes], then legacy [duration], else 25.

@@ -31,6 +31,9 @@ import 'utils/test_mode_bootstrap_service.dart';
 import 'utils/dev_data.dart';
 import 'utils/programs_service.dart';
 import 'utils/palette_notifier.dart';
+import 'services/auth_service.dart';
+import 'services/install_id_service.dart';
+import 'services/solo_sync_service.dart';
 import 'package:sprite_sheets/sprite_sheets.dart';
 
 const String _noisyWebWindowAssertPath =
@@ -371,6 +374,15 @@ void main() async {
 
     print('All Hive boxes opened successfully');
 
+    try {
+      await InstallIdService.getOrCreate();
+      await AccountSession.instance.restore();
+      await SoloSyncService.instance.attachWatchers();
+      SoloSyncService.instance.retryOutbox();
+    } catch (e) {
+      print('⚠️ Account/sync init skipped: $e');
+    }
+
     // Initialize default workouts on first install
     try {
       await DefaultWorkoutsService.initializeDefaultWorkouts();
@@ -565,12 +577,7 @@ class _MyAppState extends State<MyApp> {
                   ),
                   SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () {
-                      // Restart the app
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => MyApp()),
-                      );
-                    },
+                    onPressed: () => runApp(const MyApp()),
                     child: Text('Retry'),
                   ),
                 ],

@@ -1,6 +1,19 @@
 class AppEnvironment {
   AppEnvironment._();
 
+  /// Local vs deployed API. Flip this — no `--dart-define` needed.
+  static const bool isDev = true;
+
+  static const String prodApiBaseUrl = 'https://apinet.l.l0l.in';
+  static const String devApiBaseUrl = 'http://127.0.0.1:5292';
+
+  /// Web client id for Google ID tokens. Empty is fine until Google login is configured.
+  static const String googleServerClientId = '';
+
+  static const Duration apiTimeout = Duration(seconds: 8);
+
+  static String get apiBaseUrl => isDev ? devApiBaseUrl : prodApiBaseUrl;
+
   static const String _rawEnv = String.fromEnvironment(
     'APP_ENV',
     defaultValue: 'prod',
@@ -29,6 +42,8 @@ class AppEnvironment {
 
   /// Alias kept for older call sites (e.g. analytics heatmap samples).
   static bool get is_test => isTest;
+
+  static bool get is_dev => isDev;
 
   /// Apply the persisted Settings toggle (call after loading user settings).
   static void setDevelopmentDataEnabled(bool enabled) {

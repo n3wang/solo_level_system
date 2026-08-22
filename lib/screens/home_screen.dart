@@ -1585,6 +1585,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       durationMinutes: minutesSpent,
       project_id: selectedProject?.id,
       project_name: selectedProject?.name,
+      clientId: DateTime.now().microsecondsSinceEpoch.toString(),
     );
     final box = Hive.box<PomodoroModel>('pomodoros');
     await box.add(session);

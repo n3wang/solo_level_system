@@ -25,13 +25,14 @@ class PomodoroModelAdapter extends TypeAdapter<PomodoroModel> {
       project_id: fields[5] as String?,
       project_name: fields[6] as String?,
       durationMinutes: fields[7] as int?,
+      clientId: fields[8] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, PomodoroModel obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.startTime)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class PomodoroModelAdapter extends TypeAdapter<PomodoroModel> {
       ..writeByte(6)
       ..write(obj.project_name)
       ..writeByte(7)
-      ..write(obj.durationMinutes);
+      ..write(obj.durationMinutes)
+      ..writeByte(8)
+      ..write(obj.clientId);
   }
 
   @override

@@ -1,0 +1,63 @@
+skill_id,name,description,effect,type,attribute,stamina_cost
+divine_favor,Divine Favor,,"increases attack damage by CHARISMA*.5 for the battle",active,RADIANT,4
+bless,Bless,,"all allies increase armor by CHARISMA*.2 for the battle",active,RADIANT,4
+aura_of_purity,Aura of Purity,,"all allies increase max health by CHARISMA*.5 for the battle",active,RADIANT,6
+aid,Aid,,"heals lowest percentage health ally by CHARISMA for the battle",active,RADIANT,4
+burning_hands,Burning Hands,,"deals CHARISMA fire damage to all enemies",active,FIRE,4
+near_invisibility,Near Invisibility,,"increase evasion by DEX*.5",passive,SHADOW,0
+elegant_counter,Elegent Counter,,"each time evadedes an attack, return the damage to the attacker",passive,SHADOW,0
+grasping_vine,Grasping Vine,,"reduces enemies evasion by DEX*.5 on next attack recipient",active,SHADOW,4
+wind_walk,Wind Walk,,"increases atack spd and evasion every turn by DEX*.1",passive,WIND,0
+gust_of_wind,Gust of Wind,,"when this character evades an attack all enemies are dealt DEX*.5 damage",passive,WIND,0
+storm_of_cuts,Storm of Cuts,,"deals DEX*1 damage to all enemies on next attack",active,WIND,6
+heroism,Heroism,,"increases max health by WIS*1 for the battle",active,RADIANT,1
+heroes_feast,Heroes Feast,,"heals itself by WIS*0.5 for every critical hit made by this character",passive,RADIANT,0
+smite,Smite,,"deals additional WIS*2 damage on next attack",active,RADIANT,3
+heal,Heal,,"heals lowest percentage health ally by WIS*1.5",active,RADIANT,3
+lighting_shield,Lighting Shield,,"increases armor by WIS*2 while this character health is below 50%",passive,RADIANT,0
+guardian_of_faith,Guardian of Faith,,"each round a random enemy receives WIS*1 damage",passive,RADIANT,0
+poison_wound,Poison Wound,,"deals additional WIS*1 damage to the next attack target",active,FIRE,1
+plague_poison_wound,Plague Poison Wound,,"all enemies with health not full are dealt WIS*.3 every turn",active,POISON,6
+circle_of_life,Circle of Life,,"recovers full stamina on defeating an enemy",passive,RADIANT,6
+levitate,Levitate,,"while 2 stamina is avialable, increase DEX by 20% consumes 2 stamina per round",passive,WIND,2
+hunters_mark,Hunters Mark,,"reduces defense and evasion of the next enemy attack recipient by DEX*.5",active,SHADOW,1
+wind_wall,Wind Wall,,"block all WIND, WATER and FIRE damage for the next 2 rounds",active,WIND,2
+haste,Haste,,"attacks twice, increases attack spd by CON*.2 for the battle",passive,WIND,1
+jump,Jump,,"evades the next attack, increases evasion by CON*.2 for the battle",active,WIND,1
+ki_strike,Ki Strike,,"deals additional CON*1 damage on next attack, increase armor by CON*.2 for the battle",active,WIND,1
+true_strike,True Strike,,"deals additional STR*1 damage on next attack, increase attack by STR*.2 for the battle",active,FIRE,1
+thunderous_smite,Thunderous Smite,,"deals additional STR*2 fire damage on next attack, all enemies defense decrease by STR*.2 for a round",active,FIRE,2
+dominaition,Dominaition,,"while this character has 2 stamina, increase STR by 20% for the round",passive,FIRE,2
+conjure_druid_armor,Conjure Druid Armor,,"while this character has 2 stamina, increase armor by WIS*.2 for the round",passive,WATER,2
+daylight,Daylight,,"restore stamina equivalent to count of enemies in battle and reduce stamina of enemies by 1 every turn",passive,RADIANT,0
+druidcraft,Druidcraft,,"while this character has 2 stamina, heal WIS to all allies for the round",passive,WATER,2
+bane_strike,Bane Strike,,"on hit, reduce the recipient attack damage by WIS*.2 for the battle",active,WATER,1
+water_sanctum,Water Sanctum,,"while this character still has mana all attack from enemies are reduced by WIS, each activation spends 2 stamina",passive,WATER,2
+resurrection,Resurrection,,"On death if has >=6 stamina of any ally restore their health to WIS*2",passive,WIND,6
+destructive_wave,Destructive Wave,,"deals additional CON*1 damage to all enemies on next attack, reduces on hit enemy attack damage to 0",active,FIRE,4
+command,Command,,"Speak one word command to target next on hit  ignores target defense",active,FIRE,2
+cloud_of_daggers,Cloud of Daggers,,"when this character is targetted for an attack, the enemy receives INT dmage",active,WIND,4
+fire_bolt,Fire Bolt,,"random enemy receives INT*1 damage per round",passive,FIRE,0
+eldrich_blast,Eldrich Blast,,"damages 3 random enemies on next attack for INT*1 damage",active,FIRE,2
+fireball,Fireball,,"Spanws a fireball damaging all enemies on next attack for INT*2 damage",active,FIRE,8
+misty_step,Misty Step,,"evades the next attack, increases evasion by DEX*.2 for the battle",active,WATER,1
+mirror_image,Mirror Image,,"Next attack has 60+DEX chances to hit a random target, repeat the attack until it hits or misses up to 7 times, if it reaches 7 times, increase DEX by 1 for the battle ",active,WATER,6
+guiding_bolt,Guiding Bolt,,"deals additional INT*1 damage on next attack, increase attack by INT*.2 for the battle",active,RADIANT,1
+embude_light,Embude Light,,"on next hit, forbid receipved enemies on using SHADOW skills for the battle",active,RADIANT,1
+shield,Shield,,"increase armor by WIS for the battle",passive,RADIANT,2
+silence,Silence,,"forbid on hit enemies from using RADIANT skills for the battle",active,WATER,1
+blink,Blink,,"triplicate evation while stamina is larger than 2, per each attack avoided, attack a random enemy, each time activated consume 2 stamina ",passive,RADIANT,2
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -19,6 +19,8 @@ import 'package:solo_level_system/widgets/common/app_snack.dart';
 import 'package:solo_level_system/utils/dev_data.dart';
 import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/models/card_acquisition_settings.dart';
+import 'package:solo_level_system/services/auth_service.dart';
+import 'package:solo_level_system/services/solo_sync_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -34,13 +36,19 @@ class _SettingsScreenState extends State<SettingsScreen>
   ConfigModel config = ConfigModel.getDefault();
   AudioSettingsModel audioSettings = AudioSettingsModel();
   bool _isLoading = true;
+  bool _accountBusy = false;
+  bool _showSignUp = false;
   final _notificationService = NotificationService();
   final _timerController = TimerController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+  final _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _loadSettings();
   }
 
@@ -129,6 +137,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         box = Hive.box<UserSettingsModel>('userSettings');
       }
       await box.put('settings', userSettings);
+      SoloSyncService.instance.schedulePush();
     } catch (e) {
       print('Error saving user settings: $e');
     }
@@ -165,6 +174,9 @@ class _SettingsScreenState extends State<SettingsScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
@@ -180,6 +192,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           'Workout',
           'Audio Config',
           'Audio Quality',
+          'Account',
         ],
       ),
       body: _isLoading
@@ -193,6 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _buildWorkoutTab(),
                 _buildAudioConfigTab(),
                 _buildAudioQualityTab(),
+                _buildAccountTab(),
               ],
             ),
     );
@@ -881,6 +895,137 @@ class _SettingsScreenState extends State<SettingsScreen>
           text: 'Failed to send notification: $e',
         );
       }
+    }
+  }
+
+  Widget _buildAccountTab() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: AccountSession.instance.loggedIn,
+      builder: (context, loggedIn, _) {
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildSectionHeader('Account'),
+            ListTile(
+              title: Text(loggedIn ? 'Signed in' : 'Guest'),
+              subtitle: Text(
+                loggedIn
+                    ? (AccountSession.instance.email.value ?? '')
+                    : 'Data stays on this device until you sign in',
+              ),
+            ),
+            if (_accountBusy) const LinearProgressIndicator(),
+            if (!loggedIn) ...[
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Email'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Password'),
+              ),
+              if (_showSignUp) ...[
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _confirmController,
+                  obscureText: true,
+                  decoration:
+                      const InputDecoration(labelText: 'Confirm password'),
+                ),
+              ],
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _accountBusy ? null : () => _submitAccount(signUp: _showSignUp),
+                child: Text(_showSignUp ? 'Create account' : 'Log in'),
+              ),
+              TextButton(
+                onPressed: _accountBusy
+                    ? null
+                    : () => setState(() => _showSignUp = !_showSignUp),
+                child: Text(_showSignUp
+                    ? 'Have an account? Log in'
+                    : 'Need an account? Sign up'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _accountBusy ? null : _googleSignIn,
+                icon: const Icon(Icons.login),
+                label: const Text('Continue with Google'),
+              ),
+            ] else
+              FilledButton(
+                onPressed: _accountBusy ? null : _logout,
+                child: const Text('Log out'),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _submitAccount({required bool signUp}) async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.length < 8) {
+      showAppSnack(context, text: 'Email and 8+ character password required');
+      return;
+    }
+    if (signUp && password != _confirmController.text) {
+      showAppSnack(context, text: 'Passwords do not match');
+      return;
+    }
+    setState(() => _accountBusy = true);
+    try {
+      if (signUp) {
+        await _authService.register(email, password);
+      } else {
+        await _authService.login(email, password);
+      }
+      final synced = await SoloSyncService.instance.onLoggedIn();
+      if (mounted) {
+        showAppSnack(
+          context,
+          text: synced ? 'Signed in' : 'Signed in. Sync when online.',
+        );
+      }
+    } catch (e) {
+      if (mounted) showAppSnack(context, text: e.toString());
+    } finally {
+      if (mounted) setState(() => _accountBusy = false);
+    }
+  }
+
+  Future<void> _googleSignIn() async {
+    setState(() => _accountBusy = true);
+    try {
+      await _authService.loginWithGoogle();
+      final synced = await SoloSyncService.instance.onLoggedIn();
+      if (mounted) {
+        showAppSnack(
+          context,
+          text: synced ? 'Signed in with Google' : 'Signed in. Sync when online.',
+        );
+      }
+    } catch (e) {
+      if (mounted) showAppSnack(context, text: e.toString());
+    } finally {
+      if (mounted) setState(() => _accountBusy = false);
+    }
+  }
+
+  Future<void> _logout() async {
+    setState(() => _accountBusy = true);
+    try {
+      await SoloSyncService.instance.logoutAndWipeStats();
+      await _authService.logout();
+      if (mounted) showAppSnack(context, text: 'Logged out');
+    } catch (e) {
+      if (mounted) showAppSnack(context, text: e.toString());
+    } finally {
+      if (mounted) setState(() => _accountBusy = false);
     }
   }
 
