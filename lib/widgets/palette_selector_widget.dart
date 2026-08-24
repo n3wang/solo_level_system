@@ -75,7 +75,7 @@ class PaletteSelectorWidget extends StatelessWidget {
                             color: color,
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                              color: AppColorPalette.textSecondary!,
+                              color: AppColorPalette.textSecondary,
                               width: 0.5,
                             ),
                           ),

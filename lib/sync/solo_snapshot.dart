@@ -1,4 +1,5 @@
 import 'package:solo_level_system/models/card_acquisition_settings.dart';
+import 'package:solo_level_system/models/journal_entry_model.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
@@ -16,6 +17,7 @@ class SoloSnapshotCodec {
     required Iterable<PomodoroModel> pomodoros,
     required Iterable<WorkoutSessionModel> workouts,
     required Iterable<String> earnedCardIds,
+    Iterable<JournalEntryModel> journalEntries = const [],
   }) {
     final now = DateTime.now().toUtc().toIso8601String();
     return {
@@ -28,6 +30,7 @@ class SoloSnapshotCodec {
       'pomodoros': pomodoros.map(pomodoroToMap).toList(),
       'workouts': workouts.map(workoutToMap).toList(),
       'earnedCardIds': earnedCardIds.toList(),
+      'journalEntries': journalEntries.map(journalEntryToMap).toList(),
     };
   }
 
@@ -101,6 +104,10 @@ class SoloSnapshotCodec {
       'cardAcquireTiming': s.cardAcquireTiming,
       'rogueChallengeList': s.rogueChallengeList,
       'colorBackgroundBySessionMode': s.colorBackgroundBySessionMode,
+      'publicProfileEnabled': s.publicProfileEnabled,
+      'shareNonProjectSessions': s.shareNonProjectSessions,
+      'shareJournalText': s.shareJournalText,
+      'publicHandle': s.publicHandle,
     };
   }
 
@@ -153,6 +160,12 @@ class SoloSnapshotCodec {
       map['colorBackgroundBySessionMode'],
       s.colorBackgroundBySessionMode,
     );
+    s.publicProfileEnabled =
+        asBool(map['publicProfileEnabled'], s.publicProfileEnabled);
+    s.shareNonProjectSessions =
+        asBool(map['shareNonProjectSessions'], s.shareNonProjectSessions);
+    s.shareJournalText = asBool(map['shareJournalText'], s.shareJournalText);
+    s.publicHandle = asString(map['publicHandle']) ?? s.publicHandle;
     s.rogueChallengeList = RogueChallengeDefaults.normalize(
       s.rogueChallengeList,
       includeDev: false,
@@ -220,6 +233,7 @@ class SoloSnapshotCodec {
       'preferredWorkHour': p.preferredWorkHour,
       'workDurationMinutes': p.workDurationMinutes,
       'breakDurationMinutes': p.breakDurationMinutes,
+      'shareProgress': p.shareProgress,
       'updatedAt': (p.lastWorkedOn ?? p.createdAt).toUtc().toIso8601String(),
     };
   }
@@ -260,6 +274,7 @@ class SoloSnapshotCodec {
           : asInt(map['preferredWorkHour']),
       workDurationMinutes: asInt(map['workDurationMinutes'], 25),
       breakDurationMinutes: asInt(map['breakDurationMinutes'], 5),
+      shareProgress: asBool(map['shareProgress'], false),
     );
   }
 
@@ -342,6 +357,40 @@ class SoloSnapshotCodec {
       tags: _stringList(map['tags']),
       location: asString(map['location']),
       additionalData: asStringKeyedMap(map['additionalData']),
+    );
+  }
+
+  static Map<String, dynamic> journalEntryToMap(JournalEntryModel e) {
+    return {
+      'clientId': e.id,
+      'id': e.id,
+      'type': e.type,
+      'createdAt': e.createdAt.toIso8601String(),
+      'text': e.text,
+      'mediaPath': e.mediaPath,
+      'durationMs': e.durationMs,
+      'projectName': e.projectName,
+      'sessionMinutes': e.sessionMinutes,
+      'source': e.source,
+      'metadata': e.metadata,
+      'updatedAt': e.createdAt.toUtc().toIso8601String(),
+    };
+  }
+
+  static JournalEntryModel journalEntryFromMap(Map<String, dynamic> map) {
+    final id = asString(map['clientId']) ?? asString(map['id']) ?? '';
+    return JournalEntryModel(
+      id: id,
+      type: asString(map['type']) ?? 'text',
+      createdAt: asDate(map['createdAt']) ?? DateTime.now(),
+      text: asString(map['text']),
+      mediaPath: asString(map['mediaPath']),
+      durationMs: map['durationMs'] == null ? null : asInt(map['durationMs']),
+      projectName: asString(map['projectName']),
+      sessionMinutes:
+          map['sessionMinutes'] == null ? null : asInt(map['sessionMinutes']),
+      source: asString(map['source']) ?? 'free',
+      metadata: asStringKeyedMap(map['metadata']),
     );
   }
 

@@ -10,6 +10,10 @@ class AppEnvironment {
   /// Web client id for Google ID tokens. Empty is fine until Google login is configured.
   static const String googleServerClientId = '';
 
+  /// Local-only Identity user seeded by the API in Development.
+  static const String devAccountEmail = 'developer@solo.local';
+  static const String devAccountPassword = 'Developer123!';
+
   static const Duration apiTimeout = Duration(seconds: 8);
 
   static String get apiBaseUrl => isDev ? devApiBaseUrl : prodApiBaseUrl;

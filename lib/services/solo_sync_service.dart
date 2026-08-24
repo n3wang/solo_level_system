@@ -1,13 +1,14 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:solo_level_system/models/card_model.dart';
+import 'package:solo_level_system/models/journal_entry_model.dart';
 import 'package:solo_level_system/models/pomodoro_model.dart';
 import 'package:solo_level_system/models/project_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
 import 'package:solo_level_system/models/workout_session_model.dart';
-import 'package:uuid/uuid.dart';
 
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
@@ -23,9 +24,12 @@ class SoloSyncService {
   static const _outboxBox = 'soloSync_outbox';
   static const _pendingCardsKey = 'pendingEarnedCardIds';
   bool _applying = false;
-  bool _pushing = false;
+  bool _syncing = false;
   Timer? _debounce;
   bool _watchersAttached = false;
+
+  /// Bumped after a snapshot is applied so UI can refresh today's marks.
+  final ValueNotifier<int> revision = ValueNotifier(0);
 
   Future<void> attachWatchers() async {
     if (_watchersAttached) return;
@@ -55,6 +59,9 @@ class SoloSyncService {
       }
       if (Hive.isBoxOpen('motivationItems')) {
         listen(Hive.box<CardModel>('motivationItems'));
+      }
+      if (Hive.isBoxOpen('journalEntries')) {
+        listen(Hive.box<JournalEntryModel>('journalEntries'));
       }
     } catch (_) {
       _watchersAttached = false;
@@ -92,7 +99,9 @@ class SoloSyncService {
           return false;
         }
         final merged = decodeJsonMap(merge.body);
-        await applySnapshot(SoloSnapshotCodec.asStringKeyedMap(merged['payload']));
+        await applySnapshot(
+          SoloSnapshotCodec.asStringKeyedMap(merged['payload']),
+        );
       }
       await _clearOutbox();
       return true;
@@ -104,33 +113,46 @@ class SoloSyncService {
     }
   }
 
-  Future<void> pushSnapshot() async {
-    if (!AccountSession.instance.loggedIn.value || _pushing) return;
-    _pushing = true;
+  /// Best-effort two-way sync: sends the local snapshot to `/api/solo/merge`
+  /// (so this device's not-yet-pushed sessions reach the server too) and
+  /// applies whatever merged result comes back (so other devices' sessions
+  /// show up here). Meant to be called fire-and-forget at natural
+  /// checkpoints (e.g. session start) — silent no-op when logged out,
+  /// offline, or a call is already in flight; never throws.
+  Future<void> syncNow() async {
+    if (!AccountSession.instance.loggedIn.value || _syncing) return;
+    _syncing = true;
     try {
       await ensurePomodoroClientIds();
       final local = await buildSnapshot();
-      await _put(local);
+      final merge = await _client.post('/api/solo/merge', local);
+      if (merge.statusCode < 200 || merge.statusCode >= 300) {
+        await _saveOutbox(local);
+        return;
+      }
+      final merged = decodeJsonMap(merge.body);
+      final payload = merged['payload'];
+      if (payload == null) {
+        await _saveOutbox(local);
+        return;
+      }
+      await applySnapshot(SoloSnapshotCodec.asStringKeyedMap(payload));
       await _clearOutbox();
     } catch (_) {
       try {
         await _saveOutbox(await buildSnapshot());
       } catch (_) {}
     } finally {
-      _pushing = false;
+      _syncing = false;
     }
   }
 
+  Future<void> pushSnapshot() async {
+    await syncNow();
+  }
+
   Future<void> retryOutbox() async {
-    if (!AccountSession.instance.loggedIn.value) return;
-    try {
-      final box = await _outbox();
-      final pending = box.get('snapshot');
-      if (pending is Map) {
-        await _put(SoloSnapshotCodec.asStringKeyedMap(pending));
-        await box.delete('snapshot');
-      }
-    } catch (_) {}
+    await syncNow();
   }
 
   Future<void> logoutAndWipeStats() async {
@@ -144,10 +166,9 @@ class SoloSyncService {
         await Hive.box<WorkoutSessionModel>('workoutSessions').clear();
       }
       if (Hive.isBoxOpen('userProgress')) {
-        await Hive.box<UserProgressModel>('userProgress').put(
-          'progress',
-          UserProgressModel(),
-        );
+        await Hive.box<UserProgressModel>(
+          'userProgress',
+        ).put('progress', UserProgressModel());
       }
       if (Hive.isBoxOpen('projects')) {
         final box = Hive.box<ProjectModel>('projects');
@@ -180,26 +201,30 @@ class SoloSyncService {
 
   Future<Map<String, dynamic>> buildSnapshot() async {
     final installId = await InstallIdService.getOrCreate();
-    final settings = Hive.box<UserSettingsModel>('userSettings').get('settings') ??
+    final settings =
+        Hive.box<UserSettingsModel>('userSettings').get('settings') ??
         UserSettingsModel();
     final progress =
         Hive.box<UserProgressModel>('userProgress').get('progress') ??
-            UserProgressModel();
+        UserProgressModel();
     final projects = Hive.box<ProjectModel>('projects').values;
     final pomodoros = Hive.box<PomodoroModel>('pomodoros').values;
     final workouts = Hive.isBoxOpen('workoutSessions')
         ? Hive.box<WorkoutSessionModel>('workoutSessions').values
         : <WorkoutSessionModel>[];
     final cards = Hive.isBoxOpen('motivationItems')
-        ? Hive.box<CardModel>('motivationItems').values
-            .where((c) => c.isAcquired)
-            .map((c) => c.id)
+        ? Hive.box<CardModel>(
+            'motivationItems',
+          ).values.where((c) => c.isAcquired).map((c) => c.id)
         : <String>[];
     final flags = Hive.box('app_init_flags');
     final pending = flags.get(_pendingCardsKey);
     final pendingIds = pending is List
         ? pending.map((e) => e.toString())
         : const <String>[];
+    final journalEntries = Hive.isBoxOpen('journalEntries')
+        ? Hive.box<JournalEntryModel>('journalEntries').values
+        : <JournalEntryModel>[];
     return SoloSnapshotCodec.encode(
       installId: installId,
       settings: settings,
@@ -208,6 +233,7 @@ class SoloSyncService {
       pomodoros: pomodoros,
       workouts: workouts,
       earnedCardIds: {...cards, ...pendingIds},
+      journalEntries: journalEntries,
     );
   }
 
@@ -240,17 +266,26 @@ class SoloSyncService {
         await Hive.box<ProjectModel>('projects').put(project.id, project);
       }
       if (payload.containsKey('pomodoros')) {
+        // Upsert by clientId — never clear first. Pomodoro history is an
+        // append-only log shared across devices: a device that hasn't
+        // pushed its latest session yet must not have that local session
+        // wiped out just because it wasn't in the payload we're applying.
         final box = Hive.box<PomodoroModel>('pomodoros');
-        await box.clear();
         for (final raw in SoloSnapshotCodec.asList(payload['pomodoros'])) {
           final session = SoloSnapshotCodec.pomodoroFromMap(
             SoloSnapshotCodec.asStringKeyedMap(raw),
           );
-          session.clientId ??= const Uuid().v4();
+          // Deterministic, not random: a legacy record without a clientId
+          // must resolve to the same key every time this is applied, or
+          // re-syncing the same payload would pile up duplicate entries now
+          // that this loop no longer clears the box first.
+          session.clientId ??=
+              'pomo_${session.startTime.millisecondsSinceEpoch}_${session.project_id ?? 'none'}_${session.minutesSpent}';
           await box.put(session.clientId!, session);
         }
       }
-      if (payload.containsKey('workouts') && Hive.isBoxOpen('workoutSessions')) {
+      if (payload.containsKey('workouts') &&
+          Hive.isBoxOpen('workoutSessions')) {
         final box = Hive.box<WorkoutSessionModel>('workoutSessions');
         for (final raw in SoloSnapshotCodec.asList(payload['workouts'])) {
           final session = SoloSnapshotCodec.workoutFromMap(
@@ -260,26 +295,73 @@ class SoloSyncService {
           await box.put(session.id, session);
         }
       }
+      if (payload.containsKey('journalEntries') &&
+          Hive.isBoxOpen('journalEntries')) {
+        // Upsert by `id` — never clear first, same append-only contract as
+        // pomodoros above. Journal entries are added locally via `box.add`
+        // (auto-increment keys), so — unlike pomodoros/workouts — we can't
+        // just `box.put(id, entry)`; instead find the existing HiveObject by
+        // its `id` field and update it in place, or add a new one.
+        final box = Hive.box<JournalEntryModel>('journalEntries');
+        final byId = {
+          for (final e in box.values)
+            if (e.id.isNotEmpty) e.id: e,
+        };
+        for (final raw in SoloSnapshotCodec.asList(payload['journalEntries'])) {
+          final incoming = SoloSnapshotCodec.journalEntryFromMap(
+            SoloSnapshotCodec.asStringKeyedMap(raw),
+          );
+          if (incoming.id.isEmpty) continue;
+          final existing = byId[incoming.id];
+          if (existing != null) {
+            existing
+              ..type = incoming.type
+              ..createdAt = incoming.createdAt
+              ..text = incoming.text
+              ..mediaPath = incoming.mediaPath
+              ..durationMs = incoming.durationMs
+              ..projectName = incoming.projectName
+              ..sessionMinutes = incoming.sessionMinutes
+              ..source = incoming.source
+              ..metadata = incoming.metadata;
+            await existing.save();
+          } else {
+            await box.add(incoming);
+          }
+        }
+      }
       await _applyEarnedCards(
-        SoloSnapshotCodec.asList(payload['earnedCardIds'])
-            .map((e) => e.toString())
-            .toList(),
+        SoloSnapshotCodec.asList(
+          payload['earnedCardIds'],
+        ).map((e) => e.toString()).toList(),
       );
     } finally {
       _applying = false;
+      revision.value++;
     }
   }
 
   Future<void> ensurePomodoroClientIds() async {
     if (!Hive.isBoxOpen('pomodoros')) return;
     final box = Hive.box<PomodoroModel>('pomodoros');
+    final seen = <String>{};
     for (final key in box.keys.toList()) {
       final session = box.get(key);
       if (session == null) continue;
-      if (session.clientId != null && session.clientId!.isNotEmpty) continue;
-      session.clientId =
+      session.clientId ??=
           'pomo_${session.startTime.millisecondsSinceEpoch}_${session.project_id ?? 'none'}_${session.minutesSpent}';
-      await session.save();
+      final id = session.clientId!;
+      if (seen.contains(id) && key != id) {
+        await box.delete(key);
+        continue;
+      }
+      seen.add(id);
+      if (key != id) {
+        await box.put(id, session);
+        await box.delete(key);
+      } else {
+        await session.save();
+      }
     }
   }
 

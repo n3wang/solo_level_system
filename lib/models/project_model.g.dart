@@ -40,13 +40,14 @@ class ProjectModelAdapter extends TypeAdapter<ProjectModel> {
       preferredWorkHour: fields[20] as int?,
       workDurationMinutes: fields[21] as int,
       breakDurationMinutes: fields[22] as int,
+      shareProgress: fields[23] as bool? ?? false,
     );
   }
 
   @override
   void write(BinaryWriter writer, ProjectModel obj) {
     writer
-      ..writeByte(23)
+      ..writeByte(24)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -92,7 +93,9 @@ class ProjectModelAdapter extends TypeAdapter<ProjectModel> {
       ..writeByte(21)
       ..write(obj.workDurationMinutes)
       ..writeByte(22)
-      ..write(obj.breakDurationMinutes);
+      ..write(obj.breakDurationMinutes)
+      ..writeByte(23)
+      ..write(obj.shareProgress);
   }
 
   @override

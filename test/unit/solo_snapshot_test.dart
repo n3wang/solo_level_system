@@ -37,7 +37,10 @@ void main() {
     final pomos = await Hive.openBox<PomodoroModel>('pomodoros');
     await pomos.add(PomodoroModel(startTime: DateTime.now(), clientId: 'x'));
     final progress = await Hive.openBox<UserProgressModel>('userProgress');
-    await progress.put('progress', UserProgressModel(totalPomodoroSessions: 12));
+    await progress.put(
+      'progress',
+      UserProgressModel(totalPomodoroSessions: 12),
+    );
     await Hive.openBox<UserSettingsModel>('userSettings');
 
     await SoloSyncService.instance.logoutAndWipeStats();
@@ -48,4 +51,79 @@ void main() {
 
     await tearDownTestHive();
   });
+
+  test('applySnapshot merges pomodoros instead of clearing local sessions '
+      '(multi-device safety: a session from another device must not wipe '
+      'out a not-yet-pushed local session)', () async {
+    await setUpTestHive();
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(PomodoroModelAdapter());
+    }
+
+    final pomos = await Hive.openBox<PomodoroModel>('pomodoros');
+    await Hive.openBox('app_init_flags');
+    await pomos.put(
+      'local-only',
+      PomodoroModel(startTime: DateTime.now(), clientId: 'local-only'),
+    );
+
+    await SoloSyncService.instance.applySnapshot({
+      'pomodoros': [
+        {
+          'clientId': 'remote-only',
+          'startTime': DateTime.now().toIso8601String(),
+          'durationMinutes': 25,
+        },
+      ],
+    });
+
+    expect(
+      pomos.get('local-only'),
+      isNotNull,
+      reason: 'local session missing from the payload must survive',
+    );
+    expect(
+      pomos.get('remote-only'),
+      isNotNull,
+      reason: 'session from the payload must be applied',
+    );
+    expect(pomos.length, 2);
+
+    await tearDownTestHive();
+  });
+
+  test(
+    'applySnapshot assigns a deterministic clientId to legacy records '
+    '(re-applying the same payload twice must not create duplicates)',
+    () async {
+      await setUpTestHive();
+      if (!Hive.isAdapterRegistered(0)) {
+        Hive.registerAdapter(PomodoroModelAdapter());
+      }
+
+      final pomos = await Hive.openBox<PomodoroModel>('pomodoros');
+      await Hive.openBox('app_init_flags');
+
+      final legacyPayload = {
+        'pomodoros': [
+          {
+            // No clientId — simulates a pre-clientId record from the server.
+            'startTime': '2026-01-01T00:00:00.000Z',
+            'durationMinutes': 25,
+            'project_id': 'proj-1',
+          },
+        ],
+      };
+
+      await SoloSyncService.instance.applySnapshot(legacyPayload);
+      expect(pomos.length, 1);
+
+      // Re-applying the exact same payload (e.g. a second sync round-trip)
+      // must resolve to the same key, not add a second entry.
+      await SoloSyncService.instance.applySnapshot(legacyPayload);
+      expect(pomos.length, 1);
+
+      await tearDownTestHive();
+    },
+  );
 }

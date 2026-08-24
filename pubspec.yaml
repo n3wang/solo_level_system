@@ -59,6 +59,9 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   google_sign_in: ^6.2.2
   syncfusion_flutter_maps: ^34.1.33
+  window_manager: ^0.5.2
+  tray_manager: ^0.5.3
+  hotkey_manager: ^0.2.3
 
 dev_dependencies:
   flutter_test:
@@ -91,6 +94,7 @@ flutter:
     - assets/audio/workouts/
     - assets/images/album/
     - assets/images/icon/
+    - assets/images/tray/
     - assets/images/icon/workout_icons_sliced/
     - assets/images/icon/c64x64_sliced/
     - assets/images/icon/dnd5e/

@@ -110,6 +110,46 @@ class UserSettingsModel extends HiveObject {
   @HiveField(28)
   bool colorBackgroundBySessionMode;
 
+  /// macOS global shortcuts, JSON-encoded via `HotKey.toJson()`/`fromJson()`
+  /// (see hotkey_manager). Empty string means "use the built-in default".
+  @HiveField(29)
+  String hotkeyStartPause;
+
+  @HiveField(30)
+  String hotkeyStop;
+
+  @HiveField(31)
+  String hotkeyTogglePopover;
+
+  /// Master switch for the public solo-leveling profile page. Off by
+  /// default: the public page 404s even if a handle was claimed.
+  @HiveField(32)
+  bool publicProfileEnabled;
+
+  /// Shares focus/workout sessions and journal entries that aren't tied to
+  /// a project. Per-project sharing is controlled by
+  /// [ProjectModel.shareProgress] instead.
+  @HiveField(33)
+  bool shareNonProjectSessions;
+
+  /// Gates journal entry text/quotes on the public profile independently of
+  /// session sharing, so streaks/session counts can be shown without
+  /// exposing journal writing.
+  @HiveField(34)
+  bool shareJournalText;
+
+  /// Cached copy of the handle claimed via `/api/profile/handle`. Source of
+  /// truth is the server; this is only for display convenience offline.
+  @HiveField(35)
+  String publicHandle;
+
+  /// When true, a running focus/break session prevents the system from
+  /// sleeping due to inactivity (via `wakelock_plus`) until the session
+  /// ends, is paused, or is stopped. On by default to preserve the app's
+  /// existing (previously unconditional) keep-awake behavior.
+  @HiveField(36)
+  bool keepAwakeDuringSession;
+
   UserSettingsModel({
     this.theme = 'system',
     this.primaryColor = 'green',
@@ -140,6 +180,14 @@ class UserSettingsModel extends HiveObject {
     this.cardAcquireTiming = 'after_break',
     List<String>? rogueChallengeList,
     this.colorBackgroundBySessionMode = false,
+    this.hotkeyStartPause = '',
+    this.hotkeyStop = '',
+    this.hotkeyTogglePopover = '',
+    this.publicProfileEnabled = false,
+    this.shareNonProjectSessions = false,
+    this.shareJournalText = false,
+    this.publicHandle = '',
+    this.keepAwakeDuringSession = true,
   }) : rogueChallengeList =
             rogueChallengeList ?? List<String>.from(RogueChallengeDefaults.base);
 

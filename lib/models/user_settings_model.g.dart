@@ -19,7 +19,7 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
     return UserSettingsModel(
       theme: fields[0] as String,
       primaryColor: fields[1] as String,
-      colorPalette: fields[21] as String? ?? 'pastel',
+      colorPalette: fields[21] as String,
       defaultWorkMinutes: fields[2] as int,
       defaultBreakMinutes: fields[3] as int,
       autoStartBreaks: fields[4] as bool,
@@ -31,33 +31,36 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
       audioFormat: fields[10] as String,
       defaultAudioPath: fields[11] as String,
       enableNoiseReduction: fields[12] as bool,
-      playAudioDuringWork: fields[19] as bool? ?? true,
-      playAudioDuringBreaks: fields[20] as bool? ?? false,
+      playAudioDuringWork: fields[19] as bool,
+      playAudioDuringBreaks: fields[20] as bool,
       language: fields[13] as String,
       dateFormat: fields[14] as String,
       timeFormat: fields[15] as String,
       enableAnalytics: fields[16] as bool,
       autoBackup: fields[17] as bool,
       backupPath: fields[18] as String,
-      developmentDataEnabled: fields[22] as bool? ?? true,
-      autoOpenJournalAfterFocus: fields[23] as bool? ?? true,
-      cardAcquisitionMode:
-          fields[24] as String? ?? 'session_completion',
-      sessionCompletionCardCount: fields[25] as int? ?? 1,
-      cardAcquireTiming: fields[26] as String? ?? 'after_break',
-      rogueChallengeList: (fields[27] as List?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          List<String>.from(RogueChallengeDefaults.base),
-      colorBackgroundBySessionMode:
-          fields[28] as bool? ?? false,
+      developmentDataEnabled: fields[22] as bool,
+      autoOpenJournalAfterFocus: fields[23] as bool,
+      cardAcquisitionMode: fields[24] as String,
+      sessionCompletionCardCount: fields[25] as int,
+      cardAcquireTiming: fields[26] as String,
+      rogueChallengeList: (fields[27] as List?)?.cast<String>(),
+      colorBackgroundBySessionMode: fields[28] as bool,
+      hotkeyStartPause: fields[29] as String? ?? '',
+      hotkeyStop: fields[30] as String? ?? '',
+      hotkeyTogglePopover: fields[31] as String? ?? '',
+      publicProfileEnabled: fields[32] as bool? ?? false,
+      shareNonProjectSessions: fields[33] as bool? ?? false,
+      shareJournalText: fields[34] as bool? ?? false,
+      publicHandle: fields[35] as String? ?? '',
+      keepAwakeDuringSession: fields[36] as bool? ?? true,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserSettingsModel obj) {
     writer
-      ..writeByte(29)
+      ..writeByte(37)
       ..writeByte(0)
       ..write(obj.theme)
       ..writeByte(1)
@@ -115,7 +118,23 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
       ..writeByte(27)
       ..write(obj.rogueChallengeList)
       ..writeByte(28)
-      ..write(obj.colorBackgroundBySessionMode);
+      ..write(obj.colorBackgroundBySessionMode)
+      ..writeByte(29)
+      ..write(obj.hotkeyStartPause)
+      ..writeByte(30)
+      ..write(obj.hotkeyStop)
+      ..writeByte(31)
+      ..write(obj.hotkeyTogglePopover)
+      ..writeByte(32)
+      ..write(obj.publicProfileEnabled)
+      ..writeByte(33)
+      ..write(obj.shareNonProjectSessions)
+      ..writeByte(34)
+      ..write(obj.shareJournalText)
+      ..writeByte(35)
+      ..write(obj.publicHandle)
+      ..writeByte(36)
+      ..write(obj.keepAwakeDuringSession);
   }
 
   @override

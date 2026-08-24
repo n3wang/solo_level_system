@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:solo_level_system/utils/background_music_service.dart';
 import 'package:solo_level_system/utils/sound_effects_service.dart';
 import 'package:solo_level_system/utils/notification_service.dart';
+import 'package:solo_level_system/services/pomodoro_session_service.dart';
+import 'package:solo_level_system/services/solo_sync_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 class TimerController {
@@ -42,7 +44,9 @@ class TimerController {
   /// Timer is idle (not running) but a work or break countdown is still active
   /// (user paused mid-session). Distinct from completion (remaining 0 / submit log).
   bool get isMidSessionPaused =>
-      !_isRunning && _remainingSeconds > 0 && (_sessionStartTime != null || _onBreak);
+      !_isRunning &&
+      _remainingSeconds > 0 &&
+      (_sessionStartTime != null || _onBreak);
 
   // Add listener for UI updates
   void addListener(VoidCallback listener) {
@@ -90,6 +94,10 @@ class TimerController {
     _isRunning = true;
     if (!_onBreak) {
       _sessionStartTime = DateTime.now();
+      // Best-effort pull of other devices' sessions so today's count/streak
+      // reflect them. Fire-and-forget: never blocks starting the timer, and
+      // silently no-ops offline/logged-out (see SoloSyncService.syncNow).
+      unawaited(SoloSyncService.instance.syncNow());
     }
     _notifyListeners();
 
@@ -104,8 +112,11 @@ class TimerController {
         }
       }
 
-      // Enable wakelock to keep screen on during pomodoro
-      if (!kIsWeb) await WakelockPlus.enable();
+      // Keep the system awake for the duration of the session, unless the
+      // user opted out in Settings (defaults to on).
+      if (!kIsWeb && PomodoroSessionService.liveUserSettings().keepAwakeDuringSession) {
+        await WakelockPlus.enable();
+      }
 
       // If paused while async setup was in progress, do not create timer.
       if (!_isRunning) return;

@@ -16,6 +16,7 @@ import 'package:solo_level_system/models/motivation_points_transaction_model.dar
 import 'package:solo_level_system/models/reward_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/screens/cards_hub_screen.dart';
+import 'package:solo_level_system/screens/guilds_screen.dart';
 import 'package:solo_level_system/utils/card_repository.dart';
 import 'package:solo_level_system/utils/dev_data.dart';
 import 'package:solo_level_system/utils/motivation_points_service.dart';
@@ -52,7 +53,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -76,7 +77,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     return Scaffold(
       appBar: StandardTabAppBar(
         controller: _tabController,
-        labels: const ['Overview', 'Cards', 'Focus', 'Workouts'],
+        labels: const ['Overview', 'Cards', 'Focus', 'Workouts', 'Guilds'],
         isScrollable: false,
       ),
       floatingActionButton:
@@ -121,6 +122,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 const CardsHubScreen(),
                 _buildFocusTab(),
                 _buildWorkoutsTab(),
+                const GuildsScreen(),
               ],
             ),
           ),

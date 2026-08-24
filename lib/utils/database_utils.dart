@@ -7,9 +7,10 @@ Future<int> getTodayCompletedSessions() async {
   final today = DateTime.now();
   final completedSessions = box.values.where((session) {
     if (!DevData.keepVisible(projectId: session.project_id)) return false;
-    return session.startTime.year == today.year &&
-        session.startTime.month == today.month &&
-        session.startTime.day == today.day;
+    final start = session.startTime.toLocal();
+    return start.year == today.year &&
+        start.month == today.month &&
+        start.day == today.day;
   }).toList();
 
   print("Today's completed sessions: $completedSessions");

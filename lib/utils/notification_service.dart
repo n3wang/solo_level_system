@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -37,10 +38,18 @@ class NotificationService {
           requestSoundPermission: true,
         );
 
+    const DarwinInitializationSettings initializationSettingsMacOS =
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
+
     const InitializationSettings initializationSettings =
         InitializationSettings(
           android: initializationSettingsAndroid,
           iOS: initializationSettingsIOS,
+          macOS: initializationSettingsMacOS,
         );
 
     await _notifications.initialize(
@@ -104,6 +113,11 @@ class NotificationService {
     _remainingSeconds = remainingSeconds;
     _isBreak = isBreak;
     _isRunning = isRunning;
+
+    // macOS: the menu-bar popover already shows the live countdown, so skip
+    // the mobile-style persistent/ticking notification here (which would
+    // otherwise post to Notification Center once per second).
+    if (!kIsWeb && Platform.isMacOS) return;
 
     final String timeText = formatTime(remainingSeconds);
     final String status = isBreak ? 'Break' : 'Focus';
@@ -192,6 +206,7 @@ class NotificationService {
 
   void _updateNotificationTime() {
     if (!_isSupported) return;
+    if (!kIsWeb && Platform.isMacOS) return;
 
     final String timeText = formatTime(_remainingSeconds);
     final String status = _isBreak ? 'Break' : 'Focus';

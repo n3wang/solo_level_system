@@ -73,6 +73,12 @@ class ProjectModel extends HiveObject {
   @HiveField(22)
   int breakDurationMinutes; // Custom break session duration in minutes
 
+  /// When true, this project's sessions and journal entries are included on
+  /// the public solo-leveling profile page (see [UserSettingsModel]'s
+  /// `publicProfileEnabled`/`shareNonProjectSessions`). Off by default.
+  @HiveField(23)
+  bool shareProgress;
+
   ProjectModel({
     required this.id,
     required this.name,
@@ -97,6 +103,7 @@ class ProjectModel extends HiveObject {
     this.preferredWorkHour,
     this.workDurationMinutes = 25, // Default 25 minutes work
     this.breakDurationMinutes = 5, // Default 5 minutes break
+    this.shareProgress = false,
   });
 
   // Convenience getters

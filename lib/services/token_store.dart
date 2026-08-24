@@ -8,34 +8,81 @@ class TokenStore {
   static const _accessKey = 'solo_access_token';
   static const _refreshKey = 'solo_refresh_token';
   static const _emailKey = 'solo_email';
+  static const _handleKey = 'solo_handle';
+  static const _rememberKey = 'solo_remember_me';
   static const _hiveBox = 'account_session';
 
   static const _secure = FlutterSecureStorage();
+
+  static String? _memAccess;
+  static String? _memRefresh;
+  static String? _memEmail;
+  static bool skipDevAutoLoginThisSession = false;
 
   static Future<void> save({
     required String accessToken,
     required String refreshToken,
     required String email,
   }) async {
-    if (!kIsWeb) {
-      try {
-        await _secure.write(key: _accessKey, value: accessToken);
-        await _secure.write(key: _refreshKey, value: refreshToken);
-        await _secure.write(key: _emailKey, value: email);
-        return;
-      } catch (_) {}
+    _memAccess = accessToken;
+    _memRefresh = refreshToken;
+    _memEmail = email;
+    skipDevAutoLoginThisSession = false;
+    final remember = await rememberMe();
+    if (!remember) {
+      await _deletePersistedTokens();
+      return;
     }
-    final box = await _box();
-    await box.put(_accessKey, accessToken);
-    await box.put(_refreshKey, refreshToken);
-    await box.put(_emailKey, email);
+    await _writePersisted(_accessKey, accessToken);
+    await _writePersisted(_refreshKey, refreshToken);
+    await _writePersisted(_emailKey, email);
   }
 
-  static Future<String?> accessToken() async => _read(_accessKey);
+  static Future<String?> accessToken() async {
+    if (_memAccess != null && _memAccess!.isNotEmpty) return _memAccess;
+    if (!await rememberMe()) return null;
+    return _read(_accessKey);
+  }
 
-  static Future<String?> refreshToken() async => _read(_refreshKey);
+  static Future<String?> refreshToken() async {
+    if (_memRefresh != null && _memRefresh!.isNotEmpty) return _memRefresh;
+    if (!await rememberMe()) return null;
+    return _read(_refreshKey);
+  }
 
-  static Future<String?> email() async => _read(_emailKey);
+  static Future<String?> email() async {
+    if (_memEmail != null && _memEmail!.isNotEmpty) return _memEmail;
+    return _read(_emailKey);
+  }
+
+  static Future<String?> cachedHandle() async {
+    return _read(_handleKey);
+  }
+
+  static Future<void> setCachedHandle(String handle) async {
+    await _writePersisted(_handleKey, handle);
+  }
+
+  /// Default on: missing key means remember this device.
+  static Future<bool> rememberMe() async {
+    final raw = await _hiveRead(_rememberKey);
+    if (raw == null) return true;
+    return raw == 'true' || raw == '1';
+  }
+
+  static Future<void> setRememberMe(bool value) async {
+    final box = await _box();
+    await box.put(_rememberKey, value ? 'true' : 'false');
+    if (!value) {
+      await _deletePersistedTokens();
+    } else if (_memAccess != null && _memRefresh != null) {
+      await save(
+        accessToken: _memAccess!,
+        refreshToken: _memRefresh!,
+        email: _memEmail ?? '',
+      );
+    }
+  }
 
   static Future<String?> _read(String key) async {
     if (!kIsWeb) {
@@ -47,14 +94,54 @@ class TokenStore {
     return _hiveRead(key);
   }
 
-  static Future<void> clear() async {
+  static Future<void> _writePersisted(String key, String value) async {
+    if (!kIsWeb) {
+      try {
+        await _secure.write(key: key, value: value);
+        return;
+      } catch (_) {}
+    }
+    final box = await _box();
+    await box.put(key, value);
+  }
+
+  static Future<void> _deletePersistedTokens() async {
     if (!kIsWeb) {
       try {
         await _secure.delete(key: _accessKey);
         await _secure.delete(key: _refreshKey);
-        await _secure.delete(key: _emailKey);
       } catch (_) {}
     }
+    if (Hive.isBoxOpen(_hiveBox)) {
+      final box = Hive.box(_hiveBox);
+      await box.delete(_accessKey);
+      await box.delete(_refreshKey);
+    }
+  }
+
+  static Future<void> clearSession({bool keepCachedEmail = false}) async {
+    _memAccess = null;
+    _memRefresh = null;
+    if (!keepCachedEmail) {
+      _memEmail = null;
+    }
+    await _deletePersistedTokens();
+    if (!keepCachedEmail) {
+      if (!kIsWeb) {
+        try {
+          await _secure.delete(key: _emailKey);
+          await _secure.delete(key: _handleKey);
+        } catch (_) {}
+      }
+      if (Hive.isBoxOpen(_hiveBox)) {
+        await Hive.box(_hiveBox).delete(_emailKey);
+        await Hive.box(_hiveBox).delete(_handleKey);
+      }
+    }
+  }
+
+  static Future<void> clear() async {
+    await clearSession(keepCachedEmail: false);
     if (Hive.isBoxOpen(_hiveBox)) {
       await Hive.box(_hiveBox).clear();
     }
@@ -68,13 +155,10 @@ class TokenStore {
   }
 
   static Future<String?> _hiveRead(String key) async {
-    if (!Hive.isBoxOpen(_hiveBox) && !Hive.isAdapterRegistered(0)) {
-      // box may not exist in tests
-    }
     try {
       final box = await _box();
       final value = box.get(key);
-      return value is String ? value : null;
+      return value?.toString();
     } catch (_) {
       return null;
     }

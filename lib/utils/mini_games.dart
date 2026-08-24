@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/screens/case_math_screen.dart';
 import 'package:solo_level_system/screens/chrono_atlas_screen.dart';
+import 'package:solo_level_system/screens/times_tables_screen.dart';
 
 /// A playable mini-game entry for the Games hub and rest-break launcher.
 class MiniGameEntry {
@@ -60,6 +61,16 @@ class MiniGames {
           icon: Icons.calculate_outlined,
           accent: AppColorPalette.color4,
           build: ({required String exitLabel}) => CaseMathScreen(
+            exitLabel: exitLabel,
+          ),
+        ),
+        MiniGameEntry(
+          id: TimesTablesScreen.highScoreKey,
+          title: 'Times Tables',
+          subtitle: 'Race through multiplication facts',
+          icon: Icons.grid_on_outlined,
+          accent: AppColorPalette.color3,
+          build: ({required String exitLabel}) => TimesTablesScreen(
             exitLabel: exitLabel,
           ),
         ),

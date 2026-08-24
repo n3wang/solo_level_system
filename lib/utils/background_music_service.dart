@@ -56,7 +56,9 @@ class BackgroundMusicService {
     await _playCurrentTrack();
   }
 
-  Future<void> playRandomTrackFromFilenames(Set<String> allowedFilenames) async {
+  Future<void> playRandomTrackFromFilenames(
+    Set<String> allowedFilenames,
+  ) async {
     if (allowedFilenames.isEmpty) return;
     if (_playlist.isEmpty) {
       await _refreshPlaylist();
@@ -92,27 +94,37 @@ class BackgroundMusicService {
     }
   }
 
-  Future<void> _playCurrentTrack() async {
+  Future<void> _playCurrentTrack({int retriesLeft = -1}) async {
     if (_currentTrack == null) return;
+    // -1 means "fresh attempt" (not a cascading retry) — reset the budget.
+    final budget = retriesLeft < 0 ? _playlist.length : retriesLeft;
 
     try {
       await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('audio/lofi/${_currentTrack!.filename}'));
+      await _audioPlayer.play(
+        AssetSource('audio/lofi/${_currentTrack!.filename}'),
+      );
       await _audioPlayer.setVolume(_volume);
       _isPlaying = true;
     } catch (e) {
       print('Failed to play track ${_currentTrack!.filename}: $e');
-      // Try to play next track if current fails
-      await _playNextTrack();
+      if (budget <= 0) {
+        // Every track in the playlist just failed (e.g. no audio device
+        // available) — give up rather than recurse forever. `_currentTrack`
+        // stays set so album art still shows even though playback failed.
+        _isPlaying = false;
+        return;
+      }
+      await _playNextTrack(retriesLeft: budget - 1);
     }
   }
 
-  Future<void> _playNextTrack() async {
+  Future<void> _playNextTrack({int? retriesLeft}) async {
     if (_playlist.isEmpty) return;
 
     _currentTrackIndex = (_currentTrackIndex + 1) % _playlist.length;
     _currentTrack = _playlist[_currentTrackIndex];
-    await _playCurrentTrack();
+    await _playCurrentTrack(retriesLeft: retriesLeft ?? _playlist.length);
   }
 
   Future<void> playPreviousTrack() async {

@@ -1,4 +1,6 @@
 // lib/screens/settings_screen.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
@@ -20,7 +22,12 @@ import 'package:solo_level_system/utils/dev_data.dart';
 import 'package:solo_level_system/config/app_environment.dart';
 import 'package:solo_level_system/models/card_acquisition_settings.dart';
 import 'package:solo_level_system/services/auth_service.dart';
+import 'package:solo_level_system/services/profile_service.dart';
 import 'package:solo_level_system/services/solo_sync_service.dart';
+import 'package:solo_level_system/services/token_store.dart';
+import 'package:solo_level_system/services/desktop_shell_service.dart';
+import 'package:solo_level_system/widgets/desktop/hotkey_capture_field.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -44,11 +51,18 @@ class _SettingsScreenState extends State<SettingsScreen>
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   final _authService = AuthService();
+  final bool _showShortcutsTab = DesktopShellService().isSupported;
+  final _handleController = TextEditingController();
+  bool _rememberMe = true;
+  bool _claimingHandle = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(
+      length: _showShortcutsTab ? 8 : 7,
+      vsync: this,
+    );
     _loadSettings();
   }
 
@@ -69,19 +83,23 @@ class _SettingsScreenState extends State<SettingsScreen>
         userSettings.rogueChallengeList,
         includeDev: AppEnvironment.isTest,
       );
-      
+
       // Migrate old palette names
       if (userSettings.colorPalette == 'original' ||
           userSettings.colorPalette == 'default' ||
           userSettings.colorPalette == 'creative') {
         userSettings.colorPalette = 'pastel';
         await _saveUserSettings();
-      } else if (!['grayscale', 'creative', 'pastel'].contains(userSettings.colorPalette)) {
+      } else if (![
+        'grayscale',
+        'creative',
+        'pastel',
+      ].contains(userSettings.colorPalette)) {
         // If palette doesn't exist, default to pastel
         userSettings.colorPalette = 'pastel';
         await _saveUserSettings();
       }
-      
+
       // Apply saved palette
       AppColorPalette.setActivePalette(userSettings.colorPalette);
 
@@ -114,6 +132,13 @@ class _SettingsScreenState extends State<SettingsScreen>
       config = ConfigModel.getDefault();
       audioSettings = AudioSettingsModel();
     } finally {
+      _handleController.text = userSettings.publicHandle;
+      _rememberMe = await TokenStore.rememberMe();
+      final cachedEmail = await TokenStore.email();
+      if (cachedEmail != null && cachedEmail.isNotEmpty) {
+        _emailController.text = cachedEmail;
+      }
+      AccountSession.instance.rememberMe.value = _rememberMe;
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -128,8 +153,9 @@ class _SettingsScreenState extends State<SettingsScreen>
         userSettings.rogueChallengeList,
         includeDev: AppEnvironment.isTest,
       );
-      userSettings.sessionCompletionCardCount =
-          userSettings.sessionCompletionCardCount.clamp(1, 5);
+      userSettings.sessionCompletionCardCount = userSettings
+          .sessionCompletionCardCount
+          .clamp(1, 5);
       Box<UserSettingsModel> box;
       if (!Hive.isBoxOpen('userSettings')) {
         box = await Hive.openBox<UserSettingsModel>('userSettings');
@@ -177,6 +203,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
+    _handleController.dispose();
     super.dispose();
   }
 
@@ -185,7 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     return Scaffold(
       appBar: StandardTabAppBar(
         controller: _tabController,
-        labels: const [
+        labels: [
           'Appearance',
           'Sessions',
           'Notifications',
@@ -193,6 +220,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           'Audio Config',
           'Audio Quality',
           'Account',
+          if (_showShortcutsTab) 'Shortcuts',
         ],
       ),
       body: _isLoading
@@ -207,6 +235,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _buildAudioConfigTab(),
                 _buildAudioQualityTab(),
                 _buildAccountTab(),
+                if (_showShortcutsTab) _buildShortcutsTab(),
               ],
             ),
     );
@@ -239,15 +268,16 @@ class _SettingsScreenState extends State<SettingsScreen>
               });
               AppColorPalette.setActivePalette(paletteName);
               await _saveUserSettings();
-              
+
               // Notify palette change to trigger app-wide rebuild
               PaletteNotifier().notifyPaletteChanged(paletteName);
-              
+
               // Show feedback
               if (mounted) {
                 showAppSnack(
                   context,
-                  text: 'Color palette changed to ${PaletteSelectorWidget.paletteNames[paletteName]}',
+                  text:
+                      'Color palette changed to ${PaletteSelectorWidget.paletteNames[paletteName]}',
                   duration: const Duration(seconds: 1),
                 );
               }
@@ -364,13 +394,25 @@ class _SettingsScreenState extends State<SettingsScreen>
             await _saveUserSettings();
           },
         ),
+        OnOffToggleListTile(
+          title: Text('Keep Awake During Session'),
+          subtitle: Text(
+            "Prevent the computer from sleeping until the session ends, "
+            "is paused, or is stopped",
+          ),
+          value: userSettings.keepAwakeDuringSession,
+          onChanged: (value) async {
+            setState(() {
+              userSettings.keepAwakeDuringSession = value;
+            });
+            await _saveUserSettings();
+          },
+        ),
         Divider(),
         _buildSectionHeader('Appearance'),
         OnOffToggleListTile(
           title: Text('Color Background by Mode'),
-          subtitle: Text(
-            'Red background during work, green during breaks',
-          ),
+          subtitle: Text('Red background during work, green during breaks'),
           value: userSettings.colorBackgroundBySessionMode,
           onChanged: (value) async {
             setState(() {
@@ -444,44 +486,41 @@ class _SettingsScreenState extends State<SettingsScreen>
             },
           ),
         ],
-          const SizedBox(height: 12),
-          _buildSectionHeader('Rogue challenge list'),
-          Text(
-            'Used when Rogue Cards is selected. Stored even if another mode is active.',
-            style: TextStyle(
-              color: AppColorPalette.textSecondary,
-              fontSize: 12,
-            ),
+        const SizedBox(height: 12),
+        _buildSectionHeader('Rogue challenge list'),
+        Text(
+          'Used when Rogue Cards is selected. Stored even if another mode is active.',
+          style: TextStyle(color: AppColorPalette.textSecondary, fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        ..._buildRogueChallengeEditors(),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () async {
+              setState(() {
+                userSettings.rogueChallengeList = [
+                  ...userSettings.rogueChallengeList,
+                  '',
+                ];
+              });
+              await _saveUserSettings();
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add challenge'),
           ),
-          const SizedBox(height: 8),
-          ..._buildRogueChallengeEditors(),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () async {
-                setState(() {
-                  userSettings.rogueChallengeList = [
-                    ...userSettings.rogueChallengeList,
-                    '',
-                  ];
-                });
-                await _saveUserSettings();
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Add challenge'),
-            ),
-          ),
-          if (AppEnvironment.isTest)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'Dev: "${RogueChallengeDefaults.netflixDevOnly}" is available in the pool.',
-                style: TextStyle(
-                  color: AppColorPalette.textSecondary,
-                  fontSize: 11,
-                ),
+        ),
+        if (AppEnvironment.isTest)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Dev: "${RogueChallengeDefaults.netflixDevOnly}" is available in the pool.',
+              style: TextStyle(
+                color: AppColorPalette.textSecondary,
+                fontSize: 11,
               ),
             ),
+          ),
       ],
     );
   }
@@ -522,9 +561,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ? null
                     : () async {
                         setState(() {
-                          userSettings.rogueChallengeList =
-                              List<String>.from(userSettings.rogueChallengeList)
-                                ..removeAt(i);
+                          userSettings.rogueChallengeList = List<String>.from(
+                            userSettings.rogueChallengeList,
+                          )..removeAt(i);
                         });
                         await _saveUserSettings();
                       },
@@ -620,6 +659,90 @@ class _SettingsScreenState extends State<SettingsScreen>
           },
         ),
         Divider(),
+        _buildSectionHeader('Public Profile'),
+        ValueListenableBuilder<bool>(
+          valueListenable: AccountSession.instance.loggedIn,
+          builder: (context, loggedIn, _) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                OnOffToggleListTile(
+                  title: Text('Share a public profile'),
+                  subtitle: Text(
+                    !loggedIn
+                        ? 'Sign in above to get a shareable progress link'
+                        : userSettings.publicProfileEnabled
+                            ? 'Nothing shows here until you turn on sharing below'
+                            : 'Off — nothing about your progress is public',
+                  ),
+                  value: userSettings.publicProfileEnabled,
+                  onChanged: loggedIn ? _togglePublicProfile : null,
+                ),
+                if (loggedIn && userSettings.publicProfileEnabled) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _handleController,
+                            decoration: const InputDecoration(
+                              labelText: 'Profile handle',
+                              prefixText: '/u/',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: _claimingHandle ? null : _claimHandle,
+                          child: const Text('Save'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (userSettings.publicHandle.isNotEmpty)
+                    ListTile(
+                      title: Text(_profileUrl()),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.copy),
+                        tooltip: 'Copy link',
+                        onPressed: _copyProfileLink,
+                      ),
+                    ),
+                  OnOffToggleListTile(
+                    title: Text('Share sessions without a project'),
+                    subtitle: Text(
+                      'Also covers workouts. Individual projects are shared '
+                      'from Projects → edit project.',
+                    ),
+                    value: userSettings.shareNonProjectSessions,
+                    onChanged: (value) async {
+                      setState(() {
+                        userSettings.shareNonProjectSessions = value;
+                      });
+                      await _saveUserSettings();
+                    },
+                  ),
+                  OnOffToggleListTile(
+                    title: Text('Share journal entries'),
+                    subtitle: Text(
+                      'Shows journal text/quotes alongside sessions on your '
+                      'public profile',
+                    ),
+                    value: userSettings.shareJournalText,
+                    onChanged: (value) async {
+                      setState(() {
+                        userSettings.shareJournalText = value;
+                      });
+                      await _saveUserSettings();
+                    },
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
+        Divider(),
         _buildSectionHeader('Developer'),
         OnOffToggleListTile(
           title: Text('Development data'),
@@ -634,6 +757,9 @@ class _SettingsScreenState extends State<SettingsScreen>
               userSettings.developmentDataEnabled = value;
             });
             await DevData.setEnabled(value);
+            if (value) {
+              unawaited(AuthService().ensureStartupSession());
+            }
             if (!mounted) return;
             showAppSnack(
               context,
@@ -847,37 +973,25 @@ class _SettingsScreenState extends State<SettingsScreen>
         onPlay: () {
           _timerController.startTimer();
           if (mounted) {
-            showAppSnack(
-      context,
-      text: 'Timer started!',
-    );
+            showAppSnack(context, text: 'Timer started!');
           }
         },
         onPause: () {
           _timerController.pauseTimer();
           if (mounted) {
-            showAppSnack(
-      context,
-      text: 'Timer paused!',
-    );
+            showAppSnack(context, text: 'Timer paused!');
           }
         },
         onReset: () {
           _timerController.resetTimer();
           if (mounted) {
-            showAppSnack(
-      context,
-      text: 'Timer reset!',
-    );
+            showAppSnack(context, text: 'Timer reset!');
           }
         },
         onMute: () {
           _timerController.toggleMute();
           if (mounted) {
-            showAppSnack(
-      context,
-      text: 'Audio toggled!',
-    );
+            showAppSnack(context, text: 'Audio toggled!');
           }
         },
       );
@@ -890,10 +1004,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       }
     } catch (e) {
       if (mounted) {
-        showAppSnack(
-          context,
-          text: 'Failed to send notification: $e',
-        );
+        showAppSnack(context, text: 'Failed to send notification: $e');
       }
     }
   }
@@ -910,9 +1021,26 @@ class _SettingsScreenState extends State<SettingsScreen>
               title: Text(loggedIn ? 'Signed in' : 'Guest'),
               subtitle: Text(
                 loggedIn
-                    ? (AccountSession.instance.email.value ?? '')
-                    : 'Data stays on this device until you sign in',
+                    ? [
+                        AccountSession.instance.email.value,
+                        AccountSession.instance.handle.value,
+                      ].where((s) => s != null && s.isNotEmpty).join(' · ')
+                    : (AccountSession.instance.email.value?.isNotEmpty == true
+                          ? 'Last account: ${AccountSession.instance.email.value}'
+                          : 'Data stays on this device until you sign in'),
               ),
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Remember me'),
+              subtitle: const Text('Stay signed in on this device'),
+              value: _rememberMe,
+              onChanged: (value) async {
+                final next = value ?? true;
+                setState(() => _rememberMe = next);
+                await TokenStore.setRememberMe(next);
+                AccountSession.instance.rememberMe.value = next;
+              },
             ),
             if (_accountBusy) const LinearProgressIndicator(),
             if (!loggedIn) ...[
@@ -932,22 +1060,27 @@ class _SettingsScreenState extends State<SettingsScreen>
                 TextField(
                   controller: _confirmController,
                   obscureText: true,
-                  decoration:
-                      const InputDecoration(labelText: 'Confirm password'),
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm password',
+                  ),
                 ),
               ],
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: _accountBusy ? null : () => _submitAccount(signUp: _showSignUp),
+                onPressed: _accountBusy
+                    ? null
+                    : () => _submitAccount(signUp: _showSignUp),
                 child: Text(_showSignUp ? 'Create account' : 'Log in'),
               ),
               TextButton(
                 onPressed: _accountBusy
                     ? null
                     : () => setState(() => _showSignUp = !_showSignUp),
-                child: Text(_showSignUp
-                    ? 'Have an account? Log in'
-                    : 'Need an account? Sign up'),
+                child: Text(
+                  _showSignUp
+                      ? 'Have an account? Log in'
+                      : 'Need an account? Sign up',
+                ),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
@@ -979,6 +1112,8 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
     setState(() => _accountBusy = true);
     try {
+      await TokenStore.setRememberMe(_rememberMe);
+      AccountSession.instance.rememberMe.value = _rememberMe;
       if (signUp) {
         await _authService.register(email, password);
       } else {
@@ -1001,12 +1136,16 @@ class _SettingsScreenState extends State<SettingsScreen>
   Future<void> _googleSignIn() async {
     setState(() => _accountBusy = true);
     try {
+      await TokenStore.setRememberMe(_rememberMe);
+      AccountSession.instance.rememberMe.value = _rememberMe;
       await _authService.loginWithGoogle();
       final synced = await SoloSyncService.instance.onLoggedIn();
       if (mounted) {
         showAppSnack(
           context,
-          text: synced ? 'Signed in with Google' : 'Signed in. Sync when online.',
+          text: synced
+              ? 'Signed in with Google'
+              : 'Signed in. Sync when online.',
         );
       }
     } catch (e) {
@@ -1029,6 +1168,42 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
+  String _profileUrl() => '${AppEnvironment.apiBaseUrl}/u/${userSettings.publicHandle}';
+
+  Future<void> _togglePublicProfile(bool value) async {
+    setState(() {
+      userSettings.publicProfileEnabled = value;
+    });
+    await _saveUserSettings();
+  }
+
+  Future<void> _claimHandle() async {
+    final requested = _handleController.text.trim().toLowerCase();
+    if (requested.isEmpty) {
+      showAppSnack(context, text: 'Enter a handle first');
+      return;
+    }
+    setState(() => _claimingHandle = true);
+    final result = await ProfileService.instance.claimHandle(requested);
+    if (!mounted) return;
+    setState(() => _claimingHandle = false);
+    if (!result.success) {
+      showAppSnack(context, text: result.error!);
+      return;
+    }
+    setState(() {
+      userSettings.publicHandle = result.handle!;
+      _handleController.text = result.handle!;
+    });
+    await _saveUserSettings();
+    if (mounted) showAppSnack(context, text: 'Profile link saved');
+  }
+
+  Future<void> _copyProfileLink() async {
+    await Clipboard.setData(ClipboardData(text: _profileUrl()));
+    if (mounted) showAppSnack(context, text: 'Link copied');
+  }
+
   Widget _buildPresetButtons({
     required String title,
     required List<int> values,
@@ -1041,12 +1216,71 @@ class _SettingsScreenState extends State<SettingsScreen>
       onChanged: onSelected,
       options: values
           .map(
-            (value) => SettingsRectChipOption(
-              value: value,
-              label: '${value}m',
-            ),
+            (value) => SettingsRectChipOption(value: value, label: '${value}m'),
           )
           .toList(),
+    );
+  }
+
+  Widget _buildShortcutsTab() {
+    final startPause =
+        DesktopShellService.decodeHotKey(userSettings.hotkeyStartPause) ??
+        DesktopShellService.defaultStartPauseHotKey();
+    final stop =
+        DesktopShellService.decodeHotKey(userSettings.hotkeyStop) ??
+        DesktopShellService.defaultStopHotKey();
+    final togglePopover =
+        DesktopShellService.decodeHotKey(userSettings.hotkeyTogglePopover) ??
+        DesktopShellService.defaultTogglePopoverHotKey();
+
+    return ListView(
+      padding: EdgeInsets.all(16),
+      children: [
+        _buildSectionHeader('Global Shortcuts'),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            'Work from anywhere on the Mac, even while another app is '
+            'focused.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        HotkeyCaptureField(
+          title: 'Start / Pause Timer',
+          currentHotKey: startPause,
+          onChanged: (hotKey) async {
+            setState(() {
+              userSettings.hotkeyStartPause = DesktopShellService.encodeHotKey(
+                hotKey,
+              );
+            });
+            await _saveUserSettings();
+          },
+        ),
+        HotkeyCaptureField(
+          title: 'Stop Timer',
+          currentHotKey: stop,
+          onChanged: (hotKey) async {
+            setState(() {
+              userSettings.hotkeyStop = DesktopShellService.encodeHotKey(
+                hotKey,
+              );
+            });
+            await _saveUserSettings();
+          },
+        ),
+        HotkeyCaptureField(
+          title: 'Show/Hide Popover',
+          currentHotKey: togglePopover,
+          onChanged: (hotKey) async {
+            setState(() {
+              userSettings.hotkeyTogglePopover =
+                  DesktopShellService.encodeHotKey(hotKey);
+            });
+            await _saveUserSettings();
+          },
+        ),
+      ],
     );
   }
 

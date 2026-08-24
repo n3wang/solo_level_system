@@ -1037,6 +1037,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
       text: _projectMilestones(project).join('\n'),
     );
     String selectedIconName = project.iconName ?? 'folder';
+    bool shareProgress = project.shareProgress;
 
     await showDialog<void>(
       context: context,
@@ -1099,6 +1100,21 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Share progress publicly'),
+                    subtitle: const Text(
+                      'Include this project on your public profile page, '
+                      'if enabled in Settings → Privacy',
+                    ),
+                    value: shareProgress,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        shareProgress = value;
+                      });
+                    },
+                  ),
                 ],
               ),
             ),
@@ -1140,6 +1156,7 @@ class _ProjectsManagementScreenState extends State<ProjectsManagementScreen> {
                   milestones: milestones,
                   metadata: _projectMeta(project: project),
                 );
+                project.shareProgress = shareProgress;
                 await project.save();
 
                 if (!mounted) return;

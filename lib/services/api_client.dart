@@ -29,6 +29,9 @@ class ApiClient {
   Future<http.Response> put(String path, [Map<String, dynamic>? body]) =>
       _send('PUT', path, body);
 
+  Future<http.Response> delete(String path, [Map<String, dynamic>? body]) =>
+      _send('DELETE', path, body);
+
   Future<http.Response> _send(
     String method,
     String path, [
@@ -54,6 +57,9 @@ class ApiClient {
           break;
         case 'PUT':
           request = _http.put(uri, headers: headers, body: encoded);
+          break;
+        case 'DELETE':
+          request = _http.delete(uri, headers: headers, body: encoded);
           break;
         default:
           request = _http.post(uri, headers: headers, body: encoded);

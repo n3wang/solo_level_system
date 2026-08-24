@@ -1,9 +1,13 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'config/app_environment.dart';
 import 'constants/color_palette.dart';
 import 'screens/main_navigation_screen.dart';
+import 'screens/desktop/menu_bar_popover_screen.dart';
+import 'services/desktop_shell_service.dart';
 import 'models/pomodoro_model.dart';
 import 'models/user_settings_model.dart';
 import 'models/audio_settings_model.dart';
@@ -446,6 +450,20 @@ void main() async {
       print('⚠️ Error applying test bootstrap data: $e');
     }
 
+    try {
+      await AuthService().ensureStartupSession();
+    } catch (e) {
+      print('⚠️ Startup login skipped: $e');
+    }
+
+    if (!kIsWeb && Platform.isMacOS) {
+      try {
+        await DesktopShellService().initialize();
+      } catch (e) {
+        print('⚠️ Error initializing desktop shell: $e');
+      }
+    }
+
     runApp(MyApp());
   } catch (e, stackTrace) {
     print('❌ Critical Hive initialization error: $e');
@@ -721,9 +739,21 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       themeMode: _getThemeMode(userSettings.theme),
-      home: MainNavigationScreen(
-        onSettingsChanged: (settings) => _onSettingsChanged(),
-      ),
+      home: DesktopShellService().isSupported
+          ? ValueListenableBuilder<DesktopWindowMode>(
+              valueListenable: DesktopShellService().modeNotifier,
+              builder: (context, mode, _) {
+                if (mode == DesktopWindowMode.popover) {
+                  return const MenuBarPopoverScreen();
+                }
+                return MainNavigationScreen(
+                  onSettingsChanged: (settings) => _onSettingsChanged(),
+                );
+              },
+            )
+          : MainNavigationScreen(
+              onSettingsChanged: (settings) => _onSettingsChanged(),
+            ),
     );
   }
 }

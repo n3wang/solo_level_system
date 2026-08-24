@@ -5,6 +5,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../config/app_environment.dart';
 import 'api_client.dart';
+import 'profile_service.dart';
+import 'solo_sync_service.dart';
 import 'token_store.dart';
 
 class AccountSession {
@@ -13,10 +15,14 @@ class AccountSession {
 
   final ValueNotifier<bool> loggedIn = ValueNotifier(false);
   final ValueNotifier<String?> email = ValueNotifier(null);
+  final ValueNotifier<String?> handle = ValueNotifier(null);
+  final ValueNotifier<bool> rememberMe = ValueNotifier(true);
 
   Future<void> restore() async {
-    final token = await TokenStore.accessToken();
+    rememberMe.value = await TokenStore.rememberMe();
     email.value = await TokenStore.email();
+    handle.value = await TokenStore.cachedHandle();
+    final token = await TokenStore.accessToken();
     loggedIn.value = token != null && token.isNotEmpty;
   }
 }
@@ -52,7 +58,9 @@ class AuthService {
       if (account == null) {
         throw ApiException('Google sign-in cancelled');
       }
-      final auth = await account.authentication.timeout(AppEnvironment.apiTimeout);
+      final auth = await account.authentication.timeout(
+        AppEnvironment.apiTimeout,
+      );
       final idToken = auth.idToken;
       if (idToken == null || idToken.isEmpty) {
         throw ApiException('Google did not return an ID token');
@@ -73,12 +81,67 @@ class AuthService {
       if (refresh != null) {
         await _client.post('/api/auth/logout', {'refreshToken': refresh});
       }
-    } catch (_) {
-      // Local logout still proceeds if the backend is down.
-    }
-    await TokenStore.clear();
+    } catch (_) {}
+    final remember = await TokenStore.rememberMe();
+    await TokenStore.clearSession(keepCachedEmail: remember);
+    TokenStore.skipDevAutoLoginThisSession = true;
     AccountSession.instance.loggedIn.value = false;
-    AccountSession.instance.email.value = null;
+    AccountSession.instance.email.value = remember
+        ? await TokenStore.email()
+        : null;
+    AccountSession.instance.handle.value = remember
+        ? await TokenStore.cachedHandle()
+        : null;
+  }
+
+  /// Silent restore + developer auto-login. Never throws.
+  Future<void> ensureStartupSession() async {
+    if (const bool.fromEnvironment('FLUTTER_TEST')) return;
+    try {
+      await AccountSession.instance.restore();
+      if (AccountSession.instance.loggedIn.value) {
+        unawaited(SoloSyncService.instance.retryOutbox());
+        unawaited(_refreshCachedProfile());
+        return;
+      }
+      if (TokenStore.skipDevAutoLoginThisSession) return;
+      if (!AppEnvironment.isTest) return;
+      if (!await TokenStore.rememberMe()) return;
+      await _loginOrRegisterDev();
+      unawaited(SoloSyncService.instance.onLoggedIn());
+    } catch (_) {}
+  }
+
+  Future<void> _loginOrRegisterDev() async {
+    try {
+      await login(
+        AppEnvironment.devAccountEmail,
+        AppEnvironment.devAccountPassword,
+      );
+    } on ApiException catch (e) {
+      if (e.statusCode != 401 && e.statusCode != 400) rethrow;
+      try {
+        await register(
+          AppEnvironment.devAccountEmail,
+          AppEnvironment.devAccountPassword,
+        );
+      } catch (_) {
+        await login(
+          AppEnvironment.devAccountEmail,
+          AppEnvironment.devAccountPassword,
+        );
+      }
+    }
+  }
+
+  Future<void> _refreshCachedProfile() async {
+    try {
+      final handle = await ProfileService.instance.fetchHandle();
+      if (handle != null && handle.isNotEmpty) {
+        await TokenStore.setCachedHandle(handle);
+        AccountSession.instance.handle.value = handle;
+      }
+    } catch (_) {}
   }
 
   Future<void> _authPost(String path, Map<String, dynamic> body) async {
@@ -89,7 +152,7 @@ class AuthService {
           (map['errors'] is List
               ? (map['errors'] as List).join(', ')
               : 'Auth failed');
-      throw ApiException(
+        throw ApiException(
         error.isEmpty ? 'Auth failed' : error,
         statusCode: response.statusCode,
       );
@@ -100,7 +163,9 @@ class AuthService {
       refreshToken: data['refreshToken']?.toString() ?? '',
       email: data['email']?.toString() ?? body['email']?.toString() ?? '',
     );
+    TokenStore.skipDevAutoLoginThisSession = false;
     AccountSession.instance.loggedIn.value = true;
     AccountSession.instance.email.value = await TokenStore.email();
+    unawaited(_refreshCachedProfile());
   }
 }

@@ -29,6 +29,8 @@ import 'package:solo_level_system/utils/reward_seed_service.dart';
 import 'package:solo_level_system/utils/collectible_deck_seed_service.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/utils/session_reward_service.dart';
+import 'package:solo_level_system/services/pomodoro_session_service.dart';
+import 'package:solo_level_system/services/solo_sync_service.dart';
 import 'package:solo_level_system/models/card_acquisition_settings.dart';
 import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/config/app_environment.dart';
@@ -1561,7 +1563,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  /// Persists the completed focus session.
+  /// Persists the completed focus session via [PomodoroSessionService] (the
+  /// shared recorder also used by the macOS menu-bar popover), then handles
+  /// the HomeScreen-local bits: today's count, project list refresh, and the
+  /// loot dialog.
   ///
   /// Card/points grants are controlled by [grantCardsAndPoints]. The focus
   /// completion path usually passes false and handles acquisition via mode.
@@ -1576,72 +1581,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // can be 0 on instant-finish / sub-minute runs and used to save "1 min".
     final minutesSpent = workMinutes > 0 ? workMinutes : 1;
 
-    final session = PomodoroModel(
-      startTime: sessionStartTime ?? DateTime.now(),
+    final recorded = await PomodoroSessionService().recordCompletedSession(
+      minutesSpent: minutesSpent,
+      dayPomodoroNumber: countCompletedToday + 1,
+      sessionStartTime: sessionStartTime,
+      project: selectedProject,
       audioPath: audioPath,
       imagePath: imagePath,
-      dayPomodoroNumber: countCompletedToday + 1,
-      duration: minutesSpent.toString(),
-      durationMinutes: minutesSpent,
-      project_id: selectedProject?.id,
-      project_name: selectedProject?.name,
-      clientId: DateTime.now().microsecondsSinceEpoch.toString(),
+      grantCardsAndPoints: grantCardsAndPoints,
     );
-    final box = Hive.box<PomodoroModel>('pomodoros');
-    await box.add(session);
+    final session = recorded.session;
+    final loot = recorded.loot;
 
-    await JournalService.addSessionCompleted(
-      minutes: minutesSpent,
-      projectName: selectedProject?.name,
-      source: 'focus',
-      accentColorHex: selectedProject?.color,
-    );
-
-    // Update project statistics if a project is selected
-    if (selectedProject != null) {
-      selectedProject!.addPomodoroSession();
-
-      final idx = projects.indexWhere((p) => p.id == selectedProject!.id);
-      if (idx > 0) {
-        projects[idx] == selectedProject!;
-      }
-      if (mounted) {
-        setState(() {});
-      }
-    }
-
-    SessionLoot? loot;
+    // Keep the HomeScreen's cached progress/project references in sync with
+    // what the service just mutated so the rest of the UI reflects it.
     await _ensureUserProgress();
-    try {
-      await MotivationSeedService.ensureSeeded();
-    } catch (_) {}
-    if (userProgress != null) {
-      userProgress!.recordSession(sessionDate: session.startTime);
-      if (grantCardsAndPoints) {
-        final settings = _liveSettings();
-        final count =
-            settings.acquisitionMode == CardAcquisitionMode.sessionCompletion
-            ? settings.clampedSessionCardCount
-            : 1;
-        loot = SessionRewardService.grant(
-          minutes: minutesSpent,
-          kind: SessionKind.focus,
-          progress: userProgress,
-          cardCountOverride: count,
-        );
-        if (loot.cards.isNotEmpty) {
-          unawaited(
-            JournalService.addCardsEarned(
-              cardTitles: loot.cards.map((c) => c.title).toList(),
-              source: 'focus',
-              modeWire: settings.acquisitionMode.wire,
-            ),
-          );
-        }
-        if (showLootUi && mounted && loot.cards.isNotEmpty) {
-          await showSessionLootDialog(context, loot);
-        }
-      }
+    if (selectedProject != null && mounted) {
+      setState(() {});
+    }
+    if (showLootUi && grantCardsAndPoints && mounted && loot != null &&
+        loot.cards.isNotEmpty) {
+      await showSessionLootDialog(context, loot);
     }
 
     print(
@@ -1834,8 +1794,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _timerController.addListener(_onTimerStateChanged);
+    SoloSyncService.instance.revision.addListener(_onSyncRevision);
     // Simplified initialization to prevent hanging
     _safeInitialize();
+  }
+
+  Future<void> _onSyncRevision() async {
+    try {
+      final count = await getTodayCompletedSessions();
+      if (!mounted) return;
+      if (countCompletedToday == count) return;
+      setState(() => countCompletedToday = count);
+    } catch (_) {}
   }
 
   void _safeInitialize() async {
@@ -2413,6 +2383,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _timerController.removeListener(_onTimerStateChanged);
+    SoloSyncService.instance.revision.removeListener(_onSyncRevision);
     _bgPlayer.dispose();
     _backgroundMusicService.dispose();
     _soundEffectsService.dispose();
