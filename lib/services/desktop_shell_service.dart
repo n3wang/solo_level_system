@@ -97,6 +97,11 @@ class DesktopShellService with TrayListener, WindowListener {
             label: 'Open Full App',
             onClick: (_) => openFullApp(),
           ),
+          MenuItem(
+            key: 'open_settings',
+            label: 'Settings…',
+            onClick: (_) => openFullAppAtSettings(),
+          ),
           MenuItem.separator(),
           MenuItem(key: 'quit', label: 'Quit', onClick: (_) => quit()),
         ],
@@ -112,6 +117,11 @@ class DesktopShellService with TrayListener, WindowListener {
       return;
     }
     togglePopover();
+  }
+
+  @override
+  void onTrayIconRightMouseDown() {
+    trayManager.popUpContextMenu();
   }
 
   Future<void> togglePopover() async {
@@ -153,6 +163,22 @@ class DesktopShellService with TrayListener, WindowListener {
     await windowManager.setSize(popoverSize);
   }
 
+  /// Index of the Settings tab in `MainNavigationScreen` — kept here so the
+  /// tray's "Settings…" item and the screen agree without a hidden coupling.
+  static const int settingsTabIndex = 3;
+
+  /// Broadcast "switch to this tab" signal. `MainNavigationScreen` listens
+  /// for this directly (not just at construction) so a tray-menu jump works
+  /// whether the full-app window is being opened fresh or is already
+  /// showing some other tab. Always bounces through `null` first so setting
+  /// it to the same tab twice in a row still notifies.
+  final ValueNotifier<int?> requestedTab = ValueNotifier<int?>(null);
+
+  void _requestTab(int index) {
+    requestedTab.value = null;
+    requestedTab.value = index;
+  }
+
   /// Expands the window into a normal titled/resizable full-app window and
   /// brings the Dock icon back.
   Future<void> openFullApp() async {
@@ -169,6 +195,14 @@ class DesktopShellService with TrayListener, WindowListener {
     await windowManager.center();
     await windowManager.show();
     await windowManager.focus();
+  }
+
+  /// Opens the full app window straight to the Settings tab — the tray
+  /// menu's quick "Settings…" action. Works whether the window was in
+  /// popover mode (fresh open) or already showing some other full-app tab.
+  Future<void> openFullAppAtSettings() async {
+    await openFullApp();
+    _requestTab(settingsTabIndex);
   }
 
   Future<void> quit() async {

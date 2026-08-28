@@ -49,27 +49,47 @@ class CompactTimerDisplay extends StatelessWidget {
             height: side,
             child: Stack(
               children: [
+                // Album art as a real Image (not DecorationImage) so
+                // TickerMode below can actually pause a GIF's animation —
+                // DecorationImage doesn't go through Image's ticker-aware
+                // state and won't respond to TickerMode.
                 Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                        PomodoroConstants.borderRadius,
-                      ),
-                      border: Border.all(
-                        color: accent,
-                        width: PomodoroConstants.borderWidth,
-                      ),
-                      image: albumImagePath != null
-                          ? DecorationImage(
-                              image: AssetImage(albumImagePath!),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(
+                      PomodoroConstants.borderRadius,
+                    ),
+                    child: albumImagePath != null
+                        ? TickerMode(
+                            enabled: isRunning,
+                            child: Image.asset(
+                              albumImagePath!,
                               fit: BoxFit.cover,
-                            )
-                          : null,
-                      color: albumImagePath == null
-                          ? accent.withValues(
+                              errorBuilder: (_, _, _) => Container(
+                                color: accent.withValues(
+                                  alpha: PomodoroConstants.containerOpacity,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            color: accent.withValues(
                               alpha: PomodoroConstants.containerOpacity,
-                            )
-                          : null,
+                            ),
+                          ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(
+                          PomodoroConstants.borderRadius,
+                        ),
+                        border: Border.all(
+                          color: accent,
+                          width: PomodoroConstants.borderWidth,
+                        ),
+                      ),
                     ),
                   ),
                 ),

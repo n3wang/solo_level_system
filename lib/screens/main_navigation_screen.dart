@@ -7,6 +7,7 @@ import 'package:solo_level_system/screens/analytics_screen.dart';
 import 'package:solo_level_system/screens/settings_screen.dart';
 import 'package:solo_level_system/screens/workout_screen.dart';
 import 'package:solo_level_system/models/user_settings_model.dart';
+import 'package:solo_level_system/services/desktop_shell_service.dart';
 import 'package:solo_level_system/utils/timer_controller.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -31,7 +32,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
+    _currentIndex = DesktopShellService().requestedTab.value ?? 0;
     _timerController.addListener(_onTimerStateChanged);
+    // macOS tray menu's "Settings…" (and any future quick-jump action) can
+    // fire this while this screen is already mounted on some other tab, not
+    // just at construction — e.g. right-click > Settings while the full
+    // app window is already open showing Stats.
+    DesktopShellService().requestedTab.addListener(_onRequestedTab);
     _screens = [
       HomeScreen(onSettingsChanged: () => _notifySettingsChanged()),
       AnalyticsScreen(),
@@ -40,9 +47,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ];
   }
 
+  void _onRequestedTab() {
+    final tab = DesktopShellService().requestedTab.value;
+    if (tab != null && mounted) setState(() => _currentIndex = tab);
+  }
+
   @override
   void dispose() {
     _timerController.removeListener(_onTimerStateChanged);
+    DesktopShellService().requestedTab.removeListener(_onRequestedTab);
     super.dispose();
   }
 

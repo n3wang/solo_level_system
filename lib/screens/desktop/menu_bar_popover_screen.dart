@@ -381,6 +381,58 @@ class _MenuBarPopoverScreenState extends State<MenuBarPopoverScreen> {
     }
   }
 
+  /// Same mute entry point HomeScreen's system-notification action uses —
+  /// it already toggles `allowMusic`, pauses/resumes the lofi player, and
+  /// notifies listeners, so the popover picks the change up for free.
+  void _toggleMusic() => _timerController.toggleMute();
+
+  /// Picks a new random track. No room concept exists on this surface (room
+  /// selection is ephemeral HomeScreen state, never persisted — see
+  /// HomeScreen._playLofi()), so this always takes the same unrestricted
+  /// path HomeScreen itself falls back to whenever no room is selected.
+  void _shuffleTrack() {
+    if (!_timerController.allowMusic) return;
+    unawaited(
+      _backgroundMusicService.playRandomTrack().then((_) {
+        if (mounted) setState(() {});
+      }),
+    );
+  }
+
+  Widget _buildMusicRow() {
+    final muted = !_timerController.allowMusic;
+    final label = muted
+        ? 'Music muted'
+        : (_timerController.getCurrentTrackTitle() ?? '—');
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _BareIconButton(
+          icon: muted ? Icons.volume_off : Icons.music_note,
+          tooltip: muted ? 'Unmute' : 'Mute',
+          onTap: _toggleMusic,
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11,
+              color: AppColorPalette.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        _BareIconButton(
+          icon: Icons.shuffle,
+          tooltip: 'New track',
+          onTap: muted ? null : _shuffleTrack,
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -543,6 +595,8 @@ class _MenuBarPopoverScreenState extends State<MenuBarPopoverScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 6),
+              _buildMusicRow(),
               if (_lastSessionMinutes != null) ...[
                 const SizedBox(height: 10),
                 Container(
@@ -878,6 +932,40 @@ class _IconGhostButton extends StatelessWidget {
             padding: const EdgeInsets.all(7),
             child: Icon(icon, size: 15, color: AppColorPalette.primary),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A bare tappable icon — no background, no border, just the glyph (plus
+/// the platform's default tap/hover feedback). Used for the compact music
+/// row where a visible button chrome would be too heavy for the space.
+class _BareIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onTap;
+
+  const _BareIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return Tooltip(
+      message: tooltip,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 14,
+        child: Icon(
+          icon,
+          size: 14,
+          color: enabled
+              ? AppColorPalette.textSecondary
+              : AppColorPalette.grey400,
         ),
       ),
     );
