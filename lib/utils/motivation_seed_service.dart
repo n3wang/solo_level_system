@@ -118,9 +118,24 @@ class MotivationSeedService {
     }
 
     await _ensureConfiguredCards(box);
+    await _pruneBoardgameCards(box);
 
     if (AppEnvironment.isTest) {
       await _ensureTestSampleGymQuotes(box);
+    }
+  }
+
+  /// Removes previously seeded boardgame catalog cards (no longer in CSV).
+  static Future<void> _pruneBoardgameCards(Box<CardModel> box) async {
+    final keysToDelete = <dynamic>[];
+    for (final entry in box.toMap().entries) {
+      final card = entry.value;
+      if (card.category.trim().toLowerCase() == 'boardgame') {
+        keysToDelete.add(entry.key);
+      }
+    }
+    for (final key in keysToDelete) {
+      await box.delete(key);
     }
   }
 
@@ -438,7 +453,6 @@ class MotivationSeedService {
 
   static String _typeFromCategory(String category) {
     if (category == 'philosopher') return 'phy';
-    if (category == 'boardgame' || category == 'plant') return 'collection';
     return 'collection';
   }
 

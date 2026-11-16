@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Displays a motivation / board-game icon by its catalog number.
+/// Displays a motivation / catalog icon by its catalog number.
 ///
 /// Icons are individual pre-sliced 64×64 PNGs under
 /// `assets/images/icon/c64x64_sliced/`, named by their 1-based catalog number
@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 /// each icon is now its own asset file rather than a slot in one texture.
 ///
 /// ```dart
-/// MotivationIconWidget(imageIndex: 1, size: 64) // Codenames
+/// MotivationIconWidget(imageIndex: 23, size: 64) // Venus Flytrap
 /// ```
 class MotivationIconWidget extends StatelessWidget {
   static const String slicedBasePath = 'assets/images/icon/c64x64_sliced';
