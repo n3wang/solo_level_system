@@ -25,13 +25,15 @@ class CharacterStatPanel extends StatelessWidget {
       builder: (context, constraints) {
         final layout = HeatmapLayout.forWidth(constraints.maxWidth);
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             const SizedBox(height: AppUiSizes.md),
-            Center(
+            Align(
+              alignment: Alignment.centerRight,
               child: Wrap(
                 spacing: layout.gap,
                 runSpacing: layout.gap,
+                alignment: WrapAlignment.end,
                 children: [
                   for (final stat in CharacterStat.values)
                     _StatChip(
@@ -46,6 +48,7 @@ class CharacterStatPanel extends StatelessWidget {
             Wrap(
               spacing: AppUiSizes.lg,
               runSpacing: AppUiSizes.sm,
+              alignment: WrapAlignment.end,
               children: [
                 _DerivedStat(
                   icon: Icons.local_fire_department_outlined,

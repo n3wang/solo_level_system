@@ -29,7 +29,7 @@ class AppEnvironment {
 
   /// Compile-time default used until [setDevelopmentDataEnabled] loads settings.
   /// Prefer the Settings → Development data toggle at runtime.
-  static const bool defaultDevelopmentData = true;
+  static const bool defaultDevelopmentData = false;
 
   static bool? _developmentDataEnabled;
 

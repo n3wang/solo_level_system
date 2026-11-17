@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/screens/case_math_screen.dart';
 import 'package:solo_level_system/screens/chrono_atlas_screen.dart';
+import 'package:solo_level_system/screens/picture_match_screen.dart';
 import 'package:solo_level_system/screens/times_tables_screen.dart';
 
 /// A playable mini-game entry for the Games hub and rest-break launcher.
@@ -54,6 +55,16 @@ class MiniGames {
               exitLabel: exitLabel,
             ),
           ),
+        MiniGameEntry(
+          id: PictureMatchScreen.highScoreKey,
+          title: 'Picture Match',
+          subtitle: 'Name the card from its picture',
+          icon: Icons.image_search_outlined,
+          accent: AppColorPalette.color2,
+          build: ({required String exitLabel}) => PictureMatchScreen(
+            exitLabel: exitLabel,
+          ),
+        ),
         MiniGameEntry(
           id: CaseMathScreen.highScoreKey,
           title: 'Case Math',

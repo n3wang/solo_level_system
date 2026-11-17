@@ -173,7 +173,7 @@ class UserSettingsModel extends HiveObject {
     this.enableAnalytics = false,
     this.autoBackup = true,
     this.backupPath = '',
-    this.developmentDataEnabled = true,
+    this.developmentDataEnabled = false,
     this.autoOpenJournalAfterFocus = true,
     this.cardAcquisitionMode = 'session_completion',
     this.sessionCompletionCardCount = 1,

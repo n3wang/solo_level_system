@@ -89,11 +89,15 @@ const List<String> kCollectibleOverviewTypeFilters = [
 ];
 
 /// Whether unowned catalog art/copy should be shown in full (test/demo).
+///
+/// Pass [forceReveal] from games / previews where the player already needs
+/// to see the card face (hub still uses acquire-to-reveal).
 bool revealCollectibleContents(
   CatalogCard card, {
   bool acquiredReveal = false,
+  bool forceReveal = false,
 }) {
-  if (acquiredReveal) return true;
+  if (forceReveal || acquiredReveal) return true;
   if (AppEnvironment.revealUnacquiredCardDetails) return true;
   return card.isAcquired;
 }

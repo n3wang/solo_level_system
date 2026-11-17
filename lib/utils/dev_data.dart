@@ -19,6 +19,8 @@ class DevData {
     ProjectSeedService.workProjectId,
   };
 
+  static const String _devDataOffMigrationFlag = 'dev_data_default_off_v1';
+
   /// Load persisted toggle into [AppEnvironment] before test bootstrap.
   static Future<void> loadFromSettings() async {
     if (!Hive.isBoxOpen('userSettings')) {
@@ -29,6 +31,19 @@ class DevData {
     if (box.get('settings') == null) {
       await box.put('settings', settings);
     }
+
+    // One-time: flip off installs that still have the old default (on).
+    // Users can re-enable via Settings → Development data.
+    if (!Hive.isBoxOpen('app_init_flags')) {
+      await Hive.openBox('app_init_flags');
+    }
+    final flags = Hive.box('app_init_flags');
+    if (flags.get(_devDataOffMigrationFlag) != true) {
+      settings.developmentDataEnabled = false;
+      await box.put('settings', settings);
+      await flags.put(_devDataOffMigrationFlag, true);
+    }
+
     AppEnvironment.setDevelopmentDataEnabled(settings.developmentDataEnabled);
   }
 

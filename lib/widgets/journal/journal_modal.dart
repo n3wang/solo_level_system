@@ -456,66 +456,83 @@ class _JournalModalState extends State<JournalModal> {
                           final primary = theme.primaryColor;
                           _pinToLatestIfNeeded(feed.length);
 
-                          return Column(
-                            children: [
-                              if (quote != null)
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    AppUiSizes.lg,
-                                    AppUiSizes.md,
-                                    AppUiSizes.lg,
-                                    0,
-                                  ),
-                                  child: _QuoteTile(
-                                    entry: quote,
-                                    onCite: () => _citeQuote(quote!),
-                                  ),
-                                ),
-                              Expanded(
-                                child: feed.isEmpty
-                                    ? Center(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(
-                                            AppUiSizes.xxl,
-                                          ),
-                                          child: Text(
-                                            widget.awaitingBreakResume
-                                                ? 'Session complete. Capture a note, clip, or photo — then close to start your break.'
-                                                : 'Your journal is empty for this day.\nWrite, record, or snap something.',
-                                            textAlign: TextAlign.center,
-                                            style: theme.textTheme.bodyMedium
-                                                ?.copyWith(
-                                                  color:
-                                                      AppColorPalette.grey700,
-                                                  height: 1.4,
-                                                ),
-                                          ),
+                          return LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Column(
+                                children: [
+                                  if (quote != null)
+                                    // Cap quote height when the keyboard shrinks
+                                    // the sheet so the composer never overflows.
+                                    ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        maxHeight: max(
+                                          64.0,
+                                          constraints.maxHeight * 0.35,
                                         ),
-                                      )
-                                    : ListView.separated(
-                                        controller: _scrollController,
-                                        physics:
-                                            const AlwaysScrollableScrollPhysics(),
+                                      ),
+                                      child: SingleChildScrollView(
                                         padding: const EdgeInsets.fromLTRB(
                                           AppUiSizes.lg,
                                           AppUiSizes.md,
                                           AppUiSizes.lg,
-                                          AppUiSizes.md,
+                                          0,
                                         ),
-                                        itemCount: feed.length,
-                                        separatorBuilder: (_, __) =>
-                                            const SizedBox(
-                                              height: AppUiSizes.md,
-                                            ),
-                                        itemBuilder: (context, index) {
-                                          return _FeedItemView(
-                                            item: feed[index],
-                                            primary: primary,
-                                          );
-                                        },
+                                        child: _QuoteTile(
+                                          entry: quote,
+                                          onCite: () => _citeQuote(quote!),
+                                        ),
                                       ),
-                              ),
-                            ],
+                                    ),
+                                  Expanded(
+                                    child: feed.isEmpty
+                                        ? Center(
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(
+                                                AppUiSizes.xxl,
+                                              ),
+                                              child: Text(
+                                                widget.awaitingBreakResume
+                                                    ? 'Session complete. Capture a note, clip, or photo — then close to start your break.'
+                                                    : 'Your journal is empty for this day.\nWrite, record, or snap something.',
+                                                textAlign: TextAlign.center,
+                                                style: theme
+                                                    .textTheme
+                                                    .bodyMedium
+                                                    ?.copyWith(
+                                                      color: AppColorPalette
+                                                          .grey700,
+                                                      height: 1.4,
+                                                    ),
+                                              ),
+                                            ),
+                                          )
+                                        : ListView.separated(
+                                            controller: _scrollController,
+                                            physics:
+                                                const AlwaysScrollableScrollPhysics(),
+                                            padding:
+                                                const EdgeInsets.fromLTRB(
+                                                  AppUiSizes.lg,
+                                                  AppUiSizes.md,
+                                                  AppUiSizes.lg,
+                                                  AppUiSizes.md,
+                                                ),
+                                            itemCount: feed.length,
+                                            separatorBuilder: (_, __) =>
+                                                const SizedBox(
+                                                  height: AppUiSizes.md,
+                                                ),
+                                            itemBuilder: (context, index) {
+                                              return _FeedItemView(
+                                                item: feed[index],
+                                                primary: primary,
+                                              );
+                                            },
+                                          ),
+                                  ),
+                                ],
+                              );
+                            },
                           );
                         },
                       )),
@@ -779,7 +796,7 @@ class _JournalContentTile extends StatelessWidget {
   }
 }
 
-class _ComposerBar extends StatelessWidget {
+class _ComposerBar extends StatefulWidget {
   final TextEditingController controller;
   final bool sending;
   final bool showSessionNoteToggle;
@@ -801,15 +818,51 @@ class _ComposerBar extends StatelessWidget {
   });
 
   @override
+  State<_ComposerBar> createState() => _ComposerBarState();
+}
+
+class _ComposerBarState extends State<_ComposerBar> {
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = theme.primaryColor;
+    // Dialog already pads for the keyboard; skip SafeArea bottom while the
+    // keyboard is up so we don't stack ~home-indicator padding on top.
+    final view = View.of(context);
+    final keyboardBottom = EdgeInsets.fromViewPadding(
+      view.viewInsets,
+      view.devicePixelRatio,
+    ).bottom;
+    final keyboardOpen = keyboardBottom > 0;
+    final textFocused = _focusNode.hasFocus;
+
     return Material(
       color: theme.colorScheme.surface,
       elevation: 6,
       shadowColor: Colors.black26,
       child: SafeArea(
         top: false,
+        bottom: !keyboardOpen,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
             AppUiSizes.md,
@@ -821,13 +874,14 @@ class _ComposerBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (showSessionNoteToggle) ...[
+              if (widget.showSessionNoteToggle) ...[
                 SettingsRectChip(
                   label: 'session note',
-                  selected: sessionNoteEnabled,
+                  selected: widget.sessionNoteEnabled,
                   activeColor: accent,
                   size: SettingsRectChipSize.compact,
-                  onTap: () => onSessionNoteChanged(!sessionNoteEnabled),
+                  onTap: () =>
+                      widget.onSessionNoteChanged(!widget.sessionNoteEnabled),
                 ),
                 const SizedBox(height: AppUiSizes.sm),
               ],
@@ -836,11 +890,12 @@ class _ComposerBar extends StatelessWidget {
                 children: [
                   Expanded(
                     child: TextField(
-                      controller: controller,
+                      controller: widget.controller,
+                      focusNode: _focusNode,
                       minLines: 1,
-                      maxLines: 4,
+                      maxLines: keyboardOpen || textFocused ? 2 : 4,
                       textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => onSubmitText(),
+                      onSubmitted: (_) => widget.onSubmitText(),
                       decoration: InputDecoration(
                         hintText: 'text input',
                         filled: true,
@@ -858,7 +913,8 @@ class _ComposerBar extends StatelessWidget {
                         ),
                         suffixIcon: IconButton(
                           tooltip: 'Send',
-                          onPressed: sending ? null : onSubmitText,
+                          onPressed:
+                              widget.sending ? null : widget.onSubmitText,
                           icon: Icon(
                             Icons.send_rounded,
                             color: accent,
@@ -868,14 +924,19 @@ class _ComposerBar extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: AppUiSizes.sm),
-                  _JournalMicButton(onRecordingComplete: onAudioCaptured),
-                  const SizedBox(width: AppUiSizes.sm),
-                  _ComposerIconButton(
-                    color: AppColorPalette.warning,
-                    icon: Icons.photo_camera_outlined,
-                    onTap: onCapturePhoto,
-                  ),
+                  // Hide mic/camera while typing so the field can use the width.
+                  if (!textFocused) ...[
+                    const SizedBox(width: AppUiSizes.sm),
+                    _JournalMicButton(
+                      onRecordingComplete: widget.onAudioCaptured,
+                    ),
+                    const SizedBox(width: AppUiSizes.sm),
+                    _ComposerIconButton(
+                      color: AppColorPalette.warning,
+                      icon: Icons.photo_camera_outlined,
+                      onTap: widget.onCapturePhoto,
+                    ),
+                  ],
                 ],
               ),
             ],

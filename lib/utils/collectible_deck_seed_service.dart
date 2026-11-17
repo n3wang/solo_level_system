@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:solo_level_system/models/card_model.dart';
+import 'package:solo_level_system/utils/chrono_atlas_scoring.dart';
 
 /// Seeds the three unwired CSV-backed decks — D&D 5e monsters, NPC portraits,
 /// and the mixed Floriography/Ornithography/Art/History deck — as
@@ -234,6 +235,9 @@ class CollectibleDeckSeedService {
         final yearKind = (row['year_kind'] ?? '').trim();
         final placeLabel = (row['place_label'] ?? '').trim();
         final yearEnd = (row['year_end'] ?? '').trim();
+        // `lat|lng[|radiusKm]` pins (`;`-separated) make the card playable in
+        // Chrono Atlas place rounds.
+        final pins = ChronoAtlasScoring.parsePins(row['pins']);
         final parsedYear = int.tryParse(yearRaw);
         // Non-numeric years (e.g. "1st century") display via yearLabel.
         final yearLabel = parsedYear == null && yearRaw.isNotEmpty
@@ -258,6 +262,7 @@ class CollectibleDeckSeedService {
             yearKind: yearKind.isEmpty ? null : yearKind,
             placeLabel: placeLabel.isEmpty ? null : placeLabel,
             yearLabel: yearLabel.isEmpty ? null : yearLabel,
+            pins: pins,
           ),
         );
       }
@@ -296,6 +301,7 @@ class CollectibleDeckSeedService {
     String? yearKind,
     String? placeLabel,
     String? yearLabel,
+    List<ChronoAtlasPin> pins = const [],
   }) {
     final now = DateTime.now();
     return CardModel(
@@ -317,6 +323,15 @@ class CollectibleDeckSeedService {
         if (placeLabel != null && placeLabel.isNotEmpty)
           'placeLabel': placeLabel,
         if (yearLabel != null && yearLabel.isNotEmpty) 'yearLabel': yearLabel,
+        if (pins.isNotEmpty)
+          'pins': [
+            for (final p in pins)
+              {
+                'lat': p.lat,
+                'lng': p.lng,
+                if (p.radiusKm != null) 'radiusKm': p.radiusKm,
+              },
+          ],
       },
     );
   }

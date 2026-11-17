@@ -277,6 +277,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           ? LoadingIndicator(message: 'Loading...')
           : TabBarView(
               controller: _tabController,
+              physics: const NeverScrollableScrollPhysics(),
               children: [
                 _buildSetsTab(),
                 _buildTimedTab(),
@@ -485,6 +486,19 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     });
   }
 
+  /// Cycle filter chip selection: A → 1 → 2 → … (delta -1 / +1).
+  void _cycleSelectedSet(int delta, List<WorkoutSetCategoryModel> sets) {
+    final options = <String?>[null, ...sets.map((s) => s.id)];
+    if (options.isEmpty) return;
+    var currentIndex = options.indexOf(_selectedSetId);
+    if (currentIndex < 0) currentIndex = 0;
+    final nextIndex = currentIndex + delta;
+    if (nextIndex < 0 || nextIndex >= options.length) return;
+    setState(() {
+      _selectedSetId = options[nextIndex];
+    });
+  }
+
   Widget _buildSetsTab() {
     return ValueListenableBuilder(
       valueListenable: Hive.box<WorkoutSetCategoryModel>(
@@ -498,10 +512,25 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         return Column(
           children: [
             _buildSetFilters(activeSets),
-            _buildWorkoutHeader(activeSets),
-            if (_isSearchVisible) _buildSearchBar(),
-            SizedBox(height: 16), // Padding between header and list items
-            Expanded(child: _buildExercisesList(activeSets)),
+            Expanded(
+              child: GestureDetector(
+                // Swipe left/right cycles A → 1 → 2… (tabs stay on Sets).
+                onHorizontalDragEnd: (details) {
+                  final velocity = details.primaryVelocity ?? 0;
+                  if (velocity.abs() < 200) return;
+                  _cycleSelectedSet(velocity < 0 ? 1 : -1, activeSets);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Column(
+                  children: [
+                    _buildWorkoutHeader(activeSets),
+                    if (_isSearchVisible) _buildSearchBar(),
+                    SizedBox(height: 16), // Padding between header and list items
+                    Expanded(child: _buildExercisesList(activeSets)),
+                  ],
+                ),
+              ),
+            ),
           ],
         );
       },

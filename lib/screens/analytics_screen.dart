@@ -49,6 +49,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   late TabController _tabController;
   StatsPeriod _selectedPeriod = StatsPeriod.week;
   late final Future<void> _overviewBoxesFuture;
+  bool _showCharacterStats = false;
 
   @override
   void initState() {
@@ -214,23 +215,46 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CharacterStatPanel(
-                                cards: motivationBox.values.toList(),
-                              ),
-                              const SizedBox(height: AppUiSizes.xxl),
-                              _buildWeeklyOverview(
-                                DevData.visibleOnly(
-                                  pomodoroBox.values,
-                                  idOf: (_) => null,
-                                  projectIdOf: (p) => p.project_id,
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () {
+                                    setState(
+                                      () => _showCharacterStats =
+                                          !_showCharacterStats,
+                                    );
+                                  },
+                                  icon: Icon(
+                                    _showCharacterStats
+                                        ? Icons.expand_less
+                                        : Icons.expand_more,
+                                  ),
+                                  label: Text(
+                                    _showCharacterStats
+                                        ? 'Hide stats'
+                                        : 'Show stats',
+                                  ),
                                 ),
-                                DevData.visibleOnly(
-                                  workoutBox.values,
-                                  idOf: (s) => s.id,
-                                  tagsOf: (s) => s.tags,
-                                ),
                               ),
-                              const SizedBox(height: AppUiSizes.xxl),
+                              if (_showCharacterStats) ...[
+                                CharacterStatPanel(
+                                  cards: motivationBox.values.toList(),
+                                ),
+                                const SizedBox(height: AppUiSizes.xxl),
+                                _buildWeeklyOverview(
+                                  DevData.visibleOnly(
+                                    pomodoroBox.values,
+                                    idOf: (_) => null,
+                                    projectIdOf: (p) => p.project_id,
+                                  ),
+                                  DevData.visibleOnly(
+                                    workoutBox.values,
+                                    idOf: (s) => s.id,
+                                    tagsOf: (s) => s.tags,
+                                  ),
+                                ),
+                                const SizedBox(height: AppUiSizes.xxl),
+                              ],
                               _OverviewNewCardsSection(catalog: catalog),
                               // Extra space so FAB does not cover the last row.
                               const SizedBox(height: 72),
@@ -410,9 +434,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       builder: (context, constraints) {
         final layout = HeatmapLayout.forWidth(constraints.maxWidth);
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Center(
+            Align(
+              alignment: Alignment.centerRight,
               child: SizedBox(
                 width: layout.totalWidth,
                 child: Column(
@@ -479,6 +504,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             ),
             const SizedBox(height: AppUiSizes.md),
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 _buildMinutesLegendChip('workout', workoutColor),
                 const SizedBox(width: AppUiSizes.sm),

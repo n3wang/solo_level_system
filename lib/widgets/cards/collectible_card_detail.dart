@@ -26,6 +26,9 @@ Future<void> showCollectibleCardDetail({
   bool allowAcquire = true,
   bool acquiredReveal = false,
 
+  /// Always show art + description (games). Hub still spoils until acquired.
+  bool forceRevealContents = false,
+
   /// When true, hide place / year catalog facts (e.g. Chrono Atlas pre-confirm).
   bool hideCatalogFacts = false,
 }) {
@@ -37,6 +40,7 @@ Future<void> showCollectibleCardDetail({
       userProgress: userProgress,
       allowAcquire: acquiredReveal ? false : allowAcquire,
       acquiredReveal: acquiredReveal,
+      forceRevealContents: forceRevealContents,
       hideCatalogFacts: hideCatalogFacts,
     ),
   );
@@ -67,6 +71,7 @@ class CollectibleCardDetailDialog extends StatefulWidget {
   final UserProgressModel userProgress;
   final bool allowAcquire;
   final bool acquiredReveal;
+  final bool forceRevealContents;
   final bool hideCatalogFacts;
 
   const CollectibleCardDetailDialog({
@@ -75,6 +80,7 @@ class CollectibleCardDetailDialog extends StatefulWidget {
     required this.userProgress,
     this.allowAcquire = true,
     this.acquiredReveal = false,
+    this.forceRevealContents = false,
     this.hideCatalogFacts = false,
   });
 
@@ -304,6 +310,7 @@ class _CollectibleCardDetailDialogState
     final revealed = revealCollectibleContents(
       card,
       acquiredReveal: widget.acquiredReveal,
+      forceReveal: widget.forceRevealContents,
     );
     final isPhy = card.type == CardType.phy;
     final visuals = revealed ? _roomVisuals : const <String>[];

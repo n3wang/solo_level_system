@@ -11,6 +11,7 @@ import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/utils/card_repository.dart';
 import 'package:solo_level_system/utils/chrono_atlas_map_config.dart';
 import 'package:solo_level_system/utils/chrono_atlas_scoring.dart';
+import 'package:solo_level_system/utils/collectible_deck_seed_service.dart';
 import 'package:solo_level_system/utils/motivation_seed_service.dart';
 import 'package:solo_level_system/widgets/cards/collectible_card.dart';
 import 'package:solo_level_system/widgets/common/button_components.dart';
@@ -225,6 +226,8 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   Future<void> _bootstrap() async {
     try {
       await MotivationSeedService.ensureSeeded();
+      // cards_128x185.csv decks (history, travel, …) carry year/pins too.
+      await CollectibleDeckSeedService.ensureSeeded();
       if (!Hive.isBoxOpen(_boxName)) {
         await Hive.openBox<CardModel>(_boxName);
       }
@@ -629,6 +632,8 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       card: catalog,
       userProgress: progress,
       allowAcquire: false,
+      // Games always show art + description; hub still spoils until acquired.
+      forceRevealContents: true,
       // Place / year stay hidden until the player confirms their guess.
       hideCatalogFacts: _phase == _RoundPhase.guess,
     );

@@ -47,6 +47,46 @@
           "comments": []
         },
         {
+          "id": "f1d9bc53-96d5-4f9b-9e86-536aeee5fb3f",
+          "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
+          "title": "Motivational cards for workout -> Card Model",
+          "description": "On the One should be able to create motivational cards and ",
+          "labels": [],
+          "checkboxes": [
+            {
+              "id": "3dd64d6f-9bfb-4fb7-a11a-b8de0e5db074",
+              "title": "Actually move the the side buttons from the right to the top",
+              "checked": true
+            },
+            {
+              "id": "09bb8b4d-3b4a-42d0-b9b4-a71bd274129d",
+              "title": "Add zombies and fighting motivation packs for workout (unlockeable)",
+              "checked": false
+            },
+            {
+              "id": "8b93ffb4-67dc-423d-bb29-60eff731f0cb",
+              "title": "Implement model",
+              "checked": false
+            },
+            {
+              "id": "d2431584-d7ec-4bd6-876d-bb0d246474bc",
+              "title": "Create Castle in the Sky Room",
+              "checked": false
+            },
+            {
+              "id": "aea6cc02-bf37-48e9-a509-7d0a258284a9",
+              "title": "Create Vampire/haunted Libraries Room",
+              "checked": false
+            }
+          ],
+          "comments": [
+            {
+              "id": "15e93875-7684-4c21-9bef-31d6c0886729",
+              "comment": "The user should allow for creating images (uploading images, optional) and have motivational cards, when viewing the motivanal card, the text shoudl appear overalying the image and the image should be fitting the width, the users shoudl be able to have an access to view all his motivational cards. Create and migrate the models required for self storing thes on  Hive"
+            }
+          ]
+        },
+        {
           "id": "e751cd0f-6225-4777-ab94-a40c8d2999b6",
           "listId": "b3dd71b0-e835-4e17-a02b-d82c10654709",
           "title": "Revision and usefulsenes of settings",
@@ -141,65 +181,10 @@
       "title": "Doing",
       "cards": [
         {
-          "id": "f1d9bc53-96d5-4f9b-9e86-536aeee5fb3f",
-          "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Motivational cards for workout -> Card Model",
-          "description": "On the One should be able to create motivational cards and ",
-          "labels": [],
-          "checkboxes": [
-            {
-              "id": "3dd64d6f-9bfb-4fb7-a11a-b8de0e5db074",
-              "title": "Actually move the the side buttons from the right to the top",
-              "checked": true
-            },
-            {
-              "id": "09bb8b4d-3b4a-42d0-b9b4-a71bd274129d",
-              "title": "Add zombies and fighting motivation packs for workout (unlockeable)",
-              "checked": false
-            },
-            {
-              "id": "8b93ffb4-67dc-423d-bb29-60eff731f0cb",
-              "title": "Implement model",
-              "checked": false
-            },
-            {
-              "id": "d2431584-d7ec-4bd6-876d-bb0d246474bc",
-              "title": "Create Castle in the Sky Room",
-              "checked": false
-            },
-            {
-              "id": "44fd5706-d9c6-4568-9c6b-78e116c80b6a",
-              "title": "Reclean the music origins and audio free with correct labels",
-              "checked": false
-            },
-            {
-              "id": "91efeb9d-3014-4df7-babf-fff6c74f5baa",
-              "title": "Create Monoke Traveling Rooms",
-              "checked": false
-            },
-            {
-              "id": "aea6cc02-bf37-48e9-a509-7d0a258284a9",
-              "title": "Create Vampire/haunted Libraries Room",
-              "checked": false
-            },
-            {
-              "id": "6d6e6e5a-2460-4080-9b90-ae118ae87ca5",
-              "title": "Change it so that images are preexported into slices",
-              "checked": false
-            }
-          ],
-          "comments": [
-            {
-              "id": "15e93875-7684-4c21-9bef-31d6c0886729",
-              "comment": "The user should allow for creating images (uploading images, optional) and have motivational cards, when viewing the motivanal card, the text shoudl appear overalying the image and the image should be fitting the width, the users shoudl be able to have an access to view all his motivational cards. Create and migrate the models required for self storing thes on  Hive"
-            }
-          ]
-        },
-        {
           "id": "948dc2df-4d1b-4955-8ce2-4af0a9ac65cf",
           "listId": "125bd6ab-d32d-460e-9159-9c34b027ef62",
-          "title": "Add the 50 states and countries locations",
-          "description": "",
+          "title": "Add the 50 states and countries locations + capitals",
+          "description": "Means also having the images of the states and countires pack\n",
           "labels": [],
           "checkboxes": [],
           "comments": []

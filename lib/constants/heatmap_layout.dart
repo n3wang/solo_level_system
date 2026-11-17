@@ -13,7 +13,7 @@ class HeatmapLayout {
   /// Character stat chips use the heatmap cell width, this times taller.
   static const double statChipHeightFactor = 1.5;
 
-  /// Square cells with a small gap, centered in [maxWidth].
+  /// Square cells with a small gap; callers right-align the block in [maxWidth].
   static ({double cellSize, double gap, double totalWidth}) forWidth(
     double maxWidth,
   ) {
