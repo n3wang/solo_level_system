@@ -17,11 +17,15 @@ class ChronoAtlasGeoResult {
     required this.distanceKm,
     required this.score,
     required this.nearestPin,
+    this.sameCountry = false,
   });
 
   final double distanceKm;
   final int score;
   final ChronoAtlasPin nearestPin;
+
+  /// Guess landed in the same country polygon as the target pin.
+  final bool sameCountry;
 }
 
 class ChronoAtlasYearResult {
@@ -58,10 +62,14 @@ class ChronoAtlasScoring {
   }
 
   /// Effective distance after optional accept radius (0 if inside radius).
+  ///
+  /// When [sameCountry] is true (guess + target share a country polygon),
+  /// awards full points regardless of distance.
   static ChronoAtlasGeoResult scoreGeo({
     required double guessLat,
     required double guessLng,
     required List<ChronoAtlasPin> pins,
+    bool sameCountry = false,
   }) {
     if (pins.isEmpty) {
       throw ArgumentError('pins must not be empty');
@@ -80,6 +88,15 @@ class ChronoAtlasScoring {
         bestRaw = km;
         nearest = pin;
       }
+    }
+
+    if (sameCountry) {
+      return ChronoAtlasGeoResult(
+        distanceKm: 0,
+        score: 5000,
+        nearestPin: nearest,
+        sameCountry: true,
+      );
     }
 
     final radius = nearest.radiusKm ?? 0;

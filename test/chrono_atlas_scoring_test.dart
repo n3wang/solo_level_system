@@ -28,6 +28,27 @@ void main() {
       expect(near.score, 5000);
     });
 
+    test('scoreGeo awards full points for same country', () {
+      const pins = [ChronoAtlasPin(lat: 48.0, lng: 2.0)];
+      final farButSameCountry = ChronoAtlasScoring.scoreGeo(
+        guessLat: 43.0,
+        guessLng: 5.0,
+        pins: pins,
+        sameCountry: true,
+      );
+      expect(farButSameCountry.sameCountry, isTrue);
+      expect(farButSameCountry.distanceKm, 0);
+      expect(farButSameCountry.score, 5000);
+
+      final outside = ChronoAtlasScoring.scoreGeo(
+        guessLat: 43.0,
+        guessLng: 5.0,
+        pins: pins,
+      );
+      expect(outside.sameCountry, isFalse);
+      expect(outside.score, lessThan(5000));
+    });
+
     test('scoreYear bands', () {
       expect(ChronoAtlasScoring.scoreYear(guess: 2015, answer: 2015).score, 5000);
       expect(ChronoAtlasScoring.scoreYear(guess: 2014, answer: 2015).score, 5000);

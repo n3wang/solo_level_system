@@ -9,6 +9,7 @@ import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/models/card_model.dart';
 import 'package:solo_level_system/models/user_progress_model.dart';
 import 'package:solo_level_system/utils/card_repository.dart';
+import 'package:solo_level_system/utils/chrono_atlas_country_index.dart';
 import 'package:solo_level_system/utils/chrono_atlas_map_config.dart';
 import 'package:solo_level_system/utils/chrono_atlas_scoring.dart';
 import 'package:solo_level_system/utils/collectible_deck_seed_service.dart';
@@ -61,7 +62,7 @@ extension ChronoAtlasSessionModeX on ChronoAtlasSessionMode {
 /// A round asks for one thing only: where it belongs, or when it happened.
 enum _RoundMode { place, year }
 
-enum _RoundPhase { guess, reveal, summary }
+enum _RoundPhase { preview, guess, reveal, summary }
 
 /// Coarse era before the year scrubber (narrower track → more accurate picks).
 enum _YearEra { bce, early, modern }
@@ -127,10 +128,16 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
 
   List<_MarkerSpec> _markers = const [];
   UserProgressModel? _userProgress;
+  ChronoAtlasCountryIndex? _countryIndex;
 
   /// Session breadcrumbs on the map (geo: past guesses; mixed: correct places).
   final List<_SessionMapPin> _sessionPins = [];
   bool _showSessionMiniatures = false;
+
+  /// Geo session cold-open: show deck miniatures at true pins before round 1.
+  static const int _previewDurationSeconds = 5;
+  int _previewSecondsLeft = 0;
+  Timer? _previewTimer;
 
   /// Correct years from prior rounds (time / mixed year rounds).
   final List<_SessionYearPin> _sessionYears = [];
@@ -228,6 +235,10 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       await MotivationSeedService.ensureSeeded();
       // cards_128x185.csv decks (history, travel, …) carry year/pins too.
       await CollectibleDeckSeedService.ensureSeeded();
+      if (widget.sessionMode == ChronoAtlasSessionMode.geo ||
+          widget.sessionMode == ChronoAtlasSessionMode.mixed) {
+        _countryIndex = await ChronoAtlasCountryIndex.load();
+      }
       if (!Hive.isBoxOpen(_boxName)) {
         await Hive.openBox<CardModel>(_boxName);
       }
@@ -261,18 +272,28 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
           .map((card) => _Round(card: card, mode: _pickMode(card, rng)))
           .toList();
       if (!mounted) return;
+      final startWithPreview =
+          widget.sessionMode == ChronoAtlasSessionMode.geo;
       setState(() {
         _deck = deck;
         _loading = false;
         _error = null;
-        _phase = _RoundPhase.guess;
+        _phase =
+            startWithPreview ? _RoundPhase.preview : _RoundPhase.guess;
+        _previewSecondsLeft =
+            startWithPreview ? _previewDurationSeconds : 0;
         _roundIndex = 0;
       });
       // Wait for SfMaps to mount with the fresh controller before mutating
       // zoom/markers — otherwise Play again hits "Unexpected null value".
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _deck.isEmpty) return;
-        setState(_startRound);
+        if (startWithPreview) {
+          setState(_beginGeoPreview);
+          _armPreviewCountdown();
+        } else {
+          setState(_startRound);
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -307,6 +328,50 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   }
 
   _Round get _current => _deck[_roundIndex];
+
+  /// Geo cold-open: pin every deck card at its true place for a few seconds.
+  void _beginGeoPreview() {
+    const focal = MapLatLng(20, 10);
+    _zoomPanBehavior.zoomLevel = _worldZoom;
+    _zoomPanBehavior.focalLatLng = focal;
+    _setHomeView(focal, _worldZoom);
+    _guessLatLng = null;
+    _showSessionMiniatures = false;
+    _setMarkers([
+      for (final round in _deck)
+        if (round.card.hasPins)
+          _MarkerSpec(
+            lat: round.card.pins.first.lat,
+            lng: round.card.pins.first.lng,
+            kind: _MarkerKind.miniature,
+            card: round.card.source,
+          ),
+    ]);
+  }
+
+  void _armPreviewCountdown() {
+    _previewTimer?.cancel();
+    _previewTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_phase != _RoundPhase.preview) {
+        timer.cancel();
+        return;
+      }
+      if (_previewSecondsLeft <= 1) {
+        timer.cancel();
+        setState(() {
+          _previewSecondsLeft = 0;
+          _phase = _RoundPhase.guess;
+          _startRound();
+        });
+        return;
+      }
+      setState(() => _previewSecondsLeft--);
+    });
+  }
 
   /// Year rounds hand the location over for free; place rounds start blank.
   void _startRound() {
@@ -493,10 +558,29 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
 
     if (round.mode == _RoundMode.place) {
       if (_guessLatLng == null) return;
+      final index = _countryIndex;
+      var sameCountry = false;
+      if (index != null) {
+        final guessCountry = index.countryAt(
+          lat: _guessLatLng!.latitude,
+          lng: _guessLatLng!.longitude,
+        );
+        // Same country as any target pin counts as a perfect place hit.
+        for (final pin in round.card.pins) {
+          final targetCountry = index.countryAt(lat: pin.lat, lng: pin.lng);
+          if (guessCountry != null &&
+              targetCountry != null &&
+              guessCountry == targetCountry) {
+            sameCountry = true;
+            break;
+          }
+        }
+      }
       geo = ChronoAtlasScoring.scoreGeo(
         guessLat: _guessLatLng!.latitude,
         guessLng: _guessLatLng!.longitude,
         pins: round.card.pins,
+        sameCountry: sameCountry,
       );
       score = geo.score;
       _setMarkers([
@@ -592,6 +676,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   }
 
   Future<void> _restart() async {
+    _previewTimer?.cancel();
     setState(() {
       _loading = true;
       _error = null;
@@ -616,11 +701,18 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
       _sessionPins.clear();
       _sessionYears.clear();
       _showSessionMiniatures = false;
+      _previewSecondsLeft = 0;
       _phase = _RoundPhase.guess;
       // Fresh controllers — old ones stay tied to the disposed summary-era map.
       _createMapControllers();
     });
     await _bootstrap();
+  }
+
+  @override
+  void dispose() {
+    _previewTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _openObjectiveCard() async {
@@ -769,8 +861,35 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
     );
   }
 
-  /// Top row: bare exit · place hint (year scrubber lives at the bottom).
+  /// Top row: bare exit · place hint / preview countdown.
   Widget _buildTopChrome() {
+    final hintStyle = TextStyle(
+      color: AppColorPalette.textColor,
+      fontWeight: FontWeight.w600,
+      fontSize: 13,
+      shadows: const [Shadow(color: Colors.white, blurRadius: 6)],
+    );
+    final Widget? centerHint;
+    if (_phase == _RoundPhase.preview) {
+      centerHint = Text(
+        '$_previewSecondsLeft',
+        textAlign: TextAlign.center,
+        style: hintStyle.copyWith(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+        ),
+      );
+    } else if (_current.mode == _RoundMode.place &&
+        _phase == _RoundPhase.guess) {
+      centerHint = Text(
+        'Tap the map where this belongs',
+        textAlign: TextAlign.center,
+        style: hintStyle,
+      );
+    } else {
+      centerHint = null;
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 4, 8, 0),
       child: Row(
@@ -782,27 +901,19 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           Expanded(
-            child:
-                _current.mode == _RoundMode.place && _phase == _RoundPhase.guess
-                ? Padding(
+            child: centerHint == null
+                ? const SizedBox.shrink()
+                : Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      'Tap the map where this belongs',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColorPalette.textColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        shadows: const [
-                          Shadow(color: Colors.white, blurRadius: 6),
-                        ],
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
+                    child: centerHint,
+                  ),
           ),
-          // Keep the far right clear for the objective card.
-          const SizedBox(width: _overlayCardWidth + 8),
+          // Keep the far right clear for the objective card (or mirror exit).
+          SizedBox(
+            width: _phase == _RoundPhase.preview
+                ? 48
+                : _overlayCardWidth + 8,
+          ),
         ],
       ),
     );
@@ -1015,6 +1126,7 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
   }
 
   Widget _buildObjectiveCardOverlay() {
+    if (_phase == _RoundPhase.preview) return const SizedBox.shrink();
     final catalog = CardRepository.fromCardModel(_current.card.source);
     final cardHeight = _overlayCardWidth / CollectibleCardLayout.aspectRatio;
 
@@ -1221,9 +1333,11 @@ class _ChronoAtlasScreenState extends State<ChronoAtlasScreen> {
             ),
           const SizedBox(height: 4),
           Text(
-            'Off by ${_formatDistance(_geoResult!.distanceKm)} · '
-            '+${_geoResult!.score}',
-            style: TextStyle(color: AppColorPalette.textSecondary),
+            _geoResult!.sameCountry
+                ? 'Same country · +${_geoResult!.score}'
+                : 'Off by ${_formatDistance(_geoResult!.distanceKm)} · '
+                    '+${_geoResult!.score}',
+            style: TextStyle(color: AppColorPalette.textColor),
           ),
         ],
       );

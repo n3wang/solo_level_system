@@ -77,6 +77,13 @@ class _MatchRound {
   final List<_MatchCard> options;
 }
 
+class _AnsweredChip {
+  const _AnsweredChip({required this.card, required this.correct});
+
+  final _MatchCard card;
+  final bool correct;
+}
+
 class _PictureMatchScreenState extends State<PictureMatchScreen> {
   static const _allDecks = 'all';
   static const _roundOptions = [10, 15, 20];
@@ -101,6 +108,12 @@ class _PictureMatchScreenState extends State<PictureMatchScreen> {
   int _bestStreak = 0;
   int _sessionScore = 0;
   int _answerToken = 0;
+
+  /// Answer trail for the top bar (green / red bordered miniatures).
+  final List<_AnsweredChip> _answered = [];
+
+  /// Misses in the current pass — replayed until the pass is clean.
+  final List<_MatchCard> _passMisses = [];
 
   List<_MatchHighScore> _highScores = const [];
   int? _highlightHighScoreIndex;
@@ -239,6 +252,8 @@ class _PictureMatchScreenState extends State<PictureMatchScreen> {
       _streak = 0;
       _bestStreak = 0;
       _sessionScore = 0;
+      _answered.clear();
+      _passMisses.clear();
       _phase = _MatchPhase.playing;
     });
     _syncKeyboardFocus();
@@ -258,6 +273,9 @@ class _PictureMatchScreenState extends State<PictureMatchScreen> {
     final token = ++_answerToken;
     setState(() {
       _pickedIndex = index;
+      _answered.add(
+        _AnsweredChip(card: round.answer, correct: isCorrect),
+      );
       if (isCorrect) {
         _correct++;
         _streak++;
@@ -266,6 +284,7 @@ class _PictureMatchScreenState extends State<PictureMatchScreen> {
       } else {
         _misses++;
         _streak = 0;
+        _passMisses.add(round.answer);
       }
     });
     Future<void>.delayed(_revealDelay, () {
@@ -278,6 +297,10 @@ class _PictureMatchScreenState extends State<PictureMatchScreen> {
     if (_phase != _MatchPhase.playing || _pickedIndex == null) return;
     _answerToken++;
     if (_roundIndex + 1 >= _rounds.length) {
+      if (_passMisses.isNotEmpty) {
+        _startMissedPass();
+        return;
+      }
       _finish();
       return;
     }
@@ -285,6 +308,22 @@ class _PictureMatchScreenState extends State<PictureMatchScreen> {
       _roundIndex++;
       _pickedIndex = null;
     });
+  }
+
+  /// Replay only cards missed in the last pass until a clean pass.
+  void _startMissedPass() {
+    final missed = [..._passMisses]..shuffle(_random);
+    final deck = _deckPool;
+    setState(() {
+      _passMisses.clear();
+      _rounds = [
+        for (final answer in missed)
+          _MatchRound(answer: answer, options: _optionsFor(answer, deck)),
+      ];
+      _roundIndex = 0;
+      _pickedIndex = null;
+    });
+    _syncKeyboardFocus();
   }
 
   Future<void> _finish() async {
@@ -499,7 +538,7 @@ class _PictureMatchScreenState extends State<PictureMatchScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 4, 16, 4),
+          padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
           child: Row(
             children: [
               IconButton(
@@ -507,35 +546,19 @@ class _PictureMatchScreenState extends State<PictureMatchScreen> {
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close),
               ),
-              Text(
-                'Score $_sessionScore',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColorPalette.textColor,
-                ),
-              ),
-              const Spacer(),
-              Text.rich(
-                TextSpan(
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColorPalette.textColor,
-                  ),
-                  children: [
-                    TextSpan(text: '$_correct correct - '),
-                    TextSpan(
-                      text: 'streak $_streak',
-                      style: _streak > 3
-                          ? TextStyle(
-                              color: Theme.of(context).primaryColor,
-                              fontWeight: FontWeight.w700,
-                            )
-                          : null,
+              Expanded(child: _buildAnswerTrail()),
+              if (_streak > 3)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text(
+                    'streak $_streak',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).primaryColor,
                     ),
-                  ],
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -592,6 +615,26 @@ class _PictureMatchScreenState extends State<PictureMatchScreen> {
     );
   }
 
+  Widget _buildAnswerTrail() {
+    if (_answered.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        // Index 0 sits on the right → newest chip first.
+        reverse: true,
+        itemCount: _answered.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 4),
+        itemBuilder: (context, i) {
+          final chip = _answered[_answered.length - 1 - i];
+          return _ResultMini(card: chip.card, correct: chip.correct);
+        },
+      ),
+    );
+  }
+
   _OptionState _optionState(_MatchRound round, int index) {
     final picked = _pickedIndex;
     if (picked == null) return _OptionState.idle;
@@ -630,7 +673,7 @@ class _PictureMatchScreenState extends State<PictureMatchScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '$_correct of ${_rounds.length} pictures matched',
+            '$_correct correct · $_misses misses',
             style: TextStyle(fontSize: 13, color: AppColorPalette.textColor),
           ),
           const SizedBox(height: AppUiSizes.md),
@@ -715,6 +758,48 @@ class _MatchPicture extends StatelessWidget {
           errorBuilder: (_, __, ___) => Icon(
             Icons.image_not_supported_outlined,
             color: AppColorPalette.textMuted,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tiny answer trail chip for the play top bar.
+class _ResultMini extends StatelessWidget {
+  const _ResultMini({required this.card, required this.correct});
+
+  final _MatchCard card;
+  final bool correct;
+
+  static const double _width = 22;
+
+  @override
+  Widget build(BuildContext context) {
+    final border = correct ? AppColorPalette.success : AppColorPalette.error;
+    final height = _width / CollectibleCardLayout.aspectRatio;
+    return Container(
+      width: _width,
+      height: height,
+      decoration: BoxDecoration(
+        border: Border.all(color: border, width: 1.5),
+        borderRadius: BorderRadius.circular(3),
+        color: Colors.white,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: RotatedBox(
+        quarterTurns: card.quarterTurns,
+        child: Image.asset(
+          card.imageAsset,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.low,
+          errorBuilder: (_, __, ___) => ColoredBox(
+            color: AppColorPalette.grey300,
+            child: Icon(
+              correct ? Icons.check : Icons.close,
+              size: 10,
+              color: border,
+            ),
           ),
         ),
       ),

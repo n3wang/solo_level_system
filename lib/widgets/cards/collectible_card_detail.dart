@@ -101,7 +101,7 @@ class _CollectibleCardDetailDialogState
   late final TextEditingController _descriptionEditorController;
   late String _currentDescription;
   late bool _isBookmarked;
-  bool _showDescription = false;
+  late bool _showDescription;
 
   CatalogCard get card => widget.card;
 
@@ -109,6 +109,8 @@ class _CollectibleCardDetailDialogState
   void initState() {
     super.initState();
     _isBookmarked = card.isBookmarked;
+    // Games (`forceRevealContents`) open on the description face; hub stays art-first.
+    _showDescription = widget.forceRevealContents;
     _phyEntries = _entriesFor(card);
     _currentEntry = _phyEntries.isNotEmpty
         ? _phyEntries.first

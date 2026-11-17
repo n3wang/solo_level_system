@@ -8,12 +8,14 @@ import 'package:solo_level_system/models/workout_set_model.dart';
 import 'package:solo_level_system/models/workout_set_category_model.dart';
 import 'package:solo_level_system/models/workout_routine_model.dart';
 import 'package:solo_level_system/screens/add_edit_routine_screen.dart';
+import 'package:solo_level_system/screens/add_edit_exercise_screen.dart';
 import 'package:solo_level_system/widgets/workout_icon_widget.dart';
 import 'package:solo_level_system/utils/workout_service.dart';
 import 'package:solo_level_system/utils/mini_games.dart';
 import 'package:solo_level_system/constants/color_palette.dart';
 import 'package:solo_level_system/constants/app_ui_sizes.dart';
 import 'package:solo_level_system/widgets/common/settings_slider.dart';
+import 'package:solo_level_system/widgets/common/centered_app_modal.dart';
 import 'package:solo_level_system/widgets/common/app_snack.dart';
 import 'package:solo_level_system/widgets/journal/journal_modal.dart';
 import 'package:solo_level_system/utils/journal_service.dart';
@@ -99,9 +101,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       setState(() {
         _currentExerciseIndex = _tabController.index;
         if (widget.exercises.isNotEmpty) {
-          _selectFirstIncompleteSet(
-            widget.exercises[_currentExerciseIndex].id,
-          );
+          _selectFirstIncompleteSet(widget.exercises[_currentExerciseIndex].id);
         }
       });
     }
@@ -474,7 +474,14 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildExerciseHeader(exercise),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildExerciseHeader(exercise)),
+              const SizedBox(width: 8),
+              _buildAddExerciseButton(),
+            ],
+          ),
           SizedBox(height: 24),
           _buildExerciseInstructions(exercise),
           SizedBox(height: 24),
@@ -484,14 +491,27 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     );
   }
 
+  Widget _buildAddExerciseButton() {
+    return Material(
+      color: AppColorPalette.color2.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: _showAddExerciseToSessionModal,
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: 48,
+          height: 92,
+          child: Icon(Icons.add, color: AppColorPalette.color2),
+        ),
+      ),
+    );
+  }
+
   Widget _buildExerciseHeader(ExerciseModel exercise) {
     final isCompleted = _allSetsCompleted(exercise);
-    final canSwitch = widget.exercises.length > 1;
 
     return Card(
-      color: isCompleted
-          ? AppColorPalette.color2.withValues(alpha: 0.1)
-          : null,
+      color: isCompleted ? AppColorPalette.color2.withValues(alpha: 0.1) : null,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: isCompleted
@@ -502,7 +522,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             : BorderSide.none,
       ),
       child: InkWell(
-        onTap: canSwitch ? _showSessionExercisePicker : null,
+        onTap: () => _editExercise(exercise),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: EdgeInsets.all(16),
@@ -591,27 +611,25 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                         fontSize: 14,
                       ),
                     ),
-                    if (canSwitch) ...[
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.swap_horiz,
-                            size: 14,
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 14,
+                          color: AppColorPalette.color2,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Tap to edit',
+                          style: TextStyle(
+                            fontSize: 12,
                             color: AppColorPalette.color2,
+                            fontWeight: FontWeight.w500,
                           ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Tap to switch exercise',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColorPalette.color2,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                     if (exercise.personalRecord != null) ...[
                       SizedBox(height: 4),
                       Text(
@@ -626,11 +644,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                   ],
                 ),
               ),
-              if (canSwitch)
-                Icon(
-                  Icons.expand_more,
-                  color: AppColorPalette.textSecondary,
-                ),
+              Icon(Icons.chevron_right, color: AppColorPalette.textSecondary),
             ],
           ),
         ),
@@ -707,11 +721,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
             _buildSetTableHeader(exercise),
             SizedBox(height: 4),
             ...sets.asMap().entries.map(
-              (entry) => _buildSelectableSetRow(
-                exercise,
-                entry.key,
-                entry.value,
-              ),
+              (entry) =>
+                  _buildSelectableSetRow(exercise, entry.key, entry.value),
             ),
             SizedBox(height: 12),
             SizedBox(
@@ -722,7 +733,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                   backgroundColor: AppColorPalette.color2,
                   foregroundColor: AppColorPalette.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+                    borderRadius: BorderRadius.circular(
+                      AppUiSizes.buttonRadius,
+                    ),
                   ),
                 ),
                 icon: Icon(Icons.add),
@@ -1018,10 +1031,8 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       );
     }
 
-    final exercise = widget.exercises[_currentExerciseIndex.clamp(
-      0,
-      widget.exercises.length - 1,
-    )];
+    final exercise = widget
+        .exercises[_currentExerciseIndex.clamp(0, widget.exercises.length - 1)];
     final exerciseDone = _allSetsCompleted(exercise);
     final workoutDone = widget.exercises.every(_allSetsCompleted);
 
@@ -1480,10 +1491,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
       );
     } catch (e) {
       if (!mounted) return;
-      showAppSnack(
-        context,
-        text: 'Error updating routine: $e',
-      );
+      showAppSnack(context, text: 'Error updating routine: $e');
     }
   }
 
@@ -1503,6 +1511,26 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
               if (i > 0) const SizedBox(width: 8),
               _buildExerciseSwapChip(i),
             ],
+            const SizedBox(width: 8),
+            Material(
+              color: AppColorPalette.color2.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+              child: InkWell(
+                onTap: _showAddExerciseToSessionModal,
+                borderRadius: BorderRadius.circular(AppUiSizes.buttonRadius),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: Icon(
+                    Icons.add,
+                    color: AppColorPalette.color2,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -1637,6 +1665,90 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
     }
   }
 
+  Future<void> _editExercise(ExerciseModel exercise) async {
+    final result = await AddEditExerciseScreen.showAsModal(
+      context,
+      exercise: exercise,
+    );
+    if (!mounted || result != true) return;
+
+    if (!Hive.isBoxOpen('exercises')) {
+      await Hive.openBox<ExerciseModel>('exercises');
+    }
+    if (!mounted) return;
+    final updated = Hive.box<ExerciseModel>('exercises').get(exercise.id);
+    if (updated == null) return;
+
+    final index = widget.exercises.indexWhere((e) => e.id == exercise.id);
+    if (index >= 0) {
+      widget.exercises[index] = updated;
+    }
+    setState(() {});
+  }
+
+  Future<void> _showAddExerciseToSessionModal() async {
+    final inSessionIds = widget.exercises.map((e) => e.id).toSet();
+    final picked = await showCenteredAppModal<ExerciseModel>(
+      context: context,
+      heightFraction: 0.78,
+      builder: (ctx) => _SessionAddExerciseModal(inSessionIds: inSessionIds),
+    );
+    if (picked == null || !mounted) return;
+    await _addExerciseToSession(picked);
+  }
+
+  Future<void> _addExerciseToSession(ExerciseModel exercise) async {
+    final existingIndex = widget.exercises.indexWhere(
+      (e) => e.id == exercise.id,
+    );
+    if (existingIndex >= 0) {
+      _goToExercise(existingIndex);
+      return;
+    }
+
+    if (!Hive.isBoxOpen('exercises')) {
+      await Hive.openBox<ExerciseModel>('exercises');
+    }
+    if (!mounted) return;
+    final refreshed =
+        Hive.box<ExerciseModel>('exercises').get(exercise.id) ?? exercise;
+
+    widget.exercises.add(refreshed);
+    _exerciseSets[refreshed.id] = WorkoutService.createSetsFromLastWorkout(
+      exercise: refreshed,
+      exerciseId: refreshed.id,
+    );
+    _completedSets[refreshed.id] = 0;
+    _fieldEpoch[refreshed.id] = 0;
+    _selectedSetIndex[refreshed.id] = 0;
+    _selectFirstIncompleteSet(refreshed.id);
+
+    final newIndex = widget.exercises.length - 1;
+    _rebuildTabController(goTo: newIndex);
+  }
+
+  void _rebuildTabController({required int goTo}) {
+    final old = _tabController;
+    if (!widget.sequentialMode) {
+      old.removeListener(_onTabChanged);
+    }
+    final length = widget.exercises.isEmpty ? 1 : widget.exercises.length;
+    final index = goTo.clamp(0, length - 1);
+    _currentExerciseIndex = index;
+    _tabController = TabController(
+      length: length,
+      vsync: this,
+      initialIndex: index,
+    );
+    if (!widget.sequentialMode) {
+      _tabController.addListener(_onTabChanged);
+    }
+    setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      old.dispose();
+    });
+  }
+
   void _showSessionExercisePicker() {
     if (widget.exercises.length <= 1) return;
 
@@ -1698,8 +1810,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                         final exercise = widget.exercises[index];
                         final isCurrent = index == _currentExerciseIndex;
                         final done = _allSetsCompleted(exercise);
-                        final completedSets =
-                            _completedSets[exercise.id] ?? 0;
+                        final completedSets = _completedSets[exercise.id] ?? 0;
                         final totalSets =
                             _exerciseSets[exercise.id]?.length ?? 0;
 
@@ -1709,9 +1820,7 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
                             backgroundColor: isCurrent
                                 ? AppColorPalette.color2
                                 : done
-                                ? AppColorPalette.color2.withValues(
-                                    alpha: 0.15,
-                                  )
+                                ? AppColorPalette.color2.withValues(alpha: 0.15)
                                 : AppColorPalette.grey200,
                             foregroundColor: isCurrent
                                 ? AppColorPalette.white
@@ -1958,8 +2067,9 @@ class _ActiveWorkoutSessionScreenState extends State<ActiveWorkoutSessionScreen>
         widget.session.additionalData['setCategoryId'] as String? ??
         widget.session.routineId;
     if (!Hive.isBoxOpen('workoutSetCategories')) return null;
-    for (final set
-        in Hive.box<WorkoutSetCategoryModel>('workoutSetCategories').values) {
+    for (final set in Hive.box<WorkoutSetCategoryModel>(
+      'workoutSetCategories',
+    ).values) {
       if (set.id == setId) {
         return AppColorPalette.colorToHex(
           AppColorPalette.colorForSetPosition(set.position),
@@ -2220,5 +2330,230 @@ class _ShortcutStepper extends StatelessWidget {
 
     if (tooltip == null) return button;
     return Tooltip(message: tooltip, child: button);
+  }
+}
+
+/// Search / create exercise picker used mid-session.
+class _SessionAddExerciseModal extends StatefulWidget {
+  final Set<String> inSessionIds;
+
+  const _SessionAddExerciseModal({required this.inSessionIds});
+
+  @override
+  State<_SessionAddExerciseModal> createState() =>
+      _SessionAddExerciseModalState();
+}
+
+class _SessionAddExerciseModalState extends State<_SessionAddExerciseModal> {
+  final _queryController = TextEditingController();
+  final _focusNode = FocusNode();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _queryController.addListener(() {
+      setState(() => _query = _queryController.text.trim());
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _queryController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  List<ExerciseModel> get _allExercises {
+    if (!Hive.isBoxOpen('exercises')) return const [];
+    final list =
+        Hive.box<ExerciseModel>(
+          'exercises',
+        ).values.where((e) => !e.isArchived).toList()..sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+    return list;
+  }
+
+  List<ExerciseModel> get _filtered {
+    final q = _query.toLowerCase();
+    if (q.isEmpty) return _allExercises.take(40).toList();
+    return _allExercises
+        .where((e) => e.name.toLowerCase().contains(q))
+        .take(40)
+        .toList();
+  }
+
+  bool get _canCreate {
+    if (_query.isEmpty) return false;
+    return !_allExercises.any(
+      (e) => e.name.toLowerCase().trim() == _query.toLowerCase(),
+    );
+  }
+
+  Future<void> _createOnSpot() async {
+    final name = _query;
+    if (name.isEmpty) return;
+    final box = await Hive.openBox<ExerciseModel>('exercises');
+    for (final existing in box.values) {
+      if (existing.name.toLowerCase().trim() == name.toLowerCase()) {
+        if (mounted) Navigator.pop(context, existing);
+        return;
+      }
+    }
+    final now = DateTime.now();
+    final exercise = ExerciseModel(
+      id: 'custom_exercise_${now.millisecondsSinceEpoch}',
+      name: name,
+      description: '',
+      category: 'strength',
+      muscleGroup: 'other',
+      equipment: 'other',
+      difficulty: 'beginner',
+      instructions: const [],
+      isCustom: true,
+      createdAt: now,
+      tags: const ['custom'],
+      measurementUnit: 'kg',
+    );
+    await box.put(exercise.id, exercise);
+    if (mounted) Navigator.pop(context, exercise);
+  }
+
+  Future<void> _createWithFullEditor() async {
+    final result = await AddEditExerciseScreen.showAsModal(
+      context,
+      nested: true,
+    );
+    if (!mounted || result != true) return;
+    // Best-effort: pick the most recently created custom exercise by name match
+    // or newest custom entry.
+    final box = Hive.box<ExerciseModel>('exercises');
+    ExerciseModel? newest;
+    for (final e in box.values) {
+      if (!e.isCustom) continue;
+      if (newest == null || e.createdAt.isAfter(newest.createdAt)) {
+        newest = e;
+      }
+    }
+    if (newest != null) Navigator.pop(context, newest);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = AppColorPalette.color2;
+    final filtered = _filtered;
+
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Add exercise',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColorPalette.grey800,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'New with details',
+                  onPressed: _createWithFullEditor,
+                  icon: Icon(Icons.note_add_outlined, color: accent),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              controller: _queryController,
+              focusNode: _focusNode,
+              decoration: InputDecoration(
+                hintText: 'Search or type a new name',
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
+                isDense: true,
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => _queryController.clear(),
+                      ),
+              ),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                if (_canCreate) {
+                  _createOnSpot();
+                } else if (filtered.isNotEmpty) {
+                  Navigator.pop(context, filtered.first);
+                }
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (_canCreate)
+            ListTile(
+              leading: Icon(Icons.add_circle_outline, color: accent),
+              title: Text(
+                'Create "$_query"',
+                style: TextStyle(fontWeight: FontWeight.w600, color: accent),
+              ),
+              subtitle: const Text('Add as a new custom exercise'),
+              onTap: _createOnSpot,
+            ),
+          Expanded(
+            child: filtered.isEmpty && !_canCreate
+                ? Center(
+                    child: Text(
+                      _query.isEmpty
+                          ? 'No exercises yet'
+                          : 'No matches — create "$_query" above',
+                      style: TextStyle(color: AppColorPalette.textSecondary),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final exercise = filtered[index];
+                      final inSession = widget.inSessionIds.contains(
+                        exercise.id,
+                      );
+                      return ListTile(
+                        leading: Icon(
+                          inSession
+                              ? Icons.check_circle_outline
+                              : Icons.fitness_center,
+                          color: inSession ? accent : null,
+                        ),
+                        title: Text(exercise.name),
+                        subtitle: Text(
+                          inSession
+                              ? 'Already in session · tap to jump'
+                              : '${exercise.muscleGroup} • ${exercise.equipment}',
+                        ),
+                        onTap: () => Navigator.pop(context, exercise),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 }
